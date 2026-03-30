@@ -9,7 +9,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const user = session?.user as any;
     
     // Allow HR, Super Admin to edit general details.
-    if (!user || (![&quot;super_admin&quot;, &quot;hr_manager&quot;].includes(user.role))) {
+    if (!user || (!["super_admin", "hr_manager"].includes(user.role))) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
