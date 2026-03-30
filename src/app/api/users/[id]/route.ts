@@ -9,7 +9,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const user = session?.user as any;
     
     // Allow HR, Super Admin to edit general details.
-    if (!user || (!["super_admin", "hr_manager"].includes(user.role))) {
+    if (!user || (![&quot;super_admin&quot;, &quot;hr_manager&quot;].includes(user.role))) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -43,6 +43,33 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     return NextResponse.json(updatedUser);
   } catch (error) {
     console.error("Error updating user:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+  try {
+    const session = await getServerSession(authOptions);
+    const user = session?.user as any;
+
+    if (!user || user.role !== "super_admin") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    const { id } = params;
+
+    // Prevent deleting yourself
+    if (id === user.id) {
+      return NextResponse.json({ error: "Cannot delete your own account" }, { status: 400 });
+    }
+
+    await prisma.user.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ message: "User deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting user:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

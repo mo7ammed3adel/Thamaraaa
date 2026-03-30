@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 
 export default function UserListClient({ initialUsers, managers }: { initialUsers: any[]; managers: any[] }) {
   const router = useRouter();
@@ -27,6 +27,9 @@ export default function UserListClient({ initialUsers, managers }: { initialUser
     status: "",
     level: "",
   });
+
+  // Delete confirmation state
+  const [deletingUser, setDeletingUser] = useState<any>(null);
 
   const [loading, setLoading] = useState(false);
 
@@ -86,6 +89,25 @@ export default function UserListClient({ initialUsers, managers }: { initialUser
     setLoading(false);
   };
 
+  const handleDelete = async () => {
+    if (!deletingUser) return;
+    setLoading(true);
+
+    const res = await fetch(`/api/users/${deletingUser.id}`, {
+      method: "DELETE",
+    });
+
+    if (res.ok) {
+      setUsers(users.filter(u => u.id !== deletingUser.id));
+      setDeletingUser(null);
+      router.refresh();
+    } else {
+      const data = await res.json();
+      alert(data.error || "Error deleting user");
+    }
+    setLoading(false);
+  };
+
   // Filter managers to matching role if possible (simplified: just list all fetched managers)
   const availableManagers = managers;
 
@@ -137,13 +159,22 @@ export default function UserListClient({ initialUsers, managers }: { initialUser
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                    <button 
-                      onClick={() => openEditModal(u)}
-                      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                      title="Edit User"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center justify-end gap-1">
+                      <button 
+                        onClick={() => openEditModal(u)}
+                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                        title="Edit User"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button 
+                        onClick={() => setDeletingUser(u)}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                        title="Delete User"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -294,6 +325,41 @@ export default function UserListClient({ initialUsers, managers }: { initialUser
             <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 shrink-0 bg-gray-50">
               <button type="button" onClick={() => setEditingUser(null)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg">Cancel</button>
               <button type="submit" form="editForm" disabled={loading} className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingUser && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
+            <div className="p-6 text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <Trash2 className="h-6 w-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Delete User</h3>
+              <p className="text-sm text-gray-500">
+                Are you sure you want to delete <span className="font-semibold text-gray-700">{deletingUser.name}</span>?
+                <br/>This action cannot be undone.
+              </p>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-center gap-3 bg-gray-50">
+              <button 
+                type="button" 
+                onClick={() => setDeletingUser(null)} 
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                onClick={handleDelete} 
+                disabled={loading}
+                className="px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+              >
+                {loading ? "Deleting..." : "Yes, Delete"}
+              </button>
             </div>
           </div>
         </div>
