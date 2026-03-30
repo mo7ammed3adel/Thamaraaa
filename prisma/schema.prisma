@@ -278,6 +278,7 @@ model LeaveRequest {
   duration  String?  // e.g. "1 Day", "2 Hours"
   status    String   @default("Pending") // Pending, Approved, Rejected
   reason    String?
+  feedbackNotes String?
   createdAt DateTime @default(now())
 }
 
