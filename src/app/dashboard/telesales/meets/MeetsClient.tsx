@@ -3,12 +3,16 @@ import { PhoneCall, Calendar, Handshake, DollarSign } from "lucide-react";
 
 interface Meeting {
   id: string;
-  meetingDate: string;
+  meetingDate: Date | string;
   meetingTime: string | null;
   status: string;
   salesNotes: string | null;
   summary: string | null;
   dealAmount: number | null;
+  createdAt: Date | string;
+  leadId: string;
+  teleAgentId: string;
+  salesAgentId: string | null;
   lead: {
     id: string;
     name: string;
