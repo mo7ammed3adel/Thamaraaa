@@ -1,0 +1,64 @@
+مفيش `.git` folder في المشروع، فمحتاج تعمل initialize الأول. دي الكوماندات بالترتيب:
+
+## 🔼 رفع المشروع (Push) - أول مرة
+
+افتح Terminal في فولدر المشروع `c:\thamara\Thamaraa CRM App\thamaraa-crm-app` وشغل الكوماندات دي بالترتيب:
+
+```bash
+# 1. Initialize git
+git init
+
+# 2. ربط الريبو بالـ GitHub
+git remote add origin https://github.com/mo7ammed3adel/Thamaraaa.git
+
+# 3. إضافة كل الملفات
+git add .
+
+# 4. عمل أول commit
+git commit -m "Initial commit - Thamaraa CRM App"
+
+# 5. رفع المشروع
+git push -u origin main
+```
+
+> **ملحوظة:** لو ظهرلك error في الـ push، جرب:
+> ```bash
+> git push -u origin main --force
+> ```
+
+---
+
+## 🔄 لما تعمل تعديلات وعايز ترفعها تاني
+
+```bash
+# 1. إضافة التعديلات
+git add .
+
+# 2. عمل commit بوصف التعديل
+git commit -m "وصف التعديل اللي عملته"
+
+# 3. رفع التعديلات
+git push
+```
+
+---
+
+## 🔽 تنزيل المشروع على جهاز تاني (Clone)
+
+```bash
+git clone https://github.com/mo7ammed3adel/Thamaraaa.git
+```
+
+---
+
+## 🔄 تحديث المشروع على الجهاز التاني (Pull)
+
+لو المشروع موجود عندك وعايز تجيب آخر تعديلات:
+
+```bash
+git pull origin main
+```
+
+---
+
+كده الكوماندات كلها بالترتيب! 🚀 لو حصل أي error وانت بتنفذ ابعتهولي وأساعدك.

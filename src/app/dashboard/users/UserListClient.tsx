@@ -1,0 +1,303 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Pencil } from "lucide-react";
+
+export default function UserListClient({ initialUsers, managers }: { initialUsers: any[]; managers: any[] }) {
+  const router = useRouter();
+  const [users, setUsers] = useState(initialUsers);
+  const [showModal, setShowModal] = useState(false);
+  
+  // Create User State
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    role: "sales_agent",
+    level: "Junior",
+    status: "Active",
+  });
+  
+  // Edit User State
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [editData, setEditData] = useState({
+    directManagerId: "",
+    status: "",
+    level: "",
+  });
+
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const res = await fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
+    });
+
+    if (res.ok) {
+      setShowModal(false);
+      setFormData({ name: "", email: "", phone: "", password: "", role: "sales_agent", level: "Junior", status: "Active" });
+      router.refresh(); 
+      const newUser = await res.json();
+      setUsers([newUser, ...users]);
+    } else {
+      alert("Error creating user");
+    }
+    setLoading(false);
+  };
+
+  const openEditModal = (user: any) => {
+    setEditingUser(user);
+    setEditData({
+      directManagerId: user.directManagerId || "",
+      status: user.status || "Active",
+      level: user.level || "Junior",
+    });
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const res = await fetch(`/api/users/${editingUser.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        directManagerId: editData.directManagerId === "" ? null : editData.directManagerId,
+        status: editData.status,
+        level: editData.level,
+      }),
+    });
+
+    if (res.ok) {
+      setEditingUser(null);
+      router.refresh(); 
+      const updatedUser = await res.json();
+      setUsers(users.map(u => u.id === updatedUser.id ? { ...u, ...updatedUser } : u));
+    } else {
+      alert("Error updating user");
+    }
+    setLoading(false);
+  };
+
+  // Filter managers to matching role if possible (simplified: just list all fetched managers)
+  const availableManagers = managers;
+
+  return (
+    <div>
+      <button 
+        onClick={() => setShowModal(true)}
+        className="mb-6 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm"
+      >
+        + Create New User
+      </button>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role & Level</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Direct Manager</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {users.map((u) => (
+                <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{u.name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {u.email}<br/><span className="text-xs text-gray-400">{u.phone || "—"}</span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
+                    {u.role.replace(/_/g, " ")} <br/>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mt-1">
+                      {u.level}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    {u.directManager ? (
+                      <span className="font-medium text-indigo-700">{u.directManager.name}</span>
+                    ) : (
+                      <span className="text-gray-400 italic">Unassigned</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${u.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {u.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                    <button 
+                      onClick={() => openEditModal(u)}
+                      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                      title="Edit User"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Create Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center shrink-0">
+              <h3 className="text-lg font-bold text-gray-900">Create New User</h3>
+              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">&times;</button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              <form id="createForm" onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                    <input required type="text" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+                    <input required type="password" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                    <input required type="email" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                    <input type="text" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Role *</label>
+                    <select className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
+                      <option value="super_admin">Super Admin</option>
+                      <option value="hr_manager">HR Manager</option>
+                      <option value="accountant">Accountant</option>
+                      <optgroup label="Tele Sales">
+                        <option value="tele_sales_manager">Tele Sales Manager</option>
+                        <option value="tele_sales_agent">Tele Sales Agent</option>
+                      </optgroup>
+                      <optgroup label="Sales">
+                        <option value="cheif_sales">Chief Sales</option>
+                        <option value="sales_manager">Sales Manager</option>
+                        <option value="sales_agent">Sales Agent</option>
+                      </optgroup>
+                      <optgroup label="Operations & Technical">
+                        <option value="head_account_manager">Head Account Manager</option>
+                        <option value="account_manager">Account Manager</option>
+                        <option value="head_technical">Head Technical</option>
+                      </optgroup>
+                      <optgroup label="SEO Team">
+                        <option value="head_seo">Head SEO</option>
+                        <option value="team_leader_seo">Team Leader SEO</option>
+                        <option value="agent_seo">Agent SEO</option>
+                        <option value="agent_content_seo">Agent Content SEO</option>
+                      </optgroup>
+                      <optgroup label="Media Buyer Team">
+                        <option value="team_leader_media_buyer">Team Leader Media</option>
+                        <option value="agent_media_buyer">Agent Media Buyer</option>
+                      </optgroup>
+                      <optgroup label="Social Media Team">
+                        <option value="team_leader_social_media">Team Leader Social</option>
+                        <option value="agent_social_media">Agent Social Media</option>
+                      </optgroup>
+                      <optgroup label="Design & Media">
+                        <option value="leader_graphic_desginer">Leader Graphic Design</option>
+                        <option value="agent_graphic_desginer">Agent Graphic Design</option>
+                        <option value="leader_motion_graphic">Leader Motion Graphic</option>
+                        <option value="agent_motion_graphic">Agent Motion Graphic</option>
+                        <option value="leader_ui">Leader UI/UX</option>
+                        <option value="agent_ui">Agent UI/UX</option>
+                      </optgroup>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Level *</label>
+                    <select className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value={formData.level} onChange={e => setFormData({...formData, level: e.target.value})}>
+                      <option value="Intern">Intern</option>
+                      <option value="Junior">Junior</option>
+                      <option value="Mid">Mid</option>
+                      <option value="Senior">Senior</option>
+                    </select>
+                  </div>
+                </div>
+              </form>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 shrink-0 bg-gray-50">
+              <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg">Cancel</button>
+              <button type="submit" form="createForm" disabled={loading} className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">Save User</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editingUser && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center shrink-0">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Edit User</h3>
+                <p className="text-xs text-gray-500">{editingUser.name} ({editingUser.role.replace(/_/g, " ")})</p>
+              </div>
+              <button onClick={() => setEditingUser(null)} className="text-gray-400 hover:text-gray-600">&times;</button>
+            </div>
+            <div className="p-6">
+              <form id="editForm" onSubmit={handleEditSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Direct Manager</label>
+                  <p className="text-xs text-gray-500 mb-2">Assign this employee to a line manager.</p>
+                  <select 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm font-medium" 
+                    value={editData.directManagerId} 
+                    onChange={e => setEditData({...editData, directManagerId: e.target.value})}
+                  >
+                    <option value="">-- No Direct Manager --</option>
+                    {availableManagers.map(m => (
+                      <option key={m.id} value={m.id}>{m.name} ({m.role.replace(/_/g, " ")})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 pt-2">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" value={editData.status} onChange={e => setEditData({...editData, status: e.target.value})}>
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
+                    <select className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" value={editData.level} onChange={e => setEditData({...editData, level: e.target.value})}>
+                      <option value="Intern">Intern</option>
+                      <option value="Junior">Junior</option>
+                      <option value="Mid">Mid</option>
+                      <option value="Senior">Senior</option>
+                    </select>
+                  </div>
+                </div>
+              </form>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 shrink-0 bg-gray-50">
+              <button type="button" onClick={() => setEditingUser(null)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg">Cancel</button>
+              <button type="submit" form="editForm" disabled={loading} className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

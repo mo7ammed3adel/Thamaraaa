@@ -1,0 +1,83 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import bcrypt from "bcrypt";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
+export async function POST(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if ((session?.user as any)?.role !== "super_admin" && (session?.user as any)?.role !== "hr_manager") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    const data = await req.json();
+    
+    // Check if user already exists
+    const existing = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: data.email },
+          data.phone ? { phone: data.phone } : {}
+        ]
+      }
+    });
+
+    if (existing) {
+      return NextResponse.json({ error: "User already exists with this email or phone" }, { status: 400 });
+    }
+
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+
+    let assignedManagerId = null;
+
+    // Smart Manager Assignment (Load Balancing)
+    if (data.role === "tele_sales_agent") {
+      const managers = await prisma.user.findMany({
+        where: { role: "tele_sales_manager", status: "Active" },
+        include: { _count: { select: { subordinates: true } } },
+        orderBy: { subordinates: { _count: "asc" } },
+      });
+      if (managers.length > 0) {
+        assignedManagerId = managers[0].id;
+      }
+    } else if (data.role === "sales_agent") {
+      const managers = await prisma.user.findMany({
+        where: { role: "sales_manager", status: "Active" },
+        include: { _count: { select: { subordinates: true } } },
+        orderBy: { subordinates: { _count: "asc" } },
+      });
+      if (managers.length > 0) {
+        assignedManagerId = managers[0].id;
+      }
+    }
+
+    const user = await prisma.user.create({
+      data: {
+        name: data.name,
+        email: data.email,
+        phone: data.phone || null,
+        passwordHash: hashedPassword,
+        role: data.role,
+        level: data.level,
+        status: data.status,
+        directManagerId: assignedManagerId, // Automatically link
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        level: true,
+        status: true,
+        createdAt: true,
+      }
+    });
+
+    return NextResponse.json(user, { status: 201 });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}

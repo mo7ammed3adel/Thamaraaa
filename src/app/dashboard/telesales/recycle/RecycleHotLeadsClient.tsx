@@ -1,0 +1,183 @@
+"use client";
+import { useState } from "react";
+import { RotateCcw, CheckSquare, Square, Users } from "lucide-react";
+
+interface Lead {
+  id: string;
+  name: string;
+  phone: string;
+  classification: string;
+  status: string;
+  createdAt: string;
+  teleAgent: { name: string } | null;
+  salesAgent: { name: string } | null;
+  callLogs: { notes: string; createdAt: string }[];
+  meetings: { status: string; salesAgent: { name: string } | null; createdAt: string }[];
+}
+
+interface Agent {
+  id: string;
+  name: string;
+}
+
+export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: { leads: Lead[]; agents: Agent[] }) {
+  const [leads, setLeads] = useState(initialLeads);
+  const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
+  const [selectedAgent, setSelectedAgent] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const toggleSelect = (id: string) => {
+    const next = new Set(selectedLeads);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedLeads(next);
+  };
+
+  const selectAll = () => {
+    if (selectedLeads.size === leads.length) {
+      setSelectedLeads(new Set());
+    } else {
+      setSelectedLeads(new Set(leads.map(l => l.id)));
+    }
+  };
+
+  const handleRedistribute = async () => {
+    if (!selectedAgent) return alert("Select an agent to assign");
+    if (selectedLeads.size === 0) return alert("Select at least one lead");
+
+    setLoading(true);
+    try {
+      const promises = Array.from(selectedLeads).map(leadId =>
+        fetch(`/api/leads/${leadId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status: "New",
+            assignedTeleAgentId: selectedAgent,
+            notes: "Recycled from lost leads",
+          }),
+        })
+      );
+      await Promise.all(promises);
+      // Remove redistributed leads from local state
+      setLeads(leads.filter(l => !selectedLeads.has(l.id)));
+      setSelectedLeads(new Set());
+      setSelectedAgent("");
+    } catch {
+      alert("Failed to redistribute leads");
+    }
+    setLoading(false);
+  };
+
+  const hotLeads = leads.filter(l => l.classification === "Hot");
+  const warmLeads = leads.filter(l => l.classification === "Warm");
+  const coldLeads = leads.filter(l => l.classification === "Cold");
+
+  return (
+    <div className="space-y-6">
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+          <p className="text-2xl font-bold text-red-600">{hotLeads.length}</p>
+          <p className="text-xs text-red-500 font-medium">🔥 Hot Lost Leads</p>
+        </div>
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <p className="text-2xl font-bold text-amber-600">{warmLeads.length}</p>
+          <p className="text-xs text-amber-500 font-medium">☀️ Warm Lost Leads</p>
+        </div>
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <p className="text-2xl font-bold text-blue-600">{coldLeads.length}</p>
+          <p className="text-xs text-blue-500 font-medium">❄️ Cold Lost Leads</p>
+        </div>
+      </div>
+
+      {/* Bulk Actions */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm flex flex-wrap gap-4 items-end">
+        <div className="flex items-center gap-3">
+          <Users className="h-5 w-5 text-gray-400" />
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Assign to Agent</label>
+            <select
+              value={selectedAgent}
+              onChange={(e) => setSelectedAgent(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 min-w-[200px]"
+            >
+              <option value="">Select Agent...</option>
+              {agents.map(a => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <button
+          onClick={handleRedistribute}
+          disabled={loading || selectedLeads.size === 0 || !selectedAgent}
+          className="px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-sm"
+        >
+          <RotateCcw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          {loading ? "Redistributing..." : `Redistribute (${selectedLeads.size})`}
+        </button>
+        <span className="text-xs text-gray-400 self-center">
+          {selectedLeads.size} of {leads.length} selected
+        </span>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left">
+                  <button onClick={selectAll} className="text-gray-400 hover:text-gray-600">
+                    {selectedLeads.size === leads.length && leads.length > 0 ? <CheckSquare className="h-4 w-4 text-blue-600" /> : <Square className="h-4 w-4" />}
+                  </button>
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Client</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Classification</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Previous Tele Agent</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Previous Sales Agent</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Notes</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date Lost</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {leads.map((lead) => (
+                <tr key={lead.id} className={`hover:bg-gray-50 transition-colors ${selectedLeads.has(lead.id) ? "bg-blue-50" : ""}`}>
+                  <td className="px-4 py-4">
+                    <button onClick={() => toggleSelect(lead.id)} className="text-gray-400 hover:text-gray-600">
+                      {selectedLeads.has(lead.id) ? <CheckSquare className="h-4 w-4 text-blue-600" /> : <Square className="h-4 w-4" />}
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{lead.name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono">{lead.phone}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      lead.classification === "Hot" ? "bg-red-100 text-red-700" :
+                      lead.classification === "Warm" ? "bg-amber-100 text-amber-700" :
+                      "bg-blue-100 text-blue-700"
+                    }`}>
+                      {lead.classification === "Hot" ? "🔥" : lead.classification === "Warm" ? "☀️" : "❄️"} {lead.classification}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{lead.teleAgent?.name || "—"}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{lead.salesAgent?.name || "—"}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500 max-w-xs">
+                    <p className="line-clamp-2 text-red-600">{lead.callLogs[0]?.notes || "No notes"}</p>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-400">
+                    {lead.callLogs[0] ? new Date(lead.callLogs[0].createdAt).toLocaleDateString("en-GB") : "—"}
+                  </td>
+                </tr>
+              ))}
+              {leads.length === 0 && (
+                <tr><td colSpan={8} className="px-6 py-8 text-center text-sm text-gray-500">No lost leads to recycle. 🎉</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
