@@ -37,14 +37,24 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
   });
 
   const toggleStatus = async () => {
+    if (status === "In_Call") return;
     const newStatus = status === "Active" ? "Busy" : "Active";
     setStatus(newStatus);
-    alert(`Status changed to ${newStatus}`);
+    await fetch(`/api/users/${userId}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStatus })
+    });
   };
 
-  const startTask = (lead: any) => {
-    setStatus("Busy");
+  const startTask = async (lead: any) => {
+    setStatus("In_Call");
     setActiveLead(lead);
+    await fetch(`/api/users/${userId}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "In_Call" })
+    });
   };
 
   const endTask = () => {
@@ -56,29 +66,33 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     if (feedback.outcome === "won") {
       setShowFeedbackForm(false);
       setShowClosingForm(true);
-    } else if (feedback.outcome === "followup") {
-      await fetch("/api/leads/" + activeLead.id, {
-        method: "PATCH",
-        body: JSON.stringify({ status: "Follow_Up", followUpDate: feedback.followUpDate, notes: feedback.notes })
-      });
-      setShowFeedbackForm(false);
-      setActiveLead(null);
-      router.refresh();
-    } else if (feedback.outcome === "reschedule") {
-      await fetch("/api/leads/" + activeLead.id, {
+    } else {
+      if (feedback.outcome === "followup") {
+        await fetch("/api/leads/" + activeLead.id, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "Follow_Up", followUpDate: feedback.followUpDate, notes: feedback.notes })
+        });
+      } else if (feedback.outcome === "reschedule") {
+        await fetch("/api/leads/" + activeLead.id, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "Rescheduled", meetingDate: feedback.meetingDate, meetingTime: feedback.meetingTime, notes: feedback.notes })
+        });
+      } else {
+        await fetch("/api/leads/" + activeLead.id, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "Closed_Lost", notes: feedback.notes })
+        });
+      }
+      
+      await fetch(`/api/users/${userId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "Rescheduled", meetingDate: feedback.meetingDate, meetingTime: feedback.meetingTime, notes: feedback.notes })
+        body: JSON.stringify({ status: "Active" })
       });
-      setShowFeedbackForm(false);
-      setActiveLead(null);
-      router.refresh();
-    } else {
-      // Mark as lost/recycle
-      await fetch("/api/leads/" + activeLead.id, {
-        method: "PATCH",
-        body: JSON.stringify({ status: "Closed_Lost", notes: feedback.notes })
-      });
+      setStatus("Active");
       setShowFeedbackForm(false);
       setActiveLead(null);
       router.refresh();
@@ -107,9 +121,15 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         ...dealData
       })
     });
+    
+    await fetch(`/api/users/${userId}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "Active" })
+    });
+    setStatus("Active");
     setShowClosingForm(false);
     setActiveLead(null);
-    setStatus("Active");
     router.refresh();
   };
 
@@ -126,13 +146,13 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
           <h2 className="text-sm font-semibold text-gray-500 uppercase">My Status</h2>
           <div className="flex items-center mt-2">
             <span className="relative flex h-3 w-3 mr-2">
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status === "Active" ? "bg-green-400" : "bg-red-400"}`}></span>
-              <span className={`relative inline-flex rounded-full h-3 w-3 ${status === "Active" ? "bg-green-500" : "bg-red-500"}`}></span>
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status === "Active" ? "bg-green-400" : status === "In_Call" ? "bg-red-400" : "bg-yellow-400"}`}></span>
+              <span className={`relative inline-flex rounded-full h-3 w-3 ${status === "Active" ? "bg-green-500" : status === "In_Call" ? "bg-red-500" : "bg-yellow-500"}`}></span>
             </span>
-            <span className="font-bold text-gray-900">{status}</span>
+            <span className="font-bold text-gray-900">{status.replace("_", " ")}</span>
           </div>
         </div>
-        <button onClick={toggleStatus} className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition">
+        <button onClick={toggleStatus} disabled={status === "In_Call"} className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition disabled:opacity-50">
           Toggle Status
         </button>
       </div>

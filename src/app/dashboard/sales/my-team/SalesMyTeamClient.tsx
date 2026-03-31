@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Users, Flame, Snowflake, Sun } from "lucide-react";
 
@@ -33,6 +33,17 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
   const router = useRouter();
   const [agents, setAgents] = useState(initialAgents);
   const [loading, setLoading] = useState<string | null>(null);
+
+  useEffect(() => {
+    setAgents(initialAgents);
+  }, [initialAgents]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      router.refresh();
+    }, 20000);
+    return () => clearInterval(interval);
+  }, [router]);
 
   const updateSpecialization = async (agentId: string, spec: string | null) => {
     setLoading(agentId);
@@ -154,10 +165,18 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        agent.status === "Active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"
+                        agent.status === "Active" ? "bg-green-100 text-green-800" :
+                        agent.status === "In_Call" ? "bg-red-100 text-red-800" :
+                        agent.status === "Busy" ? "bg-yellow-100 text-yellow-800" :
+                        "bg-gray-100 text-gray-600"
                       }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${agent.status === "Active" ? "bg-green-500" : "bg-gray-400"}`} />
-                        {agent.status}
+                        <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                          agent.status === "Active" ? "bg-green-500" :
+                          agent.status === "In_Call" ? "bg-red-500" :
+                          agent.status === "Busy" ? "bg-yellow-500" :
+                          "bg-gray-400"
+                        }`} />
+                        {agent.status.replace("_", " ")}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
