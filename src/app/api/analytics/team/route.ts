@@ -102,7 +102,7 @@ export async function GET(req: Request) {
     for (const log of callLogs) {
       if (analyticsMap[log.agentId]) {
         analyticsMap[log.agentId].totalCalls++;
-        if (log.callStatus === "Meeting Booked") {
+        if (log.callStatus === "Accept and book meeting") {
           analyticsMap[log.agentId].meetingsBooked++;
         }
       }

@@ -178,10 +178,7 @@ export default function DealsClient({ userRole }: { userRole: string }) {
                   {/* Call Logs */}
                   {selectedDeal.lead.callLogs.map((log) => (
                     <div key={log.id} className="relative">
-                      <div className={`absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 border-white ${
-                        log.callStatus === "Meeting Booked" ? "bg-green-500" :
-                        log.callStatus === "Answered" ? "bg-blue-400" : "bg-gray-400"
-                      }`} />
+                        log.callStatus === "Accept and book meeting" ? "bg-green-500" :
                       <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
                         <div className="flex items-center gap-2 mb-1">
                           <PhoneCall className="h-3 w-3 text-gray-500" />

@@ -31,10 +31,35 @@ const specIcons: Record<string, any> = {
   Cold: Snowflake,
 };
 
-export default function MyTeamClient({ agents: initialAgents }: { agents: Agent[] }) {
+export default function MyTeamClient({ 
+  agents: initialAgents, 
+  initialFrom = "", 
+  initialTo = "" 
+}: { 
+  agents: Agent[], 
+  initialFrom?: string, 
+  initialTo?: string 
+}) {
   const router = useRouter();
   const [agents, setAgents] = useState(initialAgents);
   const [loading, setLoading] = useState<string | null>(null);
+  const [fromDate, setFromDate] = useState(initialFrom);
+  const [toDate, setToDate] = useState(initialTo);
+  const [filterSpec, setFilterSpec] = useState<string>("All"); // All, Hot, Warm, Cold
+  const [sortBy, setSortBy] = useState<string>("name"); // name, leads, calls, meetings, transferred
+
+  const applyDateFilter = () => {
+    const params = new URLSearchParams();
+    if (fromDate) params.set("from", fromDate);
+    if (toDate) params.set("to", toDate);
+    router.push(`/dashboard/telesales/my-team?${params.toString()}`);
+  };
+
+  const clearDateFilter = () => {
+    setFromDate("");
+    setToDate("");
+    router.push(`/dashboard/telesales/my-team`);
+  };
 
   const updateSpecialization = async (agentId: string, spec: string | null) => {
     setLoading(agentId);
@@ -61,32 +86,91 @@ export default function MyTeamClient({ agents: initialAgents }: { agents: Agent[
   const coldCount = agents.filter(a => a.specialization === "Cold").length;
   const unassignedCount = agents.filter(a => !a.specialization).length;
 
+  let displayAgents = [...agents];
+  if (filterSpec !== "All") {
+    displayAgents = displayAgents.filter(a => a.specialization === filterSpec);
+  }
+
+  displayAgents.sort((a, b) => {
+    if (sortBy === "leads") return b._count.teleSalesLeads - a._count.teleSalesLeads;
+    if (sortBy === "calls") return b._count.callLogs - a._count.callLogs;
+    if (sortBy === "meetings") return b._count.meetingsAsTele - a._count.meetingsAsTele;
+    if (sortBy === "transferred") return b.transferredCount - a.transferredCount;
+    return a.name.localeCompare(b.name);
+  });
+
   return (
     <div className="space-y-6">
+      {/* Date Filter */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm flex flex-wrap gap-4 items-end">
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">From Date</label>
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">To Date</label>
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+        <button
+          onClick={applyDateFilter}
+          className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors font-medium"
+        >
+          Apply
+        </button>
+        <button
+          onClick={clearDateFilter}
+          className="px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium"
+        >
+          Reset Filter
+        </button>
+      </div>
+
       {/* KPI Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-lg">
+        <div 
+          onClick={() => setSortBy(sortBy === "leads" ? "name" : "leads")}
+          className={`cursor-pointer bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-lg transition-transform hover:scale-[1.02] ${sortBy === "leads" ? "ring-4 ring-blue-300" : ""}`}
+        >
           <div className="flex items-center gap-2 mb-2">
             <BarChart3 className="h-5 w-5 opacity-80" />
             <span className="text-xs font-semibold uppercase opacity-80">Total Leads</span>
           </div>
           <p className="text-3xl font-bold">{agents.reduce((s, a) => s + a._count.teleSalesLeads, 0)}</p>
         </div>
-        <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl p-4 text-white shadow-lg">
+        <div 
+          onClick={() => setSortBy(sortBy === "calls" ? "name" : "calls")}
+          className={`cursor-pointer bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl p-4 text-white shadow-lg transition-transform hover:scale-[1.02] ${sortBy === "calls" ? "ring-4 ring-indigo-300" : ""}`}
+        >
           <div className="flex items-center gap-2 mb-2">
             <PhoneCall className="h-5 w-5 opacity-80" />
             <span className="text-xs font-semibold uppercase opacity-80">Total Calls</span>
           </div>
           <p className="text-3xl font-bold">{agents.reduce((s, a) => s + a._count.callLogs, 0)}</p>
         </div>
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white shadow-lg">
+        <div 
+          onClick={() => setSortBy(sortBy === "meetings" ? "name" : "meetings")}
+          className={`cursor-pointer bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white shadow-lg transition-transform hover:scale-[1.02] ${sortBy === "meetings" ? "ring-4 ring-purple-300" : ""}`}
+        >
           <div className="flex items-center gap-2 mb-2">
             <Calendar className="h-5 w-5 opacity-80" />
             <span className="text-xs font-semibold uppercase opacity-80">Meetings Booked</span>
           </div>
           <p className="text-3xl font-bold">{agents.reduce((s, a) => s + a._count.meetingsAsTele, 0)}</p>
         </div>
-        <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-4 text-white shadow-lg">
+        <div 
+          onClick={() => setSortBy(sortBy === "transferred" ? "name" : "transferred")}
+          className={`cursor-pointer bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-4 text-white shadow-lg transition-transform hover:scale-[1.02] ${sortBy === "transferred" ? "ring-4 ring-emerald-300" : ""}`}
+        >
           <div className="flex items-center gap-2 mb-2">
             <ArrowRightLeft className="h-5 w-5 opacity-80" />
             <span className="text-xs font-semibold uppercase opacity-80">Transferred</span>
@@ -97,7 +181,10 @@ export default function MyTeamClient({ agents: initialAgents }: { agents: Agent[
 
       {/* Specialization Breakdown */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+        <div 
+          onClick={() => setFilterSpec("All")}
+          className={`cursor-pointer bg-white rounded-xl border p-4 shadow-sm transition-all hover:border-slate-400 ${filterSpec === "All" ? "ring-2 ring-slate-400" : "border-gray-200"}`}
+        >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-slate-100 rounded-lg">
               <Users className="h-5 w-5 text-slate-600" />
@@ -108,7 +195,10 @@ export default function MyTeamClient({ agents: initialAgents }: { agents: Agent[
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-red-100 p-4 shadow-sm">
+        <div 
+          onClick={() => setFilterSpec("Hot")}
+          className={`cursor-pointer bg-white rounded-xl border p-4 shadow-sm transition-all hover:border-red-400 ${filterSpec === "Hot" ? "ring-2 ring-red-400" : "border-red-100"}`}
+        >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-red-50 rounded-lg">
               <Flame className="h-5 w-5 text-red-500" />
@@ -119,7 +209,10 @@ export default function MyTeamClient({ agents: initialAgents }: { agents: Agent[
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-amber-100 p-4 shadow-sm">
+        <div 
+          onClick={() => setFilterSpec("Warm")}
+          className={`cursor-pointer bg-white rounded-xl border p-4 shadow-sm transition-all hover:border-amber-400 ${filterSpec === "Warm" ? "ring-2 ring-amber-400" : "border-amber-100"}`}
+        >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-amber-50 rounded-lg">
               <Sun className="h-5 w-5 text-amber-500" />
@@ -130,7 +223,10 @@ export default function MyTeamClient({ agents: initialAgents }: { agents: Agent[
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-blue-100 p-4 shadow-sm">
+        <div 
+          onClick={() => setFilterSpec("Cold")}
+          className={`cursor-pointer bg-white rounded-xl border p-4 shadow-sm transition-all hover:border-blue-400 ${filterSpec === "Cold" ? "ring-2 ring-blue-400" : "border-blue-100"}`}
+        >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-50 rounded-lg">
               <Snowflake className="h-5 w-5 text-blue-500" />
@@ -159,7 +255,7 @@ export default function MyTeamClient({ agents: initialAgents }: { agents: Agent[
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {agents.map((agent) => {
+              {displayAgents.map((agent) => {
                 const SpecIcon = agent.specialization ? specIcons[agent.specialization] : null;
                 return (
                   <tr key={agent.id} className="hover:bg-gray-50 transition-colors">
@@ -212,7 +308,7 @@ export default function MyTeamClient({ agents: initialAgents }: { agents: Agent[
                   </tr>
                 );
               })}
-              {agents.length === 0 && (
+              {displayAgents.length === 0 && (
                 <tr><td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500">No agents found under your management.</td></tr>
               )}
             </tbody>
