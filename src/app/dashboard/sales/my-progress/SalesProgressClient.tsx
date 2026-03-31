@@ -136,13 +136,22 @@ export default function SalesProgressClient() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl p-4 text-white shadow-lg">
           <div className="flex items-center gap-2 mb-2">
             <Briefcase className="h-5 w-5 opacity-80" />
             <span className="text-xs font-semibold uppercase opacity-80">Total Leads</span>
           </div>
           <p className="text-3xl font-bold">{data.totalLeads}</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl p-4 text-white shadow-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <Calendar className="h-5 w-5 opacity-80" />
+            <span className="text-xs font-semibold uppercase opacity-80">Meetings</span>
+          </div>
+          {/* Include Deals Won/Lost as implicitly attended meetings if meeting status isn't manually tracked */}
+          <p className="text-3xl font-bold">{Math.max(data.meetings.length, data.dealsWon + data.dealsLost)}</p>
         </div>
 
         <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-4 text-white shadow-lg">
