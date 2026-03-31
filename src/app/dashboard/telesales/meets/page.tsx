@@ -29,7 +29,21 @@ export default async function MeetsPage() {
           classification: true,
           source: true,
           status: true,
+          createdAt: true,
           salesAgent: { select: { name: true } },
+          teleAgent: { select: { name: true, id: true } },
+          callLogs: {
+            orderBy: { createdAt: "asc" },
+            select: { id: true, callStatus: true, notes: true, createdAt: true, classification: true, agent: { select: { name: true } } },
+          },
+          meetings: {
+            orderBy: { meetingDate: "asc" },
+            select: { id: true, meetingDate: true, meetingTime: true, status: true, salesNotes: true, summary: true, teleAgent: { select: { name: true } }, salesAgent: { select: { name: true } } },
+          },
+          deals: {
+            orderBy: { createdAt: "asc" },
+            select: { id: true, totalAmount: true, package: true, paymentMethod: true, status: true, createdAt: true, contractStart: true, contractEnd: true, salesAgent: { select: { name: true } }, installments: { select: { id: true, amount: true, dueDate: true, isPaid: true } } },
+          },
         },
       },
       teleAgent: { select: { name: true } },
