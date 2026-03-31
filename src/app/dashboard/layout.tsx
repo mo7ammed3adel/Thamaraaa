@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { User, Settings, PhoneCall, Briefcase, ListTodo, LogOut, Upload, RotateCcw, Users, BarChart3, Calendar, Handshake } from "lucide-react";
+import { User, Settings, PhoneCall, Briefcase, ListTodo, LogOut, Upload, RotateCcw, Users, BarChart3, Calendar, Handshake, TrendingUp } from "lucide-react";
 import LogoutButton from "@/components/LogoutButton";
 import NotificationBell from "@/components/NotificationBell";
 
@@ -74,10 +74,16 @@ export default async function DashboardLayout({
                 </>
               )}
               {role === "tele_sales_agent" && (
-                <Link href="/dashboard/telesales/meets" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
-                  <Calendar className="mr-3 h-5 w-5 opacity-75" />
-                  Meets
-                </Link>
+                <>
+                  <Link href="/dashboard/telesales/meets" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
+                    <Calendar className="mr-3 h-5 w-5 opacity-75" />
+                    Meets
+                  </Link>
+                  <Link href="/dashboard/telesales/my-progress" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
+                    <TrendingUp className="mr-3 h-5 w-5 opacity-75" />
+                    My Progress
+                  </Link>
+                </>
               )}
             </>
           )}
@@ -101,9 +107,25 @@ export default async function DashboardLayout({
                 Opportunities
               </Link>
               {(role === "super_admin" || role === "sales_manager") && (
-                <Link href="/dashboard/sales/recycle-bin" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
-                  <RotateCcw className="mr-3 h-5 w-5 opacity-75" />
-                  Recycle Bin
+                <>
+                  <Link href="/dashboard/sales/my-team" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
+                    <Users className="mr-3 h-5 w-5 opacity-75" />
+                    My Team
+                  </Link>
+                  <Link href="/dashboard/sales/analytics" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
+                    <BarChart3 className="mr-3 h-5 w-5 opacity-75" />
+                    Team Analytics
+                  </Link>
+                  <Link href="/dashboard/sales/recycle-bin" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
+                    <RotateCcw className="mr-3 h-5 w-5 opacity-75" />
+                    Recycle Bin
+                  </Link>
+                </>
+              )}
+              {role === "sales_agent" && (
+                <Link href="/dashboard/sales/my-progress" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
+                  <TrendingUp className="mr-3 h-5 w-5 opacity-75" />
+                  My Progress
                 </Link>
               )}
             </>

@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 export default function SalesClient({ initialLeads, userRole, userId, initialStatus }: { initialLeads: any[], userRole: string, userId: string, initialStatus: string }) {
   const router = useRouter();
   const [leads, setLeads] = useState(initialLeads);
   const [status, setStatus] = useState(initialStatus);
   const [activeLead, setActiveLead] = useState<any>(null);
+  const [expandedLead, setExpandedLead] = useState<string | null>(null);
   
   // Deal closing form
   const [showClosingForm, setShowClosingForm] = useState(false);
@@ -36,7 +38,6 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
 
   const toggleStatus = async () => {
     const newStatus = status === "Active" ? "Busy" : "Active";
-    // Setup generic user status API route later, directly mutating for UI
     setStatus(newStatus);
     alert(`Status changed to ${newStatus}`);
   };
@@ -112,6 +113,12 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     router.refresh();
   };
 
+  const classColor = (cls: string) => {
+    if (cls === "Hot") return "bg-red-100 text-red-700";
+    if (cls === "Warm") return "bg-amber-100 text-amber-700";
+    return "bg-blue-100 text-blue-700";
+  };
+
   return (
     <div>
       <div className="mb-6 flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
@@ -135,38 +142,90 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lead</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone & Source</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Classification</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TeleSales Agent</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Meeting Time</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Telesales Notes</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Note</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {leads.map((l) => (
-              <tr key={l.id} className={`${activeLead?.id === l.id ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{l.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <span className="px-2 py-0.5 rounded text-xs bg-orange-100 text-orange-800 font-medium">{l.classification}</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {l.meetings?.[0]?.meetingDate ? new Date(l.meetings[0].meetingDate).toLocaleDateString() : (l.meetingDate ? new Date(l.meetingDate).toLocaleDateString() : "N/A")} 
-                  <br/>
-                  <span className="text-xs text-blue-600 font-medium">{l.meetings?.[0]?.meetingTime || l.meetingTime || ""}</span>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-600 max-w-xs break-words">
-                  {l.callLogs?.[0]?.notes || <span className="text-gray-400 italic">No notes provided</span>}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                  {activeLead?.id === l.id ? (
-                    <button onClick={endTask} className="px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700">End Task</button>
-                  ) : (
-                    <button onClick={() => startTask(l)} disabled={!!activeLead} className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 disabled:opacity-50">Start Task</button>
-                  )}
-                </td>
-              </tr>
+              <>
+                <tr key={l.id} className={`${activeLead?.id === l.id ? 'bg-blue-50' : 'hover:bg-gray-50'} transition-colors`}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <p className="text-sm font-medium text-gray-900">{l.name}</p>
+                    {l.customerType && <p className="text-xs text-gray-400">{l.customerType}</p>}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <p className="text-sm text-gray-700 font-medium">{l.phone}</p>
+                    <p className="text-xs text-gray-400">{l.source || "Unknown"}</p>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${classColor(l.classification)}`}>{l.classification}</span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    {l.teleAgent?.name || <span className="text-gray-400 italic">—</span>}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {l.meetings?.[0]?.meetingDate ? new Date(l.meetings[0].meetingDate).toLocaleDateString() : (l.meetingDate ? new Date(l.meetingDate).toLocaleDateString() : "N/A")} 
+                    <br/>
+                    <span className="text-xs text-blue-600 font-medium">{l.meetings?.[0]?.meetingTime || l.meetingTime || ""}</span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600 max-w-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate max-w-[180px]">{l.callLogs?.[0]?.notes || <span className="text-gray-400 italic">No notes</span>}</span>
+                      {l.callLogs && l.callLogs.length > 0 && (
+                        <button
+                          onClick={() => setExpandedLead(expandedLead === l.id ? null : l.id)}
+                          className="text-blue-500 hover:text-blue-700 shrink-0"
+                          title="View all call logs"
+                        >
+                          {expandedLead === l.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                    {activeLead?.id === l.id ? (
+                      <button onClick={endTask} className="px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700">End Task</button>
+                    ) : (
+                      <button onClick={() => startTask(l)} disabled={!!activeLead} className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 disabled:opacity-50">Start Task</button>
+                    )}
+                  </td>
+                </tr>
+                {/* Expanded Call Logs */}
+                {expandedLead === l.id && l.callLogs && l.callLogs.length > 0 && (
+                  <tr key={`${l.id}-logs`}>
+                    <td colSpan={7} className="px-6 py-3 bg-slate-50">
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">TeleSales Call History ({l.callLogs.length} calls)</p>
+                        {l.callLogs.map((log: any, idx: number) => (
+                          <div key={log.id || idx} className="flex items-start gap-3 p-3 bg-white rounded-lg border border-gray-100 text-sm">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                                  log.callStatus === "Accept and book meeting" ? "bg-green-100 text-green-700" :
+                                  log.callStatus === "Accept but lost" ? "bg-orange-100 text-orange-700" :
+                                  log.callStatus === "Busy" ? "bg-yellow-100 text-yellow-700" :
+                                  "bg-gray-100 text-gray-600"
+                                }`}>{log.callStatus}</span>
+                                {log.agent?.name && <span className="text-xs text-gray-400">by {log.agent.name}</span>}
+                              </div>
+                              <p className="text-xs text-gray-600 mt-1">{log.notes}</p>
+                            </div>
+                            <span className="text-xs text-gray-400 whitespace-nowrap">{new Date(log.createdAt).toLocaleDateString("en-GB")}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </>
             ))}
             {leads.length === 0 && (
-              <tr><td colSpan={4} className="px-6 py-8 text-center text-sm text-gray-500">No active leads in queue.</td></tr>
+              <tr><td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500">No active leads in queue.</td></tr>
             )}
           </tbody>
         </table>
@@ -179,7 +238,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
             <form onSubmit={submitFeedback} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Outcome</label>
-                <div className="flex gap-4">
+                <div className="flex gap-4 flex-wrap">
                   <label className="flex items-center gap-2">
                     <input type="radio" checked={feedback.outcome === "won"} onChange={() => setFeedback({...feedback, outcome: "won"})} /> Won! Deal Closing
                   </label>

@@ -21,9 +21,12 @@ export default async function SalesWorkspacePage() {
     where: whereClause,
     orderBy: { createdAt: "asc" },
     include: {
+      teleAgent: { select: { name: true } },
       callLogs: {
         orderBy: { createdAt: "desc" },
-        take: 1
+        include: {
+          agent: { select: { name: true } }
+        }
       },
       meetings: {
         orderBy: { createdAt: "desc" },
