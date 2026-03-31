@@ -32,11 +32,34 @@ export default async function SalesMyTeamPage() {
         select: {
           salesLeads: true,
           salesDeals: true,
+          meetingsAsSales: true,
         },
+      },
+      salesDeals: {
+        select: { totalAmount: true, status: true },
+      },
+      salesLeads: {
+        where: { status: "Closed_Lost" },
+        select: { id: true },
       },
     },
     orderBy: { name: "asc" },
   });
+
+  // Flatten for client
+  const agentsWithKPI = agents.map(a => ({
+    id: a.id,
+    name: a.name,
+    email: a.email,
+    phone: a.phone,
+    specialization: a.specialization,
+    status: a.status,
+    level: a.level,
+    _count: a._count,
+    lostCount: a.salesLeads.length,
+    revenue: a.salesDeals.reduce((sum, d) => sum + (d.totalAmount || 0), 0),
+    dealsWonCount: a.salesDeals.filter(d => d.status === "Closed_Won" || d.status === "Pending").length,
+  }));
 
   return (
     <div>
@@ -44,7 +67,7 @@ export default async function SalesMyTeamPage() {
       <p className="text-sm text-gray-500 mb-6">
         Manage your sales agents — assign specializations and monitor closed deals and active leads.
       </p>
-      <SalesMyTeamClient agents={agents} />
+      <SalesMyTeamClient agents={agentsWithKPI as any} />
     </div>
   );
 }

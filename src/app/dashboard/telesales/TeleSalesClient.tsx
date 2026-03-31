@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Pencil, Check, PhoneCall, CheckCircle2, PhoneOff, XCircle } from "lucide-react";
+import { Plus, X, Pencil, Check, PhoneCall, CheckCircle2, PhoneOff, XCircle, CalendarDays } from "lucide-react";
 
 interface CustomColumn {
   id: string;
@@ -45,6 +45,8 @@ export default function TeleSalesClient({
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterClass, setFilterClass] = useState("All");
   const [filterDate, setFilterDate] = useState("All");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
   const [logFilter, setLogFilter] = useState("All");
 
   const isManager = userRole === "tele_sales_manager" || userRole === "super_admin";
@@ -179,6 +181,21 @@ export default function TeleSalesClient({
     return val?.value || "";
   };
 
+  // Date range helper
+  const getDateRange = useMemo(() => {
+    const now = new Date();
+    const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const ranges: Record<string, { from: Date; to: Date }> = {
+      Today: { from: startOfDay(now), to: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59) },
+      Yesterday: (() => { const y = new Date(now); y.setDate(y.getDate() - 1); return { from: startOfDay(y), to: new Date(y.getFullYear(), y.getMonth(), y.getDate(), 23, 59, 59) }; })(),
+      "This Week": (() => { const d = new Date(now); d.setDate(d.getDate() - d.getDay()); return { from: startOfDay(d), to: now }; })(),
+      "This Month": { from: new Date(now.getFullYear(), now.getMonth(), 1), to: now },
+      "Last 7 Days": (() => { const d = new Date(now); d.setDate(d.getDate() - 7); return { from: startOfDay(d), to: now }; })(),
+      "Last 30 Days": (() => { const d = new Date(now); d.setDate(d.getDate() - 30); return { from: startOfDay(d), to: now }; })(),
+    };
+    return ranges;
+  }, []);
+
   // Apply filters
   const filteredLeads = leads.filter((l) => {
     if (filterStatus !== "All" && l.status !== filterStatus) return false;
@@ -186,13 +203,18 @@ export default function TeleSalesClient({
 
     if (filterDate !== "All") {
       const leadDate = new Date(l.createdAt);
-      const today = new Date();
-      if (filterDate === "Today") {
-        if (leadDate.toDateString() !== today.toDateString()) return false;
-      } else if (filterDate === "Yesterday") {
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        if (leadDate.toDateString() !== yesterday.toDateString()) return false;
+      if (filterDate === "Custom") {
+        if (customFrom && leadDate < new Date(customFrom)) return false;
+        if (customTo) {
+          const toEnd = new Date(customTo);
+          toEnd.setHours(23, 59, 59);
+          if (leadDate > toEnd) return false;
+        }
+      } else {
+        const range = getDateRange[filterDate];
+        if (range) {
+          if (leadDate < range.from || leadDate > range.to) return false;
+        }
       }
     }
 
@@ -270,9 +292,9 @@ export default function TeleSalesClient({
         </div>
       </div>
 
-      {/* Filters + Add Column (Visible to Manager/Admin) */}
-      {isManager && (
-        <div className="mb-6 p-4 bg-white rounded-xl shadow-sm border border-gray-200 flex flex-wrap gap-4 items-end">
+      {/* Filters (Visible to ALL roles) */}
+      <div className="mb-6 p-4 bg-white rounded-xl shadow-sm border border-gray-200 space-y-3">
+        <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Status</label>
             <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="border rounded-md px-3 py-1.5 text-sm">
@@ -294,44 +316,63 @@ export default function TeleSalesClient({
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Date</label>
-            <select value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="border rounded-md px-3 py-1.5 text-sm">
+            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" /> Date</label>
+            <select value={filterDate} onChange={(e) => { setFilterDate(e.target.value); if (e.target.value !== "Custom") { setCustomFrom(""); setCustomTo(""); } }} className="border rounded-md px-3 py-1.5 text-sm">
               <option value="All">All time</option>
               <option value="Today">Today</option>
               <option value="Yesterday">Yesterday</option>
+              <option value="This Week">This Week</option>
+              <option value="This Month">This Month</option>
+              <option value="Last 7 Days">Last 7 Days</option>
+              <option value="Last 30 Days">Last 30 Days</option>
+              <option value="Custom">Custom Range...</option>
             </select>
           </div>
+          {filterDate === "Custom" && (
+            <>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">From</label>
+                <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">To</label>
+                <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </>
+          )}
           <div className="ml-auto flex items-center gap-3">
             <span className="text-sm text-gray-500">
               Showing <span className="font-bold text-gray-900">{filteredLeads.length}</span> leads
             </span>
-            {/* Add Column Button */}
-            {showAddColumn ? (
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={newColumnName}
-                  onChange={(e) => setNewColumnName(e.target.value)}
-                  placeholder="Column name..."
-                  className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-40"
-                  autoFocus
-                  onKeyDown={(e) => e.key === "Enter" && handleAddColumn()}
-                />
-                <button onClick={handleAddColumn} disabled={addingColumn} className="p-1.5 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50">
-                  <Check className="h-4 w-4" />
+            {/* Add Column Button (Manager only) */}
+            {isManager && (
+              showAddColumn ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newColumnName}
+                    onChange={(e) => setNewColumnName(e.target.value)}
+                    placeholder="Column name..."
+                    className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-40"
+                    autoFocus
+                    onKeyDown={(e) => e.key === "Enter" && handleAddColumn()}
+                  />
+                  <button onClick={handleAddColumn} disabled={addingColumn} className="p-1.5 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50">
+                    <Check className="h-4 w-4" />
+                  </button>
+                  <button onClick={() => { setShowAddColumn(false); setNewColumnName(""); }} className="p-1.5 bg-gray-200 text-gray-600 rounded-md hover:bg-gray-300">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => setShowAddColumn(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-md hover:bg-blue-700 transition-colors shadow-sm">
+                  <Plus className="h-3.5 w-3.5" /> Add Column
                 </button>
-                <button onClick={() => { setShowAddColumn(false); setNewColumnName(""); }} className="p-1.5 bg-gray-200 text-gray-600 rounded-md hover:bg-gray-300">
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ) : (
-              <button onClick={() => setShowAddColumn(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-md hover:bg-blue-700 transition-colors shadow-sm">
-                <Plus className="h-3.5 w-3.5" /> Add Column
-              </button>
+              )
             )}
           </div>
         </div>
-      )}
+      </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">

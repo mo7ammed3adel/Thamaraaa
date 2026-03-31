@@ -32,11 +32,23 @@ export default async function MyTeamPage() {
         select: {
           teleSalesLeads: true,
           callLogs: true,
+          meetingsAsTele: true,
         },
+      },
+      teleSalesLeads: {
+        where: { status: "Transferred" },
+        select: { id: true },
       },
     },
     orderBy: { name: "asc" },
   });
+
+  // Flatten the data for the client
+  const agentsWithKPI = agents.map(a => ({
+    ...a,
+    transferredCount: a.teleSalesLeads.length,
+    teleSalesLeads: undefined, // don't send full leads array
+  }));
 
   return (
     <div>
@@ -44,7 +56,7 @@ export default async function MyTeamPage() {
       <p className="text-sm text-gray-500 mb-6">
         Manage your tele-sales agents — assign specializations and monitor team members.
       </p>
-      <MyTeamClient agents={agents} />
+      <MyTeamClient agents={agentsWithKPI as any} />
     </div>
   );
 }

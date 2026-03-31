@@ -242,6 +242,7 @@ model Notification {
   user      User     @relation(fields: [userId], references: [id])
   title     String
   message   String
+  type      String?  // lead_assigned, meeting_update, deal_closed, etc.
   read      Boolean  @default(false)
   link      String?
   createdAt DateTime @default(now())

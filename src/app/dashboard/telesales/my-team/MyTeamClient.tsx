@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Users, Flame, Snowflake, Sun } from "lucide-react";
+import { Users, Flame, Snowflake, Sun, PhoneCall, Calendar, ArrowRightLeft, BarChart3 } from "lucide-react";
 
 interface Agent {
   id: string;
@@ -11,9 +11,11 @@ interface Agent {
   specialization: string | null;
   status: string;
   level: string | null;
+  transferredCount: number;
   _count: {
     teleSalesLeads: number;
     callLogs: number;
+    meetingsAsTele: number;
   };
 }
 
@@ -61,7 +63,39 @@ export default function MyTeamClient({ agents: initialAgents }: { agents: Agent[
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
+      {/* KPI Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <BarChart3 className="h-5 w-5 opacity-80" />
+            <span className="text-xs font-semibold uppercase opacity-80">Total Leads</span>
+          </div>
+          <p className="text-3xl font-bold">{agents.reduce((s, a) => s + a._count.teleSalesLeads, 0)}</p>
+        </div>
+        <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl p-4 text-white shadow-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <PhoneCall className="h-5 w-5 opacity-80" />
+            <span className="text-xs font-semibold uppercase opacity-80">Total Calls</span>
+          </div>
+          <p className="text-3xl font-bold">{agents.reduce((s, a) => s + a._count.callLogs, 0)}</p>
+        </div>
+        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white shadow-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <Calendar className="h-5 w-5 opacity-80" />
+            <span className="text-xs font-semibold uppercase opacity-80">Meetings Booked</span>
+          </div>
+          <p className="text-3xl font-bold">{agents.reduce((s, a) => s + a._count.meetingsAsTele, 0)}</p>
+        </div>
+        <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-4 text-white shadow-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <ArrowRightLeft className="h-5 w-5 opacity-80" />
+            <span className="text-xs font-semibold uppercase opacity-80">Transferred</span>
+          </div>
+          <p className="text-3xl font-bold">{agents.reduce((s, a) => s + (a.transferredCount || 0), 0)}</p>
+        </div>
+      </div>
+
+      {/* Specialization Breakdown */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
           <div className="flex items-center gap-3">

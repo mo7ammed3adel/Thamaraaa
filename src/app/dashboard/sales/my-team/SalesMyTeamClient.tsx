@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Users, Flame, Snowflake, Sun } from "lucide-react";
+import { Users, Flame, Snowflake, Sun, Handshake, XCircle, DollarSign, Briefcase } from "lucide-react";
 
 interface Agent {
   id: string;
@@ -11,9 +11,13 @@ interface Agent {
   specialization: string | null;
   status: string;
   level: string | null;
+  lostCount: number;
+  revenue: number;
+  dealsWonCount: number;
   _count: {
     salesLeads: number;
     salesDeals: number;
+    meetingsAsSales: number;
   };
 }
 
@@ -72,7 +76,39 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
+      {/* KPI Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl p-4 text-white shadow-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <Briefcase className="h-5 w-5 opacity-80" />
+            <span className="text-xs font-semibold uppercase opacity-80">Total Leads</span>
+          </div>
+          <p className="text-3xl font-bold">{agents.reduce((s, a) => s + a._count.salesLeads, 0)}</p>
+        </div>
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 text-white shadow-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <Handshake className="h-5 w-5 opacity-80" />
+            <span className="text-xs font-semibold uppercase opacity-80">Deals Won</span>
+          </div>
+          <p className="text-3xl font-bold">{agents.reduce((s, a) => s + (a.dealsWonCount || 0), 0)}</p>
+        </div>
+        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-4 text-white shadow-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <XCircle className="h-5 w-5 opacity-80" />
+            <span className="text-xs font-semibold uppercase opacity-80">Deals Lost</span>
+          </div>
+          <p className="text-3xl font-bold">{agents.reduce((s, a) => s + (a.lostCount || 0), 0)}</p>
+        </div>
+        <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-4 text-white shadow-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <DollarSign className="h-5 w-5 opacity-80" />
+            <span className="text-xs font-semibold uppercase opacity-80">Total Revenue</span>
+          </div>
+          <p className="text-3xl font-bold">{agents.reduce((s, a) => s + (a.revenue || 0), 0).toLocaleString()} <span className="text-sm font-normal opacity-80">SAR</span></p>
+        </div>
+      </div>
+
+      {/* Specialization Breakdown */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
           <div className="flex items-center gap-3">
