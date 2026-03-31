@@ -29,6 +29,7 @@ export default async function MeetsPage() {
           classification: true,
           source: true,
           status: true,
+          salesAgent: { select: { name: true } },
         },
       },
       teleAgent: { select: { name: true } },
