@@ -18,7 +18,7 @@ export const authOptions: NextAuthOptions = {
         try {
           user = await prisma.user.findFirst({
             where: {
-              OR: [{ email: credentials.email }, { phone: credentials.email }],
+              OR: [{ email: credentials.email.trim() }, { phone: credentials.email.trim() }],
             },
           });
         } catch (dbError) {
