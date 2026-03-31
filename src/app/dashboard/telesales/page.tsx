@@ -16,9 +16,12 @@ export default async function TeleSalesPage() {
 
   const leads = await prisma.lead.findMany({
     where: whereClause,
-    orderBy: { createdAt: "desc" },
     include: {
-      teleAgent: { select: { name: true } }
+      teleAgent: { select: { name: true } },
+      callLogs: {
+        orderBy: { createdAt: "desc" },
+        take: 1
+      }
     }
   });
 

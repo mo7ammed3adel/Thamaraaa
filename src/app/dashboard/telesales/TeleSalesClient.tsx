@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Pencil, Check } from "lucide-react";
+import { Plus, X, Pencil, Check, PhoneCall, CheckCircle2, PhoneOff, XCircle } from "lucide-react";
 
 interface CustomColumn {
   id: string;
@@ -45,6 +45,7 @@ export default function TeleSalesClient({
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterClass, setFilterClass] = useState("All");
   const [filterDate, setFilterDate] = useState("All");
+  const [logFilter, setLogFilter] = useState("All");
 
   const isManager = userRole === "tele_sales_manager" || userRole === "super_admin";
 
@@ -195,11 +196,68 @@ export default function TeleSalesClient({
       }
     }
 
+    if (logFilter !== "All") {
+      const lastLog = l.callLogs?.[0]?.callStatus;
+      if (lastLog !== logFilter) return false;
+    }
+
     return true;
   });
 
+  const totalCount = leads.length;
+  const acceptLostCount = leads.filter(l => l.callLogs?.[0]?.callStatus === "Accept but lost").length;
+  const acceptBookCount = leads.filter(l => l.callLogs?.[0]?.callStatus === "Accept and book meeting").length;
+  const busyCount = leads.filter(l => l.callLogs?.[0]?.callStatus === "Busy").length;
+
   return (
-    <div>
+    <div className="space-y-6">
+      {/* Workspace Summary Filters */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div 
+          onClick={() => setLogFilter(logFilter === "All" ? "All" : "All")} 
+          className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "All" ? "border-blue-500 bg-blue-50" : "border-transparent bg-white hover:bg-gray-50"}`}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <PhoneCall className="h-5 w-5 text-blue-500" />
+            <span className="text-xs font-bold uppercase text-gray-500">Total Leads</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-900">{totalCount}</p>
+        </div>
+
+        <div 
+          onClick={() => setLogFilter(logFilter === "Accept and book meeting" ? "All" : "Accept and book meeting")} 
+          className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Accept and book meeting" ? "border-green-500 bg-green-50" : "border-transparent bg-white hover:bg-gray-50"}`}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <CheckCircle2 className="h-5 w-5 text-green-500" />
+            <span className="text-xs font-bold uppercase text-gray-500">Accept & Booked</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-900">{acceptBookCount}</p>
+        </div>
+
+        <div 
+          onClick={() => setLogFilter(logFilter === "Accept but lost" ? "All" : "Accept but lost")} 
+          className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Accept but lost" ? "border-orange-500 bg-orange-50" : "border-transparent bg-white hover:bg-gray-50"}`}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <XCircle className="h-5 w-5 text-orange-500" />
+            <span className="text-xs font-bold uppercase text-gray-500">Accept But Lost</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-900">{acceptLostCount}</p>
+        </div>
+
+        <div 
+          onClick={() => setLogFilter(logFilter === "Busy" ? "All" : "Busy")} 
+          className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Busy" ? "border-slate-500 bg-slate-50" : "border-transparent bg-white hover:bg-gray-50"}`}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <PhoneOff className="h-5 w-5 text-slate-500" />
+            <span className="text-xs font-bold uppercase text-gray-500">Busy</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-900">{busyCount}</p>
+        </div>
+      </div>
+
       {/* Filters + Add Column (Visible to Manager/Admin) */}
       {isManager && (
         <div className="mb-6 p-4 bg-white rounded-xl shadow-sm border border-gray-200 flex flex-wrap gap-4 items-end">

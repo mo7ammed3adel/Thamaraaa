@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, PhoneCall, CheckCircle2, PhoneOff, XCircle } from "lucide-react";
 
 export default function SalesClient({ initialLeads, userRole, userId, initialStatus }: { initialLeads: any[], userRole: string, userId: string, initialStatus: string }) {
   const router = useRouter();
@@ -10,6 +10,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
   const [status, setStatus] = useState(initialStatus);
   const [activeLead, setActiveLead] = useState<any>(null);
   const [expandedLead, setExpandedLead] = useState<string | null>(null);
+  const [logFilter, setLogFilter] = useState("All");
   
   // Deal closing form
   const [showClosingForm, setShowClosingForm] = useState(false);
@@ -157,6 +158,53 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         </button>
       </div>
 
+      {/* Workspace Summary Filters */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div 
+          onClick={() => setLogFilter(logFilter === "All" ? "All" : "All")} 
+          className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "All" ? "border-blue-500 bg-blue-50" : "border-transparent bg-white hover:bg-gray-50"}`}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <PhoneCall className="h-5 w-5 text-blue-500" />
+            <span className="text-xs font-bold uppercase text-gray-500">Total Leads</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-900">{leads.length}</p>
+        </div>
+
+        <div 
+          onClick={() => setLogFilter(logFilter === "Accept and book meeting" ? "All" : "Accept and book meeting")} 
+          className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Accept and book meeting" ? "border-green-500 bg-green-50" : "border-transparent bg-white hover:bg-gray-50"}`}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <CheckCircle2 className="h-5 w-5 text-green-500" />
+            <span className="text-xs font-bold uppercase text-gray-500">Accept & Booked</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-900">{leads.filter(l => l.callLogs?.[0]?.callStatus === "Accept and book meeting").length}</p>
+        </div>
+
+        <div 
+          onClick={() => setLogFilter(logFilter === "Accept but lost" ? "All" : "Accept but lost")} 
+          className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Accept but lost" ? "border-orange-500 bg-orange-50" : "border-transparent bg-white hover:bg-gray-50"}`}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <XCircle className="h-5 w-5 text-orange-500" />
+            <span className="text-xs font-bold uppercase text-gray-500">Accept But Lost</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-900">{leads.filter(l => l.callLogs?.[0]?.callStatus === "Accept but lost").length}</p>
+        </div>
+
+        <div 
+          onClick={() => setLogFilter(logFilter === "Busy" ? "All" : "Busy")} 
+          className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Busy" ? "border-slate-500 bg-slate-50" : "border-transparent bg-white hover:bg-gray-50"}`}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <PhoneOff className="h-5 w-5 text-slate-500" />
+            <span className="text-xs font-bold uppercase text-gray-500">Busy</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-900">{leads.filter(l => l.callLogs?.[0]?.callStatus === "Busy").length}</p>
+        </div>
+      </div>
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -171,7 +219,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {leads.map((l) => (
+            {leads.filter(l => logFilter === "All" || l.callLogs?.[0]?.callStatus === logFilter).map((l) => (
               <>
                 <tr key={l.id} className={`${activeLead?.id === l.id ? 'bg-blue-50' : 'hover:bg-gray-50'} transition-colors`}>
                   <td className="px-6 py-4 whitespace-nowrap">
