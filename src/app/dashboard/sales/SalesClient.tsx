@@ -166,7 +166,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         >
           <div className="flex items-center gap-2 mb-2">
             <PhoneCall className="h-5 w-5 text-blue-500" />
-            <span className="text-xs font-bold uppercase text-gray-500">Total Leads</span>
+            <span className="text-xs font-bold uppercase text-gray-500">Total Meets</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{leads.length}</p>
         </div>

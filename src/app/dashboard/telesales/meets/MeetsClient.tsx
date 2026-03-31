@@ -100,7 +100,7 @@ export default function MeetsClient({
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Classification</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Source</th>
-                {!isAgent && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tele Agent</th>}
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tele Agent</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sales Agent</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date & Time</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
@@ -122,7 +122,7 @@ export default function MeetsClient({
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{m.lead.source || "—"}</td>
-                  {!isAgent && <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{m.teleAgent.name}</td>}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{m.teleAgent.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{m.salesAgent?.name || "—"}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                     {new Date(m.meetingDate).toLocaleDateString("en-GB")}

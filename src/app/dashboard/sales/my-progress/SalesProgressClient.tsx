@@ -105,6 +105,7 @@ export default function SalesProgressClient() {
   const wonDeals = data.deals.filter(d => d.status === "Closed_Won" || d.status === "Pending");
   const lostDeals = data.deals.filter(d => d.status === "Closed_Lost");
   const totalMeetings = Math.max(data.meetings.length, data.dealsWon + data.dealsLost);
+  const conversionRate = totalMeetings > 0 ? ((data.dealsWon / totalMeetings) * 100).toFixed(1) : "0.0";
 
   return (
     <div className="space-y-6">
@@ -144,7 +145,7 @@ export default function SalesProgressClient() {
       </div>
 
       {/* Summary Cards - all clickable */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {/* Total Leads */}
         <div
           onClick={() => toggleDrill("leads")}
@@ -219,6 +220,17 @@ export default function SalesProgressClient() {
             <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "revenue" ? "rotate-180" : ""}`} />
           </div>
           <p className="text-3xl font-bold">{data.revenue.toLocaleString()}</p>
+        </div>
+
+        {/* Conversion Rate */}
+        <div className="rounded-xl p-4 text-white shadow-lg bg-gradient-to-br from-cyan-500 to-cyan-600">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 opacity-80" />
+              <span className="text-xs font-semibold uppercase opacity-80">Conv. Rate</span>
+            </div>
+          </div>
+          <p className="text-3xl font-bold">{conversionRate}%</p>
         </div>
       </div>
 

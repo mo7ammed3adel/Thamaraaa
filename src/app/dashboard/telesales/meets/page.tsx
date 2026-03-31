@@ -41,7 +41,7 @@ export default async function MeetsPage() {
   if (isAgent) {
     const totalCalls = await prisma.callLog.count({ where: { agentId } });
     const meetingsSet = await prisma.callLog.count({
-      where: { agentId, callStatus: "Meeting Booked" },
+      where: { agentId, callStatus: "Accept and book meeting" },
     });
     const dealsCount = await prisma.deal.count({
       where: { lead: { assignedTeleAgentId: agentId }, status: "Closed_Won" },

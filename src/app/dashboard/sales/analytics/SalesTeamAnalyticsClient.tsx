@@ -105,6 +105,9 @@ export default function SalesTeamAnalyticsClient() {
     }),
     { leads: 0, meetings: 0, won: 0, lost: 0, revenue: 0 }
   );
+  
+  const totalMeetingsCalc = Math.max(totals.meetings, totals.won + totals.lost);
+  const conversionRate = totalMeetingsCalc > 0 ? ((totals.won / totalMeetingsCalc) * 100).toFixed(1) : "0.0";
 
   return (
     <div className="space-y-6">
@@ -137,7 +140,7 @@ export default function SalesTeamAnalyticsClient() {
       </div>
 
       {/* Summary Cards - clickable */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <div
           onClick={() => toggleDrill("leads")}
           className={`cursor-pointer rounded-xl p-4 text-white shadow-lg transition-all hover:scale-[1.02] ${drillDown === "leads" ? "ring-4 ring-slate-300" : ""} bg-gradient-to-br from-slate-600 to-slate-700`}
@@ -206,6 +209,17 @@ export default function SalesTeamAnalyticsClient() {
             <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "revenue" ? "rotate-180" : ""}`} />
           </div>
           <p className="text-3xl font-bold">{totals.revenue.toLocaleString()}</p>
+        </div>
+
+        {/* Conversion Rate */}
+        <div className="rounded-xl p-4 text-white shadow-lg bg-gradient-to-br from-cyan-500 to-cyan-600">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 opacity-80" />
+              <span className="text-xs font-semibold uppercase opacity-80">Conv. Rate</span>
+            </div>
+          </div>
+          <p className="text-3xl font-bold">{conversionRate}%</p>
         </div>
       </div>
 
