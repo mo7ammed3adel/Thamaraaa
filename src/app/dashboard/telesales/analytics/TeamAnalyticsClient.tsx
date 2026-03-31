@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { PhoneCall, Calendar, Handshake, DollarSign, X, Clock, TrendingUp } from "lucide-react";
+import { PhoneCall, Calendar, Handshake, DollarSign, X, Clock, TrendingUp, ChevronDown } from "lucide-react";
 
 interface AgentAnalytics {
   id: string;
@@ -22,6 +22,8 @@ interface AgentDetail {
   deals: any[];
 }
 
+type DrillDown = "calls" | "meetings" | "attended" | "deals" | "revenue" | null;
+
 export default function TeamAnalyticsClient() {
   const [analytics, setAnalytics] = useState<AgentAnalytics[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +31,9 @@ export default function TeamAnalyticsClient() {
   const [toDate, setToDate] = useState("");
   const [selectedAgent, setSelectedAgent] = useState<AgentDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [drillDown, setDrillDown] = useState<DrillDown>(null);
+  const [drillData, setDrillData] = useState<any[]>([]);
+  const [drillLoading, setDrillLoading] = useState(false);
 
   const fetchAnalytics = useCallback(async () => {
     setLoading(true);
@@ -64,6 +69,29 @@ export default function TeamAnalyticsClient() {
       console.error("Failed to fetch agent details");
     }
     setDetailLoading(false);
+  };
+
+  const toggleDrill = async (type: DrillDown) => {
+    if (drillDown === type) {
+      setDrillDown(null);
+      setDrillData([]);
+      return;
+    }
+    setDrillDown(type);
+    setDrillLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (fromDate) params.set("from", fromDate);
+      if (toDate) params.set("to", toDate);
+      if (type) params.set("drillDown", type);
+      const res = await fetch(`/api/analytics/team/drill?${params.toString()}`);
+      if (res.ok) {
+        setDrillData(await res.json());
+      }
+    } catch {
+      console.error("Failed to fetch drill-down data");
+    }
+    setDrillLoading(false);
   };
 
   const totals = analytics.reduce(
@@ -107,44 +135,182 @@ export default function TeamAnalyticsClient() {
         </button>
       </div>
 
-      {/* Summary Cards */}
+      {/* Summary Cards - clickable */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <PhoneCall className="h-5 w-5 opacity-80" />
-            <span className="text-xs font-semibold uppercase opacity-80">Total Calls</span>
+        <div
+          onClick={() => toggleDrill("calls")}
+          className={`cursor-pointer rounded-xl p-4 text-white shadow-lg transition-all hover:scale-[1.02] ${drillDown === "calls" ? "ring-4 ring-blue-300" : ""} bg-gradient-to-br from-blue-500 to-blue-600`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <PhoneCall className="h-5 w-5 opacity-80" />
+              <span className="text-xs font-semibold uppercase opacity-80">Total Calls</span>
+            </div>
+            <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "calls" ? "rotate-180" : ""}`} />
           </div>
           <p className="text-3xl font-bold">{totals.calls}</p>
         </div>
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white shadow-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <Calendar className="h-5 w-5 opacity-80" />
-            <span className="text-xs font-semibold uppercase opacity-80">Meetings Booked</span>
+
+        <div
+          onClick={() => toggleDrill("meetings")}
+          className={`cursor-pointer rounded-xl p-4 text-white shadow-lg transition-all hover:scale-[1.02] ${drillDown === "meetings" ? "ring-4 ring-purple-300" : ""} bg-gradient-to-br from-purple-500 to-purple-600`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 opacity-80" />
+              <span className="text-xs font-semibold uppercase opacity-80">Meetings Booked</span>
+            </div>
+            <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "meetings" ? "rotate-180" : ""}`} />
           </div>
           <p className="text-3xl font-bold">{totals.meetings}</p>
         </div>
-        <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl p-4 text-white shadow-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <Clock className="h-5 w-5 opacity-80" />
-            <span className="text-xs font-semibold uppercase opacity-80">Attended</span>
+
+        <div
+          onClick={() => toggleDrill("attended")}
+          className={`cursor-pointer rounded-xl p-4 text-white shadow-lg transition-all hover:scale-[1.02] ${drillDown === "attended" ? "ring-4 ring-indigo-300" : ""} bg-gradient-to-br from-indigo-500 to-indigo-600`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 opacity-80" />
+              <span className="text-xs font-semibold uppercase opacity-80">Attended</span>
+            </div>
+            <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "attended" ? "rotate-180" : ""}`} />
           </div>
           <p className="text-3xl font-bold">{totals.attended}</p>
         </div>
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 text-white shadow-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <Handshake className="h-5 w-5 opacity-80" />
-            <span className="text-xs font-semibold uppercase opacity-80">Deals Closed</span>
+
+        <div
+          onClick={() => toggleDrill("deals")}
+          className={`cursor-pointer rounded-xl p-4 text-white shadow-lg transition-all hover:scale-[1.02] ${drillDown === "deals" ? "ring-4 ring-green-300" : ""} bg-gradient-to-br from-green-500 to-green-600`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Handshake className="h-5 w-5 opacity-80" />
+              <span className="text-xs font-semibold uppercase opacity-80">Deals Closed</span>
+            </div>
+            <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "deals" ? "rotate-180" : ""}`} />
           </div>
           <p className="text-3xl font-bold">{totals.deals}</p>
         </div>
-        <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-4 text-white shadow-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <DollarSign className="h-5 w-5 opacity-80" />
-            <span className="text-xs font-semibold uppercase opacity-80">Revenue</span>
+
+        <div
+          onClick={() => toggleDrill("revenue")}
+          className={`cursor-pointer rounded-xl p-4 text-white shadow-lg transition-all hover:scale-[1.02] ${drillDown === "revenue" ? "ring-4 ring-amber-300" : ""} bg-gradient-to-br from-amber-500 to-amber-600`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 opacity-80" />
+              <span className="text-xs font-semibold uppercase opacity-80">Revenue</span>
+            </div>
+            <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "revenue" ? "rotate-180" : ""}`} />
           </div>
           <p className="text-3xl font-bold">{totals.revenue.toLocaleString()}</p>
         </div>
       </div>
+
+      {/* Drill-Down Panels */}
+      {drillDown && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className={`px-6 py-4 border-b border-gray-200 flex justify-between items-center ${
+            drillDown === "calls" ? "bg-blue-50" :
+            drillDown === "meetings" ? "bg-purple-50" :
+            drillDown === "attended" ? "bg-indigo-50" :
+            drillDown === "deals" ? "bg-green-50" :
+            "bg-amber-50"
+          }`}>
+            <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+              {drillDown === "calls" && <><PhoneCall className="h-4 w-4 text-blue-500" /> All Calls</>}
+              {drillDown === "meetings" && <><Calendar className="h-4 w-4 text-purple-500" /> Meetings Booked</>}
+              {drillDown === "attended" && <><Clock className="h-4 w-4 text-indigo-500" /> Attended Meetings</>}
+              {drillDown === "deals" && <><Handshake className="h-4 w-4 text-green-500" /> Deals Closed</>}
+              {drillDown === "revenue" && <><DollarSign className="h-4 w-4 text-amber-600" /> Revenue Breakdown</>}
+              {!drillLoading && ` (${drillData.length})`}
+            </h3>
+            <button onClick={() => { setDrillDown(null); setDrillData([]); }} className="text-xs text-gray-500 hover:text-gray-800">Close ✕</button>
+          </div>
+          <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
+            {drillLoading ? (
+              <div className="px-6 py-8 text-center">
+                <div className="animate-spin h-6 w-6 border-3 border-blue-500 border-t-transparent rounded-full mx-auto" />
+              </div>
+            ) : drillData.length === 0 ? (
+              <div className="px-6 py-8 text-center text-sm text-gray-500">No data found for this period.</div>
+            ) : drillDown === "calls" ? (
+              drillData.map((log: any) => (
+                <div key={log.id} className="px-6 py-3 flex items-start gap-3 hover:bg-gray-50 transition-colors">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium text-gray-900">{log.lead?.name}</span>
+                      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                        log.callStatus === "Accept and book meeting" ? "bg-green-100 text-green-700" :
+                        log.callStatus === "Accept but lost" ? "bg-orange-100 text-orange-700" :
+                        log.callStatus === "Busy" ? "bg-yellow-100 text-yellow-700" :
+                        "bg-gray-100 text-gray-600"
+                      }`}>{log.callStatus}</span>
+                      {log.agent && <span className="text-xs text-blue-600">Agent: {log.agent.name}</span>}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5">{log.notes}</p>
+                  </div>
+                  <span className="text-xs text-gray-400 whitespace-nowrap shrink-0">{new Date(log.createdAt).toLocaleDateString("en-GB")}</span>
+                </div>
+              ))
+            ) : (drillDown === "meetings" || drillDown === "attended") ? (
+              drillData.map((m: any) => (
+                <div key={m.id} className="px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
+                      {m.lead?.name?.charAt(0)?.toUpperCase() || "?"}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{m.lead?.name || "Unknown"}</p>
+                      <p className="text-xs text-gray-400">
+                        {m.teleAgent ? `TeleSales: ${m.teleAgent.name}` : ""}
+                        {m.salesAgent ? ` • Sales: ${m.salesAgent.name}` : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                      m.status === "Won" ? "bg-green-100 text-green-700" :
+                      m.status === "Attended" ? "bg-blue-100 text-blue-700" :
+                      m.status === "Lost" ? "bg-red-100 text-red-700" :
+                      "bg-gray-100 text-gray-600"
+                    }`}>{m.status}</span>
+                    <p className="text-xs text-gray-400 mt-1">{m.meetingDate ? new Date(m.meetingDate).toLocaleDateString("en-GB") : ""} {m.meetingTime || ""}</p>
+                  </div>
+                </div>
+              ))
+            ) : (drillDown === "deals" || drillDown === "revenue") ? (
+              <>
+                {drillData.map((d: any) => (
+                  <div key={d.id} className="px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{d.lead?.name}</p>
+                      <p className="text-xs text-gray-400">
+                        {d.lead?.phone} • {d.package}
+                        {d.lead?.teleAgent ? ` • TeleSales: ${d.lead.teleAgent.name}` : ""}
+                        {d.salesAgent ? ` • Sales: ${d.salesAgent.name}` : ""}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-sm font-bold ${drillDown === "revenue" ? "text-amber-700" : "text-green-700"}`}>
+                        {d.totalAmount?.toLocaleString()} SAR
+                      </p>
+                      <p className="text-xs text-gray-400">{new Date(d.createdAt).toLocaleDateString("en-GB")}</p>
+                    </div>
+                  </div>
+                ))}
+                {drillDown === "revenue" && drillData.length > 0 && (
+                  <div className="px-6 py-3 bg-amber-50 flex justify-between items-center">
+                    <p className="text-sm font-bold text-gray-900">Total Revenue</p>
+                    <p className="text-lg font-bold text-amber-700">{totals.revenue.toLocaleString()} SAR</p>
+                  </div>
+                )}
+              </>
+            ) : null}
+          </div>
+        </div>
+      )}
 
       {/* Agents Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -221,7 +387,6 @@ export default function TeamAnalyticsClient() {
               </div>
             ) : selectedAgent && (
               <>
-                {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gradient-to-r from-blue-50 to-indigo-50">
                   <div>
                     <h3 className="text-lg font-bold text-gray-900">{selectedAgent.agent.name}</h3>
@@ -232,7 +397,6 @@ export default function TeamAnalyticsClient() {
                   </button>
                 </div>
 
-                {/* Content */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
                   {/* Calls Section */}
                   <div>

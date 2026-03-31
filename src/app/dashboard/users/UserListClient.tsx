@@ -23,9 +23,15 @@ export default function UserListClient({ initialUsers, managers }: { initialUser
   // Edit User State
   const [editingUser, setEditingUser] = useState<any>(null);
   const [editData, setEditData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    role: "",
     directManagerId: "",
     status: "",
     level: "",
+    company: "",
   });
 
   // Delete confirmation state
@@ -58,9 +64,15 @@ export default function UserListClient({ initialUsers, managers }: { initialUser
   const openEditModal = (user: any) => {
     setEditingUser(user);
     setEditData({
+      name: user.name || "",
+      email: user.email || "",
+      phone: user.phone || "",
+      password: "",
+      role: user.role || "",
       directManagerId: user.directManagerId || "",
       status: user.status || "Active",
       level: user.level || "Junior",
+      company: user.company || "",
     });
   };
 
@@ -72,9 +84,15 @@ export default function UserListClient({ initialUsers, managers }: { initialUser
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        name: editData.name,
+        email: editData.email,
+        phone: editData.phone,
+        password: editData.password || undefined,
+        role: editData.role,
         directManagerId: editData.directManagerId === "" ? null : editData.directManagerId,
         status: editData.status,
         level: editData.level,
+        company: editData.company,
       }),
     });
 
@@ -277,7 +295,7 @@ export default function UserListClient({ initialUsers, managers }: { initialUser
       {/* Edit Modal */}
       {editingUser && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
             <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center shrink-0">
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Edit User</h3>
@@ -285,11 +303,82 @@ export default function UserListClient({ initialUsers, managers }: { initialUser
               </div>
               <button onClick={() => setEditingUser(null)} className="text-gray-400 hover:text-gray-600">&times;</button>
             </div>
-            <div className="p-6">
+            <div className="flex-1 overflow-y-auto p-6">
               <form id="editForm" onSubmit={handleEditSubmit} className="space-y-4">
-                <div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                    <input required type="text" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                    <input type="password" placeholder="Leave blank to keep" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value={editData.password} onChange={e => setEditData({...editData, password: e.target.value})} />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                    <input required type="email" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value={editData.email} onChange={e => setEditData({...editData, email: e.target.value})} />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                    <input type="text" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value={editData.phone} onChange={e => setEditData({...editData, phone: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Role *</label>
+                    <select className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" value={editData.role} onChange={e => setEditData({...editData, role: e.target.value})}>
+                      <option value="super_admin">Super Admin</option>
+                      <option value="hr_manager">HR Manager</option>
+                      <option value="accountant">Accountant</option>
+                      <optgroup label="Tele Sales">
+                        <option value="tele_sales_manager">Tele Sales Manager</option>
+                        <option value="tele_sales_agent">Tele Sales Agent</option>
+                      </optgroup>
+                      <optgroup label="Sales">
+                        <option value="cheif_sales">Chief Sales</option>
+                        <option value="sales_manager">Sales Manager</option>
+                        <option value="sales_agent">Sales Agent</option>
+                      </optgroup>
+                      <optgroup label="Operations & Technical">
+                        <option value="head_account_manager">Head Account Manager</option>
+                        <option value="account_manager">Account Manager</option>
+                        <option value="head_technical">Head Technical</option>
+                      </optgroup>
+                      <optgroup label="SEO Team">
+                        <option value="head_seo">Head SEO</option>
+                        <option value="team_leader_seo">Team Leader SEO</option>
+                        <option value="agent_seo">Agent SEO</option>
+                        <option value="agent_content_seo">Agent Content SEO</option>
+                      </optgroup>
+                      <optgroup label="Media Buyer Team">
+                        <option value="team_leader_media_buyer">Team Leader Media</option>
+                        <option value="agent_media_buyer">Agent Media Buyer</option>
+                      </optgroup>
+                      <optgroup label="Social Media Team">
+                        <option value="team_leader_social_media">Team Leader Social</option>
+                        <option value="agent_social_media">Agent Social Media</option>
+                      </optgroup>
+                      <optgroup label="Design & Media">
+                        <option value="leader_graphic_desginer">Leader Graphic Design</option>
+                        <option value="agent_graphic_desginer">Agent Graphic Design</option>
+                        <option value="leader_motion_graphic">Leader Motion Graphic</option>
+                        <option value="agent_motion_graphic">Agent Motion Graphic</option>
+                        <option value="leader_ui">Leader UI/UX</option>
+                        <option value="agent_ui">Agent UI/UX</option>
+                      </optgroup>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
+                    <select className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" value={editData.level} onChange={e => setEditData({...editData, level: e.target.value})}>
+                      <option value="Intern">Intern</option>
+                      <option value="Junior">Junior</option>
+                      <option value="Mid">Mid</option>
+                      <option value="Senior">Senior</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-gray-100">
                   <label className="block text-sm font-bold text-gray-700 mb-1">Direct Manager</label>
-                  <p className="text-xs text-gray-500 mb-2">Assign this employee to a line manager.</p>
                   <select 
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm font-medium" 
                     value={editData.directManagerId} 
@@ -311,13 +400,8 @@ export default function UserListClient({ initialUsers, managers }: { initialUser
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
-                    <select className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" value={editData.level} onChange={e => setEditData({...editData, level: e.target.value})}>
-                      <option value="Intern">Intern</option>
-                      <option value="Junior">Junior</option>
-                      <option value="Mid">Mid</option>
-                      <option value="Senior">Senior</option>
-                    </select>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
+                    <input type="text" placeholder="Company name" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" value={editData.company} onChange={e => setEditData({...editData, company: e.target.value})} />
                   </div>
                 </div>
               </form>

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { Users, Calendar, Handshake, DollarSign, X, TrendingUp, XCircle, Briefcase } from "lucide-react";
+import { Users, Calendar, Handshake, DollarSign, X, TrendingUp, XCircle, Briefcase, ChevronDown } from "lucide-react";
 
 interface AgentAnalytics {
   id: string;
@@ -22,6 +22,8 @@ interface AgentDetail {
   deals: any[];
 }
 
+type DrillDown = "leads" | "meetings" | "won" | "lost" | "revenue" | null;
+
 export default function SalesTeamAnalyticsClient() {
   const [analytics, setAnalytics] = useState<AgentAnalytics[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +31,9 @@ export default function SalesTeamAnalyticsClient() {
   const [toDate, setToDate] = useState("");
   const [selectedAgent, setSelectedAgent] = useState<AgentDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [drillDown, setDrillDown] = useState<DrillDown>(null);
+  const [drillData, setDrillData] = useState<any[]>([]);
+  const [drillLoading, setDrillLoading] = useState(false);
 
   const fetchAnalytics = useCallback(async () => {
     setLoading(true);
@@ -64,6 +69,30 @@ export default function SalesTeamAnalyticsClient() {
       console.error("Failed to fetch agent details");
     }
     setDetailLoading(false);
+  };
+
+  const toggleDrill = async (type: DrillDown) => {
+    if (drillDown === type) {
+      setDrillDown(null);
+      setDrillData([]);
+      return;
+    }
+    setDrillDown(type);
+    setDrillLoading(true);
+
+    try {
+      const params = new URLSearchParams();
+      if (fromDate) params.set("from", fromDate);
+      if (toDate) params.set("to", toDate);
+      if (type) params.set("drillDown", type);
+      const res = await fetch(`/api/analytics/sales-team/drill?${params.toString()}`);
+      if (res.ok) {
+        setDrillData(await res.json());
+      }
+    } catch {
+      console.error("Failed to fetch drill-down data");
+    }
+    setDrillLoading(false);
   };
 
   const totals = analytics.reduce(
@@ -107,44 +136,181 @@ export default function SalesTeamAnalyticsClient() {
         </button>
       </div>
 
-      {/* Summary Cards */}
+      {/* Summary Cards - clickable */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl p-4 text-white shadow-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <Briefcase className="h-5 w-5 opacity-80" />
-            <span className="text-xs font-semibold uppercase opacity-80">Total Leads</span>
+        <div
+          onClick={() => toggleDrill("leads")}
+          className={`cursor-pointer rounded-xl p-4 text-white shadow-lg transition-all hover:scale-[1.02] ${drillDown === "leads" ? "ring-4 ring-slate-300" : ""} bg-gradient-to-br from-slate-600 to-slate-700`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Briefcase className="h-5 w-5 opacity-80" />
+              <span className="text-xs font-semibold uppercase opacity-80">Total Leads</span>
+            </div>
+            <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "leads" ? "rotate-180" : ""}`} />
           </div>
           <p className="text-3xl font-bold">{totals.leads}</p>
         </div>
-        <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl p-4 text-white shadow-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <Calendar className="h-5 w-5 opacity-80" />
-            <span className="text-xs font-semibold uppercase opacity-80">Meetings</span>
+
+        <div
+          onClick={() => toggleDrill("meetings")}
+          className={`cursor-pointer rounded-xl p-4 text-white shadow-lg transition-all hover:scale-[1.02] ${drillDown === "meetings" ? "ring-4 ring-indigo-300" : ""} bg-gradient-to-br from-indigo-500 to-indigo-600`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 opacity-80" />
+              <span className="text-xs font-semibold uppercase opacity-80">Meetings</span>
+            </div>
+            <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "meetings" ? "rotate-180" : ""}`} />
           </div>
           <p className="text-3xl font-bold">{totals.meetings}</p>
         </div>
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 text-white shadow-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <Handshake className="h-5 w-5 opacity-80" />
-            <span className="text-xs font-semibold uppercase opacity-80">Deals Won</span>
+
+        <div
+          onClick={() => toggleDrill("won")}
+          className={`cursor-pointer rounded-xl p-4 text-white shadow-lg transition-all hover:scale-[1.02] ${drillDown === "won" ? "ring-4 ring-green-300" : ""} bg-gradient-to-br from-green-500 to-green-600`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Handshake className="h-5 w-5 opacity-80" />
+              <span className="text-xs font-semibold uppercase opacity-80">Deals Won</span>
+            </div>
+            <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "won" ? "rotate-180" : ""}`} />
           </div>
           <p className="text-3xl font-bold">{totals.won}</p>
         </div>
-        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-4 text-white shadow-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <XCircle className="h-5 w-5 opacity-80" />
-            <span className="text-xs font-semibold uppercase opacity-80">Deals Lost</span>
+
+        <div
+          onClick={() => toggleDrill("lost")}
+          className={`cursor-pointer rounded-xl p-4 text-white shadow-lg transition-all hover:scale-[1.02] ${drillDown === "lost" ? "ring-4 ring-red-300" : ""} bg-gradient-to-br from-red-500 to-red-600`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <XCircle className="h-5 w-5 opacity-80" />
+              <span className="text-xs font-semibold uppercase opacity-80">Deals Lost</span>
+            </div>
+            <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "lost" ? "rotate-180" : ""}`} />
           </div>
           <p className="text-3xl font-bold">{totals.lost}</p>
         </div>
-        <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-4 text-white shadow-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <DollarSign className="h-5 w-5 opacity-80" />
-            <span className="text-xs font-semibold uppercase opacity-80">Revenue</span>
+
+        <div
+          onClick={() => toggleDrill("revenue")}
+          className={`cursor-pointer rounded-xl p-4 text-white shadow-lg transition-all hover:scale-[1.02] ${drillDown === "revenue" ? "ring-4 ring-amber-300" : ""} bg-gradient-to-br from-amber-500 to-amber-600`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 opacity-80" />
+              <span className="text-xs font-semibold uppercase opacity-80">Revenue</span>
+            </div>
+            <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "revenue" ? "rotate-180" : ""}`} />
           </div>
           <p className="text-3xl font-bold">{totals.revenue.toLocaleString()}</p>
         </div>
       </div>
+
+      {/* Drill-Down Panels */}
+      {drillDown && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className={`px-6 py-4 border-b border-gray-200 flex justify-between items-center ${
+            drillDown === "leads" ? "bg-slate-50" :
+            drillDown === "meetings" ? "bg-indigo-50" :
+            drillDown === "won" ? "bg-green-50" :
+            drillDown === "lost" ? "bg-red-50" :
+            "bg-amber-50"
+          }`}>
+            <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+              {drillDown === "leads" && <><Briefcase className="h-4 w-4 text-slate-500" /> All Leads</>}
+              {drillDown === "meetings" && <><Calendar className="h-4 w-4 text-indigo-500" /> All Meetings</>}
+              {drillDown === "won" && <><TrendingUp className="h-4 w-4 text-green-500" /> Deals Won</>}
+              {drillDown === "lost" && <><XCircle className="h-4 w-4 text-red-500" /> Deals Lost</>}
+              {drillDown === "revenue" && <><DollarSign className="h-4 w-4 text-amber-600" /> Revenue Breakdown</>}
+              {!drillLoading && ` (${drillData.length})`}
+            </h3>
+            <button onClick={() => { setDrillDown(null); setDrillData([]); }} className="text-xs text-gray-500 hover:text-gray-800">Close ✕</button>
+          </div>
+          <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
+            {drillLoading ? (
+              <div className="px-6 py-8 text-center">
+                <div className="animate-spin h-6 w-6 border-3 border-blue-500 border-t-transparent rounded-full mx-auto" />
+              </div>
+            ) : drillData.length === 0 ? (
+              <div className="px-6 py-8 text-center text-sm text-gray-500">No data found for this period.</div>
+            ) : drillDown === "leads" ? (
+              drillData.map((lead: any) => (
+                <div key={lead.id} className="px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center text-white text-xs font-bold">
+                      {lead.name?.charAt(0)?.toUpperCase() || "?"}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{lead.name}</p>
+                      <p className="text-xs text-gray-400">{lead.phone} {lead.salesAgent ? `• Agent: ${lead.salesAgent.name}` : ""}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                      lead.classification === "Hot" ? "bg-red-100 text-red-700" :
+                      lead.classification === "Warm" ? "bg-amber-100 text-amber-700" :
+                      "bg-blue-100 text-blue-700"
+                    }`}>{lead.classification}</span>
+                    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                      lead.status === "Closed_Won" ? "bg-green-100 text-green-700" :
+                      lead.status === "Closed_Lost" ? "bg-red-100 text-red-700" :
+                      "bg-blue-100 text-blue-700"
+                    }`}>{lead.status?.replace(/_/g, " ")}</span>
+                  </div>
+                </div>
+              ))
+            ) : drillDown === "meetings" ? (
+              drillData.map((m: any) => (
+                <div key={m.id} className="px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold">
+                      {m.lead?.name?.charAt(0)?.toUpperCase() || "?"}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{m.lead?.name || "Unknown"}</p>
+                      <p className="text-xs text-gray-400">{m.salesAgent ? `Agent: ${m.salesAgent.name}` : ""} {m.teleAgent ? `• TeleSales: ${m.teleAgent.name}` : ""}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                      m.status === "Attended" || m.status === "Won" ? "bg-green-100 text-green-700" :
+                      m.status === "Lost" ? "bg-red-100 text-red-700" :
+                      "bg-blue-100 text-blue-700"
+                    }`}>{m.status}</span>
+                    <p className="text-xs text-gray-400 mt-1">{m.meetingDate ? new Date(m.meetingDate).toLocaleDateString("en-GB") : ""} {m.meetingTime || ""}</p>
+                  </div>
+                </div>
+              ))
+            ) : (drillDown === "won" || drillDown === "lost" || drillDown === "revenue") ? (
+              <>
+                {drillData.map((deal: any) => (
+                  <div key={deal.id} className="px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{deal.lead?.name}</p>
+                      <p className="text-xs text-gray-400">{deal.lead?.phone} • {deal.package} {deal.salesAgent ? `• Agent: ${deal.salesAgent.name}` : ""}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-sm font-bold ${drillDown === "lost" ? "text-red-600" : drillDown === "revenue" ? "text-amber-700" : "text-green-700"}`}>
+                        {deal.totalAmount?.toLocaleString()} SAR
+                      </p>
+                      <p className="text-xs text-gray-400">{new Date(deal.createdAt).toLocaleDateString("en-GB")}</p>
+                    </div>
+                  </div>
+                ))}
+                {drillDown === "revenue" && drillData.length > 0 && (
+                  <div className="px-6 py-3 bg-amber-50 flex justify-between items-center">
+                    <p className="text-sm font-bold text-gray-900">Total Revenue</p>
+                    <p className="text-lg font-bold text-amber-700">{totals.revenue.toLocaleString()} SAR</p>
+                  </div>
+                )}
+              </>
+            ) : null}
+          </div>
+        </div>
+      )}
 
       {/* Agents Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">

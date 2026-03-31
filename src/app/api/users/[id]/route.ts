@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import bcrypt from "bcryptjs";
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
@@ -23,6 +24,13 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     if (body.status) updateData.status = body.status;
     if (body.level) updateData.level = body.level;
     if (body.role) updateData.role = body.role;
+    if (body.name) updateData.name = body.name;
+    if (body.email) updateData.email = body.email;
+    if (body.phone !== undefined) updateData.phone = body.phone;
+    if (body.password && body.password.trim() !== "") {
+      updateData.passwordHash = await bcrypt.hash(body.password, 10);
+    }
+    if (body.company !== undefined) updateData.company = body.company;
 
     const updatedUser = await prisma.user.update({
       where: { id },
@@ -35,6 +43,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         role: true,
         level: true,
         status: true,
+        company: true,
         directManagerId: true,
         directManager: { select: { id: true, name: true } },
       }
