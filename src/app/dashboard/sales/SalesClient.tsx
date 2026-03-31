@@ -159,7 +159,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
       </div>
 
       {/* Workspace Summary Filters */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         <div 
           onClick={() => setLogFilter(logFilter === "All" ? "All" : "All")} 
           className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "All" ? "border-blue-500 bg-blue-50" : "border-transparent bg-white hover:bg-gray-50"}`}
@@ -172,36 +172,47 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         </div>
 
         <div 
-          onClick={() => setLogFilter(logFilter === "Accept and book meeting" ? "All" : "Accept and book meeting")} 
-          className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Accept and book meeting" ? "border-green-500 bg-green-50" : "border-transparent bg-white hover:bg-gray-50"}`}
+          onClick={() => setLogFilter(logFilter === "Closed_Won" ? "All" : "Closed_Won")} 
+          className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Closed_Won" ? "border-green-500 bg-green-50" : "border-transparent bg-white hover:bg-gray-50"}`}
         >
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle2 className="h-5 w-5 text-green-500" />
-            <span className="text-xs font-bold uppercase text-gray-500">Accept & Booked</span>
+            <span className="text-xs font-bold uppercase text-gray-500">Win Deal</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{leads.filter(l => l.callLogs?.[0]?.callStatus === "Accept and book meeting").length}</p>
+          <p className="text-2xl font-bold text-gray-900">{leads.filter(l => l.status === "Closed_Won" || l._count?.deals > 0).length}</p>
         </div>
 
         <div 
-          onClick={() => setLogFilter(logFilter === "Accept but lost" ? "All" : "Accept but lost")} 
-          className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Accept but lost" ? "border-orange-500 bg-orange-50" : "border-transparent bg-white hover:bg-gray-50"}`}
+          onClick={() => setLogFilter(logFilter === "Follow_Up" ? "All" : "Follow_Up")} 
+          className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Follow_Up" ? "border-amber-500 bg-amber-50" : "border-transparent bg-white hover:bg-gray-50"}`}
         >
           <div className="flex items-center gap-2 mb-2">
-            <XCircle className="h-5 w-5 text-orange-500" />
-            <span className="text-xs font-bold uppercase text-gray-500">Accept But Lost</span>
+            <ChevronUp className="h-5 w-5 text-amber-500" />
+            <span className="text-xs font-bold uppercase text-gray-500">Follow-up</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{leads.filter(l => l.callLogs?.[0]?.callStatus === "Accept but lost").length}</p>
+          <p className="text-2xl font-bold text-gray-900">{leads.filter(l => l.status === "Follow_Up").length}</p>
         </div>
 
         <div 
-          onClick={() => setLogFilter(logFilter === "Busy" ? "All" : "Busy")} 
-          className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Busy" ? "border-slate-500 bg-slate-50" : "border-transparent bg-white hover:bg-gray-50"}`}
+          onClick={() => setLogFilter(logFilter === "Rescheduled" ? "All" : "Rescheduled")} 
+          className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Rescheduled" ? "border-purple-500 bg-purple-50" : "border-transparent bg-white hover:bg-gray-50"}`}
         >
           <div className="flex items-center gap-2 mb-2">
-            <PhoneOff className="h-5 w-5 text-slate-500" />
-            <span className="text-xs font-bold uppercase text-gray-500">Busy</span>
+            <PhoneCall className="h-5 w-5 text-purple-500" />
+            <span className="text-xs font-bold uppercase text-gray-500">Reschedule</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{leads.filter(l => l.callLogs?.[0]?.callStatus === "Busy").length}</p>
+          <p className="text-2xl font-bold text-gray-900">{leads.filter(l => l.status === "Rescheduled").length}</p>
+        </div>
+
+        <div 
+          onClick={() => setLogFilter(logFilter === "Closed_Lost" ? "All" : "Closed_Lost")} 
+          className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Closed_Lost" ? "border-red-500 bg-red-50" : "border-transparent bg-white hover:bg-gray-50"}`}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <XCircle className="h-5 w-5 text-red-500" />
+            <span className="text-xs font-bold uppercase text-gray-500">Lost Deal</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-900">{leads.filter(l => l.status === "Closed_Lost").length}</p>
         </div>
       </div>
 
@@ -219,7 +230,11 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {leads.filter(l => logFilter === "All" || l.callLogs?.[0]?.callStatus === logFilter).map((l) => (
+            {leads.filter(l => {
+              if (logFilter === "All") return true;
+              if (logFilter === "Closed_Won") return l.status === "Closed_Won" || l._count?.deals > 0;
+              return l.status === logFilter;
+            }).map((l) => (
               <>
                 <tr key={l.id} className={`${activeLead?.id === l.id ? 'bg-blue-50' : 'hover:bg-gray-50'} transition-colors`}>
                   <td className="px-6 py-4 whitespace-nowrap">

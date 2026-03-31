@@ -208,11 +208,12 @@ export default function TeleSalesClient({
   const acceptLostCount = leads.filter(l => l.callLogs?.[0]?.callStatus === "Accept but lost").length;
   const acceptBookCount = leads.filter(l => l.callLogs?.[0]?.callStatus === "Accept and book meeting").length;
   const busyCount = leads.filter(l => l.callLogs?.[0]?.callStatus === "Busy").length;
+  const wrongNumberCount = leads.filter(l => l.callLogs?.[0]?.callStatus === "Wrong Number").length;
 
   return (
     <div className="space-y-6">
       {/* Workspace Summary Filters */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div 
           onClick={() => setLogFilter(logFilter === "All" ? "All" : "All")} 
           className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "All" ? "border-blue-500 bg-blue-50" : "border-transparent bg-white hover:bg-gray-50"}`}
@@ -255,6 +256,17 @@ export default function TeleSalesClient({
             <span className="text-xs font-bold uppercase text-gray-500">Busy</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{busyCount}</p>
+        </div>
+
+        <div 
+          onClick={() => setLogFilter(logFilter === "Wrong Number" ? "All" : "Wrong Number")} 
+          className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Wrong Number" ? "border-pink-500 bg-pink-50" : "border-transparent bg-white hover:bg-gray-50"}`}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <X className="h-5 w-5 text-pink-500" />
+            <span className="text-xs font-bold uppercase text-gray-500">Wrong Number</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-900">{wrongNumberCount}</p>
         </div>
       </div>
 
