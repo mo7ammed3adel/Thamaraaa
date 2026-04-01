@@ -19,6 +19,21 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       archived, incrementRecycle
     } = body;
 
+    const user = session.user as any;
+    const existingLead = await prisma.lead.findUnique({ where: { id } });
+    if (!existingLead) {
+      return NextResponse.json({ error: "Lead not found" }, { status: 404 });
+    }
+
+    const isAuthorized = 
+      existingLead.assignedTeleAgentId === user.id || 
+      existingLead.assignedSalesAgentId === user.id ||
+      ["super_admin", "tele_sales_manager", "sales_manager"].includes(user.role);
+
+    if (!isAuthorized) {
+      return NextResponse.json({ error: "Forbidden: You are not assigned to this lead." }, { status: 403 });
+    }
+
     const updateData: any = {};
     if (status) updateData.status = status;
     if (assignedSalesAgentId !== undefined) updateData.assignedSalesAgentId = assignedSalesAgentId;

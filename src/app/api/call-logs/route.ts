@@ -13,7 +13,22 @@ export async function POST(req: Request) {
 
     const data = await req.json();
     const { leadId, callStatus, classification, notes, meetingDate, meetingTime } = data;
+    const userRole = (session.user as any).role;
+    const userId = (session.user as any).id;
 
+    const existingLead = await prisma.lead.findUnique({ where: { id: leadId } });
+    if (!existingLead) {
+      return NextResponse.json({ error: "Lead not found" }, { status: 404 });
+    }
+
+    const isAuthorized = 
+      existingLead.assignedTeleAgentId === userId || 
+      existingLead.assignedSalesAgentId === userId ||
+      ["super_admin", "tele_sales_manager", "sales_manager"].includes(userRole);
+
+    if (!isAuthorized) {
+      return NextResponse.json({ error: "Forbidden: You are not assigned to this lead." }, { status: 403 });
+    }
     // Create call log
     const callLog = await prisma.callLog.create({
       data: {

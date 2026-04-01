@@ -19,6 +19,19 @@ export async function POST(req: Request) {
       contractImageUrl, receiptUrl 
     } = data;
 
+    if (parseFloat(totalAmount) < 0) {
+      return NextResponse.json({ error: "Total amount cannot be negative" }, { status: 400 });
+    }
+
+    const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+    if (!lead) {
+      return NextResponse.json({ error: "Lead not found" }, { status: 404 });
+    }
+
+    if (lead.assignedSalesAgentId !== user.id && user.role !== "super_admin" && user.role !== "sales_manager") {
+      return NextResponse.json({ error: "Forbidden: You are not assigned to this lead." }, { status: 403 });
+    }
+
     // Fetch system configs for payment gateway fee
     const gatewayFeeConfig = await prisma.systemConfig.findUnique({ where: { key: "gateway_fee_pct" } });
     const gatewayFee = gatewayFeeConfig ? parseFloat(gatewayFeeConfig.value) : 0.08; // Default 8%

@@ -170,7 +170,11 @@ export default function MasterSheetClient({ leads }: { leads: any[] }) {
                           {/* 2. Call Logs */}
                           {l.callLogs?.map((log: any) => (
                             <div key={log.id} className="relative pl-6">
-                              <span className="absolute w-3 h-3 bg-amber-400 rounded-full -left-[7px] top-1"></span>
+                              <span className={`absolute w-3 h-3 rounded-full -left-[7px] top-1 ${
+                                log.callStatus === "Accept and book meeting" ? "bg-green-500" :
+                                ["Busy", "Wrong Number", "Not Interested", "Rejected"].includes(log.callStatus) ? "bg-red-500" :
+                                "bg-amber-400"
+                              }`}></span>
                               <p className="text-sm font-bold text-gray-900">
                                 Call / Update ({log.callStatus}) 
                                 <span className="text-xs font-normal text-gray-500 ml-2">{new Date(log.createdAt).toLocaleString()}</span>
