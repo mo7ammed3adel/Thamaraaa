@@ -8,11 +8,11 @@ interface Lead {
   phone: string;
   classification: string;
   status: string;
-  createdAt: string;
+  createdAt: Date;
   teleAgent: { name: string } | null;
   salesAgent: { name: string } | null;
-  callLogs: { notes: string; createdAt: string }[];
-  meetings: { status: string; salesAgent: { name: string } | null; createdAt: string }[];
+  callLogs: { notes: string; createdAt: Date }[];
+  meetings: { status: string; salesAgent: { name: string } | null; createdAt: Date }[];
 }
 
 interface Agent {

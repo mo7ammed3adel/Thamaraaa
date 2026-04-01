@@ -166,7 +166,9 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Leads</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Meetings (Today)</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Closed Deals</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Win Rate</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Specialization</th>
               </tr>
@@ -197,7 +199,15 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
                       <span className="text-sm font-semibold text-gray-900">{agent._count.salesLeads}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm font-semibold text-gray-900">{agent._count.salesDeals}</span>
+                      <span className="text-sm font-semibold text-blue-600">{agent._count.meetingsAsSales}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm font-semibold text-gray-900">{agent.dealsWonCount}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {agent.dealsWonCount + agent.lostCount > 0 
+                        ? `${Math.round((agent.dealsWonCount / (agent.dealsWonCount + agent.lostCount)) * 100)}%` 
+                        : "0%"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${

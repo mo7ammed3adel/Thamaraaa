@@ -49,6 +49,11 @@ export default function TeleSalesClient({
   const [customTo, setCustomTo] = useState("");
   const [logFilter, setLogFilter] = useState("All");
 
+  // Search & Pagination
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
+
   const isManager = userRole === "tele_sales_manager" || userRole === "super_admin";
 
   const handleDeleteLead = async (leadId: string) => {
@@ -223,8 +228,17 @@ export default function TeleSalesClient({
       if (lastLog !== logFilter) return false;
     }
 
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      if (!l.name.toLowerCase().includes(q) && !l.phone.includes(q)) return false;
+    }
+
     return true;
   });
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredLeads.length / pageSize) || 1;
+  const paginatedLeads = filteredLeads.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const totalCount = leads.length;
   const acceptLostCount = leads.filter(l => l.callLogs?.[0]?.callStatus === "Accept but lost").length;
@@ -292,9 +306,19 @@ export default function TeleSalesClient({
         </div>
       </div>
 
-      {/* Filters (Visible to ALL roles) */}
+      {/* Filters & Search */}
       <div className="mb-6 p-4 bg-white rounded-xl shadow-sm border border-gray-200 space-y-3">
         <div className="flex flex-wrap gap-4 items-end">
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Search</label>
+            <input
+              type="text"
+              placeholder="Search by name or phone..."
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              className="w-full border rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
           <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Status</label>
             <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="border rounded-md px-3 py-1.5 text-sm">
@@ -340,7 +364,7 @@ export default function TeleSalesClient({
               </div>
             </>
           )}
-          <div className="ml-auto flex items-center gap-3">
+          <div className="flex items-center gap-3 mt-4 w-full justify-between">
             <span className="text-sm text-gray-500">
               Showing <span className="font-bold text-gray-900">{filteredLeads.length}</span> leads
             </span>
@@ -400,7 +424,7 @@ export default function TeleSalesClient({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredLeads.map((l) => (
+              {paginatedLeads.map((l) => (
                 <tr key={l.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{l.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -491,6 +515,27 @@ export default function TeleSalesClient({
             </tbody>
           </table>
         </div>
+        
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between bg-gray-50">
+            <button 
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-gray-600">Page {currentPage} of {totalPages}</span>
+            <button 
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
 
       {selectedLead && (

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { pusherServer } from "@/lib/pusher";
 
 export async function POST(req: Request) {
   try {
@@ -68,6 +69,28 @@ export async function POST(req: Request) {
           finalStatus: "Active"
         }
       });
+
+      // 1. Notify Account Manager
+      if (process.env.PUSHER_APP_ID) {
+        const amMessage = `New project from Deal #${deal.id.slice(-4)} (${packageType})`;
+        await prisma.notification.create({
+          data: { userId: defaultAM.id, title: "New Project Assigned", message: amMessage, link: `/dashboard/deals` }
+        });
+        await pusherServer.trigger(`user-${defaultAM.id}`, "new-notification", { title: "New Project Assigned", message: amMessage, link: `/dashboard/deals` });
+      }
+    }
+
+    // Target URLs for notifications
+    const managerLink = `/dashboard/sales/analytics`;
+
+    // 2. Notify Sales Manager
+    const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { name: true, directManagerId: true } });
+    if (dbUser?.directManagerId && process.env.PUSHER_APP_ID) {
+      const mgrMessage = `Agent ${dbUser.name} closed a new deal (${packageType}) for ${totalAmount} SAR.`;
+      await prisma.notification.create({
+        data: { userId: dbUser.directManagerId, title: "Deal Closed!", message: mgrMessage, link: managerLink }
+      });
+      await pusherServer.trigger(`user-${dbUser.directManagerId}`, "new-notification", { title: "Deal Closed!", message: mgrMessage, link: managerLink });
     }
 
     return NextResponse.json(deal, { status: 201 });

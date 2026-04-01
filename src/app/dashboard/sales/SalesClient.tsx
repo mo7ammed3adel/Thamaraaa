@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronUp, PhoneCall, CheckCircle2, PhoneOff, XCircle } from "lucide-react";
 
@@ -11,6 +11,14 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
   const [activeLead, setActiveLead] = useState<any>(null);
   const [expandedLead, setExpandedLead] = useState<string | null>(null);
   const [logFilter, setLogFilter] = useState("All");
+  
+  // Search & Pagination
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
+
+  // Task timer
+  const [taskStartTime, setTaskStartTime] = useState<Date | null>(null);
   
   // Deal closing form
   const [showClosingForm, setShowClosingForm] = useState(false);
@@ -33,8 +41,9 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     followUpDate: "",
     meetingDate: "",
     meetingTime: "",
-    hasStore: false,
-    storeUrl: ""
+    hasStore: "No", // "Yes" or "No"
+    storeLink: "",
+    customerType: "Launch" // Store, Launch, Dropshipping, Shipping, Special
   });
 
   const toggleStatus = async () => {
@@ -51,6 +60,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
   const startTask = async (lead: any) => {
     setStatus("In_Call");
     setActiveLead(lead);
+    setTaskStartTime(new Date());
     await fetch(`/api/users/${userId}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -64,29 +74,45 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
 
   const submitFeedback = async (e: React.FormEvent) => {
     e.preventDefault();
+    const payloadStartEnd = {
+      meetingStartedAt: taskStartTime,
+      meetingEndedAt: new Date(),
+      hasStore: feedback.hasStore === "Yes",
+      storeLink: feedback.storeLink,
+      customerType: feedback.customerType
+    };
+
     if (feedback.outcome === "won") {
+      // For won deal, update the lead with the store details & timer first.
+      await fetch("/api/leads/" + activeLead.id, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...payloadStartEnd, notes: feedback.notes })
+      });
       setShowFeedbackForm(false);
       setShowClosingForm(true);
     } else {
+      let finalStatus = "Closed_Lost";
+      let extraData: any = {};
+      
       if (feedback.outcome === "followup") {
-        await fetch("/api/leads/" + activeLead.id, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "Follow_Up", followUpDate: feedback.followUpDate, notes: feedback.notes })
-        });
+        finalStatus = "Follow_Up";
+        extraData = { followUpDate: feedback.followUpDate };
       } else if (feedback.outcome === "reschedule") {
-        await fetch("/api/leads/" + activeLead.id, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "Rescheduled", meetingDate: feedback.meetingDate, meetingTime: feedback.meetingTime, notes: feedback.notes })
-        });
-      } else {
-        await fetch("/api/leads/" + activeLead.id, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "Closed_Lost", notes: feedback.notes })
-        });
+        finalStatus = "Rescheduled";
+        extraData = { meetingDate: feedback.meetingDate, meetingTime: feedback.meetingTime };
       }
+
+      await fetch("/api/leads/" + activeLead.id, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          status: finalStatus, 
+          notes: feedback.notes,
+          ...payloadStartEnd,
+          ...extraData
+        })
+      });
       
       await fetch(`/api/users/${userId}/status`, {
         method: "PATCH",
@@ -139,6 +165,25 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     if (cls === "Warm") return "bg-amber-100 text-amber-700";
     return "bg-blue-100 text-blue-700";
   };
+
+  const filteredLeads = leads.filter(l => {
+    if (logFilter !== "All" && logFilter !== "Closed_Won") {
+      if (l.status !== logFilter) return false;
+    }
+    if (logFilter === "Closed_Won") {
+      if (l.status !== "Closed_Won" && !(l._count?.deals > 0)) return false;
+    }
+    
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      if (!l.name.toLowerCase().includes(q) && !l.phone.includes(q)) return false;
+    }
+    
+    return true;
+  });
+
+  const totalPages = Math.ceil(filteredLeads.length / pageSize) || 1;
+  const paginatedLeads = filteredLeads.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <div>
@@ -216,6 +261,22 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         </div>
       </div>
 
+      {/* Search Input */}
+      <div className="mb-4 flex items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <div className="flex-1 max-w-sm">
+          <input
+            type="text"
+            placeholder="Search leads by name or phone..."
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+            className="w-full border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div className="text-sm font-medium text-gray-500">
+          Total Leads Found: {filteredLeads.length}
+        </div>
+      </div>
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -230,13 +291,9 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {leads.filter(l => {
-              if (logFilter === "All") return true;
-              if (logFilter === "Closed_Won") return l.status === "Closed_Won" || l._count?.deals > 0;
-              return l.status === logFilter;
-            }).map((l) => (
-              <>
-                <tr key={l.id} className={`${activeLead?.id === l.id ? 'bg-blue-50' : 'hover:bg-gray-50'} transition-colors`}>
+            {paginatedLeads.map((l) => (
+              <React.Fragment key={l.id}>
+                <tr className={`${activeLead?.id === l.id ? 'bg-blue-50' : 'hover:bg-gray-50'} transition-colors`}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <p className="text-sm font-medium text-gray-900">{l.name}</p>
                     {l.customerType && <p className="text-xs text-gray-400">{l.customerType}</p>}
@@ -305,14 +362,35 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                     </td>
                   </tr>
                 )}
-              </>
+              </React.Fragment>
             ))}
-            {leads.length === 0 && (
-              <tr><td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500">No active leads in queue.</td></tr>
+            {paginatedLeads.length === 0 && (
+              <tr><td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500">No active leads match the filters.</td></tr>
             )}
           </tbody>
         </table>
       </div>
+      
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-between">
+          <button 
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <span className="text-sm font-medium text-gray-600">Page {currentPage} of {totalPages}</span>
+          <button 
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+      )}
 
       {showFeedbackForm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -354,12 +432,43 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                   </div>
                 </div>
               )}
+              
+              {/* Additional Information - Client Profile */}
+              <div className="border-t pt-4">
+                <h4 className="font-bold text-sm text-gray-800 mb-3">Client Profile</h4>
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Has Store?</label>
+                    <select className="w-full border p-2 rounded focus:ring-blue-500" value={feedback.hasStore} onChange={e => setFeedback({...feedback, hasStore: e.target.value})}>
+                      <option value="No">No</option>
+                      <option value="Yes">Yes</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Client Type</label>
+                    <select className="w-full border p-2 rounded focus:ring-blue-500" value={feedback.customerType} onChange={e => setFeedback({...feedback, customerType: e.target.value})}>
+                      <option value="Store">Store</option>
+                      <option value="Launch">Launch / Beginning</option>
+                      <option value="Dropshipping">Dropshipping</option>
+                      <option value="Shipping">Shipping</option>
+                      <option value="Special">Special Type</option>
+                    </select>
+                  </div>
+                </div>
+                {feedback.hasStore === "Yes" && (
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium mb-1">Store Link</label>
+                    <input type="url" placeholder="https://..." className="w-full border p-2 rounded focus:ring-blue-500" value={feedback.storeLink} onChange={e => setFeedback({...feedback, storeLink: e.target.value})} required={feedback.hasStore === "Yes"} />
+                  </div>
+                )}
+              </div>
+
               <div>
-                <label className="block text-sm font-medium mb-1">Meeting Notes</label>
-                <textarea required rows={3} className="w-full border p-2 rounded" value={feedback.notes} onChange={e => setFeedback({...feedback, notes: e.target.value})} />
+                <label className="block text-sm font-medium mb-1">Meeting Notes *</label>
+                <textarea required rows={3} className="w-full border p-2 rounded focus:ring-blue-500" value={feedback.notes} onChange={e => setFeedback({...feedback, notes: e.target.value})} placeholder="Write detailed notes about the call/meeting..." />
               </div>
               <div className="flex justify-end gap-3 mt-6">
-               <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">Continue</button>
+               <button type="submit" className="px-4 py-2 bg-blue-600 font-bold hover:bg-blue-700 text-white rounded w-full">Confirm & Continue</button>
               </div>
             </form>
           </div>
@@ -403,6 +512,20 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                 </div>
               </div>
               
+              {/* File Uploads */}
+              <div className="grid grid-cols-2 gap-4 mt-2">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Upload Contract (Image URL)</label>
+                  <input required type="url" placeholder="https://..." className="w-full border p-2 rounded" value={dealData.contractImageUrl} onChange={e => setDealData({...dealData, contractImageUrl: e.target.value})} />
+                  <p className="text-xs text-gray-400 mt-1">Provide a link to the signed contract image</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Upload Receipt (Image URL)</label>
+                  <input required type="url" placeholder="https://..." className="w-full border p-2 rounded" value={dealData.receiptUrl} onChange={e => setDealData({...dealData, receiptUrl: e.target.value})} />
+                  <p className="text-xs text-gray-400 mt-1">Provide a link to the payment receipt</p>
+                </div>
+              </div>
+
               <div className="mt-4 border-t pt-4">
                 <div className="flex justify-between items-center mb-2">
                   <h4 className="font-bold text-sm">Payment Installments</h4>

@@ -12,7 +12,12 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
     const { id } = params;
     const body = await request.json();
-    const { status, notes, assignedSalesAgentId, assignedTeleAgentId, followUpDate, meetingDate, meetingTime } = body;
+    const { 
+      status, notes, assignedSalesAgentId, assignedTeleAgentId, 
+      followUpDate, meetingDate, meetingTime,
+      meetingStartedAt, meetingEndedAt, hasStore, storeLink, customerType,
+      archived, incrementRecycle
+    } = body;
 
     const updateData: any = {};
     if (status) updateData.status = status;
@@ -21,6 +26,17 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     if (followUpDate !== undefined) updateData.followUpDate = new Date(followUpDate);
     if (meetingDate !== undefined) updateData.meetingDate = new Date(meetingDate + "T00:00:00Z");
     if (meetingTime !== undefined) updateData.meetingTime = meetingTime;
+    
+    // New Sales Fields
+    if (meetingStartedAt !== undefined && meetingStartedAt !== null) updateData.meetingStartedAt = new Date(meetingStartedAt);
+    if (meetingEndedAt !== undefined && meetingEndedAt !== null) updateData.meetingEndedAt = new Date(meetingEndedAt);
+    if (hasStore !== undefined) updateData.hasStore = hasStore;
+    if (storeLink !== undefined) updateData.storeLink = storeLink;
+    if (customerType !== undefined) updateData.customerType = customerType;
+    
+    // Recycle Bin Fields
+    if (archived) updateData.archivedAt = new Date();
+    if (incrementRecycle) updateData.recycleCount = { increment: 1 };
 
     const lead = await prisma.lead.update({
       where: { id },

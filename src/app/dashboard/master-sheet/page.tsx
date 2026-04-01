@@ -16,6 +16,8 @@ export default async function MasterSheetPage() {
     include: {
       teleAgent: { select: { name: true } },
       salesAgent: { select: { name: true } },
+      callLogs: { orderBy: { createdAt: "desc" } },
+      meetings: { orderBy: { createdAt: "desc" } },
       deals: {
         include: {
           projects: { include: { accountManager: { select: { name: true } } } }

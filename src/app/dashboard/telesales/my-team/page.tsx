@@ -24,6 +24,9 @@ export default async function MyTeamPage({ searchParams }: { searchParams: any }
   }
   const createdAtFilter = (from || to) ? { createdAt: dateFilter } : {};
 
+  // Get current month for targets
+  const currentMonth = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+
   // Get agents under this manager (or all tele agents for super_admin)
   const whereClause: any = { role: "tele_sales_agent" };
   if (user.role === "tele_sales_manager") {
@@ -51,6 +54,10 @@ export default async function MyTeamPage({ searchParams }: { searchParams: any }
         where: { status: "Transferred", ...createdAtFilter },
         select: { id: true },
       },
+      agentTargets: {
+        where: { month: currentMonth },
+        select: { target: true }
+      }
     },
     orderBy: { name: "asc" },
   });
@@ -59,7 +66,9 @@ export default async function MyTeamPage({ searchParams }: { searchParams: any }
   const agentsWithKPI = agents.map(a => ({
     ...a,
     transferredCount: a.teleSalesLeads.length,
+    target: a.agentTargets[0]?.target || 0,
     teleSalesLeads: undefined, // don't send full leads array
+    agentTargets: undefined,
   }));
 
   return (

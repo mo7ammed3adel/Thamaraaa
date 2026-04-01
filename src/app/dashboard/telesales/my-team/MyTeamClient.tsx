@@ -12,6 +12,7 @@ interface Agent {
   status: string;
   level: string | null;
   transferredCount: number;
+  target: number;
   _count: {
     teleSalesLeads: number;
     callLogs: number;
@@ -79,6 +80,24 @@ export default function MyTeamClient({
       alert("Network error");
     }
     setLoading(null);
+  };
+
+  const updateTarget = async (agentId: string, newTarget: number) => {
+    try {
+      const res = await fetch(`/api/users/${agentId}/target`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target: newTarget }),
+      });
+
+      if (res.ok) {
+        setAgents(agents.map(a => a.id === agentId ? { ...a, target: newTarget } : a));
+      } else {
+        alert("Failed to update target");
+      }
+    } catch {
+      alert("Network error");
+    }
   };
 
   const hotCount = agents.filter(a => a.specialization === "Hot").length;
@@ -250,6 +269,9 @@ export default function MyTeamClient({
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Leads</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Calls</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Meetings (Month)</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Target</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transferred</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Specialization</th>
               </tr>
@@ -281,6 +303,37 @@ export default function MyTeamClient({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm font-semibold text-gray-900">{agent._count.callLogs}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-purple-700">{agent._count.meetingsAsTele}</span>
+                        {agent.target > 0 && (
+                          <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full ${
+                                (agent._count.meetingsAsTele / agent.target) >= 1 ? 'bg-green-500' :
+                                (agent._count.meetingsAsTele / agent.target) >= 0.5 ? 'bg-yellow-400' : 'bg-red-400'
+                              }`} 
+                              style={{ width: `${Math.min(100, (agent._count.meetingsAsTele / agent.target) * 100)}%` }} 
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <input 
+                        type="number" 
+                        min="0"
+                        className="w-16 text-center text-sm border-b-2 border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none bg-transparent transition-colors font-bold text-gray-700"
+                        defaultValue={agent.target}
+                        onBlur={(e) => {
+                          const val = parseInt(e.target.value) || 0;
+                          if (val !== agent.target) updateTarget(agent.id, val);
+                        }}
+                      />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm font-semibold text-emerald-700">{agent.transferredCount}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${

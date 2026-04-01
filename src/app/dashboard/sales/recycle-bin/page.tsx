@@ -15,7 +15,7 @@ export default async function RecycleBinPage() {
 
   // Fetch rejected leads with the feedback left by previous agents
   const leads = await prisma.lead.findMany({
-    where: { status: "Closed_Lost" },
+    where: { status: "Closed_Lost", archivedAt: null },
     include: {
       salesAgent: { select: { name: true } },
       // Fetch newest feedback logs specifically for the closing action
@@ -48,3 +48,5 @@ export default async function RecycleBinPage() {
     </div>
   );
 }
+
+// Ensure TS recheck

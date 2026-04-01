@@ -38,6 +38,7 @@ model User {
   documents         EmployeeDocument[]
   meetingsAsTele    Meeting[] @relation("MeetingTeleAgent")
   meetingsAsSales   Meeting[] @relation("MeetingSalesAgent")
+  agentTargets      AgentTarget[] @relation("AgentTargets")
 }
 
 model Lead {
@@ -60,12 +61,28 @@ model Lead {
   firstContactDate       DateTime?
   meetingDate            DateTime?
   meetingTime            String?
+  meetingStartedAt       DateTime?
+  meetingEndedAt         DateTime?
   followUpDate           DateTime?
+  recycleCount           Int       @default(0)
+  archivedAt             DateTime?
+  salesNotes             String?
 
   callLogs               CallLog[]
   deals                  Deal[]
   meetings               Meeting[]
   customColumnValues     CustomColumnValue[]
+}
+
+model AgentTarget {
+  id        String   @id @default(uuid())
+  agentId   String
+  agent     User     @relation("AgentTargets", fields: [agentId], references: [id])
+  month     String   // YYYY-MM
+  target    Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@unique([agentId, month])
 }
 
 model CallLog {

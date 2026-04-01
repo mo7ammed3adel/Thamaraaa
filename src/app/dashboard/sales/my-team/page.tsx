@@ -18,6 +18,11 @@ export default async function SalesMyTeamPage() {
     whereClause.directManagerId = user.id;
   }
 
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date();
+  endOfDay.setHours(23, 59, 59, 999);
+
   const agents = await prisma.user.findMany({
     where: whereClause,
     select: {
@@ -32,7 +37,14 @@ export default async function SalesMyTeamPage() {
         select: {
           salesLeads: true,
           salesDeals: true,
-          meetingsAsSales: true,
+          meetingsAsSales: {
+            where: {
+              meetingDate: {
+                gte: startOfDay,
+                lte: endOfDay
+              }
+            }
+          },
         },
       },
       salesDeals: {
