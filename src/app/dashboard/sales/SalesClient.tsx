@@ -125,8 +125,10 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "Active" })
       });
+      
       setStatus("Active");
       setShowFeedbackForm(false);
+      setLeads(prev => prev.map(l => l.id === activeLead.id ? { ...l, status: finalStatus, ...extraData } : l));
       setActiveLead(null);
       router.refresh();
     }
