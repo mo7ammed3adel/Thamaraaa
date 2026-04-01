@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useMemo } from "react";
 import * as XLSX from "xlsx";
 import { Download, Search, Filter, ChevronDown, ChevronUp, Calendar, Phone, CheckCircle, Clock } from "lucide-react";
