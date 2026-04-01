@@ -251,7 +251,7 @@ export default function TeleSalesClient({
       {/* Workspace Summary Filters */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div 
-          onClick={() => setLogFilter(logFilter === "All" ? "All" : "All")} 
+          onClick={() => { setLogFilter(logFilter === "All" ? "All" : "All"); setCurrentPage(1); }} 
           className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "All" ? "border-blue-500 bg-blue-50" : "border-transparent bg-white hover:bg-gray-50"}`}
         >
           <div className="flex items-center gap-2 mb-2">
@@ -262,7 +262,7 @@ export default function TeleSalesClient({
         </div>
 
         <div 
-          onClick={() => setLogFilter(logFilter === "Accept and book meeting" ? "All" : "Accept and book meeting")} 
+          onClick={() => { setLogFilter(logFilter === "Accept and book meeting" ? "All" : "Accept and book meeting"); setCurrentPage(1); }} 
           className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Accept and book meeting" ? "border-green-500 bg-green-50" : "border-transparent bg-white hover:bg-gray-50"}`}
         >
           <div className="flex items-center gap-2 mb-2">
@@ -273,7 +273,7 @@ export default function TeleSalesClient({
         </div>
 
         <div 
-          onClick={() => setLogFilter(logFilter === "Accept but lost" ? "All" : "Accept but lost")} 
+          onClick={() => { setLogFilter(logFilter === "Accept but lost" ? "All" : "Accept but lost"); setCurrentPage(1); }} 
           className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Accept but lost" ? "border-orange-500 bg-orange-50" : "border-transparent bg-white hover:bg-gray-50"}`}
         >
           <div className="flex items-center gap-2 mb-2">
@@ -284,7 +284,7 @@ export default function TeleSalesClient({
         </div>
 
         <div 
-          onClick={() => setLogFilter(logFilter === "Busy" ? "All" : "Busy")} 
+          onClick={() => { setLogFilter(logFilter === "Busy" ? "All" : "Busy"); setCurrentPage(1); }} 
           className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Busy" ? "border-slate-500 bg-slate-50" : "border-transparent bg-white hover:bg-gray-50"}`}
         >
           <div className="flex items-center gap-2 mb-2">
@@ -295,7 +295,7 @@ export default function TeleSalesClient({
         </div>
 
         <div 
-          onClick={() => setLogFilter(logFilter === "Wrong Number" ? "All" : "Wrong Number")} 
+          onClick={() => { setLogFilter(logFilter === "Wrong Number" ? "All" : "Wrong Number"); setCurrentPage(1); }} 
           className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Wrong Number" ? "border-pink-500 bg-pink-50" : "border-transparent bg-white hover:bg-gray-50"}`}
         >
           <div className="flex items-center gap-2 mb-2">
@@ -321,7 +321,7 @@ export default function TeleSalesClient({
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Status</label>
-            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="border rounded-md px-3 py-1.5 text-sm">
+            <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }} className="border rounded-md px-3 py-1.5 text-sm">
               <option value="All">All statuses</option>
               <option value="New">New</option>
               <option value="Contacted">Contacted</option>
@@ -332,7 +332,7 @@ export default function TeleSalesClient({
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Type</label>
-            <select value={filterClass} onChange={(e) => setFilterClass(e.target.value)} className="border rounded-md px-3 py-1.5 text-sm">
+            <select value={filterClass} onChange={(e) => { setFilterClass(e.target.value); setCurrentPage(1); }} className="border rounded-md px-3 py-1.5 text-sm">
               <option value="All">All types</option>
               <option value="Hot">Hot</option>
               <option value="Warm">Warm</option>
@@ -341,7 +341,7 @@ export default function TeleSalesClient({
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" /> Date</label>
-            <select value={filterDate} onChange={(e) => { setFilterDate(e.target.value); if (e.target.value !== "Custom") { setCustomFrom(""); setCustomTo(""); } }} className="border rounded-md px-3 py-1.5 text-sm">
+            <select value={filterDate} onChange={(e) => { setFilterDate(e.target.value); setCurrentPage(1); if (e.target.value !== "Custom") { setCustomFrom(""); setCustomTo(""); } }} className="border rounded-md px-3 py-1.5 text-sm">
               <option value="All">All time</option>
               <option value="Today">Today</option>
               <option value="Yesterday">Yesterday</option>
@@ -356,11 +356,11 @@ export default function TeleSalesClient({
             <>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">From</label>
-                <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500" />
+                <input type="date" value={customFrom} onChange={(e) => { setCustomFrom(e.target.value); setCurrentPage(1); }} className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">To</label>
-                <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500" />
+                <input type="date" value={customTo} onChange={(e) => { setCustomTo(e.target.value); setCurrentPage(1); }} className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500" />
               </div>
             </>
           )}
