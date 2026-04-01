@@ -5,6 +5,7 @@ import { DollarSign, X, PhoneCall, Calendar, Handshake, ArrowRight, Clock } from
 interface Deal {
   id: string;
   totalAmount: number;
+  firstAmount: number | null;
   package: string;
   paymentMethod: string;
   status: string;
@@ -31,6 +32,7 @@ export default function DealsClient({ userRole }: { userRole: string }) {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
+  const [filterType, setFilterType] = useState<"All" | "Late">("All");
 
   useEffect(() => {
     fetchDeals();
@@ -48,7 +50,9 @@ export default function DealsClient({ userRole }: { userRole: string }) {
     setLoading(false);
   };
 
-  const totalRevenue = deals.reduce((sum, d) => sum + d.totalAmount, 0);
+  const totalRevenue = deals.reduce((sum, d) => sum + (d.firstAmount || d.totalAmount), 0);
+  const lateDeals = deals.filter(d => d.installments.some(i => !i.isPaid && new Date(i.dueDate) < new Date()));
+  const displayDeals = filterType === "Late" ? lateDeals : deals;
 
   return (
     <div className="space-y-6">
@@ -77,6 +81,17 @@ export default function DealsClient({ userRole }: { userRole: string }) {
           <p className="text-3xl font-bold">{deals.length > 0 ? Math.round(totalRevenue / deals.length).toLocaleString() : 0}</p>
           <p className="text-xs opacity-70 mt-1">SAR</p>
         </div>
+        <div 
+          onClick={() => setFilterType(filterType === "Late" ? "All" : "Late")}
+          className={`cursor-pointer rounded-xl p-5 text-white shadow-lg transition-transform hover:scale-105 ${filterType === "Late" ? "bg-red-600 ring-4 ring-red-300" : "bg-gradient-to-br from-red-500 to-rose-600"}`}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <Clock className="h-5 w-5 opacity-80" />
+            <span className="text-xs font-semibold uppercase opacity-80">Late Payments</span>
+          </div>
+          <p className="text-3xl font-bold">{lateDeals.length}</p>
+          <p className="text-xs opacity-70 mt-1">Pending Installments</p>
+        </div>
       </div>
 
       {/* Deals Table */}
@@ -97,9 +112,9 @@ export default function DealsClient({ userRole }: { userRole: string }) {
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr><td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500">Loading deals...</td></tr>
-              ) : deals.length === 0 ? (
+              ) : displayDeals.length === 0 ? (
                 <tr><td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500">No deals found.</td></tr>
-              ) : deals.map((deal) => (
+              ) : displayDeals.map((deal) => (
                 <tr key={deal.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => setSelectedDeal(deal)}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{deal.lead.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono">{deal.lead.phone}</td>
@@ -139,8 +154,9 @@ export default function DealsClient({ userRole }: { userRole: string }) {
               {/* Deal Summary */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
-                  <p className="text-xl font-bold text-green-700">{selectedDeal.totalAmount.toLocaleString()}</p>
-                  <p className="text-xs text-green-600">Deal Amount (SAR)</p>
+                  <p className="text-xl font-bold text-green-700">{(selectedDeal.firstAmount || selectedDeal.totalAmount).toLocaleString()}</p>
+                  <p className="text-xs text-green-600">{selectedDeal.firstAmount ? "First Amount (SAR)" : "Deal Amount (SAR)"}</p>
+                  {selectedDeal.firstAmount && <p className="text-[10px] text-gray-500 mt-1">Total: {selectedDeal.totalAmount.toLocaleString()}</p>}
                 </div>
                 <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3 text-center">
                   <p className="text-xl font-bold text-indigo-700">{selectedDeal.package}</p>

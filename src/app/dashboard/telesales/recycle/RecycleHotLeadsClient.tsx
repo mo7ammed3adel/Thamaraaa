@@ -25,6 +25,7 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
   const [selectedAgent, setSelectedAgent] = useState("");
   const [loading, setLoading] = useState(false);
+  const [filterClass, setFilterClass] = useState("All");
 
   const toggleSelect = (id: string) => {
     const next = new Set(selectedLeads);
@@ -73,6 +74,8 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
   const warmLeads = leads.filter(l => l.classification === "Warm");
   const coldLeads = leads.filter(l => l.classification === "Cold");
 
+  const filteredLeads = filterClass === "All" ? leads : leads.filter(l => l.classification === filterClass);
+
   return (
     <div className="space-y-6">
       {/* Stats */}
@@ -106,6 +109,22 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
               {agents.map(a => (
                 <option key={a.id} value={a.id}>{a.name}</option>
               ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Filter by Class</label>
+            <select
+              value={filterClass}
+              onChange={(e) => setFilterClass(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 min-w-[150px]"
+            >
+              <option value="All">All Classifications</option>
+              <option value="Hot">🔥 Hot</option>
+              <option value="Warm">☀️ Warm</option>
+              <option value="Cold">❄️ Cold</option>
             </select>
           </div>
         </div>
@@ -143,7 +162,7 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {leads.map((lead) => (
+              {filteredLeads.map((lead) => (
                 <tr key={lead.id} className={`hover:bg-gray-50 transition-colors ${selectedLeads.has(lead.id) ? "bg-blue-50" : ""}`}>
                   <td className="px-4 py-4">
                     <button onClick={() => toggleSelect(lead.id)} className="text-gray-400 hover:text-gray-600">
@@ -171,8 +190,8 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
                   </td>
                 </tr>
               ))}
-              {leads.length === 0 && (
-                <tr><td colSpan={8} className="px-6 py-8 text-center text-sm text-gray-500">No lost leads to recycle. 🎉</td></tr>
+              {filteredLeads.length === 0 && (
+                <tr><td colSpan={8} className="px-6 py-8 text-center text-sm text-gray-500">No lost leads match your criteria. 🎉</td></tr>
               )}
             </tbody>
           </table>

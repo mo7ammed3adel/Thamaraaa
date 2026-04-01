@@ -50,6 +50,7 @@ model Lead {
   source                 String?
   storeLink              String?
   hasStore               Boolean   @default(false)
+  niche                  String?
   classification         String    // Hot, Warm, Cold
   customerType           String?   // Store, Launch, Dropshipping, Shipping, Special
   status                 String    @default("New") // New, Contacted, No_Answer, Interested, Transferred, In_Sales, Closed_Won, Closed_Lost, Archived
@@ -110,6 +111,7 @@ model Deal {
   totalAmount            Float
   paymentMethod          String    // Cash, Transfer, Tabby, Tamara
   netTarget              Float     
+  firstAmount            Float?
   installment1Date       DateTime?
   installment1Amount     Float?
   installment1Collected  Boolean   @default(false)

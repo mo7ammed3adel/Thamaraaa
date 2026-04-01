@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronUp, PhoneCall, CheckCircle2, PhoneOff, XCircle } from "lucide-react";
+import { Calendar, PhoneCall, ChevronDown, ChevronUp, CheckCircle2, XCircle, FileText, Send } from "lucide-react";
 
 export default function SalesClient({ initialLeads, userRole, userId, initialStatus }: { initialLeads: any[], userRole: string, userId: string, initialStatus: string }) {
   const router = useRouter();
@@ -27,6 +27,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     contractStart: "",
     contractEnd: "",
     totalAmount: "",
+    firstAmount: "",
     paymentMethod: "Cash",
     installments: [] as any[],
     contractImageUrl: "",
@@ -45,6 +46,11 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     storeLink: "",
     customerType: "Launch" // Store, Launch, Dropshipping, Shipping, Special
   });
+
+  // Send Link State
+  const [linkLead, setLinkLead] = useState<any>(null);
+  const [meetingLink, setMeetingLink] = useState("");
+  const [sendingLink, setSendingLink] = useState(false);
 
   const toggleStatus = async () => {
     if (status === "In_Call") return;
@@ -160,15 +166,48 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     router.refresh();
   };
 
+  const submitLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!meetingLink || !linkLead?.teleAgent?.id) return;
+
+    setSendingLink(true);
+    try {
+      await fetch("/api/notifications/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: linkLead.teleAgent.id,
+          title: "Meeting Link Added",
+          message: `Sales Agent added meeting link for lead ${linkLead.name}: ${meetingLink}`,
+          link: meetingLink
+        })
+      });
+      alert("Link sent to TeleSales Agent!");
+      setLinkLead(null);
+      setMeetingLink("");
+    } catch {
+      alert("Failed to send link");
+    } finally {
+      setSendingLink(false);
+    }
+  };
+
   const classColor = (cls: string) => {
     if (cls === "Hot") return "bg-red-100 text-red-700";
     if (cls === "Warm") return "bg-amber-100 text-amber-700";
     return "bg-blue-100 text-blue-700";
   };
 
+  // KPI counts
+  const totalMeets = leads.length;
+  const closedWon = leads.filter(l => l.status === "Closed_Won" || l._count?.deals > 0).length;
+  const followUp = leads.filter(l => l.status === "Follow_Up").length;
+  const rescheduled = leads.filter(l => l.status === "Rescheduled").length;
+  const closedLost = leads.filter(l => l.status === "Closed_Lost").length;
+
   const filteredLeads = leads.filter(l => {
     if (logFilter === "All") {
-      if (!["In_Sales", "Waiting"].includes(l.status)) return false;
+      return true;
     } else if (logFilter === "Closed_Won") {
       if (l.status !== "Closed_Won" && !(l._count?.deals > 0)) return false;
     } else {
@@ -214,7 +253,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
             <PhoneCall className="h-5 w-5 text-blue-500" />
             <span className="text-xs font-bold uppercase text-gray-500">Total Meets</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{leads.filter(l => ["In_Sales", "Waiting"].includes(l.status)).length}</p>
+          <p className="text-2xl font-bold text-gray-900">{totalMeets}</p>
         </div>
 
         <div 
@@ -225,7 +264,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
             <CheckCircle2 className="h-5 w-5 text-green-500" />
             <span className="text-xs font-bold uppercase text-gray-500">Win Deal</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{leads.filter(l => l.status === "Closed_Won" || l._count?.deals > 0).length}</p>
+          <p className="text-2xl font-bold text-gray-900">{closedWon}</p>
         </div>
 
         <div 
@@ -236,7 +275,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
             <ChevronUp className="h-5 w-5 text-amber-500" />
             <span className="text-xs font-bold uppercase text-gray-500">Follow-up</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{leads.filter(l => l.status === "Follow_Up").length}</p>
+          <p className="text-2xl font-bold text-gray-900">{followUp}</p>
         </div>
 
         <div 
@@ -307,7 +346,18 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                     <span className={`px-2 py-0.5 rounded text-xs font-medium ${classColor(l.classification)}`}>{l.classification}</span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {l.teleAgent?.name || <span className="text-gray-400 italic">—</span>}
+                    <div className="flex items-center gap-2">
+                      {l.teleAgent?.name || <span className="text-gray-400 italic">—</span>}
+                      {l.teleAgent && (
+                        <button 
+                          onClick={() => setLinkLead(l)}
+                          title="Send Meeting Link"
+                          className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-md transition-colors"
+                        >
+                          <Send className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {l.meetings?.[0]?.meetingDate ? new Date(l.meetings[0].meetingDate).toLocaleDateString() : (l.meetingDate ? new Date(l.meetingDate).toLocaleDateString() : "N/A")} 
@@ -495,6 +545,10 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                   <input required type="number" className="w-full border p-2 rounded" value={dealData.totalAmount} onChange={e => setDealData({...dealData, totalAmount: e.target.value})} />
                 </div>
                 <div>
+                  <label className="block text-sm font-medium mb-1">First Amount Paid (SAR)</label>
+                  <input type="number" className="w-full border p-2 rounded" placeholder="Optional" value={dealData.firstAmount} onChange={e => setDealData({...dealData, firstAmount: e.target.value})} />
+                </div>
+                <div>
                   <label className="block text-sm font-medium mb-1">Contract Start</label>
                   <input required type="date" className="w-full border p-2 rounded" value={dealData.contractStart} onChange={e => setDealData({...dealData, contractStart: e.target.value})} />
                 </div>
@@ -547,6 +601,32 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
               
               <div className="mt-6 border-t pt-4">
                 <button type="submit" className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded shadow-md">Confirm Deal & Send to Operations</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Send Link Modal */}
+      {linkLead && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+            <h3 className="text-lg font-bold mb-2">Send Meeting Link</h3>
+            <p className="text-xs text-gray-500 mb-4">Send the Google Meet/Zoom link to {linkLead.teleAgent?.name} for client <span className="font-semibold">{linkLead.name}</span>.</p>
+            <form onSubmit={submitLink}>
+              <input 
+                type="url" 
+                required 
+                className="w-full border p-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 mb-4" 
+                placeholder="https://meet.google.com/..." 
+                value={meetingLink}
+                onChange={e => setMeetingLink(e.target.value)}
+              />
+              <div className="flex justify-end gap-3">
+                <button type="button" onClick={() => setLinkLead(null)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg font-medium">Cancel</button>
+                <button type="submit" disabled={sendingLink} className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg font-medium disabled:opacity-50">
+                  {sendingLink ? "Sending..." : "Send Link"}
+                </button>
               </div>
             </form>
           </div>

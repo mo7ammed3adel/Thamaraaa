@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     const data = await req.json();
     const { 
       leadId, packageType, contractStart, contractEnd, 
-      totalAmount, paymentMethod, installments, 
+      totalAmount, firstAmount, paymentMethod, installments, 
       contractImageUrl, receiptUrl 
     } = data;
 
@@ -49,6 +49,7 @@ export async function POST(req: Request) {
         contractStart: new Date(contractStart),
         contractEnd: new Date(contractEnd),
         totalAmount: parseFloat(totalAmount),
+        firstAmount: firstAmount ? parseFloat(firstAmount) : null,
         paymentMethod,
         netTarget,
         contractImageUrl,

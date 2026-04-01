@@ -25,6 +25,7 @@ export async function GET(req: Request) {
       dateFilter.lte = toDate;
     }
     const createdAtFilter = (from || to) ? { createdAt: dateFilter } : {};
+    const meetingDateFilter = (from || to) ? { meetingDate: dateFilter } : {};
 
     const agentFilter: any = { role: "tele_sales_agent" };
     if (user.role === "tele_sales_manager") {
@@ -49,7 +50,7 @@ export async function GET(req: Request) {
 
     if (drillDown === "meetings") {
       const meetings = await prisma.meeting.findMany({
-        where: { teleAgentId: { in: agentIds }, ...createdAtFilter },
+        where: { teleAgentId: { in: agentIds }, ...meetingDateFilter },
         select: {
           id: true, status: true, meetingDate: true, meetingTime: true, createdAt: true,
           lead: { select: { name: true, phone: true } },
@@ -64,7 +65,7 @@ export async function GET(req: Request) {
 
     if (drillDown === "attended") {
       const meetings = await prisma.meeting.findMany({
-        where: { teleAgentId: { in: agentIds }, status: { in: ["Attended", "Won"] }, ...createdAtFilter },
+        where: { teleAgentId: { in: agentIds }, status: { in: ["Attended", "Won"] }, ...meetingDateFilter },
         select: {
           id: true, status: true, meetingDate: true, meetingTime: true, createdAt: true,
           lead: { select: { name: true, phone: true } },

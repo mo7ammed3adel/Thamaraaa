@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { User, Settings, PhoneCall, Briefcase, ListTodo, LogOut, Upload, RotateCcw, Users, BarChart3, Calendar, Handshake, TrendingUp } from "lucide-react";
+import { User, Settings, PhoneCall, Briefcase, ListTodo, LogOut, Upload, RotateCcw, Users, BarChart3, Calendar, Handshake, TrendingUp, PlusSquare } from "lucide-react";
 import LogoutButton from "@/components/LogoutButton";
 import NotificationBell from "@/components/NotificationBell";
 
@@ -59,6 +59,10 @@ export default async function DashboardLayout({
                     <Upload className="mr-3 h-5 w-5 opacity-75" />
                     Upload Leads
                   </Link>
+                  <Link href="/dashboard/telesales/cold-leads" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
+                    <PlusSquare className="mr-3 h-5 w-5 opacity-75" />
+                    Add Cold Leads
+                  </Link>
                   <Link href="/dashboard/telesales/my-team" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
                     <Users className="mr-3 h-5 w-5 opacity-75" />
                     My Team
@@ -82,6 +86,10 @@ export default async function DashboardLayout({
                   <Link href="/dashboard/telesales/my-progress" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
                     <TrendingUp className="mr-3 h-5 w-5 opacity-75" />
                     My Progress
+                  </Link>
+                  <Link href="/dashboard/telesales/cold-leads" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
+                    <PlusSquare className="mr-3 h-5 w-5 opacity-75" />
+                    Add Cold Leads
                   </Link>
                 </>
               )}

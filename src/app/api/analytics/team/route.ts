@@ -26,6 +26,7 @@ export async function GET(req: Request) {
     }
 
     const createdAtFilter = (from || to) ? { createdAt: dateFilter } : {};
+    const meetingDateFilter = (from || to) ? { meetingDate: dateFilter } : {};
 
     // Get all tele_sales_agents under this manager (or all if super_admin)
     const agentFilter: any = { role: "tele_sales_agent" };
@@ -64,7 +65,7 @@ export async function GET(req: Request) {
     const meetings = await prisma.meeting.findMany({
       where: {
         teleAgentId: { in: agentIds },
-        ...createdAtFilter,
+        ...meetingDateFilter,
       },
       select: {
         teleAgentId: true,
