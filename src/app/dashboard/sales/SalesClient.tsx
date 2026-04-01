@@ -167,11 +167,12 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
   };
 
   const filteredLeads = leads.filter(l => {
-    if (logFilter !== "All" && logFilter !== "Closed_Won") {
-      if (l.status !== logFilter) return false;
-    }
-    if (logFilter === "Closed_Won") {
+    if (logFilter === "All") {
+      if (!["In_Sales", "Waiting"].includes(l.status)) return false;
+    } else if (logFilter === "Closed_Won") {
       if (l.status !== "Closed_Won" && !(l._count?.deals > 0)) return false;
+    } else {
+      if (l.status !== logFilter) return false;
     }
     
     if (searchQuery.trim()) {
@@ -206,18 +207,18 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
       {/* Workspace Summary Filters */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         <div 
-          onClick={() => setLogFilter(logFilter === "All" ? "All" : "All")} 
+          onClick={() => setLogFilter("All")} 
           className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "All" ? "border-blue-500 bg-blue-50" : "border-transparent bg-white hover:bg-gray-50"}`}
         >
           <div className="flex items-center gap-2 mb-2">
             <PhoneCall className="h-5 w-5 text-blue-500" />
             <span className="text-xs font-bold uppercase text-gray-500">Total Meets</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{leads.length}</p>
+          <p className="text-2xl font-bold text-gray-900">{leads.filter(l => ["In_Sales", "Waiting"].includes(l.status)).length}</p>
         </div>
 
         <div 
-          onClick={() => setLogFilter(logFilter === "Closed_Won" ? "All" : "Closed_Won")} 
+          onClick={() => setLogFilter("Closed_Won")} 
           className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Closed_Won" ? "border-green-500 bg-green-50" : "border-transparent bg-white hover:bg-gray-50"}`}
         >
           <div className="flex items-center gap-2 mb-2">
@@ -228,7 +229,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         </div>
 
         <div 
-          onClick={() => setLogFilter(logFilter === "Follow_Up" ? "All" : "Follow_Up")} 
+          onClick={() => setLogFilter("Follow_Up")} 
           className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Follow_Up" ? "border-amber-500 bg-amber-50" : "border-transparent bg-white hover:bg-gray-50"}`}
         >
           <div className="flex items-center gap-2 mb-2">
@@ -239,7 +240,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         </div>
 
         <div 
-          onClick={() => setLogFilter(logFilter === "Rescheduled" ? "All" : "Rescheduled")} 
+          onClick={() => setLogFilter("Rescheduled")} 
           className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Rescheduled" ? "border-purple-500 bg-purple-50" : "border-transparent bg-white hover:bg-gray-50"}`}
         >
           <div className="flex items-center gap-2 mb-2">
@@ -250,7 +251,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         </div>
 
         <div 
-          onClick={() => setLogFilter(logFilter === "Closed_Lost" ? "All" : "Closed_Lost")} 
+          onClick={() => setLogFilter("Closed_Lost")} 
           className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Closed_Lost" ? "border-red-500 bg-red-50" : "border-transparent bg-white hover:bg-gray-50"}`}
         >
           <div className="flex items-center gap-2 mb-2">

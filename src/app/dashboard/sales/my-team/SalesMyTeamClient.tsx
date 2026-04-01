@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Users, Flame, Snowflake, Sun, Handshake, XCircle, DollarSign, Briefcase } from "lucide-react";
+import { Users, Flame, Snowflake, Sun, Handshake, XCircle, DollarSign, Briefcase, Calendar, ChevronDown } from "lucide-react";
 
 interface Agent {
   id: string;
@@ -37,6 +37,8 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
   const router = useRouter();
   const [agents, setAgents] = useState(initialAgents);
   const [loading, setLoading] = useState<string | null>(null);
+  const [filterSpec, setFilterSpec] = useState<string>("All");
+  const [sortBy, setSortBy] = useState<string>("name");
 
   useEffect(() => {
     setAgents(initialAgents);
@@ -74,43 +76,86 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
   const coldCount = agents.filter(a => a.specialization === "Cold").length;
   const unassignedCount = agents.filter(a => !a.specialization).length;
 
+  // Filter agents by specialization
+  let displayAgents = [...agents];
+  if (filterSpec !== "All") {
+    displayAgents = displayAgents.filter(a => a.specialization === filterSpec);
+  }
+
+  // Sort agents based on selected sort
+  displayAgents.sort((a, b) => {
+    if (sortBy === "leads") return b._count.salesLeads - a._count.salesLeads;
+    if (sortBy === "meetings") return b._count.meetingsAsSales - a._count.meetingsAsSales;
+    if (sortBy === "won") return b.dealsWonCount - a.dealsWonCount;
+    if (sortBy === "lost") return b.lostCount - a.lostCount;
+    if (sortBy === "revenue") return b.revenue - a.revenue;
+    return a.name.localeCompare(b.name);
+  });
+
   return (
     <div className="space-y-6">
-      {/* KPI Summary Cards */}
+      {/* KPI Summary Cards - clickable to sort */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl p-4 text-white shadow-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <Briefcase className="h-5 w-5 opacity-80" />
-            <span className="text-xs font-semibold uppercase opacity-80">Total Leads</span>
+        <div
+          onClick={() => setSortBy(sortBy === "leads" ? "name" : "leads")}
+          className={`cursor-pointer bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl p-4 text-white shadow-lg transition-all hover:scale-[1.02] ${sortBy === "leads" ? "ring-4 ring-slate-300" : ""}`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Briefcase className="h-5 w-5 opacity-80" />
+              <span className="text-xs font-semibold uppercase opacity-80">Total Leads</span>
+            </div>
+            <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${sortBy === "leads" ? "rotate-180" : ""}`} />
           </div>
           <p className="text-3xl font-bold">{agents.reduce((s, a) => s + a._count.salesLeads, 0)}</p>
         </div>
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 text-white shadow-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <Handshake className="h-5 w-5 opacity-80" />
-            <span className="text-xs font-semibold uppercase opacity-80">Deals Won</span>
+        <div
+          onClick={() => setSortBy(sortBy === "won" ? "name" : "won")}
+          className={`cursor-pointer bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 text-white shadow-lg transition-all hover:scale-[1.02] ${sortBy === "won" ? "ring-4 ring-green-300" : ""}`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Handshake className="h-5 w-5 opacity-80" />
+              <span className="text-xs font-semibold uppercase opacity-80">Deals Won</span>
+            </div>
+            <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${sortBy === "won" ? "rotate-180" : ""}`} />
           </div>
           <p className="text-3xl font-bold">{agents.reduce((s, a) => s + (a.dealsWonCount || 0), 0)}</p>
         </div>
-        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-4 text-white shadow-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <XCircle className="h-5 w-5 opacity-80" />
-            <span className="text-xs font-semibold uppercase opacity-80">Deals Lost</span>
+        <div
+          onClick={() => setSortBy(sortBy === "lost" ? "name" : "lost")}
+          className={`cursor-pointer bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-4 text-white shadow-lg transition-all hover:scale-[1.02] ${sortBy === "lost" ? "ring-4 ring-red-300" : ""}`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <XCircle className="h-5 w-5 opacity-80" />
+              <span className="text-xs font-semibold uppercase opacity-80">Deals Lost</span>
+            </div>
+            <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${sortBy === "lost" ? "rotate-180" : ""}`} />
           </div>
           <p className="text-3xl font-bold">{agents.reduce((s, a) => s + (a.lostCount || 0), 0)}</p>
         </div>
-        <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-4 text-white shadow-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <DollarSign className="h-5 w-5 opacity-80" />
-            <span className="text-xs font-semibold uppercase opacity-80">Total Revenue</span>
+        <div
+          onClick={() => setSortBy(sortBy === "revenue" ? "name" : "revenue")}
+          className={`cursor-pointer bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-4 text-white shadow-lg transition-all hover:scale-[1.02] ${sortBy === "revenue" ? "ring-4 ring-amber-300" : ""}`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 opacity-80" />
+              <span className="text-xs font-semibold uppercase opacity-80">Total Revenue</span>
+            </div>
+            <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${sortBy === "revenue" ? "rotate-180" : ""}`} />
           </div>
           <p className="text-3xl font-bold">{agents.reduce((s, a) => s + (a.revenue || 0), 0).toLocaleString()} <span className="text-sm font-normal opacity-80">SAR</span></p>
         </div>
       </div>
 
-      {/* Specialization Breakdown */}
+      {/* Specialization Breakdown - clickable to filter */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+        <div
+          onClick={() => setFilterSpec("All")}
+          className={`cursor-pointer bg-white rounded-xl border p-4 shadow-sm transition-all hover:border-slate-400 ${filterSpec === "All" ? "ring-2 ring-slate-400" : "border-gray-200"}`}
+        >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-slate-100 rounded-lg">
               <Users className="h-5 w-5 text-slate-600" />
@@ -121,7 +166,10 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-red-100 p-4 shadow-sm">
+        <div
+          onClick={() => setFilterSpec("Hot")}
+          className={`cursor-pointer bg-white rounded-xl border p-4 shadow-sm transition-all hover:border-red-400 ${filterSpec === "Hot" ? "ring-2 ring-red-400" : "border-red-100"}`}
+        >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-red-50 rounded-lg">
               <Flame className="h-5 w-5 text-red-500" />
@@ -132,7 +180,10 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-amber-100 p-4 shadow-sm">
+        <div
+          onClick={() => setFilterSpec("Warm")}
+          className={`cursor-pointer bg-white rounded-xl border p-4 shadow-sm transition-all hover:border-amber-400 ${filterSpec === "Warm" ? "ring-2 ring-amber-400" : "border-amber-100"}`}
+        >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-amber-50 rounded-lg">
               <Sun className="h-5 w-5 text-amber-500" />
@@ -143,7 +194,10 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-blue-100 p-4 shadow-sm">
+        <div
+          onClick={() => setFilterSpec("Cold")}
+          className={`cursor-pointer bg-white rounded-xl border p-4 shadow-sm transition-all hover:border-blue-400 ${filterSpec === "Cold" ? "ring-2 ring-blue-400" : "border-blue-100"}`}
+        >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-50 rounded-lg">
               <Snowflake className="h-5 w-5 text-blue-500" />
@@ -156,6 +210,28 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
         </div>
       </div>
 
+      {/* Active Sort/Filter Indicator */}
+      {(sortBy !== "name" || filterSpec !== "All") && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {sortBy !== "name" && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-full border border-blue-200">
+              Sorted by: {sortBy === "leads" ? "Total Leads" : sortBy === "won" ? "Deals Won" : sortBy === "lost" ? "Deals Lost" : sortBy === "meetings" ? "Meetings" : "Revenue"} ↓
+              <button onClick={() => setSortBy("name")} className="ml-1 text-blue-400 hover:text-blue-700">✕</button>
+            </span>
+          )}
+          {filterSpec !== "All" && (
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border ${
+              filterSpec === "Hot" ? "bg-red-50 text-red-700 border-red-200" :
+              filterSpec === "Warm" ? "bg-amber-50 text-amber-700 border-amber-200" :
+              "bg-blue-50 text-blue-700 border-blue-200"
+            }`}>
+              Filter: {filterSpec} Agents
+              <button onClick={() => setFilterSpec("All")} className="ml-1 opacity-60 hover:opacity-100">✕</button>
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Agents Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
@@ -165,16 +241,31 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Leads</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Meetings (Today)</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Closed Deals</th>
+                <th
+                  onClick={() => setSortBy(sortBy === "leads" ? "name" : "leads")}
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 transition-colors"
+                >
+                  Leads {sortBy === "leads" ? "↓" : ""}
+                </th>
+                <th
+                  onClick={() => setSortBy(sortBy === "meetings" ? "name" : "meetings")}
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 transition-colors"
+                >
+                  Meetings (Today) {sortBy === "meetings" ? "↓" : ""}
+                </th>
+                <th
+                  onClick={() => setSortBy(sortBy === "won" ? "name" : "won")}
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 transition-colors"
+                >
+                  Closed Deals {sortBy === "won" ? "↓" : ""}
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Win Rate</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Specialization</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {agents.map((agent) => {
+              {displayAgents.map((agent) => {
                 const SpecIcon = agent.specialization ? specIcons[agent.specialization] : null;
                 return (
                   <tr key={agent.id} className="hover:bg-gray-50 transition-colors">
@@ -243,8 +334,8 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
                   </tr>
                 );
               })}
-              {agents.length === 0 && (
-                <tr><td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500">No agents found under your management.</td></tr>
+              {displayAgents.length === 0 && (
+                <tr><td colSpan={9} className="px-6 py-8 text-center text-sm text-gray-500">No agents found{filterSpec !== "All" ? ` with ${filterSpec} specialization` : " under your management"}.</td></tr>
               )}
             </tbody>
           </table>

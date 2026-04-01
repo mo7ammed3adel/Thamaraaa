@@ -12,10 +12,10 @@ export default async function SalesWorkspacePage() {
     redirect("/dashboard");
   }
 
-  // Fetch leads assigned to this agent where status is "In_Sales" or "Waiting"
+  const allowedStatuses = ["In_Sales", "Waiting", "Follow_Up", "Rescheduled", "Closed_Won", "Closed_Lost"];
   const whereClause = user.role === "sales_agent" 
-    ? { assignedSalesAgentId: user.id, status: { in: ["In_Sales", "Waiting"] } } 
-    : { status: { in: ["In_Sales", "Waiting"] } };
+    ? { assignedSalesAgentId: user.id, status: { in: allowedStatuses } } 
+    : { status: { in: allowedStatuses } };
 
   const leads = await prisma.lead.findMany({
     where: whereClause,
