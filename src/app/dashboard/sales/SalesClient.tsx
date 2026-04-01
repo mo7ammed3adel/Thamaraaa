@@ -199,7 +199,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
   };
 
   // KPI counts
-  const totalMeets = leads.length;
+  const totalMeets = leads.filter(l => !["Closed_Won", "Closed_Lost"].includes(l.status)).length;
   const closedWon = leads.filter(l => l.status === "Closed_Won" || l._count?.deals > 0).length;
   const followUp = leads.filter(l => l.status === "Follow_Up").length;
   const rescheduled = leads.filter(l => l.status === "Rescheduled").length;
@@ -207,7 +207,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
 
   const filteredLeads = leads.filter(l => {
     if (logFilter === "All") {
-      return true;
+      return !["Closed_Won", "Closed_Lost"].includes(l.status);
     } else if (logFilter === "Closed_Won") {
       if (l.status !== "Closed_Won" && !(l._count?.deals > 0)) return false;
     } else {
