@@ -57,7 +57,7 @@ export default function DealsClient({ userRole }: { userRole: string }) {
   return (
     <div className="space-y-6">
       {/* Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-5 text-white shadow-lg">
           <div className="flex items-center gap-2 mb-2">
             <Handshake className="h-5 w-5 opacity-80" />
