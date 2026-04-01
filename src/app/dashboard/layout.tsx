@@ -32,7 +32,7 @@ export default async function DashboardLayout({
             <span className="truncate">Dashboard Home</span>
           </Link>
 
-          <NotificationBell />
+          <NotificationBell variant="sidebar" />
           
           {role === "super_admin" && (
             <>
@@ -199,6 +199,7 @@ export default async function DashboardLayout({
         {/* Header for main content */}
         <div className="h-16 flex items-center justify-end px-6 border-b border-gray-200 shrink-0">
           <div className="ml-4 flex items-center md:ml-6 gap-3">
+            <NotificationBell />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-8">
