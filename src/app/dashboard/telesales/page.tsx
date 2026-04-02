@@ -21,6 +21,7 @@ export default async function TeleSalesPage() {
     where: whereClause,
     include: {
       teleAgent: { select: { name: true } },
+      salesAgent: { select: { name: true } },
       callLogs: {
         orderBy: { createdAt: "desc" },
         take: 1

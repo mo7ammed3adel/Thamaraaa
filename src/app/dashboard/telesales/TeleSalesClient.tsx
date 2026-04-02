@@ -406,6 +406,7 @@ export default function TeleSalesClient({
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone & Source</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status & Class</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sales Agent</th>
                 {isManager && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Agent</th>}
                 {/* Custom Columns */}
                 {customColumns.map((col) => (
@@ -433,6 +434,16 @@ export default function TeleSalesClient({
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mb-1">{l.status}</span><br />
                     <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">{l.classification}</span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {l.salesAgent?.name ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                        {l.salesAgent.name}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 text-xs">—</span>
+                    )}
                   </td>
                   {isManager && (
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

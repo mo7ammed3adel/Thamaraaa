@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, PhoneCall, ChevronDown, ChevronUp, CheckCircle2, XCircle, FileText, Send, X } from "lucide-react";
+import { Calendar, PhoneCall, ChevronDown, ChevronUp, CheckCircle2, XCircle, FileText, Send, X, Clock } from "lucide-react";
 
 export default function SalesClient({ initialLeads, userRole, userId, initialStatus }: { initialLeads: any[], userRole: string, userId: string, initialStatus: string }) {
   const router = useRouter();
@@ -47,6 +47,43 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
 
   // Task timer
   const [taskStartTime, setTaskStartTime] = useState<Date | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Live In-Call Timer
+  useEffect(() => {
+    if (activeLead && taskStartTime) {
+      timerRef.current = setInterval(() => {
+        setElapsedSeconds(Math.floor((Date.now() - taskStartTime.getTime()) / 1000));
+      }, 1000);
+    } else {
+      setElapsedSeconds(0);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [activeLead, taskStartTime]);
+
+  const formatTimer = (secs: number) => {
+    const m = Math.floor(secs / 60).toString().padStart(2, '0');
+    const s = (secs % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
+
+  // Last Activity Tracking
+  const [lastActivityTime, setLastActivityTime] = useState<Date | null>(new Date());
+  const [lastActivityText, setLastActivityText] = useState("");
+
+  useEffect(() => {
+    const updateText = () => {
+      if (!lastActivityTime) { setLastActivityText(""); return; }
+      const diff = Math.floor((Date.now() - lastActivityTime.getTime()) / 1000);
+      if (diff < 60) setLastActivityText("Just now");
+      else if (diff < 3600) setLastActivityText(`${Math.floor(diff / 60)} min ago`);
+      else setLastActivityText(`${Math.floor(diff / 3600)}h ago`);
+    };
+    updateText();
+    const interval = setInterval(updateText, 30000);
+    return () => clearInterval(interval);
+  }, [lastActivityTime]);
   
   // Deal closing form
   const [showClosingForm, setShowClosingForm] = useState(false);
@@ -95,9 +132,10 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
   const [sendingLink, setSendingLink] = useState(false);
 
   const toggleStatus = async () => {
-    if (status === "In_Call") return;
+    if (status === "In_Call" || feedbackDraft) return;
     const newStatus = status === "Active" ? "Busy" : "Active";
     setStatus(newStatus);
+    setLastActivityTime(new Date());
     await fetch(`/api/users/${userId}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -321,15 +359,37 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
       <div className="mb-6 flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
         <div>
           <h2 className="text-sm font-semibold text-gray-500 uppercase">My Status</h2>
-          <div className="flex items-center mt-2">
-            <span className="relative flex h-3 w-3 mr-2">
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status === "Active" ? "bg-green-400" : status === "In_Call" ? "bg-red-400" : "bg-yellow-400"}`}></span>
-              <span className={`relative inline-flex rounded-full h-3 w-3 ${status === "Active" ? "bg-green-500" : status === "In_Call" ? "bg-red-500" : "bg-yellow-500"}`}></span>
-            </span>
-            <span className="font-bold text-gray-900">{status.replace("_", " ")}</span>
+          <div className="flex items-center mt-2 gap-3">
+            <div className="flex items-center">
+              <span className="relative flex h-3 w-3 mr-2">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status === "Active" ? "bg-green-400" : status === "In_Call" ? "bg-red-400" : "bg-yellow-400"}`}></span>
+                <span className={`relative inline-flex rounded-full h-3 w-3 ${status === "Active" ? "bg-green-500" : status === "In_Call" ? "bg-red-500" : "bg-yellow-500"}`}></span>
+              </span>
+              <span className="font-bold text-gray-900">{status.replace("_", " ")}</span>
+            </div>
+            
+            {/* In-Call Timer */}
+            {status === "In_Call" && activeLead && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200 animate-pulse">
+                <Clock className="h-3.5 w-3.5" />
+                {formatTimer(elapsedSeconds)}
+              </span>
+            )}
+
+            {/* Last Activity */}
+            {status !== "In_Call" && lastActivityText && (
+              <span className="text-xs text-gray-400 font-medium">
+                Last Activity: {lastActivityText}
+              </span>
+            )}
           </div>
         </div>
-        <button onClick={toggleStatus} disabled={status === "In_Call"} className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition disabled:opacity-50">
+        <button
+          onClick={toggleStatus}
+          disabled={status === "In_Call" || feedbackDraft}
+          className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          title={feedbackDraft ? "Complete feedback before toggling status" : ""}
+        >
           Toggle Status
         </button>
       </div>

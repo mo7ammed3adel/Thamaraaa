@@ -21,8 +21,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
     const updatedUser = await prisma.user.update({
       where: { id: params.id },
-      data: { status },
-      select: { id: true, name: true, status: true },
+      data: { status, lastStatusChange: new Date() },
+      select: { id: true, name: true, status: true, lastStatusChange: true },
     });
 
     return NextResponse.json(updatedUser);
