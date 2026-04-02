@@ -13,7 +13,7 @@ model User {
   email           String   @unique
   phone           String?
   passwordHash    String
-  role            String // super_admin, hr_manager, tele_sales_manager, tele_sales_agent, sales_manager, sales_agent, account_manager, team_leader, operations_agent
+  role            String // super_admin, hr_manager, accountant, tele_sales_manager, tele_sales_agent, sales_manager, sales_agent, chief_sales, head_account_manager, account_manager, head_technical, head_seo, team_leader_seo, agent_seo, agent_content_seo, team_leader_media_buyer, agent_media_buyer, team_leader_social_media, agent_social_media, leader_graphic_designer, agent_graphic_designer, leader_motion_graphic, agent_motion_graphic, leader_ui, agent_ui, team_leader, operations_agent
   level           String? // Junior, Mid, Senior
   directManagerId String?
   directManager   User?    @relation("ManagerToSubordinates", fields: [directManagerId], references: [id], onDelete: SetNull, onUpdate: Cascade)
@@ -219,8 +219,18 @@ model Task {
   agentId        String?
   agent          User?     @relation("TaskAgent", fields: [agentId], references: [id])
   taskType       String
-  checklistItems String // JSON string for SQLite
+  checklistItems String // JSON string
   progressPct    Float     @default(0)
+  requesterRole  String?   // Role that created/requested this task
+  assignedRole   String?   // Target role for the task
+  brief          String?   // Creative brief or task description
+  deadline       DateTime? // Task-level deadline
+  priority       String    @default("Medium") // High, Medium, Low
+  status         String    @default("pending") // pending, in_progress, review, done
+  parentTaskId   String?   // For sub-tasks (e.g. Social → Graphic Design)
+  parentTask     Task?     @relation("SubTasks", fields: [parentTaskId], references: [id], onDelete: SetNull)
+  subTasks       Task[]    @relation("SubTasks")
+  files          String?   // JSON string for deliverable URLs
   createdAt      DateTime  @default(now())
   completedAt    DateTime?
 }
@@ -359,4 +369,16 @@ model ProjectLog {
   details   String?  // JSON or text description
   userId    String
   createdAt DateTime @default(now())
+}
+
+model Warning {
+  id             String   @id @default(uuid())
+  clientId       String?  // Lead ID if warning is about a client
+  projectId      String?  // Project ID if warning is about a project
+  message        String
+  senderUserId   String
+  senderRole     String
+  recipientRoles String   // JSON array of target role strings
+  acknowledgedBy String   @default("[]") // JSON: [{userId, userName, role, timestamp}]
+  createdAt      DateTime @default(now())
 }
