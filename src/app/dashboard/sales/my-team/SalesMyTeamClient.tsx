@@ -38,6 +38,7 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
   const [agents, setAgents] = useState(initialAgents);
   const [loading, setLoading] = useState<string | null>(null);
   const [filterSpec, setFilterSpec] = useState<string>("All");
+  const [activeCardFilter, setActiveCardFilter] = useState<string>("All");
   const [sortBy, setSortBy] = useState<string>("name");
 
   useEffect(() => {
@@ -76,14 +77,23 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
   const coldCount = agents.filter(a => a.specialization === "Cold").length;
   const unassignedCount = agents.filter(a => !a.specialization).length;
 
-  // Filter agents by specialization
+  // 1. Stacked Filtering
   let displayAgents = [...agents];
+  
   if (filterSpec !== "All") {
     displayAgents = displayAgents.filter(a => a.specialization === filterSpec);
   }
+  
+  if (activeCardFilter === "won") {
+    displayAgents = displayAgents.filter(a => a.dealsWonCount > 0);
+  } else if (activeCardFilter === "lost") {
+    displayAgents = displayAgents.filter(a => a.lostCount > 0);
+  } else if (activeCardFilter === "revenue") {
+    displayAgents = displayAgents.filter(a => (a.revenue || 0) > 0);
+  }
 
-  // Sort agents based on selected sort
-  displayAgents.sort((a, b) => {
+  // 2. Sorting
+  const sortedAndFilteredAgents = displayAgents.sort((a, b) => {
     if (sortBy === "leads") return b._count.salesLeads - a._count.salesLeads;
     if (sortBy === "meetings") return b._count.meetingsAsSales - a._count.meetingsAsSales;
     if (sortBy === "won") return b.dealsWonCount - a.dealsWonCount;
@@ -92,61 +102,69 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
     return a.name.localeCompare(b.name);
   });
 
+  // 3. Dynamic KPIs based strictly on the visible pool resulting from active filters
+  const dTotalLeads = displayAgents.reduce((s, a) => s + (a._count?.salesLeads || 0), 0);
+  const dDealsWon = displayAgents.reduce((s, a) => s + (a.dealsWonCount || 0), 0);
+  const dDealsLost = displayAgents.reduce((s, a) => s + (a.lostCount || 0), 0);
+  const dRevenue = displayAgents.reduce((s, a) => s + (a.revenue || 0), 0);
+
+  const clearFilters = () => {
+    setActiveCardFilter("All");
+    setFilterSpec("All");
+    setSortBy("name");
+  };
+
   return (
     <div className="space-y-6">
-      {/* KPI Summary Cards - clickable to sort */}
+      {/* KPI Summary Cards - Act as Filters */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div
-          onClick={() => setSortBy(sortBy === "leads" ? "name" : "leads")}
-          className={`cursor-pointer bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl p-4 text-white shadow-lg transition-all hover:scale-[1.02] ${sortBy === "leads" ? "ring-4 ring-slate-300" : ""}`}
+          onClick={() => setActiveCardFilter(activeCardFilter === "All" ? "All" : "All")}
+          className={`cursor-pointer bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl p-4 text-white shadow-lg transition-all hover:scale-[1.02] ${activeCardFilter === "All" ? "ring-4 ring-slate-300" : "opacity-80 hover:opacity-100"}`}
         >
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Briefcase className="h-5 w-5 opacity-80" />
               <span className="text-xs font-semibold uppercase opacity-80">Total Leads</span>
             </div>
-            <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${sortBy === "leads" ? "rotate-180" : ""}`} />
           </div>
-          <p className="text-3xl font-bold">{agents.reduce((s, a) => s + a._count.salesLeads, 0)}</p>
+          <p className="text-3xl font-bold">{dTotalLeads}</p>
         </div>
         <div
-          onClick={() => setSortBy(sortBy === "won" ? "name" : "won")}
-          className={`cursor-pointer bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 text-white shadow-lg transition-all hover:scale-[1.02] ${sortBy === "won" ? "ring-4 ring-green-300" : ""}`}
+          onClick={() => setActiveCardFilter(activeCardFilter === "won" ? "All" : "won")}
+          className={`cursor-pointer bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 text-white shadow-lg transition-all hover:scale-[1.02] ${activeCardFilter === "won" ? "ring-4 ring-green-300" : "opacity-80 hover:opacity-100"}`}
         >
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Handshake className="h-5 w-5 opacity-80" />
               <span className="text-xs font-semibold uppercase opacity-80">Deals Won</span>
             </div>
-            <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${sortBy === "won" ? "rotate-180" : ""}`} />
           </div>
-          <p className="text-3xl font-bold">{agents.reduce((s, a) => s + (a.dealsWonCount || 0), 0)}</p>
+          <p className="text-3xl font-bold">{dDealsWon}</p>
         </div>
         <div
-          onClick={() => setSortBy(sortBy === "lost" ? "name" : "lost")}
-          className={`cursor-pointer bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-4 text-white shadow-lg transition-all hover:scale-[1.02] ${sortBy === "lost" ? "ring-4 ring-red-300" : ""}`}
+          onClick={() => setActiveCardFilter(activeCardFilter === "lost" ? "All" : "lost")}
+          className={`cursor-pointer bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-4 text-white shadow-lg transition-all hover:scale-[1.02] ${activeCardFilter === "lost" ? "ring-4 ring-red-300" : "opacity-80 hover:opacity-100"}`}
         >
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <XCircle className="h-5 w-5 opacity-80" />
               <span className="text-xs font-semibold uppercase opacity-80">Deals Lost</span>
             </div>
-            <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${sortBy === "lost" ? "rotate-180" : ""}`} />
           </div>
-          <p className="text-3xl font-bold">{agents.reduce((s, a) => s + (a.lostCount || 0), 0)}</p>
+          <p className="text-3xl font-bold">{dDealsLost}</p>
         </div>
         <div
-          onClick={() => setSortBy(sortBy === "revenue" ? "name" : "revenue")}
-          className={`cursor-pointer bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-4 text-white shadow-lg transition-all hover:scale-[1.02] ${sortBy === "revenue" ? "ring-4 ring-amber-300" : ""}`}
+          onClick={() => setActiveCardFilter(activeCardFilter === "revenue" ? "All" : "revenue")}
+          className={`cursor-pointer bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-4 text-white shadow-lg transition-all hover:scale-[1.02] ${activeCardFilter === "revenue" ? "ring-4 ring-amber-300" : "opacity-80 hover:opacity-100"}`}
         >
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 opacity-80" />
               <span className="text-xs font-semibold uppercase opacity-80">Total Revenue</span>
             </div>
-            <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${sortBy === "revenue" ? "rotate-180" : ""}`} />
           </div>
-          <p className="text-3xl font-bold">{agents.reduce((s, a) => s + (a.revenue || 0), 0).toLocaleString()} <span className="text-sm font-normal opacity-80">SAR</span></p>
+          <p className="text-3xl font-bold">{dRevenue.toLocaleString()} <span className="text-sm font-normal opacity-80">SAR</span></p>
         </div>
       </div>
 
@@ -210,25 +228,37 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
         </div>
       </div>
 
-      {/* Active Sort/Filter Indicator */}
-      {(sortBy !== "name" || filterSpec !== "All") && (
-        <div className="flex items-center gap-2 flex-wrap">
-          {sortBy !== "name" && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-full border border-blue-200">
-              Sorted by: {sortBy === "leads" ? "Total Leads" : sortBy === "won" ? "Deals Won" : sortBy === "lost" ? "Deals Lost" : sortBy === "meetings" ? "Meetings" : "Revenue"} ↓
-              <button onClick={() => setSortBy("name")} className="ml-1 text-blue-400 hover:text-blue-700">✕</button>
-            </span>
-          )}
-          {filterSpec !== "All" && (
-            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border ${
-              filterSpec === "Hot" ? "bg-red-50 text-red-700 border-red-200" :
-              filterSpec === "Warm" ? "bg-amber-50 text-amber-700 border-amber-200" :
-              "bg-blue-50 text-blue-700 border-blue-200"
-            }`}>
-              Filter: {filterSpec} Agents
-              <button onClick={() => setFilterSpec("All")} className="ml-1 opacity-60 hover:opacity-100">✕</button>
-            </span>
-          )}
+      {/* Active Sort/Filter Indicator & Tags */}
+      {(sortBy !== "name" || filterSpec !== "All" || activeCardFilter !== "All") && (
+        <div className="flex items-center justify-between bg-white px-4 py-3 border border-gray-200 rounded-xl shadow-sm">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-bold text-gray-700 mr-2">Active Filters:</span>
+            {activeCardFilter !== "All" && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 text-xs font-bold uppercase rounded border border-green-200">
+                {activeCardFilter === "won" ? "Deals Won" : activeCardFilter === "lost" ? "Deals Lost" : "Revenue Gen"}
+                <button onClick={() => setActiveCardFilter("All")} className="ml-1 opacity-60 hover:opacity-100 hover:text-red-500 transition">✕</button>
+              </span>
+            )}
+            {filterSpec !== "All" && (
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold uppercase rounded border ${
+                filterSpec === "Hot" ? "bg-red-50 text-red-700 border-red-200" :
+                filterSpec === "Warm" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                "bg-blue-50 text-blue-700 border-blue-200"
+              }`}>
+                {filterSpec} Agents
+                <button onClick={() => setFilterSpec("All")} className="ml-1 opacity-60 hover:opacity-100 hover:text-red-500 transition">✕</button>
+              </span>
+            )}
+            {sortBy !== "name" && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-50 text-purple-700 text-xs font-bold uppercase rounded border border-purple-200">
+                Sorted by: {sortBy === "leads" ? "Total Leads" : sortBy === "won" ? "Deals Won" : sortBy === "lost" ? "Deals Lost" : sortBy === "meetings" ? "Meetings" : "Revenue"} ↓
+                <button onClick={() => setSortBy("name")} className="ml-1 opacity-60 hover:opacity-100 hover:text-red-500 transition">✕</button>
+              </span>
+            )}
+          </div>
+          <button onClick={clearFilters} className="text-xs font-bold text-gray-500 hover:text-red-600 transition underline underline-offset-2">
+            Clear Filters
+          </button>
         </div>
       )}
 
@@ -265,7 +295,7 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {displayAgents.map((agent) => {
+              {sortedAndFilteredAgents.map((agent) => {
                 const SpecIcon = agent.specialization ? specIcons[agent.specialization] : null;
                 return (
                   <tr key={agent.id} className="hover:bg-gray-50 transition-colors">
@@ -334,7 +364,7 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
                   </tr>
                 );
               })}
-              {displayAgents.length === 0 && (
+              {sortedAndFilteredAgents.length === 0 && (
                 <tr><td colSpan={9} className="px-6 py-8 text-center text-sm text-gray-500">No agents found{filterSpec !== "All" ? ` with ${filterSpec} specialization` : " under your management"}.</td></tr>
               )}
             </tbody>
