@@ -65,7 +65,7 @@ export async function GET(req: Request) {
 
     if (drillDown === "attended") {
       const meetings = await prisma.meeting.findMany({
-        where: { teleAgentId: { in: agentIds }, status: { in: ["Attended", "Won"] }, ...meetingDateFilter },
+        where: { teleAgentId: { in: agentIds }, status: { in: ["Attended", "Won", "Lost"] }, ...meetingDateFilter },
         select: {
           id: true, status: true, meetingDate: true, meetingTime: true, createdAt: true,
           lead: { select: { name: true, phone: true } },

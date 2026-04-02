@@ -111,7 +111,7 @@ export async function GET(req: Request) {
 
     for (const meeting of meetings) {
       if (analyticsMap[meeting.teleAgentId]) {
-        if (meeting.status === "Attended" || meeting.status === "Won") {
+        if (["Attended", "Won", "Lost"].includes(meeting.status)) {
           analyticsMap[meeting.teleAgentId].meetingsAttended++;
         }
       }

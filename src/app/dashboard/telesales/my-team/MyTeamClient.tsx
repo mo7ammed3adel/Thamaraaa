@@ -175,7 +175,7 @@ export default function MyTeamClient({
             <BarChart3 className="h-5 w-5 opacity-80" />
             <span className="text-xs font-semibold uppercase opacity-80">Total Leads</span>
           </div>
-          <p className="text-3xl font-bold">{agents.reduce((s, a) => s + a._count.teleSalesLeads, 0)}</p>
+          <p className="text-3xl font-bold">{displayAgents.reduce((s, a) => s + a._count.teleSalesLeads, 0)}</p>
         </div>
         <div 
           onClick={() => setSortBy(sortBy === "calls" ? "name" : "calls")}
@@ -185,7 +185,7 @@ export default function MyTeamClient({
             <PhoneCall className="h-5 w-5 opacity-80" />
             <span className="text-xs font-semibold uppercase opacity-80">Total Calls</span>
           </div>
-          <p className="text-3xl font-bold">{agents.reduce((s, a) => s + a._count.callLogs, 0)}</p>
+          <p className="text-3xl font-bold">{displayAgents.reduce((s, a) => s + a._count.callLogs, 0)}</p>
         </div>
         <div 
           onClick={() => setSortBy(sortBy === "meetings" ? "name" : "meetings")}
@@ -195,7 +195,7 @@ export default function MyTeamClient({
             <Calendar className="h-5 w-5 opacity-80" />
             <span className="text-xs font-semibold uppercase opacity-80">Meetings Booked</span>
           </div>
-          <p className="text-3xl font-bold">{agents.reduce((s, a) => s + a._count.meetingsAsTele, 0)}</p>
+          <p className="text-3xl font-bold">{displayAgents.reduce((s, a) => s + a._count.meetingsAsTele, 0)}</p>
         </div>
         <div 
           onClick={() => setSortBy(sortBy === "transferred" ? "name" : "transferred")}
@@ -205,7 +205,7 @@ export default function MyTeamClient({
             <ArrowRightLeft className="h-5 w-5 opacity-80" />
             <span className="text-xs font-semibold uppercase opacity-80">Transferred</span>
           </div>
-          <p className="text-3xl font-bold">{agents.reduce((s, a) => s + (a.transferredCount || 0), 0)}</p>
+          <p className="text-3xl font-bold">{displayAgents.reduce((s, a) => s + (a.transferredCount || 0), 0)}</p>
         </div>
       </div>
 
