@@ -26,6 +26,7 @@ export async function POST(request: Request) {
     }
 
     let pkg;
+    const dealData = await prisma.deal.findUnique({ where: { id: dealId } });
     if (packageId) {
         pkg = await prisma.package.findUnique({ where: { id: packageId } });
     } else if (dealData?.package) {
