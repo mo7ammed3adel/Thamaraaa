@@ -81,6 +81,15 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     setStatus("In_Call");
     setActiveLead(lead);
     setTaskStartTime(new Date());
+    
+    // Pre-fill existing profile data (Store, Client Type) so they don't disappear on subsequent follow-ups
+    setFeedback(prev => ({
+      ...prev,
+      hasStore: lead.hasStore ? "Yes" : "No",
+      storeLink: lead.storeLink || "",
+      customerType: lead.customerType || "Launch",
+    }));
+
     await fetch(`/api/users/${userId}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
