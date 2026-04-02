@@ -50,24 +50,29 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
 
     setLoading(true);
     try {
-      const promises = Array.from(selectedLeads).map(leadId =>
-        fetch(`/api/leads/${leadId}`, {
+      const promises = Array.from(selectedLeads).map(async leadId => {
+        const res = await fetch(`/api/leads/${leadId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             status: "New",
             assignedTeleAgentId: assignToAgent,
             notes: "Recycled from lost leads",
+            incrementRecycle: true
           }),
-        })
-      );
+        });
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || `HTTP Error ${res.status}`);
+        }
+      });
       await Promise.all(promises);
       // Remove redistributed leads from local state
       setLeads(leads.filter(l => !selectedLeads.has(l.id)));
       setSelectedLeads(new Set());
       setAssignToAgent("");
-    } catch {
-      alert("Failed to redistribute leads");
+    } catch (error: any) {
+      alert("Failed to redistribute leads: " + (error.message || "Unknown error"));
     }
     setLoading(false);
   };
@@ -88,15 +93,24 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
     <div className="space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+        <div 
+          onClick={() => setFilterClass(filterClass === "Hot" ? "All" : "Hot")}
+          className={`cursor-pointer transition-all border rounded-xl p-4 hover:shadow-md ${filterClass === "Hot" ? "bg-red-100 border-red-300 ring-2 ring-red-400" : "bg-red-50 border-red-200"}`}
+        >
           <p className="text-2xl font-bold text-red-600">{hotLeads.length}</p>
           <p className="text-xs text-red-500 font-medium">🔥 Hot Lost Leads</p>
         </div>
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+        <div 
+          onClick={() => setFilterClass(filterClass === "Warm" ? "All" : "Warm")}
+          className={`cursor-pointer transition-all border rounded-xl p-4 hover:shadow-md ${filterClass === "Warm" ? "bg-amber-100 border-amber-300 ring-2 ring-amber-400" : "bg-amber-50 border-amber-200"}`}
+        >
           <p className="text-2xl font-bold text-amber-600">{warmLeads.length}</p>
           <p className="text-xs text-amber-500 font-medium">☀️ Warm Lost Leads</p>
         </div>
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <div 
+          onClick={() => setFilterClass(filterClass === "Cold" ? "All" : "Cold")}
+          className={`cursor-pointer transition-all border rounded-xl p-4 hover:shadow-md ${filterClass === "Cold" ? "bg-blue-100 border-blue-300 ring-2 ring-blue-400" : "bg-blue-50 border-blue-200"}`}
+        >
           <p className="text-2xl font-bold text-blue-600">{coldLeads.length}</p>
           <p className="text-xs text-blue-500 font-medium">❄️ Cold Lost Leads</p>
         </div>
