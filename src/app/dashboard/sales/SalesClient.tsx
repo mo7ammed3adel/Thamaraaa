@@ -492,8 +492,48 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">⚠️ You must complete all fields and click "Confirm & Continue" to finish this call.</p>
-            <form onSubmit={submitFeedback} className="space-y-4">
+            
+            {activeLead?.callLogs?.[0] && (() => {
+              const lastLog = activeLead.callLogs[0];
+              const diffTime = Math.abs(new Date().getTime() - new Date(lastLog.createdAt).getTime());
+              const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+              const isLate = diffDays > 3;
+
+              return (
+                <div className={`mb-4 border rounded-lg p-3 shadow-sm ${isLate ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200'}`}>
+                  <div className="flex justify-between items-center mb-1">
+                    <h4 className={`text-sm font-bold flex items-center gap-1 ${isLate ? 'text-red-800' : 'text-blue-800'}`}>
+                      {isLate ? '⚠️ Late Follow-up' : '💡 Last Note'}
+                    </h4>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${isLate ? 'text-red-700 bg-red-100' : 'text-blue-700 bg-blue-100'}`}>
+                      Last contact: {diffDays === 0 ? "today" : `${diffDays} days ago`}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-700 italic bg-white/50 p-2 rounded border border-white mt-2">"{lastLog.notes}"</p>
+                  <p className="text-[10px] text-gray-500 mt-2 text-right font-medium">- {lastLog.agent?.name} ({new Date(lastLog.createdAt).toLocaleString("en-GB")})</p>
+                </div>
+              );
+            })()}
+
+            {activeLead?.callLogs?.length > 1 && (
+              <div className="mb-4">
+                <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2"><FileText className="h-4 w-4 text-gray-500" /> Interaction History</h4>
+                <div className="max-h-40 overflow-y-auto space-y-2 pr-2 border border-gray-100 rounded-lg p-2 bg-gray-50/50">
+                  {activeLead.callLogs.slice(1).map((log: any) => (
+                    <div key={log.id} className="bg-white border border-gray-200 rounded p-2 shadow-sm relative">
+                       <div className="flex justify-between items-center mb-1">
+                         <span className="text-xs font-semibold text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded">{log.callStatus}</span>
+                         <span className="text-[10px] text-gray-400">{new Date(log.createdAt).toLocaleString("en-GB")}</span>
+                       </div>
+                       <p className="text-xs text-gray-600 mt-1.5">{log.notes}</p>
+                       <p className="text-[10px] text-gray-400 mt-1.5 text-right">- {log.agent?.name}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <form onSubmit={submitFeedback} className="space-y-4 border-t pt-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Outcome</label>
                 <div className="flex gap-4 flex-wrap">
@@ -561,9 +601,11 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Meeting Notes *</label>
-                <textarea required rows={3} className="w-full border p-2 rounded focus:ring-blue-500" value={feedback.notes} onChange={e => setFeedback({...feedback, notes: e.target.value})} placeholder="Write detailed notes about the call/meeting..." />
+                <label className="block text-sm font-bold text-blue-800 mb-1">New Meeting Notes *</label>
+                <textarea required rows={3} className="w-full border-2 border-blue-200 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-gray-400" value={feedback.notes} onChange={e => setFeedback({...feedback, notes: e.target.value})} placeholder="Write detailed new notes about the current call/meeting..." />
               </div>
+              <p className="text-[10px] text-gray-400 -mt-2">These notes will be independently saved to the interaction history log.</p>
+              
               <div className="flex justify-end gap-3 mt-6">
                <button type="submit" className="px-4 py-2 bg-blue-600 font-bold hover:bg-blue-700 text-white rounded w-full">Confirm & Continue</button>
               </div>
