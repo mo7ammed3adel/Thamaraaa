@@ -9,6 +9,61 @@ export default function OperationsClient({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null); // For agents to view details
+  const [viewProject, setViewProject] = useState<any>(null); // For AM to view Project Details Drawer
+
+  // Modal Sub-Component for AM Project Details
+  const ProjectDetailsModal = ({ project, onClose }: { project: any, onClose: () => void }) => {
+    const [logs, setLogs] = useState<any[]>([]);
+    const [files, setFiles] = useState<any[]>([]);
+
+    // We fetch logs and files lazily when modal opens
+    return (
+      <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/50 backdrop-blur-sm">
+        <div className="w-full max-w-2xl bg-white h-full shadow-2xl p-6 overflow-y-auto animate-in slide-in-from-right flex flex-col">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-slate-800">Project Details</h2>
+            <button onClick={onClose} className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200">Close x</button>
+          </div>
+
+          <div className="space-y-6 flex-1">
+            {/* Overview */}
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+              <h3 className="font-semibold text-slate-700 mb-2">Overview</h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div><span className="text-slate-500 block">Client Name</span><span className="font-medium">{project.deal.lead.name}</span></div>
+                <div><span className="text-slate-500 block">Package</span><span className="font-medium text-purple-700">{project.package}</span></div>
+                <div><span className="text-slate-500 block">Niche</span><span className="font-medium">{project.niche || "N/A"}</span></div>
+                <div><span className="text-slate-500 block">Status</span><span className="font-medium capitalize">{project.projectStatus.replace("_", " ")}</span></div>
+              </div>
+            </div>
+
+            {/* Assignments */}
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+              <h3 className="font-semibold text-slate-700 mb-3">Service Handoff</h3>
+              {project.tasks?.length > 0 ? (
+                  <ul className="space-y-2">
+                      {project.tasks.map((t: any) => (
+                          <li key={t.id} className="flex justify-between text-sm p-2 bg-slate-50 rounded">
+                              <span className="font-medium text-slate-700">{t.taskType.replace("_", " ")}</span>
+                              <span className="text-slate-500">Leader: {t.leader?.name || "Assigned"}</span>
+                          </li>
+                      ))}
+                  </ul>
+              ) : (
+                  <div className="text-sm text-slate-500 italic">No tasks have been assigned to leaders yet.</div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-4 border-t border-slate-100">
+                <button className="flex-1 bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg font-medium text-sm hover:bg-slate-50">Upload File</button>
+                <button className="flex-1 bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg font-medium text-sm hover:bg-slate-50">Change Status</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
   
   // AM Assign Project to TLs
   const handleAssignProjectToLeaders = async (projectId: string, packageType: string) => {
@@ -69,40 +124,117 @@ export default function OperationsClient({
     <div className="space-y-12">
       {/* Account Manager View */}
       {isAM && (
-        <section>
-          <h2 className="text-xl font-bold mb-4 text-purple-900">Account Manager: Active Projects</h2>
-          <div className="bg-white rounded-xl shadow border">
+        <section className="space-y-6">
+          <h2 className="text-xl font-bold text-slate-800">Account Manager Dashboard</h2>
+          
+          {/* KPI Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="bg-white p-4 rounded-xl border shadow-sm flex flex-col justify-center items-center">
+                <span className="text-sm font-medium text-slate-500">Total Projects</span>
+                <span className="text-2xl font-bold text-slate-800">{projects.length}</span>
+            </div>
+            <div className="bg-indigo-50 border-indigo-100 p-4 rounded-xl border shadow-sm flex flex-col justify-center items-center">
+                <span className="text-sm font-medium text-indigo-600">Setup Phase</span>
+                <span className="text-2xl font-bold text-indigo-700">{projects.filter((p: any) => p.projectStatus === "setup").length}</span>
+            </div>
+            <div className="bg-blue-50 border-blue-100 p-4 rounded-xl border shadow-sm flex flex-col justify-center items-center">
+                <span className="text-sm font-medium text-blue-600">Active</span>
+                <span className="text-2xl font-bold text-blue-700">{projects.filter((p: any) => p.projectStatus === "in_progress" || p.projectStatus === "assigned").length}</span>
+            </div>
+            <div className="bg-red-50 border-red-100 p-4 rounded-xl border shadow-sm flex flex-col justify-center items-center">
+                <span className="text-sm font-medium text-red-600">Delayed</span>
+                <span className="text-2xl font-bold text-red-700">{projects.filter((p: any) => p.projectStatus === "delayed").length}</span>
+            </div>
+            <div className="bg-emerald-50 border-emerald-100 p-4 rounded-xl border shadow-sm flex flex-col justify-center items-center">
+                <span className="text-sm font-medium text-emerald-600">Completed</span>
+                <span className="text-2xl font-bold text-emerald-700">{projects.filter((p: any) => p.projectStatus === "completed").length}</span>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow border overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-purple-50">
+              <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Client</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Package</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Progress (%)</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Client & Deal</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Type / Timeline</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Progress Tracking</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {projects.map((p: any) => (
-                  <tr key={p.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{p.deal.lead.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{p.package}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div className="bg-purple-600 h-2.5 rounded-full" style={{ width: `${Math.max(p.seoProgress, p.socialMediaProgress)}%` }}></div>
-                      </div>
+                {projects.map((p: any) => {
+                  const getProgressColor = (val: number) => val < 30 ? "bg-red-500" : val < 70 ? "bg-amber-400" : "bg-emerald-500";
+                  
+                  return (
+                  <tr key={p.id} className="hover:bg-slate-50/50 transition">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="font-bold text-slate-900">{p.deal.lead.name}</div>
+                        <div className="text-xs font-medium text-slate-500">{p.deal.lead.phone} • {p.niche || "No Niche"}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {p.tasks.length === 0 ? (
-                        <button onClick={() => handleAssignProjectToLeaders(p.id, p.package)} className="px-3 py-1 bg-purple-600 text-white rounded text-xs hover:bg-purple-700">Assign to Leaders</button>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 mb-1">
+                            {p.package}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                            Deadline: {p.finalDeadline ? new Date(p.finalDeadline).toLocaleDateString() : "Not Set"}
+                        </div>
+                    </td>
+                    <td className="px-6 py-4">
+                        <div className="w-full max-w-xs space-y-2">
+                            {/* SEO */}
+                            <div className="flex items-center text-xs">
+                                <span className="w-12 font-medium text-slate-600">SEO</span>
+                                <div className="flex-1 bg-slate-200 rounded-full h-1.5 mx-2 overflow-hidden">
+                                    <div className={`${getProgressColor(p.seoProgress)} h-1.5 rounded-full`} style={{ width: `${p.seoProgress}%` }}></div>
+                                </div>
+                                <span className="w-8 text-right font-medium text-slate-700">{p.seoProgress.toFixed(0)}%</span>
+                            </div>
+                            {/* Social */}
+                            <div className="flex items-center text-xs">
+                                <span className="w-12 font-medium text-slate-600">Social</span>
+                                <div className="flex-1 bg-slate-200 rounded-full h-1.5 mx-2 overflow-hidden">
+                                    <div className={`${getProgressColor(p.socialMediaProgress)} h-1.5 rounded-full`} style={{ width: `${p.socialMediaProgress}%` }}></div>
+                                </div>
+                                <span className="w-8 text-right font-medium text-slate-700">{p.socialMediaProgress.toFixed(0)}%</span>
+                            </div>
+                            {/* Media */}
+                            <div className="flex items-center text-xs">
+                                <span className="w-12 font-medium text-slate-600">Media</span>
+                                <div className="flex-1 bg-slate-200 rounded-full h-1.5 mx-2 overflow-hidden">
+                                    <div className={`${getProgressColor(p.mediaBuyerProgress)} h-1.5 rounded-full`} style={{ width: `${p.mediaBuyerProgress}%` }}></div>
+                                </div>
+                                <span className="w-8 text-right font-medium text-slate-700">{p.mediaBuyerProgress.toFixed(0)}%</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                        {p.projectStatus === "setup" && <span className="px-2 py-1 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-700">Setup Pending</span>}
+                        {p.projectStatus === "assigned" && <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">Assigned</span>}
+                        {p.projectStatus === "in_progress" && <span className="px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-700">In Progress</span>}
+                        {p.projectStatus === "delayed" && <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">Delayed</span>}
+                        {p.projectStatus === "completed" && <span className="px-2 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700">Completed</span>}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      {p.projectStatus === "setup" ? (
+                        <button onClick={() => handleAssignProjectToLeaders(p.id, p.package)} className="px-3 py-1.5 bg-indigo-600 text-white rounded text-xs font-medium hover:bg-indigo-700 shadow-sm transition">
+                            Assign Leaders
+                        </button>
                       ) : (
-                        <span className="text-xs text-green-600 font-medium">Assigned</span>
+                        <button onClick={() => setViewProject(p)} className="px-3 py-1.5 border border-slate-300 text-slate-700 rounded text-xs font-medium hover:bg-slate-50 transition">
+                            View Details
+                        </button>
                       )}
                     </td>
                   </tr>
-                ))}
+                )})}
               </tbody>
             </table>
           </div>
+          
+          {viewProject && (
+              <ProjectDetailsModal project={viewProject} onClose={() => setViewProject(null)} />
+          )}
         </section>
       )}
 

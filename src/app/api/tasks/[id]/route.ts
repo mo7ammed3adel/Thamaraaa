@@ -38,19 +38,74 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     // If progress is updated, we might need to dynamically update project progress
     if (body.progressPct !== undefined) {
       const allProjectTasks = await prisma.task.findMany({ where: { projectId: updatedTask.projectId } });
+      
       const seoTasks = allProjectTasks.filter(t => t.taskType === "SEO");
       const socialTasks = allProjectTasks.filter(t => t.taskType === "Social_Media");
+      const mediaTasks = allProjectTasks.filter(t => t.taskType === "Media_Buyer");
 
       const avgSeo = seoTasks.length ? seoTasks.reduce((acc, t) => acc + t.progressPct, 0) / seoTasks.length : 0;
       const avgSocial = socialTasks.length ? socialTasks.reduce((acc, t) => acc + t.progressPct, 0) / socialTasks.length : 0;
+      const avgMedia = mediaTasks.length ? mediaTasks.reduce((acc, t) => acc + t.progressPct, 0) / mediaTasks.length : 0;
+
+      // Determine active branches
+      let totalActive = 0;
+      let totalProgress = 0;
+      if (seoTasks.length) { totalActive++; totalProgress += avgSeo; }
+      if (socialTasks.length) { totalActive++; totalProgress += avgSocial; }
+      if (mediaTasks.length) { totalActive++; totalProgress += avgMedia; }
+      
+      const overallProgress = totalActive > 0 ? (totalProgress / totalActive) : 0;
+      let newStatus = updatedTask.project.projectStatus;
+
+      if (overallProgress === 100) {
+          newStatus = "completed";
+      } else if (updatedTask.project.finalDeadline && new Date() > new Date(updatedTask.project.finalDeadline) && overallProgress < 100) {
+          newStatus = "delayed";
+      } else if (updatedTask.project.projectStatus === "setup" || updatedTask.project.projectStatus === "new") {
+          newStatus = "in_progress";
+      }
 
       await prisma.project.update({
         where: { id: updatedTask.projectId },
         data: {
           seoProgress: avgSeo,
-          socialMediaProgress: avgSocial
+          socialMediaProgress: avgSocial,
+          mediaBuyerProgress: avgMedia,
+          projectStatus: newStatus
         }
       });
+
+      if (body.progressPct === 100) {
+          // Log completion of task
+          await prisma.projectLog.create({
+              data: {
+                  projectId: updatedTask.projectId,
+                  action: "progress_updated",
+                  details: `Task "${updatedTask.taskType}" completed by agent.`,
+                  userId: (session?.user as any)?.id
+              }
+          });
+
+          // Notify AM and Leader
+          await prisma.notification.createMany({
+              data: [
+                  {
+                      userId: updatedTask.project.accountManagerId,
+                      title: "Task Completed",
+                      message: `Task "${updatedTask.taskType}" for project was completed. Overall: ${overallProgress.toFixed(0)}%`,
+                      type: "task_progress",
+                      link: "/dashboard/operations"
+                  },
+                  {
+                      userId: updatedTask.leaderId,
+                      title: "Task Completed",
+                      message: `Agent completed task "${updatedTask.taskType}".`,
+                      type: "task_progress",
+                      link: "/dashboard/operations"
+                  }
+              ]
+          });
+      }
     }
 
     return NextResponse.json(updatedTask, { status: 200 });

@@ -256,7 +256,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
       payload.installments = [];
     }
 
-    await fetch("/api/deals", {
+    const res = await fetch("/api/deals", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -264,6 +264,20 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         ...payload
       })
     });
+
+    if (res.ok) {
+        const newDeal = await res.json();
+        // Auto-Setup Project for AM
+        await fetch("/api/projects/setup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                dealId: newDeal.id,
+                niche: activeLead.niche || "General",
+                dealData: newDeal
+            })
+        });
+    }
     
     await fetch(`/api/users/${userId}/status`, {
       method: "PATCH",
