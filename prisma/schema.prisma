@@ -8,37 +8,38 @@ datasource db {
 }
 
 model User {
-  id                String   @id @default(uuid())
-  name              String
-  email             String   @unique
-  phone             String?
-  passwordHash      String
-  role              String   // super_admin, hr_manager, tele_sales_manager, tele_sales_agent, sales_manager, sales_agent, account_manager, team_leader, operations_agent
-  level             String?  // Junior, Mid, Senior
-  directManagerId   String?
-  directManager     User?    @relation("ManagerToSubordinates", fields: [directManagerId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  subordinates      User[]   @relation("ManagerToSubordinates")
-  company           String?
-  status            String   @default("Active") // Active, Inactive
-  specialization    String?  // Hot, Cold, Warm
-  createdAt         DateTime @default(now())
+  id              String   @id @default(uuid())
+  name            String
+  email           String   @unique
+  phone           String?
+  passwordHash    String
+  role            String // super_admin, hr_manager, tele_sales_manager, tele_sales_agent, sales_manager, sales_agent, account_manager, team_leader, operations_agent
+  level           String? // Junior, Mid, Senior
+  directManagerId String?
+  directManager   User?    @relation("ManagerToSubordinates", fields: [directManagerId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  subordinates    User[]   @relation("ManagerToSubordinates")
+  company         String?
+  status          String   @default("Active") // Active, Inactive
+  specialization  String? // Hot, Cold, Warm
+  createdAt       DateTime @default(now())
 
-  teleSalesLeads    Lead[]   @relation("TeleSalesAgent")
-  salesLeads        Lead[]   @relation("SalesAgent")
-  callLogs          CallLog[]
-  salesDeals        Deal[]   @relation("DealSalesAgent")
-  managedProjects   Project[] @relation("ProjectAccountManager")
-  ledTasks          Task[]   @relation("TaskLeader")
-  assignedTasks     Task[]   @relation("TaskAgent")
-  hrRecord          HrRecord?
-  attendances       Attendance[]
-  commissions       Commission[]
-  notifications     Notification[]
-  leaveRequests     LeaveRequest[]
-  documents         EmployeeDocument[]
-  meetingsAsTele    Meeting[] @relation("MeetingTeleAgent")
-  meetingsAsSales   Meeting[] @relation("MeetingSalesAgent")
-  agentTargets      AgentTarget[] @relation("AgentTargets")
+  teleSalesLeads  Lead[]             @relation("TeleSalesAgent")
+  salesLeads      Lead[]             @relation("SalesAgent")
+  callLogs        CallLog[]
+  salesDeals      Deal[]             @relation("DealSalesAgent")
+  managedProjects Project[]          @relation("ProjectAccountManager")
+  ledTasks        Task[]             @relation("TaskLeader")
+  assignedTasks   Task[]             @relation("TaskAgent")
+  hrRecord        HrRecord?
+  attendances     Attendance[]
+  commissions     Commission[]
+  notifications   Notification[]
+  leaveRequests   LeaveRequest[]
+  documents       EmployeeDocument[]
+  meetingsAsTele  Meeting[]          @relation("MeetingTeleAgent")
+  meetingsAsSales Meeting[]          @relation("MeetingSalesAgent")
+  agentTargets    AgentTarget[]      @relation("AgentTargets")
+  createdLeads    Lead[]             @relation("LeadCreator")
 }
 
 model Niche {
@@ -48,44 +49,46 @@ model Niche {
 }
 
 model Lead {
-  id                     String    @id @default(uuid())
-  name                   String
-  phone                  String
-  nationality            String?
-  gender                 String?
-  source                 String?
-  storeLink              String?
-  hasStore               Boolean   @default(false)
-  niche                  String?
-  classification         String    // Hot, Warm, Cold
-  customerType           String?   // Store, Launch, Dropshipping, Shipping, Special
-  status                 String    @default("New") // New, Contacted, No_Answer, Interested, Transferred, In_Sales, Closed_Won, Closed_Lost, Archived
-  assignedTeleAgentId    String?
-  teleAgent              User?     @relation("TeleSalesAgent", fields: [assignedTeleAgentId], references: [id])
-  assignedSalesAgentId   String?
-  salesAgent             User?     @relation("SalesAgent", fields: [assignedSalesAgentId], references: [id])
-  createdAt              DateTime  @default(now())
-  firstContactDate       DateTime?
-  meetingDate            DateTime?
-  meetingTime            String?
-  meetingStartedAt       DateTime?
-  meetingEndedAt         DateTime?
-  followUpDate           DateTime?
-  recycleCount           Int       @default(0)
-  archivedAt             DateTime?
-  salesNotes             String?
+  id                   String    @id @default(uuid())
+  name                 String
+  phone                String
+  nationality          String?
+  gender               String?
+  source               String?
+  storeLink            String?
+  hasStore             Boolean   @default(false)
+  niche                String?
+  classification       String    // Hot, Warm, Cold
+  customerType         String? // Store, Launch, Dropshipping, Shipping, Special
+  status               String    @default("New") // New, Contacted, No_Answer, Interested, Transferred, In_Sales, Closed_Won, Closed_Lost, Archived
+  assignedTeleAgentId  String?
+  teleAgent            User?     @relation("TeleSalesAgent", fields: [assignedTeleAgentId], references: [id])
+  assignedSalesAgentId String?
+  salesAgent           User?     @relation("SalesAgent", fields: [assignedSalesAgentId], references: [id])
+  createdById          String?
+  createdBy            User?     @relation("LeadCreator", fields: [createdById], references: [id])
+  createdAt            DateTime  @default(now())
+  firstContactDate     DateTime?
+  meetingDate          DateTime?
+  meetingTime          String?
+  meetingStartedAt     DateTime?
+  meetingEndedAt       DateTime?
+  followUpDate         DateTime?
+  recycleCount         Int       @default(0)
+  archivedAt           DateTime?
+  salesNotes           String?
 
-  callLogs               CallLog[]
-  deals                  Deal[]
-  meetings               Meeting[]
-  customColumnValues     CustomColumnValue[]
+  callLogs           CallLog[]
+  deals              Deal[]
+  meetings           Meeting[]
+  customColumnValues CustomColumnValue[]
 }
 
 model AgentTarget {
   id        String   @id @default(uuid())
   agentId   String
   agent     User     @relation("AgentTargets", fields: [agentId], references: [id])
-  month     String   // YYYY-MM
+  month     String // YYYY-MM
   target    Int      @default(0)
   createdAt DateTime @default(now())
 
@@ -106,159 +109,159 @@ model CallLog {
 }
 
 model Deal {
-  id                     String    @id @default(uuid())
-  leadId                 String
-  lead                   Lead      @relation(fields: [leadId], references: [id])
-  salesAgentId           String
-  salesAgent             User      @relation("DealSalesAgent", fields: [salesAgentId], references: [id])
-  package                String    // SEO, Social, Full
-  contractStart          DateTime?
-  contractEnd            DateTime?
-  totalAmount            Float
-  paymentMethod          String    // Cash, Transfer, Tabby, Tamara
-  netTarget              Float     
-  firstAmount            Float?
-  installment1Date       DateTime?
-  installment1Amount     Float?
-  installment1Collected  Boolean   @default(false)
-  installment2Date       DateTime?
-  installment2Amount     Float?
-  installment2Collected  Boolean   @default(false)
-  installment3Date       DateTime?
-  installment3Amount     Float?
-  installment3Collected  Boolean   @default(false)
-  remainingPayments      Int       @default(0)
-  contractImageUrl       String?
-  receiptUrl             String?
-  status                 String    @default("Pending")
-  createdAt              DateTime  @default(now())
+  id                    String    @id @default(uuid())
+  leadId                String
+  lead                  Lead      @relation(fields: [leadId], references: [id])
+  salesAgentId          String
+  salesAgent            User      @relation("DealSalesAgent", fields: [salesAgentId], references: [id])
+  package               String // SEO, Social, Full
+  contractStart         DateTime?
+  contractEnd           DateTime?
+  totalAmount           Float
+  paymentMethod         String // Cash, Transfer, Tabby, Tamara
+  netTarget             Float
+  firstAmount           Float?
+  installment1Date      DateTime?
+  installment1Amount    Float?
+  installment1Collected Boolean   @default(false)
+  installment2Date      DateTime?
+  installment2Amount    Float?
+  installment2Collected Boolean   @default(false)
+  installment3Date      DateTime?
+  installment3Amount    Float?
+  installment3Collected Boolean   @default(false)
+  remainingPayments     Int       @default(0)
+  contractImageUrl      String?
+  receiptUrl            String?
+  status                String    @default("Pending")
+  createdAt             DateTime  @default(now())
 
-  projects               Project[]
-  installments           Installment[]
+  projects     Project[]
+  installments Installment[]
 }
 
 model Meeting {
-  id             String    @id @default(uuid())
-  leadId         String
-  lead           Lead      @relation(fields: [leadId], references: [id])
-  teleAgentId    String
-  teleAgent      User      @relation("MeetingTeleAgent", fields: [teleAgentId], references: [id])
-  salesAgentId   String?
-  salesAgent     User?     @relation("MeetingSalesAgent", fields: [salesAgentId], references: [id])
-  meetingDate    DateTime
-  meetingTime    String?
-  status         String    @default("Scheduled") // Scheduled, Attended, Lost, Won
-  salesNotes     String?
-  summary        String?
-  dealAmount     Float?
-  createdAt      DateTime  @default(now())
+  id           String   @id @default(uuid())
+  leadId       String
+  lead         Lead     @relation(fields: [leadId], references: [id])
+  teleAgentId  String
+  teleAgent    User     @relation("MeetingTeleAgent", fields: [teleAgentId], references: [id])
+  salesAgentId String?
+  salesAgent   User?    @relation("MeetingSalesAgent", fields: [salesAgentId], references: [id])
+  meetingDate  DateTime
+  meetingTime  String?
+  status       String   @default("Scheduled") // Scheduled, Attended, Lost, Won
+  salesNotes   String?
+  summary      String?
+  dealAmount   Float?
+  createdAt    DateTime @default(now())
 }
 
 model CustomColumn {
-  id        String   @id @default(uuid())
+  id        String              @id @default(uuid())
   name      String
   createdBy String
-  createdAt DateTime @default(now())
+  createdAt DateTime            @default(now())
   values    CustomColumnValue[]
 }
 
 model CustomColumnValue {
-  id         String       @id @default(uuid())
-  columnId   String
-  column     CustomColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
-  leadId     String
-  lead       Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  value      String       @default("")
-  
+  id       String       @id @default(uuid())
+  columnId String
+  column   CustomColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  leadId   String
+  lead     Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  value    String       @default("")
+
   @@unique([columnId, leadId])
 }
 
 model Project {
-  id                     String    @id @default(uuid())
-  dealId                 String
-  deal                   Deal      @relation(fields: [dealId], references: [id])
-  accountManagerId       String
-  accountManager         User      @relation("ProjectAccountManager", fields: [accountManagerId], references: [id])
-  niche                  String?
-  package                String
-  technicalDeadline      DateTime?
-  addedDurationDays      Int       @default(0)
-  finalDeadline          DateTime?
-  seoProgress            Int       @default(0)
-  socialMediaProgress    Int       @default(0)
-  mediaBuyerProgress     Int       @default(0)
-  storeCreated           Boolean   @default(false)
-  userCreatedStore       Boolean   @default(false)
-  storeUrl               String?
-  driveLink              String?
-  screenshotUrl          String?
-  priority               String?
-  finalStatus            String    @default("Active") // Active, Lost, Done
-  notes                  String?
-  createdAt              DateTime  @default(now())
+  id                  String    @id @default(uuid())
+  dealId              String
+  deal                Deal      @relation(fields: [dealId], references: [id])
+  accountManagerId    String
+  accountManager      User      @relation("ProjectAccountManager", fields: [accountManagerId], references: [id])
+  niche               String?
+  package             String
+  technicalDeadline   DateTime?
+  addedDurationDays   Int       @default(0)
+  finalDeadline       DateTime?
+  seoProgress         Int       @default(0)
+  socialMediaProgress Int       @default(0)
+  mediaBuyerProgress  Int       @default(0)
+  storeCreated        Boolean   @default(false)
+  userCreatedStore    Boolean   @default(false)
+  storeUrl            String?
+  driveLink           String?
+  screenshotUrl       String?
+  priority            String?
+  finalStatus         String    @default("Active") // Active, Lost, Done
+  notes               String?
+  createdAt           DateTime  @default(now())
 
-  tasks                  Task[]
+  tasks Task[]
 }
 
 model Task {
-  id               String    @id @default(uuid())
-  projectId        String
-  project          Project   @relation(fields: [projectId], references: [id])
-  leaderId         String
-  leader           User      @relation("TaskLeader", fields: [leaderId], references: [id])
-  agentId          String?
-  agent            User?     @relation("TaskAgent", fields: [agentId], references: [id])
-  taskType         String
-  checklistItems   String    // JSON string for SQLite
-  progressPct      Float     @default(0)
-  createdAt        DateTime  @default(now())
-  completedAt      DateTime?
+  id             String    @id @default(uuid())
+  projectId      String
+  project        Project   @relation(fields: [projectId], references: [id])
+  leaderId       String
+  leader         User      @relation("TaskLeader", fields: [leaderId], references: [id])
+  agentId        String?
+  agent          User?     @relation("TaskAgent", fields: [agentId], references: [id])
+  taskType       String
+  checklistItems String // JSON string for SQLite
+  progressPct    Float     @default(0)
+  createdAt      DateTime  @default(now())
+  completedAt    DateTime?
 }
 
 model HrRecord {
-  id                  String    @id @default(uuid())
-  userId              String    @unique
-  user                User      @relation(fields: [userId], references: [id])
-  baseSalary          Float
-  level               String
-  monthlyTarget       Float
-  performanceHistory  String    // JSON string for SQLite
-  promotionEligible   Boolean   @default(false)
-  warningCount        Int       @default(0)
-  terminationFlag     Boolean   @default(false)
+  id                 String  @id @default(uuid())
+  userId             String  @unique
+  user               User    @relation(fields: [userId], references: [id])
+  baseSalary         Float
+  level              String
+  monthlyTarget      Float
+  performanceHistory String // JSON string for SQLite
+  promotionEligible  Boolean @default(false)
+  warningCount       Int     @default(0)
+  terminationFlag    Boolean @default(false)
 }
 
 model Attendance {
-  id                  String    @id @default(uuid())
-  userId              String
-  user                User      @relation(fields: [userId], references: [id])
-  date                DateTime
-  checkIn             DateTime?
-  checkOut            DateTime?
-  lateMinutes         Int       @default(0)
-  deductionDraft      Float?
-  deductionApproved   Boolean   @default(false)
+  id                String    @id @default(uuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id])
+  date              DateTime
+  checkIn           DateTime?
+  checkOut          DateTime?
+  lateMinutes       Int       @default(0)
+  deductionDraft    Float?
+  deductionApproved Boolean   @default(false)
 }
 
 model Commission {
-  id                  String    @id @default(uuid())
-  userId              String
-  user                User      @relation(fields: [userId], references: [id])
-  month               String    // YYYY-MM
-  netTarget           Float
-  commissionPct       Float
-  commissionAmount    Float
-  bonuses             String    // JSON string for SQLite
-  deductions          String    // JSON string for SQLite
-  netPayout           Float
-  finalized           Boolean   @default(false)
+  id               String  @id @default(uuid())
+  userId           String
+  user             User    @relation(fields: [userId], references: [id])
+  month            String // YYYY-MM
+  netTarget        Float
+  commissionPct    Float
+  commissionAmount Float
+  bonuses          String // JSON string for SQLite
+  deductions       String // JSON string for SQLite
+  netPayout        Float
+  finalized        Boolean @default(false)
 }
 
 model SystemConfig {
-  key                 String    @id
-  value               String
-  updatedById         String?
-  updatedAt           DateTime  @default(now()) @updatedAt
+  key         String   @id
+  value       String
+  updatedById String?
+  updatedAt   DateTime @default(now()) @updatedAt
 }
 
 model Notification {
@@ -267,22 +270,22 @@ model Notification {
   user      User     @relation(fields: [userId], references: [id])
   title     String
   message   String
-  type      String?  // lead_assigned, meeting_update, deal_closed, etc.
+  type      String? // lead_assigned, meeting_update, deal_closed, etc.
   read      Boolean  @default(false)
   link      String?
   createdAt DateTime @default(now())
 }
 
 model JobApplicant {
-  id             String    @id @default(uuid())
-  name           String
-  email          String    @unique
-  phone          String
-  roleApplied    String
-  status         String    @default("New") // New, HR_Interview, Department_Interview, Offer, Rejected, Hired
-  resumeUrl      String?
-  notes          String?
-  createdAt      DateTime  @default(now())
+  id          String   @id @default(uuid())
+  name        String
+  email       String   @unique
+  phone       String
+  roleApplied String
+  status      String   @default("New") // New, HR_Interview, Department_Interview, Offer, Rejected, Hired
+  resumeUrl   String?
+  notes       String?
+  createdAt   DateTime @default(now())
 }
 
 model Installment {
@@ -296,30 +299,30 @@ model Installment {
 }
 
 model LeaveRequest {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  type      String   // Remote, Leave, Permission
-  date      DateTime
-  duration  String?  // e.g. "1 Day", "2 Hours"
-  status    String   @default("Pending") // Pending, Approved, Rejected
-  reason    String?
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  type          String // Remote, Leave, Permission
+  date          DateTime
+  duration      String? // e.g. "1 Day", "2 Hours"
+  status        String   @default("Pending") // Pending, Approved, Rejected
+  reason        String?
   feedbackNotes String?
-  createdAt DateTime @default(now())
+  createdAt     DateTime @default(now())
 }
 
 model EmployeeDocument {
   id        String   @id @default(uuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id])
-  name      String   // e.g. "CV", "Contract", "ID"
+  name      String // e.g. "CV", "Contract", "ID"
   fileUrl   String
   createdAt DateTime @default(now())
 }
 
 model CommissionRule {
-  id          String   @id @default(uuid())
-  role        String   @unique // e.g., "sales_agent", "team_leader_seo"
-  percentage  Float
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(uuid())
+  role       String   @unique // e.g., "sales_agent", "team_leader_seo"
+  percentage Float
+  updatedAt  DateTime @updatedAt
 }

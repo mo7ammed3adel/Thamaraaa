@@ -20,6 +20,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Name and phone are required" }, { status: 400 });
     }
 
+    let sourceName = `Manual - ${user.name}`;
+    if (user.role === "super_admin" || user.role === "tele_sales_manager") {
+       // Just appending role if it's not a generic telesales agent to be clear
+       sourceName = `Manual (${user.role.replace(/_/g, ' ')}) - ${user.name}`;
+    }
+
     const lead = await prisma.lead.create({
       data: {
         name,
@@ -28,6 +34,8 @@ export async function POST(req: Request) {
         niche: niche || null,
         classification: classification || "Cold",
         assignedTeleAgentId: assignedTeleAgentId || user.id,
+        createdById: user.id,
+        source: sourceName,
         status: status || "New",
       },
       select: {
@@ -35,6 +43,7 @@ export async function POST(req: Request) {
         name: true,
         phone: true,
         storeLink: true,
+        source: true,
         niche: true,
         createdAt: true,
       }
