@@ -151,8 +151,11 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     e.preventDefault();
     
     const payload = { ...dealData };
-    if (payload.paymentType === "Full") {
+    // Default firstAmount to totalAmount if not provided
+    if (!payload.firstAmount) {
       payload.firstAmount = payload.totalAmount;
+    }
+    if (payload.paymentType === "Full") {
       payload.installments = [];
     }
 
@@ -552,7 +555,23 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Total Amount (SAR)</label>
-                  <input required type="number" className="w-full border p-2 rounded" value={dealData.totalAmount} onChange={e => setDealData({...dealData, totalAmount: e.target.value})} />
+                  <input required type="number" min="0" className="w-full border p-2 rounded" value={dealData.totalAmount} onChange={e => setDealData({...dealData, totalAmount: e.target.value})} />
+                  <p className="text-[10px] text-gray-400 mt-1">Full contract value</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-blue-700">First Payment Amount (SAR)</label>
+                  <input required type="number" min="0" max={dealData.totalAmount || undefined} className="w-full border border-blue-200 p-2 rounded focus:ring-2 focus:ring-blue-500 bg-blue-50/30" placeholder="Amount paid at closing" value={dealData.firstAmount} onChange={e => setDealData({...dealData, firstAmount: e.target.value})} />
+                  <p className="text-[10px] text-blue-500 mt-1 font-medium">💰 This amount will be counted in Total Revenue</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 flex justify-between">
+                    <span className="text-gray-700">Remaining Balance</span>
+                    <span className="text-gray-400 text-[10px] mt-0.5">Auto-calculated</span>
+                  </label>
+                  <input disabled type="number" className="w-full border p-2 rounded bg-gray-50 text-gray-500 font-semibold" value={Math.max(0, (parseFloat(dealData.totalAmount || "0") - parseFloat(dealData.firstAmount || "0")))} />
+                  {parseFloat(dealData.firstAmount || "0") > parseFloat(dealData.totalAmount || "0") && (
+                    <p className="text-[10px] text-red-500 mt-1 font-medium">⚠️ First payment cannot exceed total amount</p>
+                  )}
                 </div>
                 
                 <div>
@@ -571,22 +590,6 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                     <option>Tamara</option>
                   </select>
                 </div>
-
-                {dealData.paymentType === "Installments" && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium mb-1 text-blue-700">First Amount Paid (SAR)</label>
-                      <input required type="number" className="w-full border p-2 rounded focus:ring-blue-500" placeholder="Required" value={dealData.firstAmount} onChange={e => setDealData({...dealData, firstAmount: e.target.value})} />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1 flex justify-between">
-                        <span className="text-gray-700">Remaining Balance</span>
-                        <span className="text-gray-400 text-xs mt-0.5">Auto-calculated</span>
-                      </label>
-                      <input disabled type="number" className="w-full border p-2 rounded bg-gray-50 text-gray-500" value={Math.max(0, (parseFloat(dealData.totalAmount || "0") - parseFloat(dealData.firstAmount || "0")))} />
-                    </div>
-                  </>
-                )}
 
                 <div>
                   <label className="block text-sm font-medium mb-1">Contract Start</label>

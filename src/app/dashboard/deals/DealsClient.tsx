@@ -59,7 +59,8 @@ export default function DealsClient({ userRole }: { userRole: string }) {
     return upfront + installmentsPaid;
   };
 
-  const totalRevenue = deals.reduce((sum, d) => sum + d.totalAmount, 0);
+  const totalContractValue = deals.reduce((sum, d) => sum + d.totalAmount, 0);
+  const totalRevenue = deals.reduce((sum, d) => sum + (d.firstAmount || d.totalAmount), 0);
   const totalPaidAmount = deals.reduce((sum, d) => sum + calculatePaidAmount(d), 0);
   const pendingPaymentsAmount = deals.reduce((sum, d) => sum + Math.max(0, d.totalAmount - calculatePaidAmount(d)), 0);
   const collectionRate = totalRevenue > 0 ? Math.round((totalPaidAmount / totalRevenue) * 100) : 0;
