@@ -47,8 +47,10 @@ export async function POST(req: Request) {
       status: "Contacted"
     };
 
-    if (callStatus === "Busy" || callStatus === "Wrong Number") updateData.status = "No_Answer";
+    if (callStatus === "Busy") updateData.status = "No_Answer";
+    if (callStatus === "Wrong Number" || callStatus === "Invalid") updateData.status = "Closed_Lost"; // Marking invalid as lost per request
     if (callStatus === "Accept and book meeting") updateData.status = "Transferred";
+    if (callStatus === "Accept but lost" || callStatus === "Not Interested") updateData.status = "Closed_Lost";
 
     if (callStatus === "Accept and book meeting" && meetingDate) {
       updateData.meetingDate = new Date(meetingDate + "T00:00:00Z");

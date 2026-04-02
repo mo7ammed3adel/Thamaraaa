@@ -28,6 +28,7 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
   const [assignToAgent, setAssignToAgent] = useState("");
   const [loading, setLoading] = useState(false);
   const [filterClass, setFilterClass] = useState("All");
+  const [activeTab, setActiveTab] = useState<"tele" | "sales">("tele");
 
   const toggleSelect = (id: string) => {
     const next = new Set(selectedLeads);
@@ -77,11 +78,18 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
     setLoading(false);
   };
 
-  const hotLeads = leads.filter(l => l.classification === "Hot");
-  const warmLeads = leads.filter(l => l.classification === "Warm");
-  const coldLeads = leads.filter(l => l.classification === "Cold");
+  // Filter leads based on Tab first
+  const tabLeads = leads.filter(l => {
+    if (activeTab === "tele") return l.meetings.length === 0;
+    if (activeTab === "sales") return l.meetings.length > 0;
+    return true;
+  });
 
-  let filteredLeads = leads;
+  const hotLeads = tabLeads.filter(l => l.classification === "Hot");
+  const warmLeads = tabLeads.filter(l => l.classification === "Warm");
+  const coldLeads = tabLeads.filter(l => l.classification === "Cold");
+
+  let filteredLeads = tabLeads;
   if (filterClass !== "All") {
     filteredLeads = filteredLeads.filter(l => l.classification === filterClass);
   }
@@ -91,6 +99,30 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
 
   return (
     <div className="space-y-6">
+      {/* Tabs */}
+      <div className="flex border-b border-gray-200">
+        <button
+          onClick={() => setActiveTab("tele")}
+          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === "tele"
+              ? "border-blue-600 text-blue-600 bg-blue-50/50"
+              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+          }`}
+        >
+          Tele Lost Leads
+        </button>
+        <button
+          onClick={() => setActiveTab("sales")}
+          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === "sales"
+              ? "border-blue-600 text-blue-600 bg-blue-50/50"
+              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+          }`}
+        >
+          Sales Lost Leads
+        </button>
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         <div 
