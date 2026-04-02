@@ -34,6 +34,8 @@ export default function DealsClient({ userRole }: { userRole: string }) {
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [filterType, setFilterType] = useState<"All" | "Late" | "Pending">("All");
 
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>({ key: "date", direction: "desc" });
+
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
@@ -117,7 +119,57 @@ export default function DealsClient({ userRole }: { userRole: string }) {
   const lateDeals = timeFilteredDeals.filter(d => d.installments.some((i: any) => !i.isPaid && new Date(i.dueDate) < new Date()));
   const pendingDeals = timeFilteredDeals.filter(d => (d.totalAmount - calculatePaidAmount(d)) > 0);
 
-  const displayDeals = filterType === "Late" ? lateDeals : filterType === "Pending" ? pendingDeals : timeFilteredDeals;
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const displayDeals = (filterType === "Late" ? lateDeals : filterType === "Pending" ? pendingDeals : timeFilteredDeals).sort((a, b) => {
+    if (!sortConfig) return 0;
+    
+    let aVal: any = 0;
+    let bVal: any = 0;
+    
+    if (sortConfig.key === "client") {
+      aVal = a.lead.name.toLowerCase();
+      bVal = b.lead.name.toLowerCase();
+    } else if (sortConfig.key === "phone") {
+      aVal = a.lead.phone;
+      bVal = b.lead.phone;
+    } else if (sortConfig.key === "agent") {
+      aVal = a.salesAgent.name.toLowerCase();
+      bVal = b.salesAgent.name.toLowerCase();
+    } else if (sortConfig.key === "package") {
+      aVal = a.package.toLowerCase();
+      bVal = b.package.toLowerCase();
+    } else if (sortConfig.key === "paid") {
+      aVal = calculatePaidAmount(a);
+      bVal = calculatePaidAmount(b);
+    } else if (sortConfig.key === "remaining") {
+      aVal = a.totalAmount - calculatePaidAmount(a);
+      bVal = b.totalAmount - calculatePaidAmount(b);
+    } else if (sortConfig.key === "status") {
+      const aRem = a.totalAmount - calculatePaidAmount(a);
+      const bRem = b.totalAmount - calculatePaidAmount(b);
+      aVal = aRem === 0 ? "completed" : "partial";
+      bVal = bRem === 0 ? "completed" : "partial";
+    } else if (sortConfig.key === "date") {
+      aVal = new Date(a.createdAt).getTime();
+      bVal = new Date(b.createdAt).getTime();
+    }
+
+    if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+    if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const SortIcon = ({ columnKey }: { columnKey: string }) => {
+    if (sortConfig?.key !== columnKey) return <span className="opacity-0 group-hover:opacity-30 inline-block ml-1 text-xs">↕</span>;
+    return <span className="ml-1 text-blue-600 text-xs">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>;
+  };
 
   return (
     <div className="space-y-6">
@@ -230,17 +282,17 @@ export default function DealsClient({ userRole }: { userRole: string }) {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-white">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Client</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sales Agent</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Package</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Paid / Total (SAR)</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Remaining</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Payment Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Action</th>
+                <th onClick={() => handleSort('client')} className="group px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Client <SortIcon columnKey="client"/></th>
+                <th onClick={() => handleSort('phone')} className="group px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Phone <SortIcon columnKey="phone"/></th>
+                <th onClick={() => handleSort('agent')} className="group px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Sales Agent <SortIcon columnKey="agent"/></th>
+                <th onClick={() => handleSort('package')} className="group px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Package <SortIcon columnKey="package"/></th>
+                <th onClick={() => handleSort('paid')} className="group px-6 py-3 text-right text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Paid / Total <SortIcon columnKey="paid"/></th>
+                <th onClick={() => handleSort('remaining')} className="group px-6 py-3 text-right text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Remaining <SortIcon columnKey="remaining"/></th>
+                <th onClick={() => handleSort('status')} className="group px-6 py-3 text-center text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Payment Status <SortIcon columnKey="status"/></th>
+                <th onClick={() => handleSort('date')} className="group px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Date <SortIcon columnKey="date"/></th>
+                <th className="px-6 py-3 text-center text-xs font-bold text-gray-600 uppercase">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">

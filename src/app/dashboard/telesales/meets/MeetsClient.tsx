@@ -57,6 +57,109 @@ export default function MeetsClient({
 }) {
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
 
+  // Filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
+  const setQuickDate = (type: string) => {
+    const today = new Date();
+    const toIso = (d: Date) => {
+      const offset = d.getTimezoneOffset() * 60000;
+      return new Date(d.getTime() - offset).toISOString().split('T')[0];
+    };
+    if (type === "today") {
+      setFromDate(toIso(today));
+      setToDate(toIso(today));
+    } else if (type === "yesterday") {
+      const y = new Date(today); y.setDate(y.getDate() - 1);
+      setFromDate(toIso(y));
+      setToDate(toIso(y));
+    } else if (type === "week") {
+      const w = new Date(today); w.setDate(w.getDate() - w.getDay());
+      setFromDate(toIso(w));
+      setToDate(toIso(today));
+    } else if (type === "month") {
+      const m = new Date(today.getFullYear(), today.getMonth(), 1);
+      setFromDate(toIso(m));
+      setToDate(toIso(today));
+    } else if (type === "all") {
+      setFromDate("");
+      setToDate("");
+    }
+  };
+
+  // Sorting
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>({ key: "date", direction: "desc" });
+
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const processedMeetings = meetings.filter(m => {
+    // 1. Search Filter
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      if (!m.lead.name.toLowerCase().includes(q) && !m.lead.phone.includes(q)) return false;
+    }
+    // 2. Status Filter
+    if (statusFilter !== "All" && m.status !== statusFilter) return false;
+    
+    // 3. Date Filter (meetingDate)
+    if (fromDate || toDate) {
+      const ms = new Date(m.meetingDate).getTime();
+      if (fromDate && ms < new Date(`${fromDate}T00:00:00`).getTime()) return false;
+      if (toDate && ms > new Date(`${toDate}T23:59:59`).getTime()) return false;
+    }
+    return true;
+  }).sort((a, b) => {
+    if (!sortConfig) return 0;
+    
+    let aVal: any = "";
+    let bVal: any = "";
+    
+    if (sortConfig.key === "lead") {
+      aVal = a.lead.name.toLowerCase();
+      bVal = b.lead.name.toLowerCase();
+    } else if (sortConfig.key === "phone") {
+      aVal = a.lead.phone;
+      bVal = b.lead.phone;
+    } else if (sortConfig.key === "classification") {
+      const ranks: any = { "Hot": 3, "Warm": 2, "Cold": 1 };
+      aVal = ranks[a.lead.classification] || 0;
+      bVal = ranks[b.lead.classification] || 0;
+    } else if (sortConfig.key === "source") {
+      aVal = (a.lead.source || "").toLowerCase();
+      bVal = (b.lead.source || "").toLowerCase();
+    } else if (sortConfig.key === "teleAgent") {
+      aVal = (a.teleAgent?.name || "").toLowerCase();
+      bVal = (b.teleAgent?.name || "").toLowerCase();
+    } else if (sortConfig.key === "salesAgent") {
+      aVal = (a.salesAgent?.name || a.lead.salesAgent?.name || "").toLowerCase();
+      bVal = (b.salesAgent?.name || b.lead.salesAgent?.name || "").toLowerCase();
+    } else if (sortConfig.key === "date") {
+      aVal = new Date(a.meetingDate).getTime();
+      bVal = new Date(b.meetingDate).getTime();
+    } else if (sortConfig.key === "status") {
+      aVal = a.status.toLowerCase();
+      bVal = b.status.toLowerCase();
+    }
+
+    if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+    if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const SortIcon = ({ columnKey }: { columnKey: string }) => {
+    if (sortConfig?.key !== columnKey) return <span className="opacity-0 group-hover:opacity-30 inline-block ml-1">↕</span>;
+    return <span className="ml-1 text-blue-500">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>;
+  };
+
   return (
     <div className="space-y-6">
       {/* Performance Summary for Agent */}
@@ -94,30 +197,80 @@ export default function MeetsClient({
         </div>
       )}
 
+      {/* Advanced Filters */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+        <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+           <Calendar className="h-4 w-4 text-gray-500" />
+           Advanced Filters & Search
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1">Search Lead</label>
+            <input 
+              type="text" 
+              placeholder="Name or Phone..." 
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1">Meeting Status</label>
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            >
+              <option value="All">All Statuses</option>
+              <option value="Scheduled">Scheduled</option>
+              <option value="Attended">Attended</option>
+              <option value="Lost">Lost</option>
+              <option value="Won">Won</option>
+            </select>
+          </div>
+          <div className="lg:col-span-2">
+            <label className="block text-xs font-semibold text-gray-500 mb-1">Meeting Date Range</label>
+            <div className="flex flex-col sm:flex-row items-center gap-2">
+              <div className="flex flex-1 items-center gap-2">
+                <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-gray-700" />
+                <span className="text-xs text-gray-400 font-bold">TO</span>
+                <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-gray-700" />
+              </div>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setQuickDate('today')} className="text-[10px] font-bold uppercase bg-blue-50 text-blue-700 px-2.5 py-1.5 rounded hover:bg-blue-100 transition border border-blue-200">Today</button>
+                <button onClick={() => setQuickDate('thisWeek')} className="text-[10px] font-bold uppercase bg-blue-50 text-blue-700 px-2.5 py-1.5 rounded hover:bg-blue-100 transition border border-blue-200">Week</button>
+                <button onClick={() => setQuickDate('all')} className="text-[10px] font-bold uppercase bg-gray-100 text-gray-600 px-2.5 py-1.5 rounded hover:bg-gray-200 transition border border-gray-200">All</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Meetings Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
           <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
-            Meetings ({meetings.length})
+            Meetings
           </h3>
+          <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-0.5 rounded-full">{processedMeetings.length} Found</span>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-white">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lead</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Classification</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Source</th>
-                {!isAgent && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tele Agent</th>}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sales Agent</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date & Time</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Summary</th>
+                <th onClick={() => handleSort('lead')} className="group px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">Lead <SortIcon columnKey="lead"/></th>
+                <th onClick={() => handleSort('phone')} className="group px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">Phone <SortIcon columnKey="phone"/></th>
+                <th onClick={() => handleSort('classification')} className="group px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">Class <SortIcon columnKey="classification"/></th>
+                <th onClick={() => handleSort('source')} className="group px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">Source <SortIcon columnKey="source"/></th>
+                {!isAgent && <th onClick={() => handleSort('teleAgent')} className="group px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">Tele Agent <SortIcon columnKey="teleAgent"/></th>}
+                <th onClick={() => handleSort('salesAgent')} className="group px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">Sales Agent <SortIcon columnKey="salesAgent"/></th>
+                <th onClick={() => handleSort('date')} className="group px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">Date & Time <SortIcon columnKey="date"/></th>
+                <th onClick={() => handleSort('status')} className="group px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">Status <SortIcon columnKey="status"/></th>
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Summary</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {meetings.map((m) => (
+              {processedMeetings.map((m) => (
                 <tr key={m.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => setSelectedMeeting(m)}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{m.lead.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono">{m.lead.phone}</td>
@@ -151,8 +304,8 @@ export default function MeetsClient({
                   </td>
                 </tr>
               ))}
-              {meetings.length === 0 && (
-                <tr><td colSpan={isAgent ? 8 : 9} className="px-6 py-8 text-center text-sm text-gray-500">No meetings found.</td></tr>
+              {processedMeetings.length === 0 && (
+                <tr><td colSpan={isAgent ? 8 : 9} className="px-6 py-8 text-center text-sm text-gray-500 bg-gray-50">No meetings found matching your filters.</td></tr>
               )}
             </tbody>
           </table>
