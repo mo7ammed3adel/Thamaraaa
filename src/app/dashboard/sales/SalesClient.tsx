@@ -512,12 +512,24 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                 <div className={`mb-4 border rounded-lg p-3 shadow-sm ${isLate ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200'}`}>
                   <div className="flex justify-between items-center mb-1">
                     <h4 className={`text-sm font-bold flex items-center gap-1 ${isLate ? 'text-red-800' : 'text-blue-800'}`}>
-                      {isLate ? '⚠️ Late Follow-up' : '💡 Last Note'}
+                      {isLate ? '⚠️ Late Follow-up' : '💡 Last Note & Profile'}
                     </h4>
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${isLate ? 'text-red-700 bg-red-100' : 'text-blue-700 bg-blue-100'}`}>
                       Last contact: {diffDays === 0 ? "today" : `${diffDays} days ago`}
                     </span>
                   </div>
+                  
+                  {activeLead.hasStore && activeLead.storeLink && (
+                    <div className="mt-3 mb-2 flex items-center gap-3 bg-white/80 p-2 rounded border border-white">
+                       <span className="text-xs font-bold text-gray-800">
+                         🏪 {activeLead.customerType || 'Store'}
+                       </span>
+                       <a href={activeLead.storeLink} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-800 hover:underline break-all font-medium">
+                         {activeLead.storeLink}
+                       </a>
+                    </div>
+                  )}
+
                   <p className="text-sm text-gray-700 italic bg-white/50 p-2 rounded border border-white mt-2">"{lastLog.notes}"</p>
                   <p className="text-[10px] text-gray-500 mt-2 text-right font-medium">- {lastLog.agent?.name} ({new Date(lastLog.createdAt).toLocaleString("en-GB")})</p>
                 </div>
