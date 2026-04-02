@@ -41,6 +41,12 @@ model User {
   agentTargets      AgentTarget[] @relation("AgentTargets")
 }
 
+model Niche {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
+
 model Lead {
   id                     String    @id @default(uuid())
   name                   String

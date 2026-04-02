@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, PhoneCall, ChevronDown, ChevronUp, CheckCircle2, XCircle, FileText, Send } from "lucide-react";
+import { Calendar, PhoneCall, ChevronDown, ChevronUp, CheckCircle2, XCircle, FileText, Send, X } from "lucide-react";
 
 export default function SalesClient({ initialLeads, userRole, userId, initialStatus }: { initialLeads: any[], userRole: string, userId: string, initialStatus: string }) {
   const router = useRouter();
@@ -37,6 +37,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
 
   // Feedback form
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
+  const [feedbackDraft, setFeedbackDraft] = useState(false); // tracks if there's unsaved feedback
   const [feedback, setFeedback] = useState({
     notes: "",
     outcome: "won", // "won", "lost", "followup", "reschedule"
@@ -47,6 +48,18 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     storeLink: "",
     customerType: "Launch" // Store, Launch, Dropshipping, Shipping, Special
   });
+
+  // Warn user before leaving page with unsaved feedback
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (activeLead && feedbackDraft) {
+        e.preventDefault();
+        e.returnValue = "You must complete the feedback before closing the call.";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [activeLead, feedbackDraft]);
 
   // Send Link State
   const [linkLead, setLinkLead] = useState<any>(null);
@@ -77,6 +90,12 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
 
   const endTask = () => {
     setShowFeedbackForm(true);
+    setFeedbackDraft(true);
+  };
+
+  const closeFeedbackTemporarily = () => {
+    // Close modal but keep draft data — user can reopen
+    setShowFeedbackForm(false);
   };
 
   const submitFeedback = async (e: React.FormEvent) => {
@@ -129,8 +148,11 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
       
       setStatus("Active");
       setShowFeedbackForm(false);
+      setFeedbackDraft(false);
       setLeads(prev => prev.map(l => l.id === activeLead.id ? { ...l, status: finalStatus, ...extraData } : l));
       setActiveLead(null);
+      // Reset feedback for next task
+      setFeedback({ notes: "", outcome: "won", followUpDate: "", meetingDate: "", meetingTime: "", hasStore: "No", storeLink: "", customerType: "Launch" });
       router.refresh();
     }
   };
@@ -459,7 +481,18 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
       {showFeedbackForm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <h3 className="text-lg font-bold mb-4">Task Feedback</h3>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">Task Feedback</h3>
+              <button 
+                type="button" 
+                onClick={closeFeedbackTemporarily} 
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" 
+                title="Close temporarily — your data will be saved as draft"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">⚠️ You must complete all fields and click "Confirm & Continue" to finish this call.</p>
             <form onSubmit={submitFeedback} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Outcome</label>

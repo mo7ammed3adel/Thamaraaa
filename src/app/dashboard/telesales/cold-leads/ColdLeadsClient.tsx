@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Link as LinkIcon, PhoneCall, User as UserIcon, Tag, Store } from "lucide-react";
 
 interface ColdLead {
@@ -21,6 +21,18 @@ export default function ColdLeadsClient({ initialLeads, agentId }: { initialLead
   const [phone, setPhone] = useState("");
   const [storeLink, setStoreLink] = useState("");
   const [niche, setNiche] = useState("");
+  
+  // Niche definitions
+  const [availableNiches, setAvailableNiches] = useState<{ id: string, name: string }[]>([]);
+
+  useEffect(() => {
+    fetch("/api/niches")
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setAvailableNiches(data);
+      })
+      .catch(err => console.error("Failed to load niches", err));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,6 +40,25 @@ export default function ColdLeadsClient({ initialLeads, agentId }: { initialLead
     
     setLoading(true);
     try {
+      // If a niche is provided, standardize & ensure it gets created in global list
+      let finalNiche = niche;
+      if (niche) {
+        const nicheRes = await fetch("/api/niches", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: niche })
+        });
+        if (nicheRes.ok) {
+          const nicheData = await nicheRes.json();
+          finalNiche = nicheData.niche.name;
+          
+          // Optimistically update dropdown if it was new
+          if (!availableNiches.find(n => n.name.toLowerCase() === finalNiche.toLowerCase())) {
+            setAvailableNiches(prev => [...prev, nicheData.niche].sort((a,b) => a.name.localeCompare(b.name)));
+          }
+        }
+      }
+
       const res = await fetch("/api/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -35,7 +66,7 @@ export default function ColdLeadsClient({ initialLeads, agentId }: { initialLead
           name,
           phone,
           storeLink: storeLink || undefined,
-          niche: niche || undefined,
+          niche: finalNiche || undefined,
           classification: "Cold",
           assignedTeleAgentId: agentId,
           status: "New"
@@ -121,11 +152,18 @@ export default function ColdLeadsClient({ initialLeads, agentId }: { initialLead
                   <Tag className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                   <input 
                     type="text" 
+                    list="niche-options"
                     value={niche}
                     onChange={e => setNiche(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-                    placeholder="E.g. Perfumes, Fashion"
+                    className="w-full pl-9 pr-3 py-2 border border-blue-200 bg-blue-50/30 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm placeholder:text-gray-400"
+                    placeholder="Search or type to add new..."
+                    autoComplete="off"
                   />
+                  <datalist id="niche-options">
+                    {availableNiches.map(n => (
+                      <option key={n.id} value={n.name} />
+                    ))}
+                  </datalist>
                 </div>
               </div>
             </div>

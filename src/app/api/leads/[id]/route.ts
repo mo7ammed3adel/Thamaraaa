@@ -76,21 +76,29 @@ export async function PATCH(request: Request, { params }: { params: { id: string
         orderBy: { createdAt: "desc" }
       });
 
-      if (latestMeeting && ["Closed_Won", "Closed_Lost", "Rescheduled"].includes(status)) {
-        let mStatus = "Attended";
+      if (latestMeeting) {
+        // Determine the new meeting status based on lead status change
+        let mStatus: string | null = null;
         if (status === "Closed_Won") mStatus = "Won";
-        if (status === "Closed_Lost") mStatus = "Lost";
-        if (status === "Rescheduled") mStatus = "Scheduled";
+        else if (status === "Closed_Lost") mStatus = "Lost";
+        else if (status === "Rescheduled") mStatus = "Scheduled";
+        else if (status === "Follow_Up") mStatus = "Attended";
+        else if (!status && latestMeeting.status === "Scheduled") {
+          // Sales agent submitted feedback (notes) without changing lead status → meeting was attended
+          mStatus = "Attended";
+        }
 
-        await prisma.meeting.update({
-          where: { id: latestMeeting.id },
-          data: {
-            status: mStatus,
-            salesNotes: notes,
-            ...(meetingDate ? { meetingDate: new Date(meetingDate + "T" + (meetingTime || "00:00") + ":00Z") } : {}),
-            ...(meetingTime ? { meetingTime } : {})
-          }
-        });
+        if (mStatus) {
+          await prisma.meeting.update({
+            where: { id: latestMeeting.id },
+            data: {
+              status: mStatus,
+              salesNotes: notes,
+              ...(meetingDate ? { meetingDate: new Date(meetingDate + "T" + (meetingTime || "00:00") + ":00Z") } : {}),
+              ...(meetingTime ? { meetingTime } : {})
+            }
+          });
+        }
       }
     }
 

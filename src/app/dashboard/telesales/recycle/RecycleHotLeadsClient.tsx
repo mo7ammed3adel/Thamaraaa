@@ -9,6 +9,7 @@ interface Lead {
   classification: string;
   status: string;
   createdAt: Date;
+  assignedTeleAgentId: string | null;
   teleAgent: { name: string } | null;
   salesAgent: { name: string } | null;
   callLogs: { notes: string; createdAt: Date }[];
@@ -23,7 +24,8 @@ interface Agent {
 export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: { leads: Lead[]; agents: Agent[] }) {
   const [leads, setLeads] = useState(initialLeads);
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
-  const [selectedAgent, setSelectedAgent] = useState("");
+  const [lostFromAgent, setLostFromAgent] = useState("");
+  const [assignToAgent, setAssignToAgent] = useState("");
   const [loading, setLoading] = useState(false);
   const [filterClass, setFilterClass] = useState("All");
 
@@ -43,7 +45,7 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
   };
 
   const handleRedistribute = async () => {
-    if (!selectedAgent) return alert("Select an agent to assign");
+    if (!assignToAgent) return alert("Select an agent to assign");
     if (selectedLeads.size === 0) return alert("Select at least one lead");
 
     setLoading(true);
@@ -54,7 +56,7 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             status: "New",
-            assignedTeleAgentId: selectedAgent,
+            assignedTeleAgentId: assignToAgent,
             notes: "Recycled from lost leads",
           }),
         })
@@ -63,7 +65,7 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
       // Remove redistributed leads from local state
       setLeads(leads.filter(l => !selectedLeads.has(l.id)));
       setSelectedLeads(new Set());
-      setSelectedAgent("");
+      setAssignToAgent("");
     } catch {
       alert("Failed to redistribute leads");
     }
@@ -74,7 +76,13 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
   const warmLeads = leads.filter(l => l.classification === "Warm");
   const coldLeads = leads.filter(l => l.classification === "Cold");
 
-  const filteredLeads = filterClass === "All" ? leads : leads.filter(l => l.classification === filterClass);
+  let filteredLeads = leads;
+  if (filterClass !== "All") {
+    filteredLeads = filteredLeads.filter(l => l.classification === filterClass);
+  }
+  if (lostFromAgent) {
+    filteredLeads = filteredLeads.filter(l => l.assignedTeleAgentId === lostFromAgent);
+  }
 
   return (
     <div className="space-y-6">
@@ -97,13 +105,36 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
       {/* Bulk Actions */}
       <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm flex flex-wrap gap-4 items-end">
         <div className="flex items-center gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-red-500 mb-1 uppercase">Lost From Agent</label>
+            <select
+              value={lostFromAgent}
+              onChange={(e) => {
+                setLostFromAgent(e.target.value);
+                setSelectedLeads(new Set()); // Reset selections when filter changes
+              }}
+              className="border border-red-300 bg-red-50 text-red-800 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 min-w-[200px]"
+            >
+              <option value="">All Agents</option>
+              {agents.map(a => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="hidden sm:block text-gray-300 px-2 lg:px-4">
+          <svg className="w-6 h-6 transform rotate-90 sm:rotate-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+        </div>
+
+        <div className="flex items-center gap-3">
           <Users className="h-5 w-5 text-gray-400" />
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Assign to Agent</label>
+            <label className="block text-xs font-semibold text-blue-600 mb-1 uppercase">Assign To Agent</label>
             <select
-              value={selectedAgent}
-              onChange={(e) => setSelectedAgent(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 min-w-[200px]"
+              value={assignToAgent}
+              onChange={(e) => setAssignToAgent(e.target.value)}
+              className="border border-blue-300 bg-blue-50 text-blue-800 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 min-w-[200px]"
             >
               <option value="">Select Agent...</option>
               {agents.map(a => (
@@ -113,7 +144,7 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 ml-auto">
           <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Filter by Class</label>
             <select
@@ -130,15 +161,12 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
         </div>
         <button
           onClick={handleRedistribute}
-          disabled={loading || selectedLeads.size === 0 || !selectedAgent}
-          className="px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-sm"
+          disabled={loading || selectedLeads.size === 0 || !assignToAgent}
+          className="px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-sm whitespace-nowrap"
         >
           <RotateCcw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           {loading ? "Redistributing..." : `Redistribute (${selectedLeads.size})`}
         </button>
-        <span className="text-xs text-gray-400 self-center">
-          {selectedLeads.size} of {leads.length} selected
-        </span>
       </div>
 
       {/* Table */}

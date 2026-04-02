@@ -46,7 +46,7 @@ export default function MyTeamClient({
   const [loading, setLoading] = useState<string | null>(null);
   const [fromDate, setFromDate] = useState(initialFrom);
   const [toDate, setToDate] = useState(initialTo);
-  const [filterSpec, setFilterSpec] = useState<string>("All"); // All, Hot, Warm, Cold
+  const [activeSpecs, setActiveSpecs] = useState<string[]>([]); // Empty = All, otherwise contains Hot, Warm, Cold
   const [sortBy, setSortBy] = useState<string>("name"); // name, leads, calls, meetings, transferred
 
   const applyDateFilter = () => {
@@ -105,9 +105,20 @@ export default function MyTeamClient({
   const coldCount = agents.filter(a => a.specialization === "Cold").length;
   const unassignedCount = agents.filter(a => !a.specialization).length;
 
+  const toggleSpec = (spec: string) => {
+    setActiveSpecs((prev) => 
+      prev.includes(spec) ? prev.filter(s => s !== spec) : [...prev, spec]
+    );
+  };
+
+  const clearAllFilters = () => {
+    setActiveSpecs([]);
+    setSortBy("name");
+  };
+
   let displayAgents = [...agents];
-  if (filterSpec !== "All") {
-    displayAgents = displayAgents.filter(a => a.specialization === filterSpec);
+  if (activeSpecs.length > 0) {
+    displayAgents = displayAgents.filter(a => a.specialization && activeSpecs.includes(a.specialization));
   }
 
   displayAgents.sort((a, b) => {
@@ -142,7 +153,7 @@ export default function MyTeamClient({
         </div>
         <button
           onClick={applyDateFilter}
-          className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors font-medium"
+          className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors font-medium border border-blue-600"
         >
           Apply
         </button>
@@ -201,8 +212,8 @@ export default function MyTeamClient({
       {/* Specialization Breakdown */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div 
-          onClick={() => setFilterSpec("All")}
-          className={`cursor-pointer bg-white rounded-xl border p-4 shadow-sm transition-all hover:border-slate-400 ${filterSpec === "All" ? "ring-2 ring-slate-400" : "border-gray-200"}`}
+          onClick={() => setActiveSpecs([])}
+          className={`cursor-pointer bg-white rounded-xl border p-4 shadow-sm transition-all hover:border-slate-400 ${activeSpecs.length === 0 ? "ring-2 ring-slate-400 bg-slate-50" : "border-gray-200"}`}
         >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-slate-100 rounded-lg">
@@ -210,13 +221,13 @@ export default function MyTeamClient({
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{agents.length}</p>
-              <p className="text-xs text-gray-500">Total Agents</p>
+              <p className="text-xs text-gray-500 uppercase font-semibold">Total Agents</p>
             </div>
           </div>
         </div>
         <div 
-          onClick={() => setFilterSpec("Hot")}
-          className={`cursor-pointer bg-white rounded-xl border p-4 shadow-sm transition-all hover:border-red-400 ${filterSpec === "Hot" ? "ring-2 ring-red-400" : "border-red-100"}`}
+          onClick={() => toggleSpec("Hot")}
+          className={`cursor-pointer bg-white rounded-xl border p-4 shadow-sm transition-all hover:border-red-400 ${activeSpecs.includes("Hot") ? "ring-2 ring-red-400 bg-red-50/50" : "border-red-100"}`}
         >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-red-50 rounded-lg">
@@ -224,13 +235,13 @@ export default function MyTeamClient({
             </div>
             <div>
               <p className="text-2xl font-bold text-red-600">{hotCount}</p>
-              <p className="text-xs text-gray-500">Hot Agents</p>
+              <p className="text-xs text-gray-500 uppercase font-semibold">Hot Agents</p>
             </div>
           </div>
         </div>
         <div 
-          onClick={() => setFilterSpec("Warm")}
-          className={`cursor-pointer bg-white rounded-xl border p-4 shadow-sm transition-all hover:border-amber-400 ${filterSpec === "Warm" ? "ring-2 ring-amber-400" : "border-amber-100"}`}
+          onClick={() => toggleSpec("Warm")}
+          className={`cursor-pointer bg-white rounded-xl border p-4 shadow-sm transition-all hover:border-amber-400 ${activeSpecs.includes("Warm") ? "ring-2 ring-amber-400 bg-amber-50/50" : "border-amber-100"}`}
         >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-amber-50 rounded-lg">
@@ -238,13 +249,13 @@ export default function MyTeamClient({
             </div>
             <div>
               <p className="text-2xl font-bold text-amber-600">{warmCount}</p>
-              <p className="text-xs text-gray-500">Warm Agents</p>
+              <p className="text-xs text-gray-500 uppercase font-semibold">Warm Agents</p>
             </div>
           </div>
         </div>
         <div 
-          onClick={() => setFilterSpec("Cold")}
-          className={`cursor-pointer bg-white rounded-xl border p-4 shadow-sm transition-all hover:border-blue-400 ${filterSpec === "Cold" ? "ring-2 ring-blue-400" : "border-blue-100"}`}
+          onClick={() => toggleSpec("Cold")}
+          className={`cursor-pointer bg-white rounded-xl border p-4 shadow-sm transition-all hover:border-blue-400 ${activeSpecs.includes("Cold") ? "ring-2 ring-blue-400 bg-blue-50/50" : "border-blue-100"}`}
         >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-50 rounded-lg">
@@ -252,11 +263,33 @@ export default function MyTeamClient({
             </div>
             <div>
               <p className="text-2xl font-bold text-blue-600">{coldCount}</p>
-              <p className="text-xs text-gray-500">Cold Agents</p>
+              <p className="text-xs text-gray-500 uppercase font-semibold">Cold Agents</p>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Active Filters Bar */}
+      {(activeSpecs.length > 0 || sortBy !== "name") && (
+        <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold text-blue-800 mr-2 uppercase">Active Filters:</span>
+          {sortBy !== "name" && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white border border-blue-200 text-blue-700 shadow-sm">
+              Sorted by: <span className="capitalize">{sortBy}</span>
+              <button onClick={() => setSortBy("name")} className="ml-1 hover:text-red-500"><svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            </span>
+          )}
+          {activeSpecs.map(spec => (
+            <span key={spec} className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium shadow-sm border ${specColors[spec]}`}>
+              {spec} Agents
+              <button onClick={() => toggleSpec(spec)} className="ml-1 hover:opacity-70"><svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            </span>
+          ))}
+          <button onClick={clearAllFilters} className="ml-auto text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline">
+            Clear all filters
+          </button>
+        </div>
+      )}
 
       {/* Agents Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
