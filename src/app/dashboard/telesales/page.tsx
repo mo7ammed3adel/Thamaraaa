@@ -12,7 +12,10 @@ export default async function TeleSalesPage() {
     redirect("/dashboard");
   }
 
-  const whereClause = user.role === "tele_sales_agent" ? { assignedTeleAgentId: user.id } : {};
+  const whereClause: any = user.role === "tele_sales_agent" ? { assignedTeleAgentId: user.id } : {};
+  
+  // Hide Draft leads from the main workspace
+  whereClause.status = { not: "Draft" };
 
   const leads = await prisma.lead.findMany({
     where: whereClause,

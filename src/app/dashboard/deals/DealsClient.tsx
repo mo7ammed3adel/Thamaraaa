@@ -34,6 +34,38 @@ export default function DealsClient({ userRole }: { userRole: string }) {
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [filterType, setFilterType] = useState<"All" | "Late" | "Pending">("All");
 
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
+  const setQuickDate = (type: string) => {
+    const today = new Date();
+    const toIso = (d: Date) => {
+      const offset = d.getTimezoneOffset() * 60000;
+      return new Date(d.getTime() - offset).toISOString().split('T')[0];
+    };
+    if (type === "today") {
+      setFromDate(toIso(today));
+      setToDate(toIso(today));
+    } else if (type === "yesterday") {
+      const y = new Date(today); y.setDate(y.getDate() - 1);
+      setFromDate(toIso(y));
+      setToDate(toIso(y));
+    } else if (type === "week") {
+      const w = new Date(today); w.setDate(w.getDate() - w.getDay());
+      setFromDate(toIso(w));
+      setToDate(toIso(today));
+    } else if (type === "month") {
+      const m = new Date(today.getFullYear(), today.getMonth(), 1);
+      setFromDate(toIso(m));
+      setToDate(toIso(today));
+    } else if (type === "lastMonth") {
+      const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const end = new Date(today.getFullYear(), today.getMonth(), 0);
+      setFromDate(toIso(start));
+      setToDate(toIso(end));
+    }
+  };
+
   useEffect(() => {
     fetchDeals();
   }, []);
@@ -59,22 +91,72 @@ export default function DealsClient({ userRole }: { userRole: string }) {
     return upfront + installmentsPaid;
   };
 
-  const totalContractValue = deals.reduce((sum, d) => sum + d.totalAmount, 0);
-  const totalRevenue = deals.reduce((sum, d) => sum + (d.firstAmount || d.totalAmount), 0);
-  const totalPaidAmount = deals.reduce((sum, d) => sum + calculatePaidAmount(d), 0);
-  const pendingPaymentsAmount = deals.reduce((sum, d) => sum + Math.max(0, d.totalAmount - calculatePaidAmount(d)), 0);
+  const timeFilteredDeals = deals.filter(d => {
+    if (fromDate || toDate) {
+      const targetDate = new Date(d.createdAt);
+      if (fromDate) {
+        const start = new Date(fromDate); start.setHours(0,0,0,0);
+        if (targetDate < start) return false;
+      }
+      if (toDate) {
+        const end = new Date(toDate); end.setHours(23,59,59,999);
+        if (targetDate > end) return false;
+      }
+    }
+    return true;
+  });
+
+  const totalContractValue = timeFilteredDeals.reduce((sum, d) => sum + d.totalAmount, 0);
+  const totalRevenue = timeFilteredDeals.reduce((sum, d) => sum + (d.firstAmount || d.totalAmount), 0);
+  const totalPaidAmount = timeFilteredDeals.reduce((sum, d) => sum + calculatePaidAmount(d), 0);
+  const pendingPaymentsAmount = timeFilteredDeals.reduce((sum, d) => sum + Math.max(0, d.totalAmount - calculatePaidAmount(d)), 0);
   const collectionRate = totalRevenue > 0 ? Math.round((totalPaidAmount / totalRevenue) * 100) : 0;
   
-  const pendingPaymentsDealsCount = deals.filter(d => (d.totalAmount - calculatePaidAmount(d)) > 0).length;
+  const pendingPaymentsDealsCount = timeFilteredDeals.filter(d => (d.totalAmount - calculatePaidAmount(d)) > 0).length;
 
-  const lateDeals = deals.filter(d => d.installments.some((i: any) => !i.isPaid && new Date(i.dueDate) < new Date()));
-  const pendingDeals = deals.filter(d => (d.totalAmount - calculatePaidAmount(d)) > 0);
+  const lateDeals = timeFilteredDeals.filter(d => d.installments.some((i: any) => !i.isPaid && new Date(i.dueDate) < new Date()));
+  const pendingDeals = timeFilteredDeals.filter(d => (d.totalAmount - calculatePaidAmount(d)) > 0);
 
-  const displayDeals = filterType === "Late" ? lateDeals : filterType === "Pending" ? pendingDeals : deals;
+  const displayDeals = filterType === "Late" ? lateDeals : filterType === "Pending" ? pendingDeals : timeFilteredDeals;
 
   return (
     <div className="space-y-6">
-      {/* Summary */}
+      
+      {/* Date Filters Header */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+           <h3 className="text-gray-800 font-bold flex items-center gap-2">
+             <Calendar className="h-5 w-5 text-gray-400" />
+             Financial Period Filters
+           </h3>
+           <p className="text-xs text-gray-500 mt-1">Filtering by deal closing date. All financial KPIs below update actively.</p>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row items-center gap-2">
+           <div className="flex items-center gap-2">
+             <div className="flex items-center border border-gray-300 rounded-lg px-2 bg-gray-50 focus-within:ring-2 focus-within:ring-green-500">
+               <span className="text-xs font-bold text-gray-500">From</span>
+               <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="text-sm bg-transparent border-none focus:ring-0 py-2 cursor-pointer" />
+             </div>
+             <div className="flex items-center border border-gray-300 rounded-lg px-2 bg-gray-50 focus-within:ring-2 focus-within:ring-green-500">
+               <span className="text-xs font-bold text-gray-500">To</span>
+               <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="text-sm bg-transparent border-none focus:ring-0 py-2 cursor-pointer" />
+             </div>
+           </div>
+           
+           <div className="flex items-center gap-1.5 flex-wrap">
+             <button onClick={() => setQuickDate('today')} className="text-[10px] font-bold uppercase bg-green-50 text-green-700 px-2.5 py-1.5 rounded-md hover:bg-green-100 transition border border-green-200">Today</button>
+             <button onClick={() => setQuickDate('week')} className="text-[10px] font-bold uppercase bg-blue-50 text-blue-700 px-2.5 py-1.5 rounded-md hover:bg-blue-100 transition border border-blue-200">This Week</button>
+             <button onClick={() => setQuickDate('month')} className="text-[10px] font-bold uppercase bg-blue-50 text-blue-700 px-2.5 py-1.5 rounded-md hover:bg-blue-100 transition border border-blue-200">This Month</button>
+             <button onClick={() => setQuickDate('lastMonth')} className="text-[10px] font-bold uppercase bg-slate-100 text-slate-700 px-2.5 py-1.5 rounded-md hover:bg-slate-200 transition border border-slate-200">Last Month</button>
+             
+             {(fromDate || toDate) && (
+               <button onClick={() => { setFromDate(""); setToDate(""); }} className="text-[10px] font-bold uppercase text-red-600 bg-red-50 hover:bg-red-100 px-2.5 py-1.5 rounded-md transition shadow-sm border border-red-200 ml-1">Reset</button>
+             )}
+           </div>
+        </div>
+      </div>
+
       {/* Summary Area */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         <div 
@@ -85,7 +167,7 @@ export default function DealsClient({ userRole }: { userRole: string }) {
             <Handshake className="h-4 w-4 opacity-80" />
             <span className="text-[10px] font-semibold uppercase opacity-80">Total Deals</span>
           </div>
-          <p className="text-2xl font-bold">{deals.length}</p>
+          <p className="text-2xl font-bold">{timeFilteredDeals.length}</p>
         </div>
 
         <div className="bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl p-4 text-white shadow-lg">

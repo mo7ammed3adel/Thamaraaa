@@ -16,6 +16,14 @@ export default function ColdLeadsClient({ initialLeads, agentId }: { initialLead
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
   
+  // Selection
+  const [selected, setSelected] = useState<string[]>([]);
+  const [promoting, setPromoting] = useState(false);
+
+  // Date Filters
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  
   // Form state
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -69,7 +77,7 @@ export default function ColdLeadsClient({ initialLeads, agentId }: { initialLead
           niche: finalNiche || undefined,
           classification: "Cold",
           assignedTeleAgentId: agentId,
-          status: "New"
+          status: "Draft"
         }),
       });
 
@@ -86,6 +94,75 @@ export default function ColdLeadsClient({ initialLeads, agentId }: { initialLead
       alert(err.message || "Failed to add lead");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePromote = async () => {
+    if (selected.length === 0) return;
+    setPromoting(true);
+    try {
+      const res = await fetch("/api/leads/bulk/promote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadIds: selected })
+      });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to promote leads");
+      }
+
+      alert(data.message || `Successfully added ${data.promotedCount} to Leads!`);
+      
+      // Remove promoted leads from UI
+      setLeads(leads.filter(l => !selected.includes(l.id)));
+      setSelected([]);
+    } catch (err: any) {
+      alert(err.message || "Failed to promote leads");
+    } finally {
+      setPromoting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (selected.length === 0 || !confirm("Are you sure you want to delete these draft leads?")) return;
+    setPromoting(true);
+    try {
+      const res = await fetch("/api/leads/bulk/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadIds: selected })
+      });
+      
+      if (!res.ok) throw new Error("Failed to delete leads");
+
+      setLeads(leads.filter(l => !selected.includes(l.id)));
+      setSelected([]);
+    } catch (err) {
+      alert("Error deleting leads");
+    } finally {
+      setPromoting(false);
+    }
+  };
+
+  // Filter leads based on Date Range
+  const filteredLeads = leads.filter(l => {
+    if (fromDate) {
+      if (new Date(l.createdAt) < new Date(fromDate)) return false;
+    }
+    if (toDate) {
+      const end = new Date(toDate);
+      end.setHours(23, 59, 59, 999);
+      if (new Date(l.createdAt) > end) return false;
+    }
+    return true;
+  });
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelected(filteredLeads.map(l => l.id));
+    } else {
+      setSelected([]);
     }
   };
 
@@ -189,17 +266,57 @@ export default function ColdLeadsClient({ initialLeads, agentId }: { initialLead
 
       {/* Leads Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
+        <div className="px-5 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between bg-gray-50 gap-4">
           <h3 className="font-semibold text-gray-800 flex items-center gap-2">
             <Store className="h-4 w-4 text-gray-500" /> My Added Cold Leads
           </h3>
-          <span className="text-xs font-semibold bg-gray-200 text-gray-700 px-2 py-1 rounded-full">{leads.length} Total</span>
+          
+          <div className="flex items-center gap-3">
+             <div className="flex items-center gap-2 border bg-white px-2 py-1 rounded-lg">
+                <span className="text-xs text-gray-500 font-medium">From:</span>
+                <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="text-xs border-none focus:ring-0 text-gray-700 bg-transparent p-0 cursor-pointer" />
+             </div>
+             <div className="flex items-center gap-2 border bg-white px-2 py-1 rounded-lg">
+                <span className="text-xs text-gray-500 font-medium">To:</span>
+                <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="text-xs border-none focus:ring-0 text-gray-700 bg-transparent p-0 cursor-pointer" />
+             </div>
+             {(fromDate || toDate) && (
+               <button onClick={() => { setFromDate(""); setToDate(""); }} className="text-xs text-red-500 hover:text-red-700 font-medium px-2">Clear</button>
+             )}
+          </div>
         </div>
+        
+        {/* Bulk Actions Header */}
+        {selected.length > 0 && (
+          <div className="bg-blue-50/50 border-b border-blue-100 px-5 py-3 flex items-center justify-between">
+             <div className="flex items-center gap-3">
+                <span className="text-sm font-bold text-blue-800 bg-blue-100 px-2.5 py-0.5 rounded-full">{selected.length} selected</span>
+                <button onClick={() => setSelected([])} className="text-xs text-slate-500 hover:text-slate-700 font-medium underline">Clear Selection</button>
+             </div>
+             <div className="flex gap-2">
+                <button onClick={handleDelete} disabled={promoting} className="px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-200 rounded hover:bg-red-100 transition disabled:opacity-50">
+                  Delete Selected
+                </button>
+                <button onClick={handlePromote} disabled={promoting} className="px-4 py-1.5 text-xs font-bold text-white bg-green-600 rounded hover:bg-green-700 transition shadow-sm disabled:opacity-50">
+                  {promoting ? "Promoting..." : "Add to Leads"}
+                </button>
+             </div>
+          </div>
+        )}
+
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-white">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th className="px-4 py-3 text-left w-10">
+                  <input 
+                    type="checkbox" 
+                    checked={filteredLeads.length > 0 && selected.length === filteredLeads.length}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer h-4 w-4"
+                  />
+                </th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Store Link</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Niche</th>
@@ -207,16 +324,27 @@ export default function ColdLeadsClient({ initialLeads, agentId }: { initialLead
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {leads.length === 0 ? (
+              {filteredLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
-                    No cold leads added yet. Click "Add Cold Lead" above to start.
+                  <td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-500">
+                    No draft leads found. Add new leads above.
                   </td>
                 </tr>
               ) : (
-                leads.map(lead => (
-                  <tr key={lead.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{lead.name}</td>
+                filteredLeads.map(lead => (
+                  <tr key={lead.id} className={`hover:bg-gray-50 transition-colors ${selected.includes(lead.id) ? 'bg-blue-50/30' : ''}`}>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <input 
+                        type="checkbox" 
+                        checked={selected.includes(lead.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) setSelected([...selected, lead.id]);
+                          else setSelected(selected.filter(id => id !== lead.id));
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer h-4 w-4"
+                      />
+                    </td>
+                    <td className="px-2 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{lead.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono">{lead.phone}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
                       {lead.storeLink ? (

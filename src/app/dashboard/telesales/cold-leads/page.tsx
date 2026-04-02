@@ -12,11 +12,11 @@ export default async function ColdLeadsPage() {
     redirect("/dashboard");
   }
 
-  // Get leads created by this agent that are "Cold"
+  // Get leads created by this agent that are "Draft" (Cold Pool)
   const coldLeads = await prisma.lead.findMany({
     where: {
-      assignedTeleAgentId: user.id,
-      classification: "Cold",
+      createdById: user.id,
+      status: "Draft",
     },
     orderBy: { createdAt: "desc" },
     select: {

@@ -12,10 +12,38 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
   const [expandedLead, setExpandedLead] = useState<string | null>(null);
   const [logFilter, setLogFilter] = useState("All");
   
-  // Search & Pagination
+  // Search, Pagination, & Dates
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
+  
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
+  const setQuickDate = (type: string) => {
+    const today = new Date();
+    const toIso = (d: Date) => {
+      // Get local date string YYYY-MM-DD avoiding timezone offset shift
+      const offset = d.getTimezoneOffset() * 60000;
+      return new Date(d.getTime() - offset).toISOString().split('T')[0];
+    };
+    if (type === "today") {
+      setFromDate(toIso(today));
+      setToDate(toIso(today));
+    } else if (type === "yesterday") {
+      const y = new Date(today); y.setDate(y.getDate() - 1);
+      setFromDate(toIso(y));
+      setToDate(toIso(y));
+    } else if (type === "week") {
+      const w = new Date(today); w.setDate(w.getDate() - w.getDay());
+      setFromDate(toIso(w));
+      setToDate(toIso(today));
+    } else if (type === "month") {
+      const m = new Date(today.getFullYear(), today.getMonth(), 1);
+      setFromDate(toIso(m));
+      setToDate(toIso(today));
+    }
+  };
 
   // Task timer
   const [taskStartTime, setTaskStartTime] = useState<Date | null>(null);
@@ -242,14 +270,33 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     return "bg-blue-100 text-blue-700";
   };
 
-  // KPI counts
-  const totalMeets = leads.filter(l => !["Closed_Won", "Closed_Lost"].includes(l.status)).length;
-  const closedWon = leads.filter(l => l.status === "Closed_Won" || l._count?.deals > 0).length;
-  const followUp = leads.filter(l => l.status === "Follow_Up").length;
-  const rescheduled = leads.filter(l => l.status === "Rescheduled").length;
-  const closedLost = leads.filter(l => l.status === "Closed_Lost").length;
+  // Apply Date Filter FIRST to recalculate all stats accurately
+  const timeFilteredLeads = leads.filter(l => {
+    if (fromDate || toDate) {
+      if (!l.meetingDate) return false;
+      const targetDate = new Date(l.meetingDate);
+      if (fromDate) {
+        const start = new Date(fromDate);
+        start.setHours(0, 0, 0, 0);
+        if (targetDate < start) return false;
+      }
+      if (toDate) {
+        const end = new Date(toDate);
+        end.setHours(23, 59, 59, 999);
+        if (targetDate > end) return false;
+      }
+    }
+    return true;
+  });
 
-  const filteredLeads = leads.filter(l => {
+  // KPI counts
+  const totalMeets = timeFilteredLeads.filter(l => !["Closed_Won", "Closed_Lost"].includes(l.status)).length;
+  const closedWon = timeFilteredLeads.filter(l => l.status === "Closed_Won" || l._count?.deals > 0).length;
+  const followUp = timeFilteredLeads.filter(l => l.status === "Follow_Up").length;
+  const rescheduled = timeFilteredLeads.filter(l => l.status === "Rescheduled").length;
+  const closedLost = timeFilteredLeads.filter(l => l.status === "Closed_Lost").length;
+
+  const filteredLeads = timeFilteredLeads.filter(l => {
     if (logFilter === "All") {
       return !["Closed_Won", "Closed_Lost"].includes(l.status);
     } else if (logFilter === "Closed_Won") {
@@ -345,19 +392,44 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         </div>
       </div>
 
-      {/* Search Input */}
-      <div className="mb-4 flex items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-        <div className="flex-1 max-w-sm">
+      {/* Search Input & Date Filters */}
+      <div className="mb-4 flex flex-col md:flex-row items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <div className="flex-1 w-full max-w-sm">
           <input
             type="text"
             placeholder="Search leads by name or phone..."
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-            className="w-full border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+            className="w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        <div className="text-sm font-medium text-gray-500">
-          Total Leads Found: {filteredLeads.length}
+        
+        <div className="flex-1 flex flex-col sm:flex-row items-center gap-2">
+           <div className="flex items-center gap-2">
+             <div className="flex items-center border border-gray-300 rounded-lg px-2 bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+               <span className="text-xs font-bold text-gray-500">From</span>
+               <input type="date" value={fromDate} onChange={e => {setFromDate(e.target.value); setCurrentPage(1);}} className="text-sm bg-transparent border-none focus:ring-0 py-2 cursor-pointer" />
+             </div>
+             <div className="flex items-center border border-gray-300 rounded-lg px-2 bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+               <span className="text-xs font-bold text-gray-500">To</span>
+               <input type="date" value={toDate} onChange={e => {setToDate(e.target.value); setCurrentPage(1);}} className="text-sm bg-transparent border-none focus:ring-0 py-2 cursor-pointer" />
+             </div>
+           </div>
+           
+           <div className="flex items-center gap-1">
+             <button onClick={() => setQuickDate('today')} className="text-[10px] font-bold uppercase bg-blue-100 text-blue-800 px-2.5 py-1.5 rounded-md hover:bg-blue-200 transition">Today</button>
+             <button onClick={() => setQuickDate('yesterday')} className="text-[10px] font-bold uppercase bg-gray-100 text-gray-800 px-2.5 py-1.5 rounded-md hover:bg-gray-200 transition">Yesterday</button>
+             <button onClick={() => setQuickDate('week')} className="text-[10px] font-bold uppercase bg-indigo-100 text-indigo-800 px-2.5 py-1.5 rounded-md hover:bg-indigo-200 transition">This Week</button>
+             <button onClick={() => setQuickDate('month')} className="text-[10px] font-bold uppercase bg-indigo-100 text-indigo-800 px-2.5 py-1.5 rounded-md hover:bg-indigo-200 transition">This Month</button>
+             
+             {(fromDate || toDate) && (
+               <button onClick={() => { setFromDate(""); setToDate(""); setCurrentPage(1); }} className="text-xs font-bold text-red-500 hover:text-red-700 bg-red-50 px-2.5 py-1.5 rounded-md transition ml-1">Clear</button>
+             )}
+           </div>
+        </div>
+
+        <div className="text-sm font-bold text-gray-700 bg-gray-100 px-4 py-2 rounded-full whitespace-nowrap">
+          {filteredLeads.length} Leads
         </div>
       </div>
 
