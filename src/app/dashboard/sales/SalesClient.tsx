@@ -28,6 +28,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     contractEnd: "",
     totalAmount: "",
     firstAmount: "",
+    paymentType: "Full",
     paymentMethod: "Cash",
     installments: [] as any[],
     contractImageUrl: "",
@@ -148,12 +149,19 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
 
   const closeDeal = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const payload = { ...dealData };
+    if (payload.paymentType === "Full") {
+      payload.firstAmount = payload.totalAmount;
+      payload.installments = [];
+    }
+
     await fetch("/api/deals", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         leadId: activeLead.id,
-        ...dealData
+        ...payload
       })
     });
     
@@ -546,17 +554,13 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                   <label className="block text-sm font-medium mb-1">Total Amount (SAR)</label>
                   <input required type="number" className="w-full border p-2 rounded" value={dealData.totalAmount} onChange={e => setDealData({...dealData, totalAmount: e.target.value})} />
                 </div>
+                
                 <div>
-                  <label className="block text-sm font-medium mb-1">First Amount Paid (SAR)</label>
-                  <input type="number" className="w-full border p-2 rounded" placeholder="Optional" value={dealData.firstAmount} onChange={e => setDealData({...dealData, firstAmount: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Contract Start</label>
-                  <input required type="date" className="w-full border p-2 rounded" value={dealData.contractStart} onChange={e => setDealData({...dealData, contractStart: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Contract End</label>
-                  <input required type="date" className="w-full border p-2 rounded" value={dealData.contractEnd} onChange={e => setDealData({...dealData, contractEnd: e.target.value})} />
+                  <label className="block text-sm font-medium mb-1">Payment Setup</label>
+                  <select className="w-full border p-2 rounded" value={dealData.paymentType} onChange={e => setDealData({...dealData, paymentType: e.target.value, installments: []})}>
+                    <option value="Full">Full Payment Upfront</option>
+                    <option value="Installments">Installments</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Payment Method</label>
@@ -567,6 +571,31 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                     <option>Tamara</option>
                   </select>
                 </div>
+
+                {dealData.paymentType === "Installments" && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium mb-1 text-blue-700">First Amount Paid (SAR)</label>
+                      <input required type="number" className="w-full border p-2 rounded focus:ring-blue-500" placeholder="Required" value={dealData.firstAmount} onChange={e => setDealData({...dealData, firstAmount: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1 flex justify-between">
+                        <span className="text-gray-700">Remaining Balance</span>
+                        <span className="text-gray-400 text-xs mt-0.5">Auto-calculated</span>
+                      </label>
+                      <input disabled type="number" className="w-full border p-2 rounded bg-gray-50 text-gray-500" value={Math.max(0, (parseFloat(dealData.totalAmount || "0") - parseFloat(dealData.firstAmount || "0")))} />
+                    </div>
+                  </>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Contract Start</label>
+                  <input required type="date" className="w-full border p-2 rounded" value={dealData.contractStart} onChange={e => setDealData({...dealData, contractStart: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Contract End</label>
+                  <input required type="date" className="w-full border p-2 rounded" value={dealData.contractEnd} onChange={e => setDealData({...dealData, contractEnd: e.target.value})} />
+                </div>
               </div>
               
               {/* File Uploads */}
@@ -574,32 +603,40 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                 <div>
                   <label className="block text-sm font-medium mb-1">Upload Contract (Image URL)</label>
                   <input required type="url" placeholder="https://..." className="w-full border p-2 rounded" value={dealData.contractImageUrl} onChange={e => setDealData({...dealData, contractImageUrl: e.target.value})} />
-                  <p className="text-xs text-gray-400 mt-1">Provide a link to the signed contract image</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Upload Receipt (Image URL)</label>
                   <input required type="url" placeholder="https://..." className="w-full border p-2 rounded" value={dealData.receiptUrl} onChange={e => setDealData({...dealData, receiptUrl: e.target.value})} />
-                  <p className="text-xs text-gray-400 mt-1">Provide a link to the payment receipt</p>
                 </div>
               </div>
 
-              <div className="mt-4 border-t pt-4">
-                <div className="flex justify-between items-center mb-2">
-                  <h4 className="font-bold text-sm">Payment Installments</h4>
-                  <button type="button" onClick={addInstallment} className="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-xs font-semibold rounded">+ Add Installment</button>
-                </div>
-                {dealData.installments.map((inst, idx) => (
-                  <div key={idx} className="flex gap-2 items-center mt-2">
-                    <div className="w-1/2">
-                      <input required type="date" placeholder="Date" className="w-full border p-2 rounded text-sm" value={inst.date} onChange={e => updateInstallment(idx, "date", e.target.value)} />
-                    </div>
-                    <div className="w-1/2 flex items-center gap-2">
-                      <input required type="number" placeholder="Amount (SAR)" className="w-full border p-2 rounded text-sm" value={inst.amount} onChange={e => updateInstallment(idx, "amount", e.target.value)} />
-                      <button type="button" onClick={() => setDealData({ ...dealData, installments: dealData.installments.filter((_, i) => i !== idx) })} className="text-red-500 font-bold hover:text-red-700">×</button>
-                    </div>
+              {dealData.paymentType === "Installments" && (
+                <div className="mt-4 border-t pt-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-bold text-sm">Payment Installments Schedule</h4>
+                    <button type="button" onClick={addInstallment} className="px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 text-xs font-semibold rounded">+ Add Next Installment</button>
                   </div>
-                ))}
-              </div>
+                  
+                  {dealData.installments.map((inst, idx) => (
+                    <div key={idx} className="flex gap-2 items-center mt-2">
+                      <div className="w-1/2">
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Due Date</label>
+                        <input required type="date" className="w-full border p-2 rounded text-sm focus:ring-blue-500" value={inst.date} onChange={e => updateInstallment(idx, "date", e.target.value)} />
+                      </div>
+                      <div className="w-1/2 flex gap-2">
+                        <div className="flex-1">
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Installment Amount (SAR)</label>
+                          <input required type="number" className="w-full border p-2 rounded text-sm focus:ring-blue-500" value={inst.amount} onChange={e => updateInstallment(idx, "amount", e.target.value)} />
+                        </div>
+                        <button type="button" onClick={() => setDealData({ ...dealData, installments: dealData.installments.filter((_, i) => i !== idx) })} className="text-red-500 font-bold hover:text-red-700 mt-5 px-2">×</button>
+                      </div>
+                    </div>
+                  ))}
+                  {dealData.installments.length === 0 && (
+                    <p className="text-sm text-gray-400 italic">Please add the remaining installments schedule.</p>
+                  )}
+                </div>
+              )}
               
               <div className="mt-6 border-t pt-4">
                 <button type="submit" className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded shadow-md">Confirm Deal & Send to Operations</button>

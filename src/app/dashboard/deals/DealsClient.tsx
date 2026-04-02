@@ -32,7 +32,7 @@ export default function DealsClient({ userRole }: { userRole: string }) {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
-  const [filterType, setFilterType] = useState<"All" | "Late">("All");
+  const [filterType, setFilterType] = useState<"All" | "Late" | "Pending">("All");
 
   useEffect(() => {
     fetchDeals();
@@ -50,47 +50,96 @@ export default function DealsClient({ userRole }: { userRole: string }) {
     setLoading(false);
   };
 
-  const totalRevenue = deals.reduce((sum, d) => sum + (d.firstAmount || d.totalAmount), 0);
-  const lateDeals = deals.filter(d => d.installments.some(i => !i.isPaid && new Date(i.dueDate) < new Date()));
-  const displayDeals = filterType === "Late" ? lateDeals : deals;
+  const calculatePaidAmount = (d: any) => {
+    if (!d.installments || d.installments.length === 0) {
+      return d.firstAmount !== null ? d.firstAmount : d.totalAmount;
+    }
+    const upfront = d.firstAmount || 0;
+    const installmentsPaid = d.installments.filter((i: any) => i.isPaid).reduce((s: number, i: any) => s + i.amount, 0);
+    return upfront + installmentsPaid;
+  };
+
+  const totalRevenue = deals.reduce((sum, d) => sum + d.totalAmount, 0);
+  const totalPaidAmount = deals.reduce((sum, d) => sum + calculatePaidAmount(d), 0);
+  const pendingPaymentsAmount = deals.reduce((sum, d) => sum + Math.max(0, d.totalAmount - calculatePaidAmount(d)), 0);
+  const collectionRate = totalRevenue > 0 ? Math.round((totalPaidAmount / totalRevenue) * 100) : 0;
+  
+  const pendingPaymentsDealsCount = deals.filter(d => (d.totalAmount - calculatePaidAmount(d)) > 0).length;
+
+  const lateDeals = deals.filter(d => d.installments.some((i: any) => !i.isPaid && new Date(i.dueDate) < new Date()));
+  const pendingDeals = deals.filter(d => (d.totalAmount - calculatePaidAmount(d)) > 0);
+
+  const displayDeals = filterType === "Late" ? lateDeals : filterType === "Pending" ? pendingDeals : deals;
 
   return (
     <div className="space-y-6">
       {/* Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-5 text-white shadow-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <Handshake className="h-5 w-5 opacity-80" />
-            <span className="text-xs font-semibold uppercase opacity-80">Total Deals</span>
+      {/* Summary Area */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div 
+          onClick={() => setFilterType("All")}
+          className={`cursor-pointer rounded-xl p-4 text-white shadow-lg transition-transform hover:scale-105 ${filterType === "All" ? "ring-4 ring-emerald-300" : ""} bg-gradient-to-br from-green-500 to-emerald-600`}
+        >
+          <div className="flex items-center gap-2 mb-1.5">
+            <Handshake className="h-4 w-4 opacity-80" />
+            <span className="text-[10px] font-semibold uppercase opacity-80">Total Deals</span>
           </div>
-          <p className="text-3xl font-bold">{deals.length}</p>
+          <p className="text-2xl font-bold">{deals.length}</p>
         </div>
-        <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-5 text-white shadow-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <DollarSign className="h-5 w-5 opacity-80" />
-            <span className="text-xs font-semibold uppercase opacity-80">Total Revenue</span>
+
+        <div className="bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl p-4 text-white shadow-lg">
+          <div className="flex items-center gap-2 mb-1.5">
+            <DollarSign className="h-4 w-4 opacity-80" />
+            <span className="text-[10px] font-semibold uppercase opacity-80">Total Revenue Contracted</span>
           </div>
-          <p className="text-3xl font-bold">{totalRevenue.toLocaleString()}</p>
-          <p className="text-xs opacity-70 mt-1">SAR</p>
+          <p className="text-2xl font-bold">{totalRevenue.toLocaleString()}</p>
+          <p className="text-[9px] opacity-70 mt-1">SAR CONTRACT VALUE</p>
         </div>
-        <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-5 text-white shadow-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <DollarSign className="h-5 w-5 opacity-80" />
-            <span className="text-xs font-semibold uppercase opacity-80">Avg. Deal Size</span>
+
+        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-4 text-white shadow-lg">
+          <div className="flex items-center gap-2 mb-1.5">
+            <DollarSign className="h-4 w-4 opacity-80" />
+            <span className="text-[10px] font-semibold uppercase opacity-80">Total Paid Amount</span>
           </div>
-          <p className="text-3xl font-bold">{deals.length > 0 ? Math.round(totalRevenue / deals.length).toLocaleString() : 0}</p>
-          <p className="text-xs opacity-70 mt-1">SAR</p>
+          <p className="text-2xl font-bold">{totalPaidAmount.toLocaleString()}</p>
+          <p className="text-[9px] opacity-70 mt-1">SAR SUCCESSFULLY COLLECTED</p>
         </div>
+
+        <div 
+          onClick={() => setFilterType(filterType === "Pending" ? "All" : "Pending")}
+          className={`cursor-pointer rounded-xl p-4 text-white shadow-lg transition-transform hover:scale-105 ${filterType === "Pending" ? "bg-amber-600 ring-4 ring-amber-300" : "bg-gradient-to-br from-amber-400 to-orange-500"}`}
+        >
+          <div className="flex items-center gap-2 mb-1.5">
+            <DollarSign className="h-4 w-4 opacity-80" />
+            <span className="text-[10px] font-semibold uppercase opacity-80">Pending Payments / Installments</span>
+          </div>
+          <p className="text-2xl font-bold">{pendingPaymentsAmount.toLocaleString()}</p>
+          <p className="text-[9px] opacity-80 mt-1 font-bold">SAR REMAINING OVER {pendingPaymentsDealsCount} CLIENTS</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-teal-500 to-cyan-600 rounded-xl p-4 text-white shadow-lg flex flex-col justify-between">
+          <div className="flex items-center gap-2 mb-1.5">
+            <Handshake className="h-4 w-4 opacity-80" />
+            <span className="text-[10px] font-semibold uppercase opacity-80">Collection Rate</span>
+          </div>
+          <div className="flex items-end gap-2">
+            <p className="text-3xl font-bold">{collectionRate}%</p>
+          </div>
+          <div className="w-full bg-white/20 h-1.5 mt-2 rounded-full overflow-hidden">
+            <div className="bg-white h-full" style={{ width: `${collectionRate}%` }}></div>
+          </div>
+        </div>
+
         <div 
           onClick={() => setFilterType(filterType === "Late" ? "All" : "Late")}
-          className={`cursor-pointer rounded-xl p-5 text-white shadow-lg transition-transform hover:scale-105 ${filterType === "Late" ? "bg-red-600 ring-4 ring-red-300" : "bg-gradient-to-br from-red-500 to-rose-600"}`}
+          className={`cursor-pointer rounded-xl p-4 text-white shadow-lg transition-transform hover:scale-105 ${filterType === "Late" ? "bg-red-600 ring-4 ring-red-300" : "bg-gradient-to-br from-red-500 to-rose-600"}`}
         >
-          <div className="flex items-center gap-2 mb-2">
-            <Clock className="h-5 w-5 opacity-80" />
-            <span className="text-xs font-semibold uppercase opacity-80">Late Payments</span>
+          <div className="flex items-center gap-2 mb-1.5">
+            <Clock className="h-4 w-4 opacity-80" />
+            <span className="text-[10px] font-semibold uppercase opacity-80">Late Payments</span>
           </div>
-          <p className="text-3xl font-bold">{lateDeals.length}</p>
-          <p className="text-xs opacity-70 mt-1">Pending Installments</p>
+          <p className="text-2xl font-bold">{lateDeals.length}</p>
+          <p className="text-[9px] opacity-70 mt-1">PENDING INSTALLMENTS PAST DUE</p>
         </div>
       </div>
 
@@ -104,7 +153,9 @@ export default function DealsClient({ userRole }: { userRole: string }) {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sales Agent</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Package</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Amount (SAR)</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Paid / Total (SAR)</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Remaining</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Payment Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Action</th>
               </tr>
@@ -122,7 +173,20 @@ export default function DealsClient({ userRole }: { userRole: string }) {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">{deal.package}</span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-bold text-green-700">{deal.totalAmount.toLocaleString()}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                    <span className="font-bold text-green-700">{calculatePaidAmount(deal).toLocaleString()}</span>
+                    <span className="text-gray-400 text-xs ml-1">/ {deal.totalAmount.toLocaleString()}</span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-bold text-red-600">
+                    {Math.max(0, deal.totalAmount - calculatePaidAmount(deal)).toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
+                    {Math.max(0, deal.totalAmount - calculatePaidAmount(deal)) === 0 ? (
+                      <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm">Completed</span>
+                    ) : (
+                      <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200 shadow-sm">Partial</span>
+                    )}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(deal.createdAt).toLocaleDateString("en-GB")}</td>
                   <td className="px-6 py-4 text-center">
                     <button className="text-blue-600 hover:text-blue-800 text-xs font-medium hover:underline">View Journey</button>
