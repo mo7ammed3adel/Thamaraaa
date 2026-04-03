@@ -189,6 +189,14 @@ export default async function DashboardLayout({
             </>
           )}
 
+          {/* ===== CLIENT JOURNEY (visible to all operations/technical/creative roles) ===== */}
+          {hasRole("head_account_manager", "account_manager", "head_technical", "head_seo", "team_leader_seo", "team_leader_social_media", "team_leader_media_buyer", "leader_graphic_designer", "leader_motion_graphic", "leader_ui") && (
+            <Link href="/dashboard/operations" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors mt-1">
+              <ClipboardList className="mr-3 h-5 w-5 opacity-75" />
+              Client Journeys
+            </Link>
+          )}
+
           {/* ===== HEAD TECHNICAL ===== */}
           {hasRole("head_technical") && (
             <>

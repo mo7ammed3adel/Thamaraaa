@@ -320,6 +320,9 @@ export default function OperationsClient({
                           View Details
                         </button>
                       )}
+                      <button onClick={() => router.push(`/dashboard/clients/${p.id}`)} className="px-3 py-1.5 bg-violet-600 text-white rounded text-xs font-medium hover:bg-violet-700 shadow-sm transition">
+                        Full Journey
+                      </button>
                     </td>
                   </tr>
                 ))}

@@ -15,7 +15,7 @@ export default async function OperationsPage() {
   // Fetch projects for Account Manager
   const projects = await prisma.project.findMany({
     include: {
-      deal: { include: { lead: true } },
+      deal: { include: { lead: true, salesAgent: true } },
       tasks: { include: { leader: true, agent: true } }
     },
     orderBy: { createdAt: "desc" }
