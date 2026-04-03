@@ -14,27 +14,27 @@ export default async function HeadAccountManagerPage() {
 
   const projects = await prisma.project.findMany({
     include: {
-      deal: { include: { lead: { include: { callLogs: { include: { agent: true } }, meetings: { include: { teleAgent: true, salesAgent: true } }, deals: { include: { salesAgent: true } } } }, salesAgent: true } },
-      tasks: { include: { leader: true, agent: true, subTasks: true } },
+      deal: { include: { lead: true } },
+      tasks: { include: { leader: true, agent: true } },
       accountManager: true,
-      logs: true,
     },
     orderBy: { createdAt: "desc" },
   });
 
   const accountManagers = await prisma.user.findMany({
     where: { role: "account_manager", status: "Active" },
-  });
-
-  const warnings = await prisma.warning.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 20,
+    include: {
+      managedProjects: {
+        where: { projectStatus: { in: ["new", "setup", "in_progress", "assigned", "delayed"] } }
+      }
+    }
   });
 
   // KPIs
-  const activeCount = projects.filter((p) => ["in_progress", "assigned", "setup"].includes(p.projectStatus)).length;
+  const activeCount = projects.filter((p) => ["in_progress", "setup", "new", "assigned"].includes(p.projectStatus)).length;
+  const delayedCount = projects.filter((p) => p.projectStatus === "delayed").length;
   const completedCount = projects.filter((p) => p.projectStatus === "completed").length;
-  const onTimeCount = projects.filter((p) => p.finalDeadline && new Date(p.finalDeadline) >= new Date() && p.projectStatus !== "delayed").length;
+  const unassignedCount = projects.filter((p) => !p.accountManagerId).length;
 
   return (
     <div>
@@ -42,8 +42,7 @@ export default async function HeadAccountManagerPage() {
       <HeadAccountManagerClient
         projects={projects}
         accountManagers={accountManagers}
-        warnings={warnings}
-        kpis={{ total: projects.length, active: activeCount, completed: completedCount, onTime: onTimeCount }}
+        kpis={{ total: projects.length, active: activeCount, delayed: delayedCount, completed: completedCount, unassigned: unassignedCount }}
         userId={user.id}
       />
     </div>

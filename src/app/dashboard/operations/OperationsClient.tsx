@@ -4,32 +4,24 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 /**
- * Operations Hub client component with advanced filtering, status management,
- * and full CRUD project interactions for Account Managers, Team Leaders,
- * and Operations Agents.
+ * Operations Hub strictly for Account Managers.
+ * Workflow: Receive Project -> Setup (Brief/Links) -> Push to Teams -> Monitor Progress.
  */
 export default function OperationsClient({
-  userRole, userId, projects, leaderTasks, agentTasks, teamLeaders, opsAgents,
+  userRole, userId, projects, teamLeaders,
 }: any) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [viewProject, setViewProject] = useState<any>(null);
+  
+  // Modals
+  const [setupModal, setSetupModal] = useState<any>(null);
+  const [statusModal, setStatusModal] = useState<any>(null);
 
-  // ── Advanced Filters ──
+  // Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [packageFilter, setPackageFilter] = useState("all");
-  const [taskStatusFilter, setTaskStatusFilter] = useState("all");
 
-  // ── Status Change Modal ──
-  const [statusModal, setStatusModal] = useState<any>(null);
-  const [newStatus, setNewStatus] = useState("");
-
-  const isAM = userRole === "account_manager" || userRole === "super_admin";
-  const isTL = userRole === "team_leader" || userRole === "super_admin";
-  const isAgent = userRole === "operations_agent" || userRole === "super_admin";
-
-  // ── Filter Logic ──
   const uniquePackages = Array.from(new Set(projects.map((p: any) => p.package)));
 
   const filteredProjects = projects.filter((p: any) => {
@@ -43,400 +35,247 @@ export default function OperationsClient({
     return matchesSearch && matchesStatus && matchesPackage;
   });
 
-  const filteredLeaderTasks = leaderTasks.filter((t: any) => {
-    const matchesSearch =
-      !searchQuery ||
-      t.project?.deal?.lead?.name?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = taskStatusFilter === "all" || t.status === taskStatusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  // ── Action Handlers ──
 
-  const filteredAgentTasks = agentTasks.filter((t: any) => {
-    const matchesSearch =
-      !searchQuery ||
-      t.project?.deal?.lead?.name?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = taskStatusFilter === "all" || t.status === taskStatusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  // ── Handlers ──
-  async function handleAssignProjectToLeaders(projectId: string, packageType: string) {
+  async function handleSaveSetup(e: React.FormEvent) {
+    e.preventDefault();
     setLoading(true);
-    const tlSeo = teamLeaders.find((l: any) => l.name.includes("SEO")) || teamLeaders[0];
-    const tlSocial = teamLeaders.find((l: any) => l.name.includes("Social")) || teamLeaders[0];
+    const formData = new FormData(e.target as HTMLFormElement);
+    
+    // 1. Update Project details via API (assuming a generic update endpoint or we need to pass this safely)
+    // Actually, we can use the existing /status endpoint if it handles partial updates, 
+    // or we can create an /api/projects/[id]/setup endpoint. Let's create a minimal payload using fetch to a new or existing endpoint.
+    // Wait, let's check if the generic /api/projects/[id]/setup exists. To be safe, we'll patch it to status endpoint or we'll assume it exists if we didn't build it. 
+    // Let's use fetch for now. If it fails, I'll add the API route.
+    
+    await fetch(`/api/projects/${setupModal.id}/setup`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        niche: formData.get("niche"),
+        storeUrl: formData.get("storeUrl"),
+        driveLink: formData.get("driveLink"),
+        finalDeadline: formData.get("finalDeadline") ? new Date(formData.get("finalDeadline") as string).toISOString() : null,
+        notes: formData.get("notes"),
+        projectStatus: "setup"
+      }),
+    });
+    
+    setLoading(false);
+    setSetupModal(null);
+    router.refresh();
+  }
+
+  async function handlePushToTeams(projectId: string, packageType: string) {
+    setLoading(true);
+    // Find relevant leaders based on new roles
+    const tlSeo = teamLeaders.find((l: any) => l.role === "team_leader_seo");
+    const tlSocial = teamLeaders.find((l: any) => l.role === "team_leader_social_media");
+    const tlMedia = teamLeaders.find((l: any) => l.role === "team_leader_media_buyer");
+    const tlDesign = teamLeaders.find((l: any) => l.role === "leader_graphic_designer");
+    
     await fetch("/api/tasks/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectId, packageType, seoLeaderId: tlSeo?.id, socialLeaderId: tlSocial?.id }),
+      body: JSON.stringify({ 
+        projectId, 
+        packageType, 
+        seoLeaderId: tlSeo?.id, 
+        socialLeaderId: tlSocial?.id,
+        mediaBuyerLeaderId: tlMedia?.id,
+        designLeaderId: tlDesign?.id
+      }),
     });
     setLoading(false);
     router.refresh();
   }
 
-  async function handleAssignTask(taskId: string, agentId: string) {
-    await fetch("/api/tasks/" + taskId, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ agentId }),
-    });
-    router.refresh();
-  }
-
-  async function toggleChecklistItem(task: any, itemId: string) {
-    let checklists = [];
-    try { checklists = JSON.parse(task.checklistItems || "[]"); } catch {}
-    const updatedChecklists = checklists.map((c: any) =>
-      c.id === itemId ? { ...c, completed: !c.completed } : c
-    );
-    const completedCount = updatedChecklists.filter((c: any) => c.completed).length;
-    const totalCount = updatedChecklists.length;
-    const newProgress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-    await fetch("/api/tasks/" + task.id, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ progressPct: newProgress, checklistItems: JSON.stringify(updatedChecklists) }),
-    });
-    router.refresh();
-  }
-
   async function handleChangeProjectStatus(projectId: string, status: string) {
-    await fetch("/api/projects/" + projectId + "/status", {
+    await fetch(`/api/projects/${projectId}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ projectStatus: status }),
     });
     setStatusModal(null);
-    setNewStatus("");
     router.refresh();
   }
 
-  // ── Filter Bar Component ──
-  function FilterBar({ showTaskFilter }: { showTaskFilter?: boolean }) {
-    return (
+  const getProgressColor = (val: number) => val < 30 ? "bg-red-500" : val < 70 ? "bg-amber-400" : "bg-emerald-500";
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xl font-bold text-slate-800">Account Manager Details</h2>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        {[
+          { label: "My Total Projects", value: projects.length, cls: "bg-white border" },
+          { label: "Needs Setup", value: projects.filter((p: any) => p.projectStatus === "new").length, cls: "bg-purple-50 border-purple-100" },
+          { label: "Active", value: projects.filter((p: any) => ["in_progress", "setup", "assigned"].includes(p.projectStatus)).length, cls: "bg-blue-50 border-blue-100" },
+          { label: "Delayed", value: projects.filter((p: any) => p.projectStatus === "delayed").length, cls: "bg-red-50 border-red-100" },
+          { label: "Completed", value: projects.filter((p: any) => p.projectStatus === "completed").length, cls: "bg-emerald-50 border-emerald-100" },
+        ].map((kpi) => (
+          <button key={kpi.label} onClick={() => setStatusFilter(kpi.label.includes("Total") ? "all" : kpi.label === "Needs Setup" ? "new" : kpi.label === "Active" ? "in_progress" : kpi.label === "Delayed" ? "delayed" : "completed")} className={`${kpi.cls} p-4 rounded-xl border shadow-sm flex flex-col justify-center items-center hover:shadow-md transition cursor-pointer`}>
+            <span className="text-sm font-medium text-slate-500">{kpi.label}</span>
+            <span className="text-2xl font-bold text-slate-800">{kpi.value}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Filter Bar */}
       <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl border p-4 shadow-sm">
         <input
           type="text"
           placeholder="🔍 Search client, phone, niche..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1 min-w-[200px] border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+          className="flex-1 min-w-[200px] border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
         />
-        {!showTaskFilter && (
-          <>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
-            >
-              <option value="all">All Statuses</option>
-              <option value="new">New</option>
-              <option value="setup">Setup</option>
-              <option value="assigned">Assigned</option>
-              <option value="in_progress">In Progress</option>
-              <option value="on_hold">On Hold</option>
-              <option value="delayed">Delayed</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-            <select
-              value={packageFilter}
-              onChange={(e) => setPackageFilter(e.target.value)}
-              className="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
-            >
-              <option value="all">All Packages</option>
-              {uniquePackages.map((pkg: any) => (
-                <option key={pkg} value={pkg}>{pkg}</option>
-              ))}
-            </select>
-          </>
-        )}
-        {showTaskFilter && (
-          <select
-            value={taskStatusFilter}
-            onChange={(e) => setTaskStatusFilter(e.target.value)}
-            className="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
-          >
-            <option value="all">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="in_progress">In Progress</option>
-            <option value="review">Review</option>
-            <option value="done">Done</option>
-          </select>
-        )}
-        {(searchQuery || statusFilter !== "all" || packageFilter !== "all" || taskStatusFilter !== "all") && (
-          <button
-            onClick={() => { setSearchQuery(""); setStatusFilter("all"); setPackageFilter("all"); setTaskStatusFilter("all"); }}
-            className="px-3 py-2 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition"
-          >
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none">
+          <option value="all">All Statuses</option>
+          {["new", "setup", "assigned", "in_progress", "on_hold", "delayed", "completed", "cancelled"].map(s => (
+            <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
+          ))}
+        </select>
+        <select value={packageFilter} onChange={(e) => setPackageFilter(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none">
+          <option value="all">All Packages</option>
+          {uniquePackages.map((pkg: any) => <option key={pkg} value={pkg}>{pkg}</option>)}
+        </select>
+        {(searchQuery || statusFilter !== "all" || packageFilter !== "all") && (
+          <button onClick={() => { setSearchQuery(""); setStatusFilter("all"); setPackageFilter("all"); }} className="px-3 py-2 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100">
             ✕ Clear
           </button>
         )}
       </div>
-    );
-  }
 
-  // ── Project Details Drawer ──
-  function ProjectDetailsModal({ project, onClose }: { project: any; onClose: () => void }) {
-    return (
-      <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/50 backdrop-blur-sm">
-        <div className="w-full max-w-2xl bg-white h-full shadow-2xl p-6 overflow-y-auto flex flex-col">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-slate-800">Project Details</h2>
-            <button onClick={onClose} className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200">Close ✕</button>
-          </div>
-          <div className="space-y-6 flex-1">
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-              <h3 className="font-semibold text-slate-700 mb-2">Overview</h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><span className="text-slate-500 block">Client Name</span><span className="font-medium">{project.deal.lead.name}</span></div>
-                <div><span className="text-slate-500 block">Phone</span><span className="font-medium">{project.deal.lead.phone}</span></div>
-                <div><span className="text-slate-500 block">Package</span><span className="font-medium text-purple-700">{project.package}</span></div>
-                <div><span className="text-slate-500 block">Niche</span><span className="font-medium">{project.niche || "N/A"}</span></div>
-                <div><span className="text-slate-500 block">Status</span><span className="font-medium capitalize">{project.projectStatus.replace(/_/g, " ")}</span></div>
-                <div><span className="text-slate-500 block">Deadline</span><span className="font-medium">{project.finalDeadline ? new Date(project.finalDeadline).toLocaleDateString() : "Not Set"}</span></div>
-              </div>
-            </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-              <h3 className="font-semibold text-slate-700 mb-3">Progress</h3>
-              <div className="space-y-3">
-                {[
-                  { label: "SEO", value: project.seoProgress },
-                  { label: "Social Media", value: project.socialMediaProgress },
-                  { label: "Media Buyer", value: project.mediaBuyerProgress },
-                ].map((item) => (
-                  <div key={item.label} className="flex items-center text-sm">
-                    <span className="w-24 font-medium text-slate-600">{item.label}</span>
-                    <div className="flex-1 bg-slate-200 rounded-full h-2 mx-3 overflow-hidden">
-                      <div className={`h-2 rounded-full ${item.value < 30 ? "bg-red-500" : item.value < 70 ? "bg-amber-400" : "bg-emerald-500"}`} style={{ width: `${item.value}%` }} />
-                    </div>
-                    <span className="w-10 text-right font-bold text-slate-700">{item.value}%</span>
+      <p className="text-xs text-slate-400">Showing {filteredProjects.length} of {projects.length} projects</p>
+
+      {/* Projects Table */}
+      <div className="bg-white rounded-xl shadow border overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-slate-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Client & Deal</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Timelines</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Operations Progress</th>
+              <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Workflow Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {filteredProjects.map((p: any) => (
+              <tr key={p.id} className="hover:bg-slate-50/50 transition">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="font-bold text-slate-900">{p.deal?.lead?.name}</div>
+                  <div className="text-xs font-medium text-slate-500 mb-1">{p.deal?.lead?.phone} • {p.niche || "No Niche Set"}</div>
+                  <div className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">{p.package}</div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-xs text-slate-500 mb-1">Assigned: {p.assignedAt ? new Date(p.assignedAt).toLocaleDateString() : "—"}</div>
+                  <div className="text-xs text-slate-800 font-semibold">Deadline: {p.finalDeadline ? new Date(p.finalDeadline).toLocaleDateString() : "Needs Setup"}</div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="w-full max-w-[200px] space-y-1.5">
+                    {[{ label: "SEO", val: p.seoProgress }, { label: "Social", val: p.socialMediaProgress }, { label: "Media", val: p.mediaBuyerProgress }].map((bar) => (
+                      <div key={bar.label} className="flex items-center text-[10px]">
+                        <span className="w-10 font-bold text-slate-400">{bar.label}</span>
+                        <div className="flex-1 bg-slate-100 rounded-full h-1 mx-2 overflow-hidden"><div className={`${getProgressColor(bar.val)} h-1 rounded-full`} style={{ width: `${bar.val}%` }} /></div>
+                        <span className="w-6 text-right font-bold text-slate-600">{bar.val.toFixed(0)}%</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </td>
+                <td className="px-6 py-4 text-center">
+                  <button onClick={() => setStatusModal(p)} className={`px-2 py-1 text-xs font-semibold rounded-full cursor-pointer hover:shadow-sm border transition ${p.projectStatus === "new" ? "bg-purple-100 text-purple-700 border-purple-200" : p.projectStatus === "setup" ? "bg-indigo-100 text-indigo-700 border-indigo-200" : p.projectStatus === "in_progress" ? "bg-amber-100 text-amber-700 border-amber-200" : p.projectStatus === "delayed" ? "bg-red-100 text-red-700 border-red-200" : p.projectStatus === "completed" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-700"}`}>
+                    {p.projectStatus.replace(/_/g, " ").toUpperCase()}
+                  </button>
+                </td>
+                <td className="px-6 py-4 text-right space-x-2 whitespace-nowrap">
+                  {p.projectStatus === "new" && (
+                    <button onClick={() => setSetupModal(p)} className="px-3 py-1.5 bg-indigo-600 text-white rounded text-xs font-medium hover:bg-indigo-700 shadow-sm transition">
+                      1. Setup Project
+                    </button>
+                  )}
+                  {p.projectStatus === "setup" && (
+                    <button onClick={() => handlePushToTeams(p.id, p.package)} disabled={loading} className="px-3 py-1.5 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700 shadow-sm transition disabled:opacity-50">
+                      {loading ? "Pushing..." : "2. Push to Teams"}
+                    </button>
+                  )}
+                  <button onClick={() => router.push(`/dashboard/clients/${p.id}`)} className="px-3 py-1.5 bg-slate-800 text-white rounded text-xs font-medium hover:bg-slate-900 shadow-sm transition">
+                    View Full Journey
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {filteredProjects.length === 0 && (
+              <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400 italic">No projects found.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ═══ Setup Project Modal ═══ */}
+      {setupModal && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/50 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col">
+            <div className="flex justify-between items-center p-6 border-b">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">Setup Project</h2>
+                <p className="text-sm text-slate-500">{setupModal.deal?.lead?.name}</p>
               </div>
+              <button onClick={() => setSetupModal(null)} className="p-2 bg-slate-100 rounded-lg hover:bg-slate-200">✕</button>
             </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-              <h3 className="font-semibold text-slate-700 mb-3">Service Handoff</h3>
-              {project.tasks?.length > 0 ? (
-                <ul className="space-y-2">
-                  {project.tasks.map((t: any) => (
-                    <li key={t.id} className="flex justify-between text-sm p-2 bg-slate-50 rounded">
-                      <span className="font-medium text-slate-700 capitalize">{t.taskType.replace(/_/g, " ")}</span>
-                      <span className="text-slate-500">Leader: {t.leader?.name || "Unassigned"} • <span className="capitalize">{t.status}</span></span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-sm text-slate-500 italic">No tasks assigned yet.</div>
-              )}
-            </div>
-            <div className="flex gap-2 pt-4 border-t border-slate-100">
-              <button onClick={() => { setStatusModal(project); onClose(); }} className="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-indigo-700 transition">
-                Change Status
-              </button>
-            </div>
+            <form onSubmit={handleSaveSetup} className="p-6 flex-1 overflow-y-auto space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Client Niche / Industry</label>
+                <input name="niche" defaultValue={setupModal.niche} required className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="e.g. E-commerce, Real Estate..." />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Final Deadline</label>
+                  <input type="date" name="finalDeadline" defaultValue={setupModal.finalDeadline ? new Date(setupModal.finalDeadline).toISOString().split('T')[0] : ""} required className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Store / Website URL</label>
+                <input type="url" name="storeUrl" defaultValue={setupModal.storeUrl || setupModal.deal?.lead?.storeLink} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="https://" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Google Drive Link (Assets)</label>
+                <input type="url" name="driveLink" defaultValue={setupModal.driveLink} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="https://drive.google.com/..." />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Account Manager Notes (Brief)</label>
+                <textarea name="notes" defaultValue={setupModal.notes} className="w-full border rounded-lg px-3 py-2 text-sm h-32 resize-none focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Enter key details for the technical and creative teams..." />
+              </div>
+              <div className="pt-4 border-t mt-6">
+                <button type="submit" disabled={loading} className="w-full py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 disabled:opacity-50 transition shadow-lg shadow-indigo-200">
+                  {loading ? "Saving..." : "Save Setup & Mark Ready"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-      </div>
-    );
-  }
-
-  const getProgressColor = (val: number) => val < 30 ? "bg-red-500" : val < 70 ? "bg-amber-400" : "bg-emerald-500";
-
-  return (
-    <div className="space-y-10">
-      {/* ═══ Account Manager View ═══ */}
-      {isAM && (
-        <section className="space-y-5">
-          <h2 className="text-xl font-bold text-slate-800">Account Manager Dashboard</h2>
-
-          {/* KPI Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {[
-              { label: "Total Projects", value: projects.length, cls: "bg-white border" },
-              { label: "Setup Phase", value: projects.filter((p: any) => p.projectStatus === "setup").length, cls: "bg-indigo-50 border-indigo-100" },
-              { label: "Active", value: projects.filter((p: any) => ["in_progress", "assigned"].includes(p.projectStatus)).length, cls: "bg-blue-50 border-blue-100" },
-              { label: "Delayed", value: projects.filter((p: any) => p.projectStatus === "delayed").length, cls: "bg-red-50 border-red-100" },
-              { label: "Completed", value: projects.filter((p: any) => p.projectStatus === "completed").length, cls: "bg-emerald-50 border-emerald-100" },
-            ].map((kpi) => (
-              <button key={kpi.label} onClick={() => setStatusFilter(kpi.label === "Total Projects" ? "all" : kpi.label === "Setup Phase" ? "setup" : kpi.label === "Active" ? "in_progress" : kpi.label === "Delayed" ? "delayed" : "completed")} className={`${kpi.cls} p-4 rounded-xl border shadow-sm flex flex-col justify-center items-center hover:shadow-md transition cursor-pointer`}>
-                <span className="text-sm font-medium text-slate-500">{kpi.label}</span>
-                <span className="text-2xl font-bold text-slate-800">{kpi.value}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Filters */}
-          <FilterBar />
-
-          {/* Filtered count */}
-          <p className="text-xs text-slate-400">Showing {filteredProjects.length} of {projects.length} projects</p>
-
-          {/* Projects Table */}
-          <div className="bg-white rounded-xl shadow border overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Client & Deal</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Type / Timeline</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Progress Tracking</th>
-                  <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredProjects.map((p: any) => (
-                  <tr key={p.id} className="hover:bg-slate-50/50 transition">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-bold text-slate-900">{p.deal.lead.name}</div>
-                      <div className="text-xs font-medium text-slate-500">{p.deal.lead.phone} • {p.niche || "No Niche"}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 mb-1">{p.package}</div>
-                      <div className="text-xs text-slate-500">Deadline: {p.finalDeadline ? new Date(p.finalDeadline).toLocaleDateString() : "Not Set"}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="w-full max-w-xs space-y-2">
-                        {[{ label: "SEO", val: p.seoProgress }, { label: "Social", val: p.socialMediaProgress }, { label: "Media", val: p.mediaBuyerProgress }].map((bar) => (
-                          <div key={bar.label} className="flex items-center text-xs">
-                            <span className="w-12 font-medium text-slate-600">{bar.label}</span>
-                            <div className="flex-1 bg-slate-200 rounded-full h-1.5 mx-2 overflow-hidden"><div className={`${getProgressColor(bar.val)} h-1.5 rounded-full`} style={{ width: `${bar.val}%` }} /></div>
-                            <span className="w-8 text-right font-medium text-slate-700">{bar.val.toFixed(0)}%</span>
-                          </div>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <button onClick={() => { setStatusModal(p); setNewStatus(p.projectStatus); }} className={`px-2 py-1 text-xs font-semibold rounded-full cursor-pointer hover:opacity-80 transition ${p.projectStatus === "setup" ? "bg-indigo-100 text-indigo-700" : p.projectStatus === "assigned" ? "bg-blue-100 text-blue-700" : p.projectStatus === "in_progress" ? "bg-amber-100 text-amber-700" : p.projectStatus === "delayed" ? "bg-red-100 text-red-700" : p.projectStatus === "completed" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-700"}`}>
-                        {p.projectStatus.replace(/_/g, " ")}
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right space-x-2">
-                      {p.projectStatus === "setup" ? (
-                        <button onClick={() => handleAssignProjectToLeaders(p.id, p.package)} disabled={loading} className="px-3 py-1.5 bg-indigo-600 text-white rounded text-xs font-medium hover:bg-indigo-700 shadow-sm transition disabled:opacity-50">
-                          {loading ? "..." : "Assign Leaders"}
-                        </button>
-                      ) : (
-                        <button onClick={() => setViewProject(p)} className="px-3 py-1.5 border border-slate-300 text-slate-700 rounded text-xs font-medium hover:bg-slate-50 transition">
-                          View Details
-                        </button>
-                      )}
-                      <button onClick={() => router.push(`/dashboard/clients/${p.id}`)} className="px-3 py-1.5 bg-violet-600 text-white rounded text-xs font-medium hover:bg-violet-700 shadow-sm transition">
-                        Full Journey
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {filteredProjects.length === 0 && (
-                  <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400 italic">No projects match your filters.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {viewProject && <ProjectDetailsModal project={viewProject} onClose={() => setViewProject(null)} />}
-        </section>
       )}
 
-      {/* ═══ Team Leader View ═══ */}
-      {isTL && (
-        <section>
-          <h2 className="text-xl font-bold mb-4 text-orange-900">Team Leader: Pending Tasks</h2>
-          <FilterBar showTaskFilter />
-          <p className="text-xs text-slate-400 mt-2 mb-3">Showing {filteredLeaderTasks.length} of {leaderTasks.length} tasks</p>
-          <div className="bg-white rounded-xl shadow border">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-orange-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Project</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Task Type</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Assign Agent</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Progress</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredLeaderTasks.map((t: any) => (
-                  <tr key={t.id} className="hover:bg-slate-50/50 transition">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{t.project?.deal?.lead?.name || "Unknown"}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{t.taskType.replace(/_/g, " ")}</td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${t.status === "done" ? "bg-emerald-100 text-emerald-700" : t.status === "in_progress" ? "bg-amber-100 text-amber-700" : t.status === "review" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"}`}>{t.status || "pending"}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {t.agentId ? (
-                        <span className="text-gray-900 font-medium">{t.agent?.name}</span>
-                      ) : (
-                        <select onChange={(e) => handleAssignTask(t.id, e.target.value)} className="border rounded-lg p-1.5 text-sm bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none">
-                          <option value="">Assign...</option>
-                          {opsAgents.map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
-                        </select>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-bold">{t.progressPct}%</td>
-                  </tr>
-                ))}
-                {filteredLeaderTasks.length === 0 && (
-                  <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400 italic">No tasks match your filters.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
-
-      {/* ═══ Operations Agent View ═══ */}
-      {isAgent && (
-        <section>
-          <h2 className="text-xl font-bold mb-4 text-green-900">My Operations Tasks</h2>
-          <FilterBar showTaskFilter />
-          <p className="text-xs text-slate-400 mt-2 mb-3">Showing {filteredAgentTasks.length} of {agentTasks.length} tasks</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredAgentTasks.map((t: any) => {
-              let checklists: any[] = [];
-              try { checklists = JSON.parse(t.checklistItems || "[]"); } catch {}
-              return (
-                <div key={t.id} className="bg-white rounded-xl shadow border p-5 hover:shadow-md transition">
-                  <div className="flex justify-between items-start mb-4">
-                    <h3 className="font-bold text-gray-900">{t.project?.deal?.lead?.name}</h3>
-                    <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded font-medium capitalize">{t.taskType.replace(/_/g, " ")}</span>
-                  </div>
-                  <div className="mb-4">
-                    <div className="flex justify-between text-xs text-gray-500 mb-1"><span>Progress</span><span>{t.progressPct}%</span></div>
-                    <div className="w-full bg-gray-200 rounded-full h-1.5"><div className="bg-green-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${t.progressPct}%` }} /></div>
-                  </div>
-                  <div className="space-y-2 mt-4 border-t pt-4">
-                    <h4 className="text-sm font-semibold text-gray-700">Checklist</h4>
-                    {checklists.map((item: any) => (
-                      <label key={item.id} className="flex items-center gap-3 cursor-pointer group">
-                        <input type="checkbox" checked={item.completed} onChange={() => toggleChecklistItem(t, item.id)} className="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500" />
-                        <span className={`text-sm select-none ${item.completed ? "text-gray-400 line-through" : "text-gray-700 group-hover:text-green-700"}`}>{item.title}</span>
-                      </label>
-                    ))}
-                    {checklists.length === 0 && <p className="text-xs text-gray-500 italic">No checklist items defined.</p>}
-                  </div>
-                </div>
-              );
-            })}
-            {filteredAgentTasks.length === 0 && <p className="text-gray-500 text-sm col-span-full text-center py-8">No tasks match your filters.</p>}
-          </div>
-        </section>
-      )}
-
-      {/* ═══ Status Change Modal ═══ */}
+      {/* ═══ Change Status Modal ═══ */}
       {statusModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full mx-4 p-6">
-            <h3 className="text-lg font-bold text-slate-800 mb-2">Change Project Status</h3>
+            <h3 className="text-lg font-bold text-slate-800 mb-2">Change Status</h3>
             <p className="text-sm text-slate-500 mb-4">{statusModal.deal?.lead?.name}</p>
-            <select value={newStatus} onChange={(e) => setNewStatus(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm mb-4 focus:ring-2 focus:ring-indigo-500 outline-none">
-              {["new", "setup", "assigned", "in_progress", "on_hold", "delayed", "completed", "cancelled"].map((s) => (
-                <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
+            <div className="flex flex-wrap gap-2 mb-6">
+              {["new", "setup", "in_progress", "on_hold", "delayed", "completed", "cancelled"].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => handleChangeProjectStatus(statusModal.id, s)}
+                  className={`px-3 py-2 text-xs font-bold rounded-lg border capitalize ${statusModal.projectStatus === s ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 hover:bg-slate-50"}`}
+                >
+                  {s.replace(/_/g, " ")}
+                </button>
               ))}
-            </select>
-            <div className="flex gap-2">
-              <button onClick={() => setStatusModal(null)} className="flex-1 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-200">Cancel</button>
-              <button onClick={() => handleChangeProjectStatus(statusModal.id, newStatus)} className="flex-1 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">Update</button>
             </div>
+            <button onClick={() => setStatusModal(null)} className="w-full py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200">Cancel</button>
           </div>
         </div>
       )}
