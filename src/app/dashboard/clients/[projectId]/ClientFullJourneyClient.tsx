@@ -25,8 +25,34 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
   const [noteCategory, setNoteCategory] = useState("general");
   const [saving, setSaving] = useState(false);
 
+  const [newTaskType, setNewTaskType] = useState("seo");
+  const [newTaskBrief, setNewTaskBrief] = useState("");
+  const [newTaskPriority, setNewTaskPriority] = useState("Medium");
+  const [newTaskDeadline, setNewTaskDeadline] = useState("");
+  const [creatingTask, setCreatingTask] = useState(false);
+
   const deal = project.deal;
   const lead = deal?.lead;
+
+  // ── Task handler ──
+  async function handleCreateTask() {
+    if (!newTaskBrief) return alert("Please enter task details");
+    setCreatingTask(true);
+    await fetch("/api/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        projectId: project.id,
+        taskType: newTaskType,
+        brief: newTaskBrief,
+        priority: newTaskPriority,
+        deadline: newTaskDeadline || undefined,
+      })
+    });
+    setNewTaskBrief("");
+    setCreatingTask(false);
+    router.refresh();
+  }
 
   // ── Note handler ──
   async function handleAddNote() {
@@ -380,9 +406,38 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
 
       {/* ═══ SECTION 5: Tasks ═══ */}
       {activeTab === "tasks" && (
-        <div className="bg-white rounded-xl border shadow-sm p-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">Tasks & Tracking</h2>
-          {project.tasks?.length === 0 ? (
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl border shadow-sm p-6">
+            <h2 className="text-lg font-bold text-slate-800 mb-3">Assign New Task</h2>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+              <select value={newTaskType} onChange={(e) => setNewTaskType(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white">
+                <option value="seo">SEO</option>
+                <option value="content_seo">Content SEO</option>
+                <option value="social_media">Social Media</option>
+                <option value="media_buyer">Media Buyer</option>
+                <option value="graphic_design">Graphic Design</option>
+                <option value="motion_graphic">Motion Graphic</option>
+                <option value="ui_design">UI/UX Design</option>
+                <option value="technical">Technical (Web)</option>
+              </select>
+              <select value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white">
+                <option value="Low">Low Priority</option>
+                <option value="Medium">Medium Priority</option>
+                <option value="High">High Priority</option>
+              </select>
+              <input type="date" value={newTaskDeadline} onChange={(e) => setNewTaskDeadline(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white" />
+            </div>
+            <div className="flex gap-3">
+              <textarea value={newTaskBrief} onChange={(e) => setNewTaskBrief(e.target.value)} placeholder="Task details and instructions..." className="flex-1 border rounded-lg px-3 py-2 text-sm resize-none h-20" />
+              <button onClick={handleCreateTask} disabled={!newTaskBrief.trim() || creatingTask} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium self-end hover:bg-indigo-700 disabled:opacity-50 transition">
+                {creatingTask ? "Sending..." : "Create Task"}
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border shadow-sm p-6">
+            <h2 className="text-lg font-bold text-slate-800 mb-4">Tasks & Tracking</h2>
+            {project.tasks?.length === 0 ? (
             <p className="text-sm text-slate-400 italic py-4">No tasks created yet.</p>
           ) : (
             <div className="space-y-3">
@@ -419,7 +474,8 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
                 </div>
               ))}
             </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 
