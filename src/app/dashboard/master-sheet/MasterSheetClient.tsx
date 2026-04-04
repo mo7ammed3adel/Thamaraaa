@@ -173,8 +173,10 @@ export default function MasterSheetClient({ leads }: { leads: any[] }) {
                             <div key={log.id} className="relative pl-6">
                               <span className={`absolute w-3 h-3 rounded-full -left-[7px] top-1 ${
                                 log.callStatus === "Accept and book meeting" ? "bg-green-500" :
-                                ["Busy", "Wrong Number", "Not Interested", "Rejected"].includes(log.callStatus) ? "bg-red-500" :
-                                "bg-amber-400"
+                                log.callStatus === "Accept but lost" ? "bg-orange-400" :
+                                log.callStatus === "Busy" ? "bg-yellow-400" :
+                                log.callStatus === "Wrong Number" ? "bg-red-400" :
+                                "bg-gray-400"
                               }`}></span>
                               <p className="text-sm font-bold text-gray-900">
                                 Call / Update ({log.callStatus}) 

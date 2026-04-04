@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+<<<<<<< HEAD
 import { prisma } from "@/lib/prisma";
 import HeadAccountManagerClient from "./HeadAccountManagerClient";
 
@@ -47,4 +48,25 @@ export default async function HeadAccountManagerPage() {
       />
     </div>
   );
+=======
+import HeadAccountManagerClient from "./HeadAccountManagerClient";
+
+export const metadata = {
+  title: "Head Account Manager - Thamaraa CRM",
+};
+
+export default async function HeadAccountManagerPage() {
+  const session = await getServerSession(authOptions);
+
+  if (!session) {
+    redirect("/login");
+  }
+
+  const role = (session.user as any).role;
+  if (role !== "super_admin" && role !== "head_account_manager") {
+    redirect("/dashboard");
+  }
+
+  return <HeadAccountManagerClient />;
+>>>>>>> bb12de6 (Update Head Account Manager dashboard)
 }

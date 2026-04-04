@@ -168,6 +168,7 @@ export default async function DashboardLayout({
             </>
           )}
 
+<<<<<<< HEAD
           {/* ===== ACCOUNT MANAGEMENT ===== */}
           {hasRole("head_account_manager", "account_manager") && (
             <>
@@ -268,6 +269,9 @@ export default async function DashboardLayout({
 
           {/* ===== LEGACY OPERATIONS (team_leader / operations_agent) ===== */}
           {(role === "team_leader" || role === "operations_agent") && (
+=======
+          {(role === "operations_agent" || role === "account_manager" || role === "head_account_manager" || role === "team_leader" || role === "super_admin") && (
+>>>>>>> bb12de6 (Update Head Account Manager dashboard)
             <>
               <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-6 mb-2 px-3">Operations</div>
               <Link href="/dashboard/operations" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
@@ -281,7 +285,20 @@ export default async function DashboardLayout({
             </>
           )}
 
+<<<<<<< HEAD
           {/* ===== HR & FINANCE ===== */}
+=======
+          {(role === "head_account_manager" || role === "super_admin") && (
+            <>
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-6 mb-2 px-3">Account Mgmt</div>
+              <Link href="/dashboard/head-account-manager" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
+                <Users className="mr-3 h-5 w-5 opacity-75" />
+                Head AM Dashboard
+              </Link>
+            </>
+          )}
+
+>>>>>>> bb12de6 (Update Head Account Manager dashboard)
           <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-6 mb-2 px-3">HR & Finance</div>
           <Link href="/dashboard/hr" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
             <User className="mr-3 h-5 w-5 opacity-75" />
