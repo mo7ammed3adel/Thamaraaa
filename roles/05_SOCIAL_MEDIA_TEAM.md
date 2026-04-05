@@ -217,3 +217,51 @@
 | توزيع عملاء | ❌ |
 | إرسال Warning | ❌ |
 | الوصول لعملاء غيره | ❌ |
+
+
+
+------------------------------------
+
+Build dashboard for "Social Media Agent".
+
+Responsibilities:
+- Execute content plan
+- Create tasks for other teams
+
+-------------------------------------
+PERMISSIONS
+-------------------------------------
+
+- Create tasks for:
+   - Graphic Design
+   - Motion Graphics
+- View client notes
+- Update task status
+
+-------------------------------------
+DASHBOARD
+-------------------------------------
+
+1) Clients:
+- Assigned clients only
+
+2) Client Details:
+- Notes
+- Timeline
+
+3) Create Task:
+Form:
+- Task Type:
+   (Graphic / Motion)
+- Description
+- Attach link
+- Select team
+
+4) My Tasks:
+- Status:
+   Pending / In Progress / Done
+
+-------------------------------------
+GOAL:
+-------------------------------------
+Execute social content efficiently

@@ -337,3 +337,29 @@
 | رفع تاسكات لغيره | ❌ |
 | توزيع عملاء | ❌ |
 | إرسال Warning | ❌ |
+
+
+
+
+--------------------------------
+
+Build dashboard for "SEO Agent".
+
+Responsibilities:
+- Execute SEO work
+- Request content & UI
+
+-------------------------------------
+
+FEATURES:
+
+1) Create Task:
+- Content SEO
+- UI/UX
+
+2) Track tasks
+
+-------------------------------------
+GOAL:
+-------------------------------------
+Improve rankings

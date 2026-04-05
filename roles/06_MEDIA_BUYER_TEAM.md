@@ -200,3 +200,26 @@
 | توزيع عملاء | ❌ |
 | إرسال Warning | ❌ |
 | الوصول لعملاء غيره | ❌ |
+
+
+
+----------------------------
+
+
+Build dashboard for "Media Buyer Agent".
+
+Responsibilities:
+- Run ad campaigns
+- Request creatives
+
+-------------------------------------
+
+FEATURES:
+- Create task (Design / Video)
+- Track campaigns
+- View notes
+
+-------------------------------------
+GOAL:
+-------------------------------------
+Deliver campaign performance

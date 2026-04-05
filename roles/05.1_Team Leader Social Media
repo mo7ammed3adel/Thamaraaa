@@ -1,0 +1,39 @@
+Build dashboard for "Team Leader Social Media".
+
+Responsibilities:
+- Receive clients from Head Technical
+- Assign clients to Social Media Agents
+- Monitor content execution
+
+-------------------------------------
+PERMISSIONS
+-------------------------------------
+
+- Assign Social Media Agents
+- View tasks
+- Cannot assign other departments
+
+-------------------------------------
+DASHBOARD
+-------------------------------------
+
+1) Overview:
+- Clients
+- Assigned Agents
+- Tasks Progress
+
+2) Client View:
+- Assigned Agents
+- Tasks
+
+3) Assign:
+- Assign client → Social Media Agent
+
+4) Task Monitoring:
+- Posts
+- Campaign tasks
+
+-------------------------------------
+GOAL:
+-------------------------------------
+Ensure content workflow is smooth

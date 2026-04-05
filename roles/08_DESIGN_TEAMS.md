@@ -206,3 +206,27 @@
 | يشوف Timeline العميل؟ | ✅ | ✅ | ✅ |
 | يقدر يرفع تاسكات؟ | ❌ | ❌ | ❌ |
 | يستقبل Warnings؟ | ✅ | ✅ | ✅ |
+
+
+
+
+----------------------------------
+Team Leader Graphic Design
+
+
+Build dashboard for "Team Leader Graphic Design".
+
+Responsibilities:
+- Receive tasks
+- Assign to designers
+
+-------------------------------------
+
+FEATURES:
+- Task queue
+- Assign designers
+
+-------------------------------------
+GOAL:
+-------------------------------------
+Distribute design workload

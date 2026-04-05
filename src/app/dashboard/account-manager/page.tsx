@@ -21,8 +21,6 @@ export default async function AccountManagerPage() {
   }
 
   // Fetch projects assigned to this account manager
-  // If super_admin or head_account_manager visits, they might see their own assigned projects if they have any,
-  // or we could fetch all projects. But strictly, Account Manager view is "My Clients".
   const projects = await prisma.project.findMany({
     where: {
       accountManagerId: user.id
@@ -41,11 +39,30 @@ export default async function AccountManagerPage() {
     orderBy: { createdAt: "desc" },
   });
 
+  // Fetch warnings for these projects
+  const projectIds = projects.map(p => p.id);
+  const leadIds = projects.map(p => p.deal?.leadId).filter(Boolean);
+
+  const warnings = await prisma.warning.findMany({
+    where: {
+      OR: [
+        { projectId: { in: projectIds } },
+        { clientId: { in: leadIds as string[] } }
+      ]
+    }
+  });
+
+  const projectsWithWarnings = projects.map(p => ({
+    ...p,
+    warnings: warnings.filter(w => w.projectId === p.id || w.clientId === p.deal?.leadId)
+  }));
+
   // Calculate KPIs based on the specifications
-  const activeClients = projects.filter((p) => ["new", "setup", "in_progress", "assigned"].includes(p.projectStatus)).length;
+  const activeClients = projectsWithWarnings.filter((p) => ["new", "setup", "in_progress", "assigned"].includes(p.projectStatus)).length;
+  const clientsWithWarnings = projectsWithWarnings.filter((p) => p.warnings.length > 0).length;
   
   // Extract all tasks for this AM
-  const allTasks = projects.flatMap(p => p.tasks);
+  const allTasks = projectsWithWarnings.flatMap(p => p.tasks);
   const tasksInProgress = allTasks.filter(t => t.status === "in_progress").length;
   const tasksDelayed = allTasks.filter(t => {
     if (t.status === "done" || !t.deadline) return false;
@@ -60,9 +77,10 @@ export default async function AccountManagerPage() {
   return (
     <AccountManagerClient 
       userId={user.id} 
-      projects={projects}
+      projects={projectsWithWarnings}
       kpis={{
         activeClients,
+        clientsWithWarnings,
         tasksInProgress,
         tasksDelayed,
         tasksDoneThisWeek
