@@ -3,9 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function HeadTechnicalClient({ projects, teamLeaders, userId }: any) {
+export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userId }: any) {
   const router = useRouter();
   const [assignModal, setAssignModal] = useState<any>(null);
+  const [taskFilter, setTaskFilter] = useState("all");
+
+  const getProgressColor = (val: number) => val < 30 ? "bg-red-500" : val < 70 ? "bg-amber-400" : "bg-emerald-500";
 
   const handleAssignToTeamLeader = async (projectId: string, leaderId: string, taskType: string) => {
     await fetch("/api/tasks/generate", {
@@ -25,63 +28,100 @@ export default function HeadTechnicalClient({ projects, teamLeaders, userId }: a
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-indigo-50 p-5 rounded-2xl border border-indigo-100 text-center">
-          <p className="text-sm text-indigo-600">Active Projects</p>
-          <p className="text-3xl font-bold text-indigo-700">{projects.length}</p>
-        </div>
-        <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100 text-center">
-          <p className="text-sm text-emerald-600">Tasks Assigned</p>
-          <p className="text-3xl font-bold text-emerald-700">{projects.reduce((s: number, p: any) => s + (p.tasks?.length || 0), 0)}</p>
-        </div>
-        <div className="bg-amber-50 p-5 rounded-2xl border border-amber-100 text-center">
-          <p className="text-sm text-amber-600">Team Leaders</p>
-          <p className="text-3xl font-bold text-amber-700">{teamLeaders.length}</p>
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: "Assigned Clients", val: kpis.assignedClients, colors: "bg-white border-slate-200 text-slate-800" },
+          { label: "Active Clients", val: kpis.activeClients, colors: "bg-indigo-50 border-indigo-200 text-indigo-900" },
+          { label: "Delayed Clients", val: kpis.delayedClients, colors: "bg-red-50 border-red-200 text-red-900" },
+          { label: "Tasks In Progress", val: kpis.tasksInProgress, colors: "bg-amber-50 border-amber-200 text-amber-900" }
+        ].map(k => (
+          <div key={k.label} className={`p-5 rounded-2xl border ${k.colors}`}>
+            <p className="text-sm font-bold opacity-80 uppercase tracking-wider">{k.label}</p>
+            <p className="text-3xl font-black mt-2">{k.val}</p>
+          </div>
+        ))}
       </div>
 
       {/* Projects Table */}
       <div className="bg-white rounded-xl shadow border overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-indigo-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Client</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Account Manager</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Package</th>
-              <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Priority</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Teams Assigned</th>
-              <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {projects.map((p: any) => (
-              <tr key={p.id} className="hover:bg-slate-50/50 transition">
-                <td className="px-6 py-4">
-                  <div className="font-bold text-slate-900">{p.deal?.lead?.name}</div>
-                </td>
-                <td className="px-6 py-4 text-sm text-slate-600">{p.accountManager?.name || "N/A"}</td>
-                <td className="px-6 py-4"><span className="px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">{p.package}</span></td>
-                <td className="px-6 py-4 text-center">
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${p.priority === "High" ? "bg-red-100 text-red-700" : p.priority === "Low" ? "bg-slate-100 text-slate-600" : "bg-amber-100 text-amber-700"}`}>
-                    {p.priority || "Medium"}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm text-slate-600">{p.tasks?.length || 0} tasks</td>
-                <td className="px-6 py-4 text-center">
-                  <span className={`px-2 py-1 text-xs rounded-full font-semibold ${p.projectStatus === "in_progress" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"}`}>
-                    {p.projectStatus.replace(/_/g, " ")}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <button onClick={() => setAssignModal(p)} className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 shadow-sm transition">
-                    Assign Team
-                  </button>
-                </td>
+        <div className="p-4 border-b bg-slate-50">
+          <h2 className="text-lg font-bold text-slate-800">Master Clients List</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/4">Client Name</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/4">Assigned Teams</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/4">Progress %</th>
+                <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase w-32">Status & Delays</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {projects.map((p: any) => {
+                const delayedTasks = p.tasks?.filter((t:any) => t.status !== "done" && t.deadline && new Date(t.deadline) < new Date()).length || 0;
+                
+                return (
+                  <tr key={p.id} className="hover:bg-slate-50/50 transition">
+                    <td className="px-6 py-4">
+                      <div className="font-bold text-slate-900">{p.deal?.lead?.name}</div>
+                      <div className="text-xs text-slate-500">{p.deal?.lead?.phone}</div>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-100 text-purple-800 inline-block mt-1">{p.package}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-xs space-y-1">
+                        {p.tasks?.filter((t:any) => ["social_media", "media_buying", "seo", "content_seo"].includes(t.taskType)).map((t:any) => (
+                          <div key={t.id} className="flex flex-col bg-slate-50 border rounded p-1.5">
+                            <span className="font-bold text-slate-700 uppercase" style={{fontSize: "10px"}}>{t.taskType.replace(/_/g, " ")}</span>
+                            <span className="text-slate-500">{t.leader?.name || "Pending..."}</span>
+                          </div>
+                        ))}
+                        {(!p.tasks || p.tasks.filter((t:any) => ["social_media", "media_buying", "seo", "content_seo"].includes(t.taskType)).length === 0) && (
+                          <span className="text-slate-400 italic">No operational teams assigned</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="w-full space-y-1 max-w-xs">
+                        {[{ label: "SEO", val: p.seoProgress }, { label: "SMM", val: p.socialMediaProgress }, { label: "Media", val: p.mediaBuyerProgress }].map((b) => (
+                          <div key={b.label} className="flex items-center text-[10px]">
+                            <span className="w-8 font-bold text-slate-400">{b.label}</span>
+                            <div className="flex-1 bg-slate-100 h-1 mx-2 rounded-full overflow-hidden">
+                              <div className={`${getProgressColor(b.val)} h-1`} style={{ width: `${b.val}%` }} />
+                            </div>
+                            <span className="w-6 text-right font-bold text-slate-600">{b.val.toFixed(0)}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className={`px-2 py-0.5 text-[10px] rounded font-bold uppercase border ${p.projectStatus === "completed" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : p.projectStatus === "delayed" ? "bg-red-50 text-red-700 border-red-200" : p.projectStatus === "in_progress" ? "bg-blue-50 text-blue-700 border-blue-200" : p.projectStatus === "new" ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-slate-50 text-slate-700 border-slate-200"}`}>
+                          {p.projectStatus.replace(/_/g, " ")}
+                        </span>
+                        {delayedTasks > 0 && <span className="text-[10px] text-red-600 bg-red-50 border border-red-100 px-1.5 py-0.5 rounded font-bold">{delayedTasks} Delayed</span>}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex flex-col items-end gap-2">
+                        <button onClick={() => setAssignModal(p)} className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 shadow-sm transition w-28 text-center">
+                          Assign Teams
+                        </button>
+                        <button onClick={() => router.push(`/dashboard/clients/${p.id}`)} className="px-3 py-1.5 bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-900 shadow-sm transition w-28 text-center">
+                          Full Journey →
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {projects.length === 0 && (
+                <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400 italic">No clients available.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Assign Modal */}
@@ -111,16 +151,72 @@ export default function HeadTechnicalClient({ projects, teamLeaders, userId }: a
         </div>
       )}
 
-      {/* Team Leaders Performance */}
-      <div>
-        <h2 className="text-lg font-bold text-slate-800 mb-4">Team Leaders</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {teamLeaders.map((tl: any) => (
-            <div key={tl.id} className="bg-white p-4 rounded-xl border shadow-sm hover:shadow-md transition">
-              <p className="text-sm font-bold text-slate-800">{tl.name}</p>
-              <p className="text-xs text-slate-500 capitalize">{tl.role.replace(/_/g, " ")}</p>
-            </div>
-          ))}
+      {/* Tasks Overview (Global) */}
+      <div className="bg-white rounded-xl shadow border overflow-hidden">
+        <div className="p-4 border-b bg-slate-50 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-slate-800">Global Tasks Execution</h2>
+          <select value={taskFilter} onChange={(e) => setTaskFilter(e.target.value)} className="text-sm border rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="all">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="in_progress">In Progress</option>
+            <option value="delayed">Delayed</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+          <table className="min-w-full divide-y divide-gray-200 relative">
+            <thead className="bg-slate-50 sticky top-0 z-10 shadow-sm">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Target Client</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Task Type & Brief</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Assigned Leader</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Deadline</th>
+                <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 bg-white">
+              {kpis.allTasks
+                .filter((t:any) => {
+                  if(taskFilter === "all") return true;
+                  if(taskFilter === "delayed") return t.status !== "done" && t.deadline && new Date(t.deadline) < new Date();
+                  return t.status === taskFilter;
+                })
+                .sort((a:any, b:any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .map((t: any) => {
+                const isDelayed = t.status !== "done" && t.deadline && new Date(t.deadline) < new Date();
+                const parentProject = projects.find((p:any) => p.id === t.projectId);
+                return (
+                 <tr key={t.id} className="hover:bg-slate-50/50">
+                    <td className="px-6 py-4">
+                      <div className="font-bold text-slate-900 text-sm">{parentProject?.deal?.lead?.name || "Unknown"}</div>
+                      <div className="text-xs text-slate-500">Project: {parentProject?.package || "N/A"}</div>
+                    </td>
+                    <td className="px-6 py-4 line-clamp-2 max-w-xs">
+                      <span className="font-bold text-[10px] uppercase bg-slate-100 px-2 py-0.5 rounded text-slate-600 mr-2">{t.taskType.replace(/_/g, " ")}</span>
+                      <span className="text-sm text-slate-700">{t.brief}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-semibold text-slate-800">{t.leader?.name || "Not Assigned"}</div>
+                      <div className="text-xs text-slate-500">{t.agent?.name ? `Agent: ${t.agent.name}` : "Pending Agent"}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className={`text-sm font-medium ${isDelayed ? "text-red-600" : "text-slate-600"}`}>
+                        {t.deadline ? new Date(t.deadline).toLocaleDateString() : "No Deadline"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`px-2 py-0.5 text-[10px] rounded font-bold uppercase border ${t.status === "done" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : isDelayed ? "bg-red-50 text-red-700 border-red-200" : t.status === "in_progress" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-slate-50 text-slate-700 border-slate-200"}`}>
+                        {isDelayed ? "DELAYED" : t.status.replace(/_/g, " ")}
+                      </span>
+                    </td>
+                 </tr>
+                )
+              })}
+              {kpis.allTasks.length === 0 && (
+                <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400 italic">No operational tasks generated yet.</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

@@ -88,15 +88,19 @@ export default function SeoClient({ tasks, teamMembers, designLeaders, userRole,
       {/* Stats — Clickable KPI cards set the status filter */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
-          { label: "Total Tasks", value: tasks.length, filter: "all", cls: "bg-white border" },
-          { label: "Pending", value: tasks.filter((t: any) => t.status === "pending").length, filter: "pending", cls: "bg-slate-50 border-slate-200" },
-          { label: "In Progress", value: tasks.filter((t: any) => t.status === "in_progress").length, filter: "in_progress", cls: "bg-amber-50 border-amber-100" },
-          { label: "In Review", value: tasks.filter((t: any) => t.status === "review").length, filter: "review", cls: "bg-blue-50 border-blue-100" },
-          { label: "Completed", value: tasks.filter((t: any) => t.status === "done").length, filter: "done", cls: "bg-emerald-50 border-emerald-100" },
-        ].map((kpi) => (
-          <button key={kpi.label} onClick={() => setStatusFilter(kpi.filter)} className={`${kpi.cls} p-4 rounded-xl border text-center hover:shadow-md transition cursor-pointer ${statusFilter === kpi.filter ? "ring-2 ring-indigo-500" : ""}`}>
-            <p className="text-xs font-medium text-slate-500">{kpi.label}</p>
-            <p className="text-2xl font-bold text-slate-800">{kpi.value}</p>
+          { label: "Total Tasks", value: tasks.length, filter: "all", colors: "bg-white border-slate-200 text-slate-800" },
+          { label: "Pending", value: tasks.filter((t: any) => t.status === "pending").length, filter: "pending", colors: "bg-slate-50 border-slate-200 text-slate-600" },
+          { label: "In Progress", value: tasks.filter((t: any) => t.status === "in_progress").length, filter: "in_progress", colors: "bg-amber-50 border-amber-200 text-amber-900" },
+          { label: "In Review", value: tasks.filter((t: any) => t.status === "review").length, filter: "review", colors: "bg-blue-50 border-blue-200 text-blue-900" },
+          { label: "Completed", value: tasks.filter((t: any) => t.status === "done").length, filter: "done", colors: "bg-emerald-50 border-emerald-200 text-emerald-900" },
+        ].map(kpi => (
+          <button 
+            key={kpi.label} 
+            onClick={() => setStatusFilter(kpi.filter)} 
+            className={`p-5 rounded-2xl border text-left hover:shadow-md transition cursor-pointer ${kpi.colors} ${statusFilter === kpi.filter ? "ring-2 ring-indigo-500 shadow-sm" : "opacity-80 hover:opacity-100"}`}
+          >
+            <p className="text-xs font-bold uppercase tracking-wider">{kpi.label}</p>
+            <p className="text-3xl font-black mt-2">{kpi.value}</p>
           </button>
         ))}
       </div>
@@ -133,65 +137,114 @@ export default function SeoClient({ tasks, teamMembers, designLeaders, userRole,
       <p className="text-xs text-slate-400">Showing {filteredTasks.length} of {tasks.length} tasks</p>
 
       {/* Tasks List */}
-      <div className="space-y-3">
-        {filteredTasks.map((t: any) => (
-          <div key={t.id} className="bg-white rounded-xl border shadow-sm p-5 hover:shadow-md transition">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <h3 className="font-bold text-slate-900">{t.project?.deal?.lead?.name || "Unknown Client"}</h3>
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusColors[t.status] || statusColors.pending}`}>{t.status || "pending"}</span>
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${t.priority === "High" ? "bg-red-100 text-red-700" : t.priority === "Low" ? "bg-slate-100 text-slate-500" : "bg-amber-100 text-amber-600"}`}>{t.priority || "Medium"}</span>
+      <div className="space-y-4">
+        {filteredTasks.map((t: any) => {
+          const isDelayed = t.status !== "done" && t.deadline && new Date(t.deadline) < new Date();
+          
+          return (
+            <div key={t.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition">
+              {/* Header */}
+              <div className="bg-slate-50 border-b border-slate-100 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h3 className="text-lg font-bold text-slate-900">{t.project?.deal?.lead?.name || "Unknown Client"}</h3>
+                    <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${t.status === "done" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : isDelayed ? "bg-red-50 text-red-700 border-red-200" : t.status === "in_progress" ? "bg-amber-50 text-amber-700 border-amber-200" : t.status === "review" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-slate-100 text-slate-600 border-slate-200"}`}>
+                      {isDelayed ? "DELAYED" : t.status.replace(/_/g, " ")}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${t.priority === "High" ? "bg-red-50 text-red-700 border-red-200" : "bg-slate-50 text-slate-600 border-slate-200"}`}>{t.priority || "Medium"} Priority</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                     <span className="font-bold text-[10px] uppercase bg-indigo-100 px-2 py-0.5 rounded text-indigo-800">{t.taskType.replace(/_/g, " ")}</span>
+                     <span className="text-sm text-slate-600">{t.brief ? t.brief : "No specific brief provided"}</span>
+                  </div>
                 </div>
-                <p className="text-sm text-slate-600 capitalize">{t.taskType.replace(/_/g, " ")} {t.brief ? `— ${t.brief}` : ""}</p>
-                <div className="flex items-center gap-4 mt-2 text-xs text-slate-500 flex-wrap">
-                  {t.leader && <span>Leader: <strong>{t.leader.name}</strong></span>}
-                  {t.agent && <span>Agent: <strong>{t.agent.name}</strong></span>}
-                  {t.deadline && <span>Due: {new Date(t.deadline).toLocaleDateString()}</span>}
-                  <span>Progress: <strong>{t.progressPct}%</strong></span>
-                </div>
-                {/* Progress bar */}
-                <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2"><div className="bg-indigo-500 h-1.5 rounded-full transition-all" style={{ width: `${t.progressPct}%` }} /></div>
-                {t.subTasks?.length > 0 && (
-                  <div className="mt-2 pl-3 border-l-2 border-indigo-200 space-y-1">
-                    {t.subTasks.map((st: any) => (
-                      <p key={st.id} className="text-xs text-slate-500">↳ {st.taskType.replace(/_/g, " ")}: {st.status || "pending"} ({st.progressPct}%)</p>
-                    ))}
+                {t.deadline && (
+                  <div className="text-right">
+                    <p className="text-xs text-slate-500 font-medium">Deadline</p>
+                    <p className={`text-sm font-bold ${isDelayed ? "text-red-600" : "text-slate-800"}`}>{new Date(t.deadline).toLocaleDateString()}</p>
                   </div>
                 )}
               </div>
 
-              <div className="flex flex-col gap-1 ml-4 shrink-0">
-                {/* Head/TL: Assign */}
-                {(isHead || isTL) && !t.agentId && (
-                  <select onChange={(e) => handleAssign(t.id, e.target.value)} className="text-xs border rounded-lg px-2 py-1.5 bg-white w-32">
-                    <option value="">Assign...</option>
-                    {teamMembers.map((m: any) => <option key={m.id} value={m.id}>{m.name}</option>)}
-                  </select>
-                )}
-                {/* Status actions */}
-                {(isAgent || isHead || isTL) && (
-                  <div className="flex gap-1 flex-wrap">
-                    {t.status !== "in_progress" && t.status !== "done" && t.status !== "review" && (
-                      <button onClick={() => handleUpdateStatus(t.id, "in_progress")} className="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs font-medium hover:bg-amber-200">Start</button>
-                    )}
-                    {t.status === "in_progress" && (
-                      <button onClick={() => handleUpdateStatus(t.id, "review")} className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium hover:bg-blue-200">Submit Review</button>
-                    )}
-                    {t.status === "review" && (
-                      <button onClick={() => handleUpdateStatus(t.id, "done")} className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-medium hover:bg-emerald-200">Complete</button>
-                    )}
+              {/* Body */}
+              <div className="px-6 py-5 flex flex-col md:flex-row gap-6">
+                <div className="flex-1 space-y-4">
+                  <div className="flex gap-8">
+                     <div>
+                       <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Team Leader</p>
+                       <p className="text-sm font-semibold text-slate-800">{t.leader?.name || <span className="text-slate-400 italic">Not Assigned</span>}</p>
+                     </div>
+                     <div>
+                       <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Assigned Agent</p>
+                       <p className="text-sm font-semibold text-slate-800">{t.agent?.name || <span className="text-slate-400 italic">Not Assigned</span>}</p>
+                     </div>
                   </div>
-                )}
-                {/* Create Sub-Tasks */}
-                {designLeaders.length > 0 && (
-                  <button onClick={() => setCreateSubTask(t)} className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-medium hover:bg-indigo-200 mt-1">+ Sub-Task</button>
-                )}
+                  
+                  {/* Progress Bar */}
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="font-bold text-slate-600">Task Progress</span>
+                      <span className="font-bold text-indigo-600">{t.progressPct}%</span>
+                    </div>
+                    <div className="w-full bg-slate-100 rounded-full h-2">
+                       <div className="bg-indigo-500 h-2 rounded-full transition-all duration-500" style={{ width: `${t.progressPct}%` }} />
+                    </div>
+                  </div>
+
+                  {t.subTasks?.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-slate-100 space-y-2">
+                      <p className="text-xs font-bold text-slate-700 uppercase">Sub-Tasks</p>
+                      {t.subTasks.map((st: any) => (
+                        <div key={st.id} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2 border">
+                           <span className="text-xs font-bold text-slate-700 capitalize">{st.taskType.replace(/_/g, " ")}</span>
+                           <span className={`text-[10px] font-bold uppercase ${st.status === "done" ? "text-emerald-600" : "text-amber-600"}`}>{st.status || "pending"} ({st.progressPct}%)</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions Sidebar */}
+                <div className="w-full md:w-64 space-y-3 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6 shrink-0 flex flex-col justify-center">
+                  {(isHead || isTL) && !t.agentId && (
+                    <div>
+                       <p className="text-xs font-bold text-slate-700 mb-1">{isHead ? "Assign Team Leader" : "Assign To Agent"}</p>
+                       <select onChange={(e) => handleAssign(t.id, e.target.value)} className="text-sm border-2 border-indigo-100 rounded-xl px-3 py-2 text-indigo-800 font-medium bg-indigo-50 w-full outline-none focus:border-indigo-500 transition">
+                         <option value="">{isHead ? "Select Team Leader..." : "Select an agent..."}</option>
+                         {teamMembers.map((m: any) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                       </select>
+                    </div>
+                  )}
+                  
+                  {(isAgent || isHead || isTL) && (
+                     <div className="grid grid-cols-1 gap-2">
+                        {t.status !== "in_progress" && t.status !== "done" && t.status !== "review" && (
+                          <button onClick={() => handleUpdateStatus(t.id, "in_progress")} className="w-full py-2 bg-slate-800 text-white rounded-xl text-sm font-bold hover:bg-slate-900 shadow-sm transition">Start Task</button>
+                        )}
+                        {t.status === "in_progress" && (
+                          <button onClick={() => handleUpdateStatus(t.id, "review")} className="w-full py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 shadow-sm transition">Submit for Review</button>
+                        )}
+                        {t.status === "review" && (
+                          <button onClick={() => handleUpdateStatus(t.id, "done")} className="w-full py-2 bg-emerald-500 text-white rounded-xl text-sm font-bold hover:bg-emerald-600 shadow-sm transition">Mark Completed</button>
+                        )}
+                     </div>
+                  )}
+
+                  {designLeaders.length > 0 && (
+                    <button onClick={() => setCreateSubTask(t)} className="w-full py-2 bg-purple-50 text-purple-700 border border-purple-200 rounded-xl text-sm font-bold hover:bg-purple-100 transition mt-2">
+                       + Request Design
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
+          );
+        })}
+        {filteredTasks.length === 0 && (
+          <div className="bg-slate-50 border border-dashed border-slate-300 rounded-2xl p-12 text-center">
+            <p className="text-slate-500 font-medium">No tasks match your filters.</p>
           </div>
-        ))}
-        {filteredTasks.length === 0 && <p className="text-sm text-slate-400 italic text-center py-8">No tasks match your filters.</p>}
+        )}
       </div>
 
       {/* Create Sub-Task Modal */}

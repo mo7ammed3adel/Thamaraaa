@@ -3,15 +3,20 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ClientJourney from "@/components/ClientJourney";
+import Link from "next/link";
+import {
+  Inbox, Clock, CheckCircle, AlertTriangle, Users, ArrowRight
+} from "lucide-react";
 
 /**
  * Design & Creative department client component (Graphic, Motion, UI/UX).
- * Includes advanced filtering, status management, agent assignment,
- * and client journey notes drawer.
+ * Full-spec implementation with Leader tabs (Incoming, My Team, All Tasks)
+ * and Agent-focused task execution view.
  */
 export default function DesignClient({ tasks, agents, userRole, userId, teamLabel }: any) {
   const router = useRouter();
   const [viewClient, setViewClient] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState("incoming");
 
   // ── Advanced Filters ──
   const [searchQuery, setSearchQuery] = useState("");
@@ -19,6 +24,29 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
   const [priorityFilter, setPriorityFilter] = useState("all");
 
   const isLeader = userRole.startsWith("leader_") || userRole === "super_admin";
+
+  // ── Derived Data ──
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const incomingTasks = tasks.filter((t: any) => !t.agentId);
+  const delayedTasks = tasks.filter((t: any) => t.status !== "done" && t.deadline && new Date(t.deadline) < now);
+  const completedThisWeek = tasks.filter((t: any) => t.status === "done" && t.completedAt && new Date(t.completedAt) >= weekAgo);
+
+  // ── KPIs ──
+  const kpis = isLeader
+    ? [
+        { icon: Inbox, label: "Incoming New", val: incomingTasks.length, colors: "bg-violet-50 border-violet-200 text-violet-700", icn: "text-violet-400" },
+        { icon: Clock, label: "In Progress", val: tasks.filter((t: any) => t.status === "in_progress").length, colors: "bg-amber-50 border-amber-200 text-amber-700", icn: "text-amber-400" },
+        { icon: CheckCircle, label: "Done This Week", val: completedThisWeek.length, colors: "bg-emerald-50 border-emerald-200 text-emerald-700", icn: "text-emerald-400" },
+        { icon: AlertTriangle, label: "Delayed", val: delayedTasks.length, colors: "bg-red-50 border-red-200 text-red-700", icn: "text-red-400" },
+        { icon: Users, label: "Team Size", val: agents.length, colors: "bg-slate-50 border-slate-200 text-slate-700", icn: "text-slate-400" },
+      ]
+    : [
+        { icon: Inbox, label: "Pending", val: tasks.filter((t: any) => t.status === "pending").length, colors: "bg-slate-50 border-slate-200 text-slate-700", icn: "text-slate-400" },
+        { icon: Clock, label: "In Progress", val: tasks.filter((t: any) => t.status === "in_progress").length, colors: "bg-amber-50 border-amber-200 text-amber-700", icn: "text-amber-400" },
+        { icon: CheckCircle, label: "Completed", val: tasks.filter((t: any) => t.status === "done").length, colors: "bg-emerald-50 border-emerald-200 text-emerald-700", icn: "text-emerald-400" },
+        { icon: AlertTriangle, label: "Delayed", val: delayedTasks.length, colors: "bg-red-50 border-red-200 text-red-700", icn: "text-red-400" },
+      ];
 
   // ── Filter logic ──
   const filteredTasks = tasks.filter((t: any) => {
@@ -34,6 +62,7 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
 
   // ── Handlers ──
   async function handleAssign(taskId: string, agentId: string) {
+    if (!agentId) return;
     await fetch(`/api/tasks/${taskId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -51,119 +80,231 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
     router.refresh();
   }
 
+  // ── Task Card (reusable) ──
+  function TaskCard({ t, showAssign }: { t: any; showAssign: boolean }) {
+    const lead = t.project?.deal?.lead;
+    const isDelayed = t.status !== "done" && t.deadline && new Date(t.deadline) < now;
+
+    return (
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition">
+        {/* Card Header */}
+        <div className="bg-gray-50 border-b border-gray-100 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h3 className="text-lg font-bold text-gray-900">{lead?.name || "Client"}</h3>
+              <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${t.status === "done" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : isDelayed ? "bg-red-50 text-red-700 border-red-200" : t.status === "in_progress" ? "bg-amber-50 text-amber-700 border-amber-200" : t.status === "review" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-slate-100 text-slate-600 border-slate-200"}`}>
+                {isDelayed ? "DELAYED" : (t.status || "pending").replace(/_/g, " ")}
+              </span>
+              <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${t.priority === "High" ? "bg-red-50 text-red-700 border-red-200" : "bg-slate-50 text-slate-600 border-slate-200"}`}>{t.priority || "Medium"}</span>
+              {t.parentTask && (
+                <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  From: {t.parentTask.taskType.replace(/_/g, " ")}
+                </span>
+              )}
+            </div>
+            {t.brief && <p className="text-sm text-gray-600 mt-1">{t.brief}</p>}
+          </div>
+          {t.deadline && (
+            <div className="text-right shrink-0">
+              <p className="text-xs text-gray-500 font-medium">Deadline</p>
+              <p className={`text-sm font-bold ${isDelayed ? "text-red-600" : "text-gray-800"}`}>{new Date(t.deadline).toLocaleDateString()}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Card Body */}
+        <div className="px-6 py-5 flex flex-col md:flex-row gap-6">
+          <div className="flex-1 space-y-4">
+            <div className="flex gap-8 flex-wrap">
+              <div>
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Requester</p>
+                <p className="text-sm font-semibold text-gray-800">{t.requesterRole?.replace(/_/g, " ") || "System"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Assigned Agent</p>
+                <p className="text-sm font-semibold text-gray-800">{t.agent?.name || <span className="text-gray-400 italic">Not Assigned</span>}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Created</p>
+                <p className="text-sm font-semibold text-gray-800">{new Date(t.createdAt).toLocaleDateString()}</p>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="font-bold text-gray-600">Progress</span>
+                <span className="font-bold text-violet-600">{t.progressPct}%</span>
+              </div>
+              <div className="w-full bg-gray-100 rounded-full h-2">
+                <div className="bg-violet-500 h-2 rounded-full transition-all duration-500" style={{ width: `${t.progressPct}%` }} />
+              </div>
+            </div>
+          </div>
+
+          {/* Actions Sidebar */}
+          <div className="w-full md:w-64 space-y-3 border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6 shrink-0 flex flex-col justify-center">
+            {/* Leader: Assign to Agent */}
+            {showAssign && isLeader && !t.agentId && agents.length > 0 && (
+              <div>
+                <p className="text-xs font-bold text-gray-700 mb-1">Assign to Designer</p>
+                <select onChange={(e) => handleAssign(t.id, e.target.value)} className="text-sm border-2 border-violet-100 rounded-xl px-3 py-2 text-violet-800 font-medium bg-violet-50 w-full outline-none focus:border-violet-500 transition">
+                  <option value="">Select designer...</option>
+                  {agents.map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+              </div>
+            )}
+
+            {/* Status Actions */}
+            <div className="grid grid-cols-1 gap-2">
+              {t.status !== "in_progress" && t.status !== "done" && t.status !== "review" && (
+                <button onClick={() => handleUpdateStatus(t.id, "in_progress")} className="w-full py-2 bg-gray-800 text-white rounded-xl text-sm font-bold hover:bg-gray-900 shadow-sm transition">Start Task</button>
+              )}
+              {t.status === "in_progress" && (
+                <button onClick={() => handleUpdateStatus(t.id, "review")} className="w-full py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 shadow-sm transition">Submit for Review</button>
+              )}
+              {t.status === "review" && (
+                <button onClick={() => handleUpdateStatus(t.id, "done")} className="w-full py-2 bg-emerald-500 text-white rounded-xl text-sm font-bold hover:bg-emerald-600 shadow-sm transition">Mark Delivered</button>
+              )}
+            </div>
+
+            {/* View Client Journey */}
+            <button onClick={() => setViewClient(t)} className="w-full py-2 bg-gray-50 text-gray-700 border border-gray-200 rounded-xl text-sm font-bold hover:bg-gray-100 shadow-sm transition flex items-center justify-center gap-2">
+              Client Info <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Clickable KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        {[
-          { label: "Requests", value: tasks.length, filter: "all", cls: "bg-violet-50 border-violet-100" },
-          { label: "Pending", value: tasks.filter((t: any) => t.status === "pending").length, filter: "pending", cls: "bg-slate-50 border-slate-200" },
-          { label: "In Progress", value: tasks.filter((t: any) => t.status === "in_progress").length, filter: "in_progress", cls: "bg-amber-50 border-amber-100" },
-          { label: "In Review", value: tasks.filter((t: any) => t.status === "review").length, filter: "review", cls: "bg-blue-50 border-blue-100" },
-          { label: "Delivered", value: tasks.filter((t: any) => t.status === "done").length, filter: "done", cls: "bg-emerald-50 border-emerald-100" },
-        ].map((kpi) => (
-          <button key={kpi.label} onClick={() => setStatusFilter(kpi.filter)} className={`${kpi.cls} p-4 rounded-xl border text-center hover:shadow-md transition cursor-pointer ${statusFilter === kpi.filter ? "ring-2 ring-violet-500" : ""}`}>
-            <p className="text-xs font-medium text-slate-600">{kpi.label}</p>
-            <p className="text-2xl font-bold text-slate-800">{kpi.value}</p>
-          </button>
+      {/* KPI Overview */}
+      <div className={`grid grid-cols-2 ${isLeader ? "md:grid-cols-5" : "md:grid-cols-4"} gap-4`}>
+        {kpis.map((k, i) => (
+          <div key={i} className={`p-5 rounded-2xl border ${k.colors} shadow-sm flex flex-col justify-between`}>
+            <div className="flex justify-between items-start">
+              <span className="text-xs font-bold uppercase tracking-wide opacity-80">{k.label}</span>
+              <k.icon className={`w-5 h-5 ${k.icn}`} />
+            </div>
+            <p className="text-3xl font-black mt-3">{k.val}</p>
+          </div>
         ))}
       </div>
 
-      {/* Advanced Filter Bar */}
-      <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl border p-4 shadow-sm">
-        <input type="text" placeholder="🔍 Search client, brief, requester..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="flex-1 min-w-[200px] border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none" />
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-violet-500 outline-none">
-          <option value="all">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="in_progress">In Progress</option>
-          <option value="review">In Review</option>
-          <option value="done">Delivered</option>
-        </select>
-        <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-violet-500 outline-none">
-          <option value="all">All Priorities</option>
-          <option value="High">High</option>
-          <option value="Medium">Medium</option>
-          <option value="Low">Low</option>
-        </select>
-        {(searchQuery || statusFilter !== "all" || priorityFilter !== "all") && (
-          <button onClick={() => { setSearchQuery(""); setStatusFilter("all"); setPriorityFilter("all"); }} className="px-3 py-2 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition">✕ Clear</button>
-        )}
-      </div>
+      {/* Tabs (Leader Only) */}
+      {isLeader && (
+        <div className="flex border-b border-gray-200">
+          <button onClick={() => setActiveTab("incoming")} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "incoming" ? "border-violet-600 text-violet-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
+            📥 Incoming ({incomingTasks.length})
+          </button>
+          <button onClick={() => setActiveTab("team")} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "team" ? "border-violet-600 text-violet-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
+            👥 My Team
+          </button>
+          <button onClick={() => setActiveTab("all")} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "all" ? "border-violet-600 text-violet-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
+            📋 All Tasks
+          </button>
+        </div>
+      )}
 
-      <p className="text-xs text-slate-400">Showing {filteredTasks.length} of {tasks.length} requests</p>
+      {/* ═══════════ LEADER: INCOMING TASKS ═══════════ */}
+      {isLeader && activeTab === "incoming" && (
+        <div className="space-y-4">
+          {incomingTasks.length === 0 && (
+            <div className="bg-gray-50 border border-dashed border-gray-300 rounded-2xl p-12 text-center text-gray-500">No new incoming requests!</div>
+          )}
+          {incomingTasks.map((t: any) => <TaskCard key={t.id} t={t} showAssign={true} />)}
+        </div>
+      )}
 
-      {/* Design Queue / Tasks */}
-      <div className="space-y-3">
-        {filteredTasks.map((t: any) => {
-          const lead = t.project?.deal?.lead;
-          return (
-            <div key={t.id} className="bg-white rounded-xl border shadow-sm p-5 hover:shadow-md transition">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h3 className="font-bold text-slate-900">{lead?.name || "Client"}</h3>
-                    {t.parentTask && (
-                      <span className="px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700">
-                        From: {t.parentTask.taskType.replace(/_/g, " ")}
-                      </span>
-                    )}
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${t.priority === "High" ? "bg-red-100 text-red-700" : t.priority === "Low" ? "bg-slate-100 text-slate-500" : "bg-amber-100 text-amber-700"}`}>
-                      {t.priority || "Medium"}
-                    </span>
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${t.status === "done" ? "bg-emerald-100 text-emerald-700" : t.status === "in_progress" ? "bg-amber-100 text-amber-700" : t.status === "review" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"}`}>
-                      {t.status || "pending"}
-                    </span>
+      {/* ═══════════ LEADER: MY TEAM ═══════════ */}
+      {isLeader && activeTab === "team" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {agents.map((agent: any) => {
+            const agentTasks = tasks.filter((t: any) => t.agentId === agent.id);
+            const activeT = agentTasks.filter((t: any) => t.status === "in_progress");
+            const doneT = agentTasks.filter((t: any) => t.status === "done");
+            const delayedT = agentTasks.filter((t: any) => t.status !== "done" && t.deadline && new Date(t.deadline) < now);
+
+            return (
+              <div key={agent.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 hover:shadow-md transition">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="h-12 w-12 rounded-full bg-violet-100 flex items-center justify-center text-xl font-bold text-violet-700">
+                    {agent.name.substring(0, 2).toUpperCase()}
                   </div>
-                  {t.brief && <p className="text-sm text-slate-600 mb-1">{t.brief}</p>}
-                  <div className="flex gap-3 text-xs text-slate-500 flex-wrap">
-                    {t.agent && <span>Assigned to: <strong>{t.agent.name}</strong></span>}
-                    {t.deadline && <span>Due: {new Date(t.deadline).toLocaleDateString()}</span>}
-                    {t.requesterRole && <span>Requested by: {t.requesterRole.replace(/_/g, " ")}</span>}
-                  </div>
-                  <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2">
-                    <div className="bg-violet-500 h-1.5 rounded-full transition-all" style={{ width: `${t.progressPct}%` }} />
+                  <div>
+                    <h3 className="font-bold text-gray-900">{agent.name}</h3>
+                    <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">{teamLabel} Agent</p>
                   </div>
                 </div>
-
-                <div className="flex flex-col gap-1 shrink-0">
-                  {/* Leader: assign */}
-                  {isLeader && !t.agentId && agents.length > 0 && (
-                    <select onChange={(e) => handleAssign(t.id, e.target.value)} className="text-xs border rounded-lg px-2 py-1.5 bg-white w-28">
-                      <option value="">Assign...</option>
-                      {agents.map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
-                    </select>
-                  )}
-                  {/* Status actions — available for both leaders and agents */}
-                  <div className="flex gap-1 flex-wrap">
-                    {t.status !== "in_progress" && t.status !== "done" && t.status !== "review" && (
-                      <button onClick={() => handleUpdateStatus(t.id, "in_progress")} className="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs font-medium hover:bg-amber-200">Start</button>
-                    )}
-                    {t.status === "in_progress" && (
-                      <button onClick={() => handleUpdateStatus(t.id, "review")} className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium hover:bg-blue-200">Submit</button>
-                    )}
-                    {t.status === "review" && (
-                      <button onClick={() => handleUpdateStatus(t.id, "done")} className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-medium hover:bg-emerald-200">Complete</button>
-                    )}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-500">In Progress</span>
+                    <span className="font-bold text-amber-600">{activeT.length}</span>
                   </div>
-                  {/* View Client Notes */}
-                  <button onClick={() => setViewClient(t)} className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-medium hover:bg-slate-200 mt-1">
-                    View Notes
-                  </button>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-500">Completed</span>
+                    <span className="font-bold text-emerald-600">{doneT.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-500">Delayed</span>
+                    <span className={`font-bold ${delayedT.length > 0 ? "text-red-600" : "text-emerald-500"}`}>{delayedT.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-500">Total Assigned</span>
+                    <span className="font-bold text-gray-900">{agentTasks.length}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-        {filteredTasks.length === 0 && <p className="text-sm text-slate-400 italic text-center py-8">No design requests match your filters.</p>}
-      </div>
+            );
+          })}
+          {agents.length === 0 && (
+            <div className="col-span-full bg-gray-50 border border-dashed border-gray-300 rounded-2xl p-12 text-center text-gray-500">No agents available.</div>
+          )}
+        </div>
+      )}
 
-      {/* Client Notes Modal */}
+      {/* ═══════════ LEADER: ALL TASKS / AGENT: MY TASKS ═══════════ */}
+      {((!isLeader) || (isLeader && activeTab === "all")) && (
+        <div className="space-y-4">
+          {/* Filter Bar */}
+          <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl border p-4 shadow-sm">
+            <input type="text" placeholder="🔍 Search client, brief, requester..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="flex-1 min-w-[200px] border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none" />
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-violet-500 outline-none">
+              <option value="all">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="in_progress">In Progress</option>
+              <option value="review">In Review</option>
+              <option value="done">Delivered</option>
+            </select>
+            <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-violet-500 outline-none">
+              <option value="all">All Priorities</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+            {(searchQuery || statusFilter !== "all" || priorityFilter !== "all") && (
+              <button onClick={() => { setSearchQuery(""); setStatusFilter("all"); setPriorityFilter("all"); }} className="px-3 py-2 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition">✕ Clear</button>
+            )}
+          </div>
+
+          <p className="text-xs text-gray-400">Showing {filteredTasks.length} of {tasks.length} requests</p>
+
+          {filteredTasks.map((t: any) => <TaskCard key={t.id} t={t} showAssign={isLeader} />)}
+          {filteredTasks.length === 0 && (
+            <div className="bg-gray-50 border border-dashed border-gray-300 rounded-2xl p-12 text-center text-gray-500">No design requests match your filters.</div>
+          )}
+        </div>
+      )}
+
+      {/* Client Notes Drawer */}
       {viewClient && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex justify-end bg-gray-900/50 backdrop-blur-sm">
           <div className="w-full max-w-xl bg-white h-full shadow-2xl overflow-y-auto p-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-slate-800">Client Notes</h2>
-              <button onClick={() => setViewClient(null)} className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200 text-sm">Close ✕</button>
+              <h2 className="text-xl font-bold text-gray-800">Client Journey & Notes</h2>
+              <button onClick={() => setViewClient(null)} className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 text-sm font-bold">Close ✕</button>
             </div>
             <ClientJourney
               leadName={viewClient.project?.deal?.lead?.name || "Client"}

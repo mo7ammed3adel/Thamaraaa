@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Thamaraa CRM — Full System Walkthrough</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+  
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #fff;
+    color: #1e293b;
+    font-size: 11px;
+    line-height: 1.5;
+    padding: 40px;
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 900;
+    text-align: center;
+    margin-bottom: 6px;
+    color: #0f172a;
+  }
+
+  .subtitle {
+    text-align: center;
+    color: #64748b;
+    font-size: 13px;
+    margin-bottom: 30px;
+  }
+
+  h2 {
+    font-size: 18px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 30px 0 12px 0;
+    padding-bottom: 6px;
+    border-bottom: 3px solid #e2e8f0;
+  }
+
+  h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #334155;
+    margin: 18px 0 8px 0;
+  }
+
+  h4 {
+    font-size: 12px;
+    font-weight: 700;
+    color: #475569;
+    margin: 10px 0 6px 0;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 16px 0;
+    font-size: 10.5px;
+  }
+
+  th {
+    background: #f1f5f9;
+    font-weight: 700;
+    text-align: left;
+    padding: 8px 10px;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+  }
+
+  td {
+    padding: 6px 10px;
+    border: 1px solid #e2e8f0;
+    vertical-align: top;
+  }
+
+  tr:nth-child(even) { background: #f8fafc; }
+
+  .role-badge {
+    display: inline-block;
+    background: #e0e7ff;
+    color: #3730a3;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 10px;
+    font-family: monospace;
+  }
+
+  .route-badge {
+    display: inline-block;
+    background: #dcfce7;
+    color: #166534;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 10px;
+    font-family: monospace;
+  }
+
+  .note {
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    padding: 10px 14px;
+    margin: 10px 0;
+    font-size: 10.5px;
+    color: #1e40af;
+    border-radius: 0 6px 6px 0;
+  }
+
+  .warning-note {
+    background: #fef3c7;
+    border-left: 4px solid #f59e0b;
+    padding: 10px 14px;
+    margin: 10px 0;
+    font-size: 10.5px;
+    color: #92400e;
+    border-radius: 0 6px 6px 0;
+  }
+
+  .section-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 14px 0;
+    background: #fafbfc;
+  }
+
+  /* Flow Diagram */
+  .flow-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    margin: 20px 0;
+    padding: 20px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+  }
+
+  .flow-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .flow-box {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 10px;
+    text-align: center;
+    min-width: 130px;
+    border: 2px solid;
+  }
+
+  .flow-arrow {
+    font-size: 16px;
+    color: #94a3b8;
+    font-weight: 900;
+  }
+
+  .flow-arrow-down {
+    font-size: 20px;
+    color: #94a3b8;
+    font-weight: 900;
+  }
+
+  .bg-blue { background: #dbeafe; border-color: #3b82f6; color: #1e40af; }
+  .bg-green { background: #dcfce7; border-color: #22c55e; color: #166534; }
+  .bg-yellow { background: #fef9c3; border-color: #eab308; color: #854d0e; }
+  .bg-orange { background: #ffedd5; border-color: #f97316; color: #9a3412; }
+  .bg-red { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
+  .bg-purple { background: #f3e8ff; border-color: #a855f7; color: #6b21a8; }
+  .bg-pink { background: #fce7f3; border-color: #ec4899; color: #9d174d; }
+  .bg-teal { background: #ccfbf1; border-color: #14b8a6; color: #115e59; }
+  .bg-violet { background: #ede9fe; border-color: #8b5cf6; color: #5b21b6; }
+  .bg-slate { background: #f1f5f9; border-color: #64748b; color: #334155; }
+
+  .page-break { page-break-before: always; }
+
+  @media print {
+    body { padding: 20px; font-size: 10px; }
+    .page-break { page-break-before: always; }
+    h2 { page-break-after: avoid; }
+    table { page-break-inside: avoid; }
+    .section-card { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<h1>🏢 Thamaraa CRM</h1>
+<p class="subtitle">Full System Walkthrough — Every Role, Every Feature, Every Route</p>
+
+<!-- ═══════════ FLOW DIAGRAM ═══════════ -->
+<h2>📊 Client Flow Overview</h2>
+
+<div class="flow-container">
+  <div class="flow-row">
+    <div class="flow-box bg-blue">🔵 TeleSales Agent<br><small>Qualifies Leads</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box bg-green">🟢 Sales Agent<br><small>Closes Deals</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box bg-yellow">🟡 Account Manager<br><small>Sets up Project</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box bg-orange">🟠 Head Technical<br><small>Assigns Teams</small></div>
+  </div>
+
+  <div class="flow-arrow-down">⬇</div>
+
+  <div class="flow-row">
+    <div class="flow-box bg-red">🔴 TL SEO<br><small>→ Agent SEO</small></div>
+    <div class="flow-box bg-purple">🟣 TL Social Media<br><small>→ Agent Social</small></div>
+    <div class="flow-box bg-pink">🟤 TL Media Buyer<br><small>→ Agent Media</small></div>
+  </div>
+
+  <div class="flow-arrow-down">⬇ <small style="color:#64748b">(Request Design Assets)</small></div>
+
+  <div class="flow-row">
+    <div class="flow-box bg-violet">🎨 Leader Graphic<br><small>→ Agent Graphic</small></div>
+    <div class="flow-box bg-teal">🎬 Leader Motion<br><small>→ Agent Motion</small></div>
+    <div class="flow-box bg-slate">🖥️ Leader UI/UX<br><small>→ Agent UI/UX</small></div>
+  </div>
+</div>
+
+<!-- ═══════════ SUPER ADMIN ═══════════ -->
+<h2>👑 1. Super Admin <span class="role-badge">super_admin</span></h2>
+<p><strong>Access:</strong> All routes — universal access to every dashboard</p>
+<table>
+  <tr><th>Feature</th><th>Route</th><th>Description</th></tr>
+  <tr><td>User Management</td><td><span class="route-badge">/dashboard/users</span></td><td>Create, edit, delete employees. Change roles, reset passwords</td></tr>
+  <tr><td>System Config</td><td><span class="route-badge">/dashboard/settings</span></td><td>Modify system-wide settings</td></tr>
+  <tr><td>Global Master Sheet</td><td><span class="route-badge">/dashboard/master-sheet</span></td><td>See ALL leads, deals, projects across the entire company</td></tr>
+  <tr><td>All Dashboards</td><td>All routes</td><td>Can access every department dashboard below</td></tr>
+  <tr><td>Warnings Center</td><td><span class="route-badge">/dashboard/warnings</span></td><td>Send & receive warnings on any client/project</td></tr>
+</table>
+
+<!-- ═══════════ SALES WING ═══════════ -->
+<h2>💼 2. Sales Wing</h2>
+
+<div class="section-card">
+<h3>2a. Chief Sales Officer <span class="role-badge">chief_sales</span></h3>
+<p><strong>Route:</strong> <span class="route-badge">/dashboard/chief-sales</span></p>
+<table>
+  <tr><th>Feature</th><th>Description</th></tr>
+  <tr><td>Sales Overview</td><td>Global KPIs — Revenue, Total Deals, Win Rate, Pipeline Value</td></tr>
+  <tr><td>Pipeline</td><td>Visual funnel of all active deals across all sales agents</td></tr>
+  <tr><td>Deals Access</td><td>Full access to /dashboard/deals</td></tr>
+  <tr><td>Warnings Center</td><td>Can send warnings related to sales pipeline</td></tr>
+</table>
+</div>
+
+<div class="section-card">
+<h3>2b. TeleSales Manager <span class="role-badge">tele_sales_manager</span></h3>
+<p><strong>Route:</strong> <span class="route-badge">/dashboard/telesales</span></p>
+<table>
+  <tr><th>Feature</th><th>Route</th><th>Description</th></tr>
+  <tr><td>All Leads</td><td>/dashboard/telesales</td><td>View ALL leads assigned to every agent</td></tr>
+  <tr><td>Upload Leads</td><td>/dashboard/leads-import</td><td>Bulk CSV upload of new leads</td></tr>
+  <tr><td>Add Cold Leads</td><td>/dashboard/telesales/cold-leads</td><td>Manually add individual leads</td></tr>
+  <tr><td>My Team</td><td>/dashboard/telesales/my-team</td><td>Agent performance monitoring</td></tr>
+  <tr><td>Team Analytics</td><td>/dashboard/telesales/analytics</td><td>Charts: calls/day, conversion rates</td></tr>
+  <tr><td>Recycle Hot Leads</td><td>/dashboard/telesales/recycle</td><td>Re-assign stale hot leads</td></tr>
+</table>
+</div>
+
+<div class="section-card">
+<h3>2c. TeleSales Agent <span class="role-badge">tele_sales_agent</span></h3>
+<p><strong>Route:</strong> <span class="route-badge">/dashboard/telesales</span></p>
+<table>
+  <tr><th>Feature</th><th>Description</th></tr>
+  <tr><td>My Leads</td><td>Only sees leads assigned to them</td></tr>
+  <tr><td>Call Logging</td><td>Log calls with status (Interested, Not Interested, Follow Up, Meeting)</td></tr>
+  <tr><td>Create Meeting</td><td>When lead is qualified → schedule meeting for Sales Agent</td></tr>
+  <tr><td>Meets</td><td>View all meetings they've created</td></tr>
+  <tr><td>My Progress</td><td>Personal performance metrics</td></tr>
+</table>
+</div>
+
+<div class="section-card">
+<h3>2d. Sales Manager <span class="role-badge">sales_manager</span></h3>
+<p><strong>Route:</strong> <span class="route-badge">/dashboard/sales</span></p>
+<table>
+  <tr><th>Feature</th><th>Description</th></tr>
+  <tr><td>Opportunities</td><td>View ALL meetings/deals across the team</td></tr>
+  <tr><td>My Team</td><td>Agent workload and performance</td></tr>
+  <tr><td>Team Analytics</td><td>Win/loss rates, revenue charts</td></tr>
+  <tr><td>Recycle Bin</td><td>Re-assign lost/stale opportunities</td></tr>
+</table>
+</div>
+
+<div class="section-card">
+<h3>2e. Sales Agent <span class="role-badge">sales_agent</span></h3>
+<p><strong>Route:</strong> <span class="route-badge">/dashboard/sales</span></p>
+<table>
+  <tr><th>Feature</th><th>Description</th></tr>
+  <tr><td>My Opportunities</td><td>Meetings assigned from TeleSales</td></tr>
+  <tr><td>Close Deals</td><td>Mark meeting as Won → creates Deal + Project automatically</td></tr>
+  <tr><td>My Progress</td><td>Personal revenue and conversion stats</td></tr>
+</table>
+</div>
+
+<!-- ═══════════ OPERATIONS WING ═══════════ -->
+<div class="page-break"></div>
+<h2>🏗️ 3. Operations Wing</h2>
+
+<div class="section-card">
+<h3>3a. Head Account Manager <span class="role-badge">head_account_manager</span></h3>
+<p><strong>Route:</strong> <span class="route-badge">/dashboard/head-account-manager</span></p>
+<table>
+  <tr><th>Feature</th><th>Description</th></tr>
+  <tr><td>KPIs (8 cards)</td><td>Total, Active, Delayed, Completed, Unassigned, Warnings, New Today, Avg Progress</td></tr>
+  <tr><td>Master Projects List</td><td>Filterable table of ALL projects with status, AM, warnings, deal source</td></tr>
+  <tr><td>Assign Technical Head</td><td>Inline dropdown per project to assign Head Technical</td></tr>
+  <tr><td>AM Workload Analytics</td><td>Per-AM stats: active clients, warnings, delays, average progress</td></tr>
+  <tr><td>Warnings Center</td><td>Send/receive warnings</td></tr>
+</table>
+</div>
+
+<div class="section-card">
+<h3>3b. Account Manager <span class="role-badge">account_manager</span></h3>
+<p><strong>Route:</strong> <span class="route-badge">/dashboard/account-manager</span></p>
+<table>
+  <tr><th>Feature</th><th>Description</th></tr>
+  <tr><td>My Clients</td><td>Only projects assigned to this AM</td></tr>
+  <tr><td>Project Setup</td><td>Configure niche, package, deadlines, Drive links</td></tr>
+  <tr><td>Task Generation</td><td>Create department tasks (SEO, Social, Media Buying)</td></tr>
+  <tr><td>Client Journey</td><td>Full timeline with all notes from all departments</td></tr>
+</table>
+</div>
+
+<div class="section-card">
+<h3>3c. Head Technical <span class="role-badge">head_technical</span></h3>
+<p><strong>Route:</strong> <span class="route-badge">/dashboard/head-technical</span></p>
+<table>
+  <tr><th>Feature</th><th>Description</th></tr>
+  <tr><td>KPIs (4 cards)</td><td>Assigned, Active, Delayed, Tasks In Progress</td></tr>
+  <tr><td>Client Master List</td><td>All projects with progress, assigned teams, timeline</td></tr>
+  <tr><td>Global Tasks Monitor</td><td>Every sub-task across all projects in one table</td></tr>
+  <tr><td>Assign Team Leaders</td><td>Assign to TL SEO / TL Social / TL Media Buyer</td></tr>
+</table>
+</div>
+
+<!-- ═══════════ SEO ═══════════ -->
+<h2>🔍 4. SEO Department</h2>
+
+<div class="section-card">
+<h3>4a. Head SEO <span class="role-badge">head_seo</span></h3>
+<p><strong>Route:</strong> <span class="route-badge">/dashboard/seo</span></p>
+<table>
+  <tr><th>Feature</th><th>Description</th></tr>
+  <tr><td>KPIs (5 clickable cards)</td><td>Total, Pending, In Progress, In Review, Completed — click to filter</td></tr>
+  <tr><td>Assign Team Leader</td><td>Dropdown labeled "Assign Team Leader" to distribute to TL SEO</td></tr>
+  <tr><td>Task Cards</td><td>Premium UI with client name, deadline tracking, progress bars</td></tr>
+  <tr><td>Sub-Task Requests</td><td>Request Design assets (Graphic/UI)</td></tr>
+</table>
+</div>
+
+<div class="section-card">
+<h3>4b. Team Leader SEO <span class="role-badge">team_leader_seo</span></h3>
+<p><strong>Route:</strong> <span class="route-badge">/dashboard/seo</span> (filtered view)</p>
+<table>
+  <tr><th>Feature</th><th>Description</th></tr>
+  <tr><td>Filtered View</td><td>Only sees tasks assigned by Head SEO</td></tr>
+  <tr><td>Assign to Agent</td><td>Distribute to agent_seo / agent_content_seo</td></tr>
+  <tr><td>Progress Monitoring</td><td>Deadline tracking, delay flags, progress bars</td></tr>
+</table>
+</div>
+
+<div class="section-card">
+<h3>4c. SEO Agent <span class="role-badge">agent_seo / agent_content_seo</span></h3>
+<p><strong>Route:</strong> <span class="route-badge">/dashboard/seo</span> (filtered view)</p>
+<table>
+  <tr><th>Feature</th><th>Description</th></tr>
+  <tr><td>My Tasks Only</td><td>Tasks specifically assigned to this agent</td></tr>
+  <tr><td>Task Execution</td><td>Start Task → Submit for Review → Mark Completed</td></tr>
+  <tr><td>Sub-Task Requests</td><td>Request Graphic Design / UI assets</td></tr>
+</table>
+</div>
+
+<!-- ═══════════ SOCIAL MEDIA ═══════════ -->
+<div class="page-break"></div>
+<h2>📱 5. Social Media Department</h2>
+
+<div class="section-card">
+<h3>5a. Team Leader Social Media <span class="role-badge">team_leader_social_media</span></h3>
+<p><strong>Route:</strong> <span class="route-badge">/dashboard/social-media</span></p>
+<table>
+  <tr><th>Feature</th><th>Tab</th><th>Description</th></tr>
+  <tr><td>KPIs (5 cards)</td><td>—</td><td>Total Clients, Active, Pending, Delayed Tasks, Warnings</td></tr>
+  <tr><td>📥 Incoming</td><td>incoming</td><td>Clients from Head Tech not yet assigned → "Assign to Agent"</td></tr>
+  <tr><td>👥 My Team</td><td>team</td><td>Agent cards: active clients, in-progress, delayed</td></tr>
+  <tr><td>📋 All Clients</td><td>clients</td><td>Master list with warnings + Full Journey link</td></tr>
+  <tr><td>📝 Team Tasks</td><td>tasks</td><td>All tasks with status actions</td></tr>
+</table>
+</div>
+
+<div class="section-card">
+<h3>5b. Social Media Agent <span class="role-badge">agent_social_media</span></h3>
+<p><strong>Route:</strong> <span class="route-badge">/dashboard/social-media</span></p>
+<table>
+  <tr><th>Feature</th><th>Description</th></tr>
+  <tr><td>📋 My Clients</td><td>Assigned clients only with Full Journey navigation</td></tr>
+  <tr><td>+ Request Design</td><td>Create sub-tasks for Graphic / Motion / UI teams</td></tr>
+  <tr><td>📝 My Tasks</td><td>Task execution: Start → Submit Review → Done</td></tr>
+</table>
+</div>
+
+<!-- ═══════════ MEDIA BUYER ═══════════ -->
+<h2>📢 6. Media Buyer Department</h2>
+
+<div class="section-card">
+<h3>6a. Team Leader Media Buyer <span class="role-badge">team_leader_media_buyer</span></h3>
+<p><strong>Route:</strong> <span class="route-badge">/dashboard/media-buyer</span></p>
+<table>
+  <tr><th>Feature</th><th>Tab</th><th>Description</th></tr>
+  <tr><td>KPIs (5 cards)</td><td>—</td><td>Total Clients, Active, Pending, Delayed, Warnings</td></tr>
+  <tr><td>📥 Incoming</td><td>incoming</td><td>Clients needing agent assignment</td></tr>
+  <tr><td>👥 My Team</td><td>team</td><td>Agent workload cards</td></tr>
+  <tr><td>📋 All Clients</td><td>clients</td><td>Master client list + Full Journey</td></tr>
+  <tr><td>📝 Team Tasks</td><td>tasks</td><td>All tasks with status controls</td></tr>
+</table>
+</div>
+
+<div class="section-card">
+<h3>6b. Media Buyer Agent <span class="role-badge">agent_media_buyer</span></h3>
+<p><strong>Route:</strong> <span class="route-badge">/dashboard/media-buyer</span></p>
+<table>
+  <tr><th>Feature</th><th>Description</th></tr>
+  <tr><td>📋 My Clients</td><td>Assigned clients + Full Journey + Request Design</td></tr>
+  <tr><td>📝 My Tasks</td><td>Campaign task execution with status workflow</td></tr>
+</table>
+</div>
+
+<!-- ═══════════ DESIGN TEAMS ═══════════ -->
+<h2>🎨 7. Design & Creative Teams</h2>
+
+<div class="note">All three design teams (Graphic, Motion, UI/UX) use the <strong>exact same dashboard</strong> at <code>/dashboard/design?team=graphic|motion|ui</code>. Only the task type and agent pool differ.</div>
+
+<div class="section-card">
+<h3>7a. Design Leaders <span class="role-badge">leader_graphic_designer / leader_motion_graphic / leader_ui</span></h3>
+<p><strong>Route:</strong> <span class="route-badge">/dashboard/design?team=graphic|motion|ui</span></p>
+<table>
+  <tr><th>Feature</th><th>Tab</th><th>Description</th></tr>
+  <tr><td>KPIs (5 cards)</td><td>—</td><td>Incoming, In Progress, Done This Week, Delayed, Team Size</td></tr>
+  <tr><td>📥 Incoming</td><td>incoming</td><td>Tasks from Social/Media/SEO agents → "Assign to Designer"</td></tr>
+  <tr><td>👥 My Team</td><td>team</td><td>Agent cards: in-progress, completed, delayed, total</td></tr>
+  <tr><td>📋 All Tasks</td><td>all</td><td>Full filterable queue with search, status/priority filters</td></tr>
+  <tr><td>Client Info</td><td>drawer</td><td>Slide-out with full Client Journey + department notes</td></tr>
+</table>
+</div>
+
+<div class="section-card">
+<h3>7b. Design Agents <span class="role-badge">agent_graphic_designer / agent_motion_graphic / agent_ui</span></h3>
+<p><strong>Route:</strong> <span class="route-badge">/dashboard/design?team=graphic|motion|ui</span></p>
+<table>
+  <tr><th>Feature</th><th>Description</th></tr>
+  <tr><td>KPIs (4 cards)</td><td>Pending, In Progress, Completed, Delayed</td></tr>
+  <tr><td>My Tasks</td><td>Filterable list with brief, deadline, requester info</td></tr>
+  <tr><td>Task Execution</td><td>Start → Submit for Review → Mark Delivered</td></tr>
+  <tr><td>Client Info</td><td>Drawer with Client Journey + notes for context</td></tr>
+</table>
+</div>
+
+<!-- ═══════════ HR & SUPPORT ═══════════ -->
+<div class="page-break"></div>
+<h2>🛡️ 8. HR & Finance</h2>
+
+<div class="section-card">
+<h3>HR Manager <span class="role-badge">hr_manager</span></h3>
+<table>
+  <tr><th>Feature</th><th>Route</th><th>Description</th></tr>
+  <tr><td>Attendance</td><td>/dashboard/hr</td><td>Track check-in/out, late minutes, deductions</td></tr>
+  <tr><td>Hiring Pipeline</td><td>/dashboard/hr/hiring</td><td>Manage job applicants</td></tr>
+  <tr><td>Payroll</td><td>/dashboard/finance</td><td>Salary calculations, commission tracking</td></tr>
+</table>
+</div>
+
+<div class="section-card">
+<h3>Accountant <span class="role-badge">accountant</span></h3>
+<table>
+  <tr><th>Feature</th><th>Route</th><th>Description</th></tr>
+  <tr><td>Payroll & Commission</td><td>/dashboard/finance</td><td>View/manage payroll and commission data</td></tr>
+</table>
+</div>
+
+<!-- ═══════════ WARNINGS ═══════════ -->
+<h2>⚠️ 9. Warnings System</h2>
+
+<table>
+  <tr><th>Who Can SEND</th><th>Who RECEIVES</th><th>Mechanism</th></tr>
+  <tr><td>Head AM, AM, Head Technical, Chief Sales, Sales Manager, Head SEO</td><td>All team leaders and agents below them</td><td>Forced pop-up that must be acknowledged with "تم القراءة"</td></tr>
+</table>
+
+<div class="warning-note">
+  <strong>⚠️ Important:</strong> The WarningPopup component renders on EVERY page load for receivers. They CANNOT proceed until they acknowledge all active warnings.
+</div>
+
+<!-- ═══════════ SHARED FEATURES ═══════════ -->
+<h2>🔗 10. Shared Features Across All Roles</h2>
+
+<table>
+  <tr><th>Feature</th><th>Description</th></tr>
+  <tr><td>Client Journeys</td><td>/dashboard/operations or /dashboard/clients/[id] — visible to all operations/technical/creative leaders</td></tr>
+  <tr><td>Notifications</td><td>Real-time bell icon — triggers on lead assignment, meeting updates, deal closures, task assignments</td></tr>
+  <tr><td>Dark Sidebar</td><td>Role-adaptive: each role sees ONLY their relevant navigation items</td></tr>
+  <tr><td>Warning Pop-ups</td><td>Forced acknowledgment system that overlays any dashboard</td></tr>
+  <tr><td>My Profile</td><td>/dashboard/profile — Personal info, password change</td></tr>
+  <tr><td>Attendance</td><td>/dashboard/hr — View own check-in/out records</td></tr>
+</table>
+
+<!-- ═══════════ ROLE SUMMARY ═══════════ -->
+<h2>📈 11. Role Summary</h2>
+
+<table>
+  <tr><th>Department</th><th>Roles</th><th>Count</th></tr>
+  <tr><td>Administration</td><td>super_admin</td><td>1</td></tr>
+  <tr><td>Sales Executive</td><td>chief_sales</td><td>1</td></tr>
+  <tr><td>TeleSales</td><td>tele_sales_manager, tele_sales_agent</td><td>2</td></tr>
+  <tr><td>Sales</td><td>sales_manager, sales_agent</td><td>2</td></tr>
+  <tr><td>Account Management</td><td>head_account_manager, account_manager</td><td>2</td></tr>
+  <tr><td>Technical</td><td>head_technical</td><td>1</td></tr>
+  <tr><td>SEO</td><td>head_seo, team_leader_seo, agent_seo, agent_content_seo</td><td>4</td></tr>
+  <tr><td>Social Media</td><td>team_leader_social_media, agent_social_media</td><td>2</td></tr>
+  <tr><td>Media Buying</td><td>team_leader_media_buyer, agent_media_buyer</td><td>2</td></tr>
+  <tr><td>Graphic Design</td><td>leader_graphic_designer, agent_graphic_designer</td><td>2</td></tr>
+  <tr><td>Motion Graphics</td><td>leader_motion_graphic, agent_motion_graphic</td><td>2</td></tr>
+  <tr><td>UI/UX Design</td><td>leader_ui, agent_ui</td><td>2</td></tr>
+  <tr><td>HR</td><td>hr_manager</td><td>1</td></tr>
+  <tr><td>Finance</td><td>accountant</td><td>1</td></tr>
+  <tr><td>Legacy Ops</td><td>team_leader, operations_agent</td><td>2</td></tr>
+  <tr style="background:#e0e7ff; font-weight:700"><td>Total</td><td></td><td>27 roles</td></tr>
+</table>
+
+<br>
+<p style="text-align:center; color:#94a3b8; font-size:10px; margin-top:30px;">Generated by Thamaraa CRM System — April 2026</p>
+
+</body>
+</html>

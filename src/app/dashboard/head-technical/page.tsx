@@ -30,10 +30,27 @@ export default async function HeadTechnicalPage() {
     },
   });
 
+  const activeClients = projects.filter(p => ["in_progress", "setup"].includes(p.projectStatus)).length;
+  const delayedClients = projects.filter(p => p.projectStatus === "delayed" || p.tasks.some(t => t.status !== "done" && t.deadline && new Date(t.deadline) < new Date())).length;
+  
+  const allTasks = projects.flatMap(p => p.tasks);
+  const tasksInProgress = allTasks.filter(t => t.status === "in_progress" || t.status === "pending").length;
+
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Head Technical Dashboard</h1>
-      <HeadTechnicalClient projects={projects} teamLeaders={teamLeaders} userId={user.id} />
+      <HeadTechnicalClient 
+        projects={projects} 
+        teamLeaders={teamLeaders} 
+        kpis={{
+          assignedClients: projects.length,
+          activeClients,
+          delayedClients,
+          tasksInProgress,
+          allTasks
+        }}
+        userId={user.id} 
+      />
     </div>
   );
 }
