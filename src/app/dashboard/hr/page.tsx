@@ -31,6 +31,13 @@ export default async function HrPage() {
     take: 50
   });
 
+  const employees = isManager ? await prisma.user.findMany({
+    include: {
+      hrRecord: true
+    },
+    orderBy: { createdAt: "desc" }
+  }) : [];
+
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">HR & Attendance Hub</h1>
@@ -38,6 +45,7 @@ export default async function HrPage() {
         isManager={isManager}
         myTodayAttendance={myAttendance}
         history={allAttendance}
+        employees={employees}
       />
     </div>
   );

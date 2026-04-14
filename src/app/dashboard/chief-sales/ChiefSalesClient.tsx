@@ -1,123 +1,229 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import DrillDownModal from "@/components/DrillDownModal";
+import { DollarSign, CheckCircle2, TrendingUp, Users, Presentation, CalendarX } from "lucide-react";
 
-export default function ChiefSalesClient({ deals, salesTeam, warnings, projects, kpis }: any) {
-  const [selectedAgent, setSelectedAgent] = useState<any>(null);
-  const [pipelineView, setPipelineView] = useState<"kanban" | "table">("kanban");
+export default function ChiefSalesClient() {
+  const [range, setRange] = useState("today");
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const pipelineStages = [
-    { key: "leads", label: "Leads", color: "bg-blue-500", items: projects.filter((p: any) => p.projectStatus === "new") },
-    { key: "sales", label: "In Sales", color: "bg-purple-500", items: projects.filter((p: any) => p.projectStatus === "setup") },
-    { key: "accounts", label: "In Accounts", color: "bg-amber-500", items: projects.filter((p: any) => ["assigned", "in_progress"].includes(p.projectStatus)) },
-    { key: "operations", label: "Operations", color: "bg-emerald-500", items: projects.filter((p: any) => p.projectStatus === "completed") },
+  // Drill down state
+  const [drillDown, setDrillDown] = useState<{ isOpen: boolean; title: string; data: any[]; columns: any[] }>({
+    isOpen: false, title: "", data: [], columns: []
+  });
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/analytics/chief-sales?range=${range}`);
+      const json = await res.json();
+      setData(json);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [range]);
+
+  if (loading && !data) return <div className="flex justify-center p-12"><div className="animate-spin h-8 w-8 border-b-2 border-indigo-600 rounded-full"></div></div>;
+  if (!data) return <div className="text-center text-red-500">Failed to load analytics</div>;
+
+  const { overview, teleSalesTeam, salesTeam, recentDeals, warnings } = data;
+
+  const openDrillDown = (title: string, dataKey: string, cols: any[]) => {
+    let targetData = [];
+    if (dataKey === "recentDeals") targetData = recentDeals;
+    else if (dataKey === "teleSalesTeam") targetData = teleSalesTeam;
+    else if (dataKey === "salesTeam") targetData = salesTeam;
+
+    setDrillDown({
+      isOpen: true,
+      title,
+      data: targetData,
+      columns: cols
+    });
+  };
+
+  const dealColumns = [
+    { key: "client", label: "Client Name", render: (v: any, row: any) => row.lead?.name || "N/A" },
+    { key: "agent", label: "Sales Agent", render: (v: any, row: any) => row.salesAgent?.name || "N/A" },
+    { key: "package", label: "Package", render: (v: any, row: any) => row.package },
+    { key: "totalAmount", label: "Amount (EGP)", render: (v: any, row: any) => row.totalAmount.toLocaleString() },
+    { key: "status", label: "Status", render: (v: any, row: any) => row.status },
+  ];
+
+  const salesTeamCols = [
+    { key: "name", label: "Agent Name" },
+    { key: "dealsClosed", label: "Total Deals", render: (v: any) => <span className="font-bold text-emerald-600">{v}</span> },
+    { key: "revenueGenerated", label: "Revenue (EGP)", render: (v: any) => v.toLocaleString() },
+    { key: "avgDealSize", label: "Avg Deal Vol", render: (v: any) => v.toLocaleString() },
+  ];
+
+  const teleTeamCols = [
+    { key: "name", label: "Agent Name" },
+    { key: "meetingsBooked", label: "Booked" },
+    { key: "attended", label: "Attended", render: (v: any) => <span className="text-emerald-600 font-bold">{v}</span> },
+    { key: "lost", label: "Lost", render: (v: any) => <span className="text-red-500">{v}</span> },
   ];
 
   return (
-    <div className="space-y-8">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-        <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-5 text-white shadow-lg shadow-emerald-200">
-          <p className="text-sm font-medium text-emerald-100">Total Revenue Today</p>
-          <p className="text-3xl font-bold mt-1">{kpis.totalRevenueToday.toLocaleString()} <span className="text-lg">EGP</span></p>
-        </div>
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-5 text-white shadow-lg shadow-blue-200">
-          <p className="text-sm font-medium text-blue-100">Closed Deals Today</p>
-          <p className="text-3xl font-bold mt-1">{kpis.closedDealsToday}</p>
-        </div>
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-5 text-white shadow-lg shadow-purple-200">
-          <p className="text-sm font-medium text-purple-100">Pipeline Value</p>
-          <p className="text-3xl font-bold mt-1">{kpis.pipelineValue.toLocaleString()} <span className="text-lg">EGP</span></p>
-        </div>
-        <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl p-5 text-white shadow-lg shadow-amber-200">
-          <p className="text-sm font-medium text-amber-100">Total Deals</p>
-          <p className="text-3xl font-bold mt-1">{kpis.totalDeals}</p>
-        </div>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+        <h2 className="text-xl font-bold text-slate-800">Sales Leadership Overview</h2>
+        <select 
+          value={range} 
+          onChange={(e) => setRange(e.target.value)}
+          className="border-slate-200 border text-sm font-semibold text-slate-700 bg-slate-50 py-2 px-4 rounded-lg focus:outline-none focus:ring-2 ring-indigo-500"
+        >
+          <option value="today">Today</option>
+          <option value="this_week">This Week</option>
+          <option value="this_month">This Month</option>
+          <option value="all">All Time</option>
+        </select>
       </div>
 
-      {/* Sales Pipeline Kanban */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-slate-800">Sales Pipeline</h2>
-          <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
-            <button onClick={() => setPipelineView("kanban")} className={`px-3 py-1 text-xs font-medium rounded-md transition ${pipelineView === "kanban" ? "bg-white shadow text-slate-700" : "text-slate-500"}`}>Kanban</button>
-            <button onClick={() => setPipelineView("table")} className={`px-3 py-1 text-xs font-medium rounded-md transition ${pipelineView === "table" ? "bg-white shadow text-slate-700" : "text-slate-500"}`}>Table</button>
+      {loading && <div className="absolute top-20 right-10 bg-indigo-50 text-indigo-600 px-3 py-1 rounded text-xs animate-pulse font-bold">Refreshing...</div>}
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* KPI Cards */}
+        <div 
+          onClick={() => openDrillDown("Won Deals Breakdown", "recentDeals", dealColumns)}
+          className="bg-white border hover:border-emerald-300 hover:shadow-md cursor-pointer transition p-5 rounded-xl shadow-sm border-slate-200 space-y-2 relative overflow-hidden group"
+        >
+          <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition text-emerald-500"><DollarSign size={80} /></div>
+          <p className="text-sm font-medium text-slate-500">Total Revenue</p>
+          <h3 className="text-3xl font-bold text-slate-800">{overview.totalRevenue.toLocaleString()}<span className="text-lg text-slate-400 font-normal ml-1">EGP</span></h3>
+          <p className="text-xs text-slate-400">Target: {overview.totalNetTarget.toLocaleString()} EGP</p>
+        </div>
+
+        <div className="bg-white border p-5 rounded-xl shadow-sm border-slate-200 space-y-2 relative overflow-hidden">
+          <div className="absolute -right-4 -top-4 opacity-5 text-indigo-500"><CheckCircle2 size={80} /></div>
+          <p className="text-sm font-medium text-slate-500">Collected Payments</p>
+          <h3 className="text-3xl font-bold text-indigo-600">{overview.totalCollected.toLocaleString()}<span className="text-lg text-slate-400 font-normal ml-1">EGP</span></h3>
+          <p className="text-xs text-slate-400">Actual money in bank</p>
+        </div>
+
+        <div 
+          onClick={() => openDrillDown("Deals Data", "recentDeals", dealColumns)}
+          className="bg-white border hover:border-purple-300 hover:shadow-md cursor-pointer transition p-5 rounded-xl shadow-sm border-slate-200 space-y-2 relative overflow-hidden group"
+        >
+          <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition text-purple-500"><TrendingUp size={80} /></div>
+          <p className="text-sm font-medium text-slate-500">Conversion Vol</p>
+          <div className="flex gap-4 items-end">
+            <h3 className="text-3xl font-bold text-slate-800">{overview.totalDeals} <span className="text-sm font-normal text-slate-400">Deals</span></h3>
+            <span className="text-sm font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded">{overview.totalLeads > 0 ? Math.round((overview.totalDeals / overview.totalLeads)*100) : 0}% Conv</span>
           </div>
+          <p className="text-xs text-slate-400">Total Leads: {overview.totalLeads}</p>
         </div>
 
-        <div className="grid grid-cols-4 gap-4">
-          {pipelineStages.map((stage) => (
-            <div key={stage.key} className="bg-slate-50 rounded-xl p-4 border">
-              <div className="flex items-center gap-2 mb-3">
-                <div className={`w-2.5 h-2.5 rounded-full ${stage.color}`} />
-                <h3 className="text-sm font-bold text-slate-700">{stage.label}</h3>
-                <span className="ml-auto text-xs font-medium text-slate-400 bg-white px-2 py-0.5 rounded-full">{stage.items.length}</span>
-              </div>
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {stage.items.map((item: any) => (
-                  <div key={item.id} className="bg-white rounded-lg p-3 border shadow-sm hover:shadow-md transition cursor-pointer">
-                    <p className="text-sm font-semibold text-slate-800">{item.deal?.lead?.name || "Unknown"}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{item.package} • {item.deal?.totalAmount?.toLocaleString()} EGP</p>
-                  </div>
-                ))}
-                {stage.items.length === 0 && <p className="text-xs text-slate-400 italic text-center py-4">No items</p>}
-              </div>
-            </div>
-          ))}
+        <div 
+          onClick={() => openDrillDown("TeleSales Meetings", "teleSalesTeam", teleTeamCols)}
+          className="bg-white border hover:border-blue-300 hover:shadow-md cursor-pointer transition p-5 rounded-xl shadow-sm border-slate-200 space-y-2 relative overflow-hidden group"
+        >
+          <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition text-blue-500"><Presentation size={80} /></div>
+          <p className="text-sm font-medium text-slate-500">Meetings Booked</p>
+          <div className="flex gap-4 items-end">
+            <h3 className="text-3xl font-bold text-slate-800">{overview.meetingsBooked}</h3>
+            <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{overview.meetingsBooked > 0 ? Math.round((overview.meetingsAttended / overview.meetingsBooked)*100) : 0}% Attend</span>
+          </div>
+          <p className="text-xs text-slate-400 flex gap-2">
+            <span className="text-emerald-600">Attended: {overview.meetingsAttended}</span>
+            <span className="text-red-500">Lost: {overview.meetingsLost}</span>
+          </p>
         </div>
       </div>
 
-      {/* Team Performance Table */}
-      <div>
-        <h2 className="text-lg font-bold text-slate-800 mb-4">Team Performance (Today)</h2>
-        <div className="bg-white rounded-xl shadow border overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-slate-50">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Sales Team Rankings */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <h3 className="font-bold text-slate-800 flex items-center gap-2"><Users size={18} className="text-purple-600"/> Sales Performance Leaderboard</h3>
+            <button onClick={() => openDrillDown("Sales Team Detailed", "salesTeam", salesTeamCols)} className="text-xs text-indigo-600 hover:underline font-semibold">View All</button>
+          </div>
+          <table className="w-full text-sm text-left">
+            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Role</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Calls Today</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Meetings</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Closed Deals</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Revenue</th>
+                <th className="px-4 py-2 font-semibold">Agent</th>
+                <th className="px-4 py-2 font-semibold text-center">Deals</th>
+                <th className="px-4 py-2 font-semibold text-right">Revenue</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
-              {salesTeam.map((agent: any) => {
-                const revenue = agent.salesDeals?.reduce((s: number, d: any) => s + d.totalAmount, 0) || 0;
-                return (
-                  <tr key={agent.id} className="hover:bg-slate-50/50 cursor-pointer transition" onClick={() => setSelectedAgent(selectedAgent?.id === agent.id ? null : agent)}>
-                    <td className="px-6 py-4 text-sm font-bold text-slate-900">{agent.name}</td>
-                    <td className="px-6 py-4 text-sm text-slate-500 capitalize">{agent.role.replace(/_/g, " ")}</td>
-                    <td className="px-6 py-4 text-sm text-center font-medium">{agent.callLogs?.length || 0}</td>
-                    <td className="px-6 py-4 text-sm text-center font-medium">{agent.meetingsAsSales?.length || 0}</td>
-                    <td className="px-6 py-4 text-sm text-center font-bold text-emerald-700">{agent.salesDeals?.length || 0}</td>
-                    <td className="px-6 py-4 text-sm text-right font-bold text-emerald-700">{revenue.toLocaleString()} EGP</td>
-                  </tr>
-                );
-              })}
+            <tbody className="divide-y divide-slate-100">
+              {salesTeam.slice(0,5).map((agent: any, i: number) => (
+                <tr key={i} className="hover:bg-slate-50/50">
+                  <td className="px-4 py-3 font-semibold text-slate-700">{agent.name}</td>
+                  <td className="px-4 py-3 text-center font-bold text-emerald-600">{agent.dealsClosed}</td>
+                  <td className="px-4 py-3 text-right font-medium">{agent.revenueGenerated.toLocaleString()} EGP</td>
+                </tr>
+              ))}
+              {salesTeam.length === 0 && <tr><td colSpan={3} className="text-center py-4 text-slate-400 italic">No deals generated yet</td></tr>}
+            </tbody>
+          </table>
+        </div>
+
+        {/* TeleSales Team Rankings */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <h3 className="font-bold text-slate-800 flex items-center gap-2"><CalendarX size={18} className="text-blue-600"/> TeleSales Leaderboard</h3>
+            <button onClick={() => openDrillDown("TeleSales Detailed", "teleSalesTeam", teleTeamCols)} className="text-xs text-indigo-600 hover:underline font-semibold">View All</button>
+          </div>
+          <table className="w-full text-sm text-left">
+            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500">
+              <tr>
+                <th className="px-4 py-2 font-semibold">Agent</th>
+                <th className="px-4 py-2 font-semibold text-center">Booked</th>
+                <th className="px-4 py-2 font-semibold text-center">Attended</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {teleSalesTeam.slice(0,5).map((agent: any, i: number) => (
+                <tr key={i} className="hover:bg-slate-50/50">
+                  <td className="px-4 py-3 font-semibold text-slate-700">{agent.name}</td>
+                  <td className="px-4 py-3 text-center font-bold text-slate-700">{agent.meetingsBooked}</td>
+                  <td className="px-4 py-3 text-center font-bold text-emerald-600">{agent.attended}</td>
+                </tr>
+              ))}
+              {teleSalesTeam.length === 0 && <tr><td colSpan={3} className="text-center py-4 text-slate-400 italic">No meetings booked</td></tr>}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Active Warnings */}
-      {warnings.length > 0 && (
-        <div>
-          <h2 className="text-lg font-bold text-slate-800 mb-4">Recent Warnings</h2>
-          <div className="space-y-2">
+      {/* Warnings Section */}
+      {warnings && warnings.length > 0 && (
+        <div className="bg-red-50 border-2 border-red-200 rounded-xl p-5 mt-6 shadow-sm">
+          <h3 className="font-bold text-red-800 text-lg mb-4 flex items-center gap-2">🚨 System Warnings & Alerts</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {warnings.map((w: any) => (
-              <div key={w.id} className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
-                <span className="text-lg">🚨</span>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-red-800">{w.message}</p>
-                  <p className="text-xs text-red-500 mt-0.5 capitalize">{w.senderRole.replace(/_/g, " ")} • {new Date(w.createdAt).toLocaleString()}</p>
+              <div key={w.id} className="bg-white rounded-lg p-3 border border-red-100 shadow-sm flex items-start gap-3">
+                <div className={`mt-0.5 w-2 h-2 rounded-full flex-shrink-0 ${w.severity === 'Critical' ? 'bg-red-800' : w.severity === 'High' ? 'bg-red-500' : 'bg-amber-400'}`} />
+                <div>
+                  <h4 className="font-bold text-slate-800 text-sm leading-none mb-1">{w.subject || "Warning"}</h4>
+                  <p className="text-xs text-slate-600 line-clamp-2">{w.message}</p>
+                  <div className="flex justify-between items-center mt-2 text-[10px] text-slate-400">
+                    <span className="font-medium bg-slate-100 px-1.5 py-0.5 rounded capitalize">{w.senderRole.replace(/_/g, ' ')}</span>
+                    <span>{new Date(w.createdAt).toLocaleString()}</span>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         </div>
       )}
+
+      <DrillDownModal 
+        isOpen={drillDown.isOpen}
+        onClose={() => setDrillDown({ ...drillDown, isOpen: false })}
+        title={drillDown.title}
+        data={drillDown.data}
+        columns={drillDown.columns}
+      />
     </div>
   );
 }

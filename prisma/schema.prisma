@@ -29,6 +29,8 @@ model User {
   callLogs        CallLog[]
   salesDeals      Deal[]             @relation("DealSalesAgent")
   managedProjects Project[]          @relation("ProjectAccountManager")
+  technicalProjects Project[]        @relation("ProjectHeadTechnical")
+  seoProjects       Project[]        @relation("ProjectHeadSeo")
   ledTasks        Task[]             @relation("TaskLeader")
   assignedTasks   Task[]             @relation("TaskAgent")
   hrRecord        HrRecord?
@@ -183,6 +185,10 @@ model Project {
   deal                Deal      @relation(fields: [dealId], references: [id])
   accountManagerId    String
   accountManager      User      @relation("ProjectAccountManager", fields: [accountManagerId], references: [id])
+  headTechnicalId     String?
+  headTechnical       User?     @relation("ProjectHeadTechnical", fields: [headTechnicalId], references: [id])
+  headSeoId           String?
+  headSeo             User?     @relation("ProjectHeadSeo", fields: [headSeoId], references: [id])
   niche               String?
   package             String
   packageId           String?
@@ -232,6 +238,7 @@ model Task {
   parentTask     Task?     @relation("SubTasks", fields: [parentTaskId], references: [id], onDelete: SetNull)
   subTasks       Task[]    @relation("SubTasks")
   files          String?   // JSON string for deliverable URLs
+  startedAt      DateTime? // When the agent actually started working
   createdAt      DateTime  @default(now())
   completedAt    DateTime?
 }
@@ -376,7 +383,10 @@ model Warning {
   id             String   @id @default(uuid())
   clientId       String?  // Lead ID if warning is about a client
   projectId      String?  // Project ID if warning is about a project
+  subject        String   @default("Warning") // Short title
   message        String
+  severity       String   @default("Medium") // Low, Medium, High, Critical
+  status         String   @default("Active") // Active, Resolved, Archived
   senderUserId   String
   senderRole     String
   recipientRoles String   // JSON array of target role strings

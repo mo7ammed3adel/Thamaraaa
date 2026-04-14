@@ -3,53 +3,53 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-/**
- * GET /api/notes?projectId=xxx
- * Fetches all global notes for a project, ordered by newest first.
- */
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const projectId = req.nextUrl.searchParams.get("projectId");
-  if (!projectId) {
-    return NextResponse.json({ error: "projectId required" }, { status: 400 });
+  const { searchParams } = new URL(req.url);
+  const projectId = searchParams.get("projectId");
+
+  if (!projectId) return NextResponse.json({ error: "projectId required" }, { status: 400 });
+
+  try {
+    const notes = await prisma.note.findMany({
+      where: { projectId },
+      orderBy: { createdAt: "desc" },
+    });
+    return NextResponse.json({ notes });
+  } catch (error) {
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
-
-  const notes = await prisma.note.findMany({
-    where: { projectId },
-    orderBy: { createdAt: "desc" },
-  });
-
-  return NextResponse.json(notes);
 }
 
-/**
- * POST /api/notes
- * Creates a new global note on a project.
- * Body: { projectId, content, category }
- */
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const user = session.user as any;
 
-  const { projectId, content, category } = await req.json();
+  try {
+    const body = await req.json();
+    const { projectId, content, category } = body;
 
-  if (!projectId || !content) {
-    return NextResponse.json({ error: "projectId and content required" }, { status: 400 });
+    if (!projectId || !content) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    const note = await prisma.note.create({
+      data: {
+        projectId,
+        content,
+        category: category || "general",
+        userId: user.id,
+        userRole: user.role,
+        userName: user.name,
+      },
+    });
+
+    return NextResponse.json({ note });
+  } catch (error) {
+    console.error("Failed to create note:", error);
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
-
-  const note = await prisma.note.create({
-    data: {
-      projectId,
-      userId: user.id,
-      userRole: user.role,
-      userName: user.name || "Unknown",
-      content,
-      category: category || "general",
-    },
-  });
-
-  return NextResponse.json(note);
 }

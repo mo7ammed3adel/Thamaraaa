@@ -5,6 +5,8 @@ import { useState, useEffect, useCallback } from "react";
 interface WarningData {
   id: string;
   message: string;
+  subject?: string;
+  severity?: string;
   senderRole: string;
   senderUserId: string;
   createdAt: string;
@@ -48,6 +50,8 @@ export default function WarningPopup({ userRole, userId }: { userRole: string; u
               const newWarning: WarningData = {
                 id: data.id,
                 message: data.message,
+                subject: data.subject,
+                severity: data.severity,
                 senderRole: data.senderRole,
                 senderUserId: data.senderUserId,
                 createdAt: data.createdAt,
@@ -83,14 +87,24 @@ export default function WarningPopup({ userRole, userId }: { userRole: string; u
 
   if (!activeWarning) return null;
 
+  const severityColor = activeWarning.severity === 'Critical' ? 'bg-red-900 border-red-900' : 
+                        activeWarning.severity === 'High' ? 'bg-red-600 border-red-600' :
+                        activeWarning.severity === 'Low' ? 'bg-amber-500 border-amber-500' : 'bg-red-500 border-red-500';
+
+  const severityHeader = activeWarning.severity === 'Low' ? 'from-amber-600 to-amber-500' :
+                         activeWarning.severity === 'Critical' ? 'from-slate-900 to-red-900' :
+                         'from-red-600 to-red-500';
+
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden border-2 border-red-200 animate-in zoom-in-95">
+      <div className={`bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden border-2 ${activeWarning.severity === 'Low' ? 'border-amber-200' : 'border-red-200'} animate-in zoom-in-95`}>
         {/* Header */}
-        <div className="bg-gradient-to-r from-red-600 to-red-500 px-6 py-4 flex items-center gap-3">
-          <span className="text-2xl">🚨</span>
-          <h2 className="text-lg font-bold text-white">URGENT WARNING</h2>
-          <span className="text-2xl">🚨</span>
+        <div className={`bg-gradient-to-r ${severityHeader} px-6 py-4 flex items-center gap-3`}>
+          <span className="text-2xl">{activeWarning.severity === 'Low' ? '⚠️' : '🚨'}</span>
+          <div>
+            <h2 className="text-lg font-bold text-white uppercase">{activeWarning.severity || "URGENT"} WARNING</h2>
+            {activeWarning.subject && <p className="text-white/80 text-sm">{activeWarning.subject}</p>}
+          </div>
           {warnings.length > 1 && (
             <span className="ml-auto bg-white/20 text-white text-xs px-2 py-1 rounded-full">
               +{warnings.length - 1} more
@@ -100,11 +114,12 @@ export default function WarningPopup({ userRole, userId }: { userRole: string; u
 
         {/* Body */}
         <div className="p-6 space-y-4">
-          <p className="text-gray-800 text-base leading-relaxed whitespace-pre-wrap">
+          <p className="text-slate-800 text-base leading-relaxed whitespace-pre-wrap">
             {activeWarning.message}
           </p>
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <span className="capitalize font-medium text-gray-700">
+          <div className="flex items-center gap-2 text-sm text-slate-500 bg-slate-50 p-2 rounded-lg">
+            <span className="font-bold">Sent by:</span>
+            <span className="capitalize font-medium text-slate-700">
               {activeWarning.senderRole.replace(/_/g, " ")}
             </span>
             <span>•</span>
@@ -117,7 +132,7 @@ export default function WarningPopup({ userRole, userId }: { userRole: string; u
           <button
             onClick={handleAcknowledge}
             disabled={acknowledging}
-            className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-red-200"
+            className={`w-full py-3 ${severityColor} text-white font-bold rounded-xl transition-all duration-200 hover:brightness-110 disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg`}
           >
             {acknowledging ? (
               <span className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />

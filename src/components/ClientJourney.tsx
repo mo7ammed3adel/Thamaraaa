@@ -19,6 +19,7 @@ interface ClientJourneyProps {
   deals?: any[];
   projectNotes?: string;
   tasks?: any[];
+  globalNotes?: any[];
 }
 
 const stageColors: Record<string, { bg: string; border: string; dot: string; text: string }> = {
@@ -28,9 +29,10 @@ const stageColors: Record<string, { bg: string; border: string; dot: string; tex
   accounts: { bg: "bg-amber-50", border: "border-amber-200", dot: "bg-amber-500", text: "text-amber-700" },
   technical: { bg: "bg-indigo-50", border: "border-indigo-200", dot: "bg-indigo-500", text: "text-indigo-700" },
   delivery: { bg: "bg-teal-50", border: "border-teal-200", dot: "bg-teal-500", text: "text-teal-700" },
+  note: { bg: "bg-slate-50", border: "border-slate-200", dot: "bg-slate-400", text: "text-slate-600" },
 };
 
-export default function ClientJourney({ leadName, phone, callLogs, meetings, deals, projectNotes, tasks }: ClientJourneyProps) {
+export default function ClientJourney({ leadName, phone, callLogs, meetings, deals, projectNotes, tasks, globalNotes }: ClientJourneyProps) {
   const [expanded, setExpanded] = useState<string | null>(null);
 
   // Build timeline entries from all data
@@ -81,6 +83,18 @@ export default function ClientJourney({ leadName, phone, callLogs, meetings, dea
       agentRole: t.assignedRole || t.taskType,
       notes: t.brief || t.taskType,
       details: `Progress: ${t.progressPct}% | Status: ${t.status || "pending"} | Priority: ${t.priority || "Medium"}`,
+    });
+  });
+
+  // Global Notes
+  globalNotes?.forEach((n) => {
+    timeline.push({
+      stage: "note",
+      date: n.createdAt,
+      agentName: n.userName,
+      agentRole: n.userRole,
+      notes: n.content,
+      details: `Category: ${n.category}`,
     });
   });
 

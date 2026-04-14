@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, TrendingUp, CheckCircle, Clock, UserPlus } from "lucide-react";
+import { AlertTriangle, TrendingUp, CheckCircle, Clock, UserPlus, Bell } from "lucide-react";
+import ClientDetailModal from "@/components/ClientDetailModal";
 
-export default function HeadAccountManagerClient({ projects, accountManagers, headTechnicals, kpis }: any) {
+export default function HeadAccountManagerClient({ projects, accountManagers, headTechnicals, kpis, userId }: any) {
   const router = useRouter();
   const [filterAM, setFilterAM] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -12,20 +13,24 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterWarning, setFilterWarning] = useState("all");
   const [filterDelay, setFilterDelay] = useState("all");
+  
+  const [selectedClient, setSelectedClient] = useState<any>(null);
 
-  const filteredProjects = projects.filter((p: any) => {
-    const matchesAM = filterAM === "all" ? true : filterAM === "unassigned" ? !p.accountManagerId : p.accountManagerId === filterAM;
-    const matchesSearch = !searchQuery || (p.deal?.lead?.name?.toLowerCase().includes(searchQuery.toLowerCase()) || p.deal?.lead?.phone?.includes(searchQuery));
-    const matchesStatus = filterStatus === "all" ? true : p.projectStatus === filterStatus;
-    const hasWarnings = p.warnings && p.warnings.length > 0;
-    const matchesWarning = filterWarning === "all" ? true : filterWarning === "yes" ? hasWarnings : filterWarning === "no" ? !hasWarnings : true;
-    
-    // Check if any tasks are delayed or project is delayed
-    const isDelayed = p.projectStatus === "delayed" || (p.tasks && p.tasks.some((t:any) => t.status !== "done" && t.deadline && new Date(t.deadline) < new Date()));
-    const matchesDelay = filterDelay === "all" ? true : filterDelay === "yes" ? isDelayed : true;
+  const filteredProjects = useMemo(() => {
+    return projects.filter((p: any) => {
+      const matchesAM = filterAM === "all" ? true : filterAM === "unassigned" ? !p.accountManagerId : p.accountManagerId === filterAM;
+      const matchesSearch = !searchQuery || (p.deal?.lead?.name?.toLowerCase().includes(searchQuery.toLowerCase()) || p.deal?.lead?.phone?.includes(searchQuery));
+      const matchesStatus = filterStatus === "all" ? true : p.projectStatus === filterStatus;
+      const hasWarnings = p.warnings && p.warnings.length > 0;
+      const matchesWarning = filterWarning === "all" ? true : filterWarning === "yes" ? hasWarnings : filterWarning === "no" ? !hasWarnings : true;
+      
+      // Check if any tasks are delayed or project is delayed
+      const isDelayed = p.projectStatus === "delayed" || (p.tasks && p.tasks.some((t:any) => t.status !== "done" && t.deadline && new Date(t.deadline) < new Date()));
+      const matchesDelay = filterDelay === "all" ? true : filterDelay === "yes" ? isDelayed : true;
 
-    return matchesAM && matchesSearch && matchesStatus && matchesWarning && matchesDelay;
-  });
+      return matchesAM && matchesSearch && matchesStatus && matchesWarning && matchesDelay;
+    });
+  }, [projects, filterAM, searchQuery, filterStatus, filterWarning, filterDelay]);
 
   const handleAssignAM = async (projectId: string, amId: string) => {
     await fetch(`/api/projects/${projectId}/status`, {
@@ -223,8 +228,11 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button onClick={() => router.push(`/dashboard/clients/${p.id}`)} className="px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-medium hover:bg-slate-900 shadow-sm transition inline-flex items-center gap-2">
-                      Full Journey <span>→</span>
+                    <button onClick={() => setSelectedClient(p)} className="px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-medium hover:bg-slate-900 shadow-sm transition inline-flex items-center gap-2 whitespace-nowrap">
+                      Client Center <span>→</span>
+                    </button>
+                    <button onClick={() => router.push(`/dashboard/clients/${p.id}`)} className="block w-full mt-2 text-center text-[10px] text-indigo-600 font-bold hover:underline">
+                      Full Portal UI
                     </button>
                   </td>
                 </tr>
@@ -236,6 +244,15 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
           </tbody>
         </table>
       </div>
+
+      {selectedClient && (
+        <ClientDetailModal 
+          isOpen={!!selectedClient}
+          onClose={() => setSelectedClient(null)}
+          project={selectedClient}
+          currentUserRole="head_account_manager"
+        />
+      )}
     </div>
   );
 }

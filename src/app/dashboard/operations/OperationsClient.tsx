@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
 /**
@@ -11,7 +11,8 @@ export default function OperationsClient({
   userRole, userId, projects, teamLeaders,
 }: any) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   // Modals
   const [setupModal, setSetupModal] = useState<any>(null);
@@ -22,82 +23,128 @@ export default function OperationsClient({
   const [statusFilter, setStatusFilter] = useState("all");
   const [packageFilter, setPackageFilter] = useState("all");
 
-  const uniquePackages = Array.from(new Set(projects.map((p: any) => p.package)));
+  const uniquePackages = useMemo(() => Array.from(new Set(projects.map((p: any) => p.package))), [projects]);
 
-  const filteredProjects = projects.filter((p: any) => {
-    const matchesSearch =
-      !searchQuery ||
-      p.deal?.lead?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.deal?.lead?.phone?.includes(searchQuery) ||
-      p.niche?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || p.projectStatus === statusFilter;
-    const matchesPackage = packageFilter === "all" || p.package === packageFilter;
-    return matchesSearch && matchesStatus && matchesPackage;
-  });
+  const filteredProjects = useMemo(() => {
+    return projects.filter((p: any) => {
+      const matchesSearch =
+        !searchQuery ||
+        p.deal?.lead?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.deal?.lead?.phone?.includes(searchQuery) ||
+        p.niche?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      let matchesStatus = false;
+      if (statusFilter === "all") {
+        matchesStatus = true;
+      } else if (statusFilter === "active") {
+        matchesStatus = ["in_progress", "setup", "assigned"].includes(p.projectStatus);
+      } else {
+        matchesStatus = p.projectStatus === statusFilter;
+      }
 
-  // ── Action Handlers ──
+      const matchesPackage = packageFilter === "all" || p.package === packageFilter;
+      return matchesSearch && matchesStatus && matchesPackage;
+    });
+  }, [projects, searchQuery, statusFilter, packageFilter]);
+
+  // KPI counts memoized
+  const kpiCounts = useMemo(() => ({
+    total: projects.length,
+    needsSetup: projects.filter((p: any) => p.projectStatus === "new").length,
+    active: projects.filter((p: any) => ["in_progress", "setup", "assigned"].includes(p.projectStatus)).length,
+    delayed: projects.filter((p: any) => p.projectStatus === "delayed").length,
+    completed: projects.filter((p: any) => p.projectStatus === "completed").length,
+  }), [projects]);
+
+  // ── Action Handlers (with error handling) ──
 
   async function handleSaveSetup(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
+    setLoadingAction("setup");
+    setErrorMsg(null);
     const formData = new FormData(e.target as HTMLFormElement);
     
-    // 1. Update Project details via API (assuming a generic update endpoint or we need to pass this safely)
-    // Actually, we can use the existing /status endpoint if it handles partial updates, 
-    // or we can create an /api/projects/[id]/setup endpoint. Let's create a minimal payload using fetch to a new or existing endpoint.
-    // Wait, let's check if the generic /api/projects/[id]/setup exists. To be safe, we'll patch it to status endpoint or we'll assume it exists if we didn't build it. 
-    // Let's use fetch for now. If it fails, I'll add the API route.
-    
-    await fetch(`/api/projects/${setupModal.id}/setup`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        niche: formData.get("niche"),
-        storeUrl: formData.get("storeUrl"),
-        driveLink: formData.get("driveLink"),
-        finalDeadline: formData.get("finalDeadline") ? new Date(formData.get("finalDeadline") as string).toISOString() : null,
-        notes: formData.get("notes"),
-        projectStatus: "setup"
-      }),
-    });
-    
-    setLoading(false);
-    setSetupModal(null);
-    router.refresh();
+    try {
+      const res = await fetch(`/api/projects/${setupModal.id}/setup`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          niche: formData.get("niche"),
+          storeUrl: formData.get("storeUrl"),
+          driveLink: formData.get("driveLink"),
+          finalDeadline: formData.get("finalDeadline") ? new Date(formData.get("finalDeadline") as string).toISOString() : null,
+          notes: formData.get("notes"),
+          projectStatus: "setup"
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to save setup");
+      }
+      setSetupModal(null);
+      router.refresh();
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to save setup. Please try again.");
+    } finally {
+      setLoadingAction(null);
+    }
   }
 
   async function handlePushToTeams(projectId: string, packageType: string) {
-    setLoading(true);
-    // Find relevant leaders based on new roles
-    const tlSeo = teamLeaders.find((l: any) => l.role === "team_leader_seo");
-    const tlSocial = teamLeaders.find((l: any) => l.role === "team_leader_social_media");
-    const tlMedia = teamLeaders.find((l: any) => l.role === "team_leader_media_buyer");
-    const tlDesign = teamLeaders.find((l: any) => l.role === "leader_graphic_designer");
+    setLoadingAction(`push-${projectId}`);
+    setErrorMsg(null);
     
-    await fetch("/api/tasks/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        projectId, 
-        packageType, 
-        seoLeaderId: tlSeo?.id, 
-        socialLeaderId: tlSocial?.id,
-        mediaBuyerLeaderId: tlMedia?.id,
-        designLeaderId: tlDesign?.id
-      }),
-    });
-    setLoading(false);
-    router.refresh();
+    try {
+      const tlSeo = teamLeaders.find((l: any) => l.role === "team_leader_seo");
+      const tlSocial = teamLeaders.find((l: any) => l.role === "team_leader_social_media");
+      const tlMedia = teamLeaders.find((l: any) => l.role === "team_leader_media_buyer");
+      const tlDesign = teamLeaders.find((l: any) => l.role === "leader_graphic_designer");
+      
+      const res = await fetch("/api/tasks/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          projectId, 
+          packageType, 
+          seoLeaderId: tlSeo?.id, 
+          socialLeaderId: tlSocial?.id,
+          mediaBuyerLeaderId: tlMedia?.id,
+          designLeaderId: tlDesign?.id
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to push to teams");
+      }
+      router.refresh();
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to push tasks to teams.");
+    } finally {
+      setLoadingAction(null);
+    }
   }
 
   async function handleChangeProjectStatus(projectId: string, status: string) {
-    await fetch(`/api/projects/${projectId}/status`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectStatus: status }),
-    });
-    setStatusModal(null);
-    router.refresh();
+    setLoadingAction(`status-${projectId}`);
+    setErrorMsg(null);
+    
+    try {
+      const res = await fetch(`/api/projects/${projectId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectStatus: status }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to change status");
+      }
+      setStatusModal(null);
+      router.refresh();
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to change project status.");
+    } finally {
+      setLoadingAction(null);
+    }
   }
 
   const getProgressColor = (val: number) => val < 30 ? "bg-red-500" : val < 70 ? "bg-amber-400" : "bg-emerald-500";
@@ -106,16 +153,24 @@ export default function OperationsClient({
     <div className="space-y-6">
       <h2 className="text-xl font-bold text-slate-800">Account Manager Details</h2>
 
+      {/* Error Banner */}
+      {errorMsg && (
+        <div className="flex items-center justify-between bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl text-sm">
+          <span>⚠️ {errorMsg}</span>
+          <button onClick={() => setErrorMsg(null)} className="text-red-600 font-bold hover:text-red-800">✕</button>
+        </div>
+      )}
+
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
-          { label: "My Total Projects", value: projects.length, cls: "bg-white border" },
-          { label: "Needs Setup", value: projects.filter((p: any) => p.projectStatus === "new").length, cls: "bg-purple-50 border-purple-100" },
-          { label: "Active", value: projects.filter((p: any) => ["in_progress", "setup", "assigned"].includes(p.projectStatus)).length, cls: "bg-blue-50 border-blue-100" },
-          { label: "Delayed", value: projects.filter((p: any) => p.projectStatus === "delayed").length, cls: "bg-red-50 border-red-100" },
-          { label: "Completed", value: projects.filter((p: any) => p.projectStatus === "completed").length, cls: "bg-emerald-50 border-emerald-100" },
+          { label: "My Total Projects", value: kpiCounts.total, cls: "bg-white border", filter: "all" },
+          { label: "Needs Setup", value: kpiCounts.needsSetup, cls: "bg-purple-50 border-purple-100", filter: "new" },
+          { label: "Active", value: kpiCounts.active, cls: "bg-blue-50 border-blue-100", filter: "active" },
+          { label: "Delayed", value: kpiCounts.delayed, cls: "bg-red-50 border-red-100", filter: "delayed" },
+          { label: "Completed", value: kpiCounts.completed, cls: "bg-emerald-50 border-emerald-100", filter: "completed" },
         ].map((kpi) => (
-          <button key={kpi.label} onClick={() => setStatusFilter(kpi.label.includes("Total") ? "all" : kpi.label === "Needs Setup" ? "new" : kpi.label === "Active" ? "in_progress" : kpi.label === "Delayed" ? "delayed" : "completed")} className={`${kpi.cls} p-4 rounded-xl border shadow-sm flex flex-col justify-center items-center hover:shadow-md transition cursor-pointer`}>
+          <button key={kpi.label} onClick={() => setStatusFilter(kpi.filter)} className={`${kpi.cls} p-4 rounded-xl border shadow-sm flex flex-col justify-center items-center hover:shadow-md transition cursor-pointer`}>
             <span className="text-sm font-medium text-slate-500">{kpi.label}</span>
             <span className="text-2xl font-bold text-slate-800">{kpi.value}</span>
           </button>
@@ -133,6 +188,7 @@ export default function OperationsClient({
         />
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none">
           <option value="all">All Statuses</option>
+          <option value="active">Active (Setup/Assigned/In Progress)</option>
           {["new", "setup", "assigned", "in_progress", "on_hold", "delayed", "completed", "cancelled"].map(s => (
             <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
           ))}
@@ -197,8 +253,8 @@ export default function OperationsClient({
                     </button>
                   )}
                   {p.projectStatus === "setup" && (
-                    <button onClick={() => handlePushToTeams(p.id, p.package)} disabled={loading} className="px-3 py-1.5 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700 shadow-sm transition disabled:opacity-50">
-                      {loading ? "Pushing..." : "2. Push to Teams"}
+                    <button onClick={() => handlePushToTeams(p.id, p.package)} disabled={loadingAction === `push-${p.id}`} className="px-3 py-1.5 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700 shadow-sm transition disabled:opacity-50">
+                      {loadingAction === `push-${p.id}` ? "Pushing..." : "2. Push to Teams"}
                     </button>
                   )}
                   <button onClick={() => router.push(`/dashboard/clients/${p.id}`)} className="px-3 py-1.5 bg-slate-800 text-white rounded text-xs font-medium hover:bg-slate-900 shadow-sm transition">
@@ -249,8 +305,8 @@ export default function OperationsClient({
                 <textarea name="notes" defaultValue={setupModal.notes} className="w-full border rounded-lg px-3 py-2 text-sm h-32 resize-none focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Enter key details for the technical and creative teams..." />
               </div>
               <div className="pt-4 border-t mt-6">
-                <button type="submit" disabled={loading} className="w-full py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 disabled:opacity-50 transition shadow-lg shadow-indigo-200">
-                  {loading ? "Saving..." : "Save Setup & Mark Ready"}
+                <button type="submit" disabled={loadingAction === "setup"} className="w-full py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 disabled:opacity-50 transition shadow-lg shadow-indigo-200">
+                  {loadingAction === "setup" ? "Saving..." : "Save Setup & Mark Ready"}
                 </button>
               </div>
             </form>

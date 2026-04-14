@@ -11,16 +11,34 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
   const getProgressColor = (val: number) => val < 30 ? "bg-red-500" : val < 70 ? "bg-amber-400" : "bg-emerald-500";
 
   const handleAssignToTeamLeader = async (projectId: string, leaderId: string, taskType: string) => {
-    await fetch("/api/tasks/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        projectId,
-        packageType: taskType,
-        socialLeaderId: taskType === "social_media" ? leaderId : undefined,
-        mediaLeaderId: taskType === "media_buying" ? leaderId : undefined,
-      }),
-    });
+    if (taskType === "head_seo") {
+      await fetch(`/api/projects/${projectId}/assign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetRole: "head_seo", assigneeId: leaderId }),
+      });
+      // Also generate SEO general task
+      await fetch("/api/tasks/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId,
+          packageType: "seo",
+          seoLeaderId: leaderId,
+        }),
+      });
+    } else {
+      await fetch("/api/tasks/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId,
+          packageType: taskType,
+          socialLeaderId: taskType === "social_media" ? leaderId : undefined,
+          mediaLeaderId: taskType === "media_buying" ? leaderId : undefined,
+        }),
+      });
+    }
     setAssignModal(null);
     router.refresh();
   };
@@ -131,19 +149,22 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
             <h3 className="text-lg font-bold text-slate-800 mb-4">Assign Team for: {assignModal.deal?.lead?.name}</h3>
             <p className="text-sm text-slate-500 mb-4">Select a team leader to assign this project to:</p>
             <div className="space-y-2">
-              {teamLeaders.map((tl: any) => (
-                <button
-                  key={tl.id}
-                  onClick={() => handleAssignToTeamLeader(assignModal.id, tl.id, tl.role.includes("social") ? "social_media" : "media_buying")}
-                  className="w-full text-left p-3 bg-slate-50 hover:bg-indigo-50 border rounded-lg transition flex justify-between items-center"
-                >
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">{tl.name}</p>
-                    <p className="text-xs text-slate-500 capitalize">{tl.role.replace(/_/g, " ")}</p>
-                  </div>
-                  <span className="text-indigo-600 text-xs font-medium">Assign →</span>
-                </button>
-              ))}
+              {teamLeaders.map((tl: any) => {
+                let mappedType = tl.role.includes("social") ? "social_media" : tl.role.includes("media") ? "media_buying" : "head_seo";
+                return (
+                  <button
+                    key={tl.id}
+                    onClick={() => handleAssignToTeamLeader(assignModal.id, tl.id, mappedType)}
+                    className="w-full text-left p-3 bg-slate-50 hover:bg-indigo-50 border rounded-lg transition flex justify-between items-center"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">{tl.name}</p>
+                      <p className="text-xs text-slate-500 capitalize">{tl.role.replace(/_/g, " ")}</p>
+                    </div>
+                    <span className="text-indigo-600 text-xs font-medium">Assign →</span>
+                  </button>
+                )
+              })}
               {teamLeaders.length === 0 && <p className="text-sm text-slate-400 italic">No team leaders available</p>}
             </div>
             <button onClick={() => setAssignModal(null)} className="mt-4 w-full py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-200">Cancel</button>

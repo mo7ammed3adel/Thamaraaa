@@ -195,21 +195,17 @@ export default async function DashboardLayout({
             </>
           )}
 
-          {/* ===== CLIENT JOURNEY (visible to all operations/technical/creative roles) ===== */}
-          {hasRole("head_account_manager", "account_manager", "head_technical", "head_seo", "team_leader_seo", "team_leader_social_media", "team_leader_media_buyer", "leader_graphic_designer", "leader_motion_graphic", "leader_ui") && (
-            <Link href="/dashboard/operations" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors mt-1">
-              <ClipboardList className="mr-3 h-5 w-5 opacity-75" />
-              Client Journeys
-            </Link>
-          )}
-
           {/* ===== HEAD TECHNICAL ===== */}
           {hasRole("head_technical") && (
             <>
               <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-6 mb-2 px-3">Technical</div>
               <Link href="/dashboard/head-technical" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
                 <Monitor className="mr-3 h-5 w-5 opacity-75" />
-                Technical Projects
+                Technical Overview
+              </Link>
+              <Link href="/dashboard/operations" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
+                <ClipboardList className="mr-3 h-5 w-5 opacity-75" />
+                All Client Projects
               </Link>
             </>
           )}
@@ -289,25 +285,28 @@ export default async function DashboardLayout({
 
           {/* ===== HR & FINANCE ===== */}
           <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-6 mb-2 px-3">HR & Finance</div>
+          {/* Attendance visible to everyone */}
           <Link href="/dashboard/hr" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
             <User className="mr-3 h-5 w-5 opacity-75" />
             Attendance
           </Link>
+          {/* HR Management: only for hr_manager (+ super_admin via hasRole) */}
           {hasRole("hr_manager") && (
-            <Link href="/dashboard/hr/hiring" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
+            <Link href="/dashboard/hr" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
               <Users className="mr-3 h-5 w-5 opacity-75" />
-              Hiring Pipeline
+              Employee Directory
             </Link>
           )}
-          {hasRole("hr_manager", "sales_agent", "sales_manager", "accountant") && (
+          {/* Finance: only for accountant (+ super_admin via hasRole) */}
+          {hasRole("accountant") && (
             <Link href="/dashboard/finance" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
               <DollarSign className="mr-3 h-5 w-5 opacity-75" />
-              Payroll & Commission
+              Finance Dashboard
             </Link>
           )}
 
           {/* ===== WARNINGS CENTER ===== */}
-          {hasRole("chief_sales", "head_account_manager", "account_manager", "head_technical", "head_seo", "sales_manager") && (
+          {hasRole("chief_sales", "head_account_manager", "account_manager", "head_technical", "head_seo", "sales_manager", "team_leader_seo", "team_leader_social_media", "team_leader_media_buyer", "leader_graphic_designer", "leader_motion_graphic", "leader_ui") && (
             <>
               <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-6 mb-2 px-3">Communication</div>
               <Link href="/dashboard/warnings" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">

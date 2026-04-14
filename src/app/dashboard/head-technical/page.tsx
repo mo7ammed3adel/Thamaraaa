@@ -25,7 +25,7 @@ export default async function HeadTechnicalPage() {
   // Fetch team leaders that head_technical can assign to
   const teamLeaders = await prisma.user.findMany({
     where: {
-      role: { in: ["team_leader_social_media", "team_leader_media_buyer"] },
+      role: { in: ["team_leader_social_media", "team_leader_media_buyer", "head_seo"] },
       status: "Active",
     },
   });

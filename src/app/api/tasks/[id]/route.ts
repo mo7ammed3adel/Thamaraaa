@@ -3,21 +3,70 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
+/**
+ * PATCH /api/tasks/[id]
+ * Updates task fields (agent, progress, status, checklist, etc.)
+ *
+ * Security: Only the task's leader, assigned agent, project account manager,
+ * or admin roles can modify a task.
+ */
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    const user = session?.user as any;
+    if (!user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const taskId = params.id;
-    const body = await req.json();
 
+    // ── Ownership / Role Check ──
+    const existingTask = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { id: true, leaderId: true, agentId: true, projectId: true, project: { select: { accountManagerId: true } } },
+    });
+
+    if (!existingTask) {
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
+
+    const isAdmin = ["super_admin", "head_account_manager", "head_technical", "head_seo"].includes(user.role);
+    const isTeamLeader = existingTask.leaderId === user.id;
+    const isAssignedAgent = existingTask.agentId === user.id;
+    const isProjectAM = existingTask.project?.accountManagerId === user.id;
+
+    if (!isAdmin && !isTeamLeader && !isAssignedAgent && !isProjectAM) {
+      return NextResponse.json({ error: "Forbidden: You are not authorized to modify this task." }, { status: 403 });
+    }
+
+    // ── Build update payload with validation ──
+    const body = await req.json();
     const updateData: any = {};
-    if (body.agentId !== undefined) updateData.agentId = body.agentId;
-    if (body.progressPct !== undefined) updateData.progressPct = body.progressPct;
+
+    // Only leaders and admins can reassign agents
+    if (body.agentId !== undefined) {
+      if (!isTeamLeader && !isAdmin) {
+        return NextResponse.json({ error: "Only team leaders or admins can reassign agents." }, { status: 403 });
+      }
+      updateData.agentId = body.agentId;
+    }
+
+    if (body.progressPct !== undefined) {
+      const pct = Number(body.progressPct);
+      if (isNaN(pct) || pct < 0 || pct > 100) {
+        return NextResponse.json({ error: "progressPct must be between 0 and 100" }, { status: 400 });
+      }
+      updateData.progressPct = pct;
+    }
+
     if (body.checklistItems !== undefined) updateData.checklistItems = body.checklistItems;
-    if (body.status !== undefined) updateData.status = body.status;
+    if (body.status !== undefined) {
+      const validStatuses = ["pending", "in_progress", "review", "done"];
+      if (!validStatuses.includes(body.status)) {
+        return NextResponse.json({ error: `Invalid status: ${body.status}` }, { status: 400 });
+      }
+      updateData.status = body.status;
+    }
     if (body.priority !== undefined) updateData.priority = body.priority;
     if (body.brief !== undefined) updateData.brief = body.brief;
     if (body.deadline !== undefined) updateData.deadline = body.deadline ? new Date(body.deadline) : null;
@@ -30,18 +79,19 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       include: { project: true },
     });
 
+    // ── Notify agent on assignment ──
     if (body.agentId !== undefined) {
       await prisma.notification.create({
         data: {
           userId: body.agentId,
           title: "New Task Assigned",
-          message: "A team leader assigned a new project task to your queue.",
+          message: `A team leader assigned a new project task to your queue.`,
           link: "/dashboard/operations",
         },
       });
     }
 
-    // If progress is updated, dynamically update project progress
+    // ── If progress is updated, recalculate project progress ──
     if (body.progressPct !== undefined) {
       const allProjectTasks = await prisma.task.findMany({ where: { projectId: updatedTask.projectId } });
 
@@ -75,39 +125,42 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         data: { seoProgress: avgSeo, socialMediaProgress: avgSocial, mediaBuyerProgress: avgMedia, projectStatus: newStatus },
       });
 
+      // Notify on 100% completion
       if (body.progressPct === 100) {
         await prisma.projectLog.create({
           data: {
             projectId: updatedTask.projectId,
             action: "progress_updated",
-            details: `Task "${updatedTask.taskType}" completed by agent.`,
-            userId: (session?.user as any)?.id,
+            details: `Task "${updatedTask.taskType}" completed by ${user.name || user.id}.`,
+            userId: user.id,
           },
         });
 
-        await prisma.notification.createMany({
-          data: [
-            {
-              userId: updatedTask.project.accountManagerId,
-              title: "Task Completed",
-              message: `Task "${updatedTask.taskType}" for project was completed. Overall: ${overallProgress.toFixed(0)}%`,
-              type: "task_progress",
-              link: "/dashboard/operations",
-            },
-            {
-              userId: updatedTask.leaderId,
-              title: "Task Completed",
-              message: `Agent completed task "${updatedTask.taskType}".`,
-              type: "task_progress",
-              link: "/dashboard/operations",
-            },
-          ],
-        });
+        const notificationTargets = [
+          updatedTask.project.accountManagerId && {
+            userId: updatedTask.project.accountManagerId,
+            title: "Task Completed",
+            message: `Task "${updatedTask.taskType}" completed. Overall: ${overallProgress.toFixed(0)}%`,
+            type: "task_progress",
+            link: "/dashboard/operations",
+          },
+          updatedTask.leaderId && {
+            userId: updatedTask.leaderId,
+            title: "Task Completed",
+            message: `Agent completed task "${updatedTask.taskType}".`,
+            type: "task_progress",
+            link: "/dashboard/operations",
+          },
+        ].filter(Boolean);
+
+        if (notificationTargets.length > 0) {
+          await prisma.notification.createMany({ data: notificationTargets as any });
+        }
       }
     }
 
-    // If status is updated to "done", also notify the parent task requester
-    if (body.status === "done" && updatedTask.project) {
+    // ── Notify AM when status changes to "done" ──
+    if (body.status === "done" && updatedTask.project?.accountManagerId) {
       await prisma.notification.create({
         data: {
           userId: updatedTask.project.accountManagerId,
@@ -121,7 +174,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
     return NextResponse.json(updatedTask, { status: 200 });
   } catch (error) {
-    console.error(error);
+    console.error("Failed to update task:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

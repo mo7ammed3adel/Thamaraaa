@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { 
   Users, AlertCircle, Clock, Calendar, CheckCircle, 
   ArrowRight, FileText, Send 
 } from "lucide-react";
 import Link from "next/link";
+import ClientDetailModal from "@/components/ClientDetailModal";
+import NotesPanel from "@/components/NotesPanel";
+import CreateWarningModal from "@/components/CreateWarningModal";
 
 export default function SocialMediaClient({
   projects, agents, designLeaders, kpis, userRole, userId, departmentTaskType
@@ -16,6 +19,9 @@ export default function SocialMediaClient({
   
   const [activeTab, setActiveTab] = useState(isTL ? "incoming" : "clients");
   const [createSubTask, setCreateSubTask] = useState<any>(null);
+  const [detailModal, setDetailModal] = useState<any>(null);
+  const [notesPanel, setNotesPanel] = useState<any>(null);
+  const [warningModal, setWarningModal] = useState<any>(null);
   
   // Sub-task form state
   const [subTaskType, setSubTaskType] = useState("graphic_design");
@@ -23,9 +29,9 @@ export default function SocialMediaClient({
   const [subTaskLeader, setSubTaskLeader] = useState("");
   const [subTaskDeadline, setSubTaskDeadline] = useState("");
 
-  const incomingClients = projects.filter((p: any) => p.tasks.some((t: any) => t.taskType === departmentTaskType && t.leaderId === userId && !t.agentId));
-  const assignedProjects = isTL ? projects : projects.filter((p: any) => p.tasks.some((t: any) => t.taskType === departmentTaskType && t.agentId === userId));
-  const allTasks = projects.flatMap((p: any) => p.tasks.filter((t: any) => t.taskType === departmentTaskType || t.parentTaskId));
+  const incomingClients = useMemo(() => projects.filter((p: any) => p.tasks.some((t: any) => t.taskType === departmentTaskType && t.leaderId === userId && !t.agentId)), [projects, departmentTaskType, userId]);
+  const assignedProjects = useMemo(() => isTL ? projects : projects.filter((p: any) => p.tasks.some((t: any) => t.taskType === departmentTaskType && t.agentId === userId)), [isTL, projects, departmentTaskType, userId]);
+  const allTasks = useMemo(() => projects.flatMap((p: any) => p.tasks.filter((t: any) => t.taskType === departmentTaskType || t.parentTaskId)), [projects, departmentTaskType]);
 
   async function handleAssignAgent(taskId: string, targetAgentId: string) {
     if (!targetAgentId) return;
@@ -216,6 +222,12 @@ export default function SocialMediaClient({
                   </div>
                   
                   <div className="flex flex-col md:flex-row gap-2 shrink-0">
+                    <button onClick={() => setDetailModal(p)} className="px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-xl text-sm font-bold hover:bg-indigo-100 shadow-sm transition">
+                       Details
+                    </button>
+                    <button onClick={() => setNotesPanel(p)} className="px-4 py-2 bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-sm font-bold hover:bg-slate-100 shadow-sm transition">
+                       Notes
+                    </button>
                     <Link href={`/dashboard/clients/${p.id}`} className="px-4 py-2 bg-gray-50 text-gray-700 border border-gray-200 rounded-xl text-sm font-bold hover:bg-gray-100 shadow-sm transition flex items-center justify-center gap-2">
                        Full Journey <ArrowRight className="w-4 h-4" />
                     </Link>
@@ -325,6 +337,18 @@ export default function SocialMediaClient({
           </div>
         </div>
       )}
+      
+      {/* MODALS */}
+      {detailModal && <ClientDetailModal isOpen={!!detailModal} currentUserRole={userRole} project={detailModal} onClose={() => setDetailModal(null)} />}
+      {notesPanel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden relative">
+            <button onClick={() => setNotesPanel(null)} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 z-10 transition">✕ Close</button>
+            <NotesPanel projectId={notesPanel.id} currentUserRole={userRole} />
+          </div>
+        </div>
+      )}
+      {warningModal && <CreateWarningModal isOpen={!!warningModal} projectId={warningModal.id} clientId={warningModal.deal?.leadId} onClose={() => setWarningModal(null)} />}
     </div>
   );
 }

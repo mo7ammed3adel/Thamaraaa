@@ -131,3 +131,61 @@
 - Warning جديد على عميل تحت إشرافه
 - تاسك تجاوز الـ Deadline في أي فريق
 - Team Leader لم يحدث حالة عميل منذ X أيام
+----------------------------------------
+Head Technical Dashboard (FULL SPEC)
+
+Build a fully detailed, production-ready dashboard for the role: "Head Technical" inside a CRM + Task Management system.
+
+Responsibilities:
+- Receive clients from Account Manager
+- Assign clients to:
+   - Team Leader Social Media
+   - Team Leader Media Buyer
+- Monitor execution progress
+- Ensure tasks are moving correctly
+
+-------------------------------------
+PERMISSIONS
+-------------------------------------
+
+- View assigned clients only
+- Assign clients to team leaders
+- View all tasks (read-only)
+- View all notes
+- Cannot create tasks
+- Cannot create warnings
+
+-------------------------------------
+DASHBOARD
+-------------------------------------
+
+1) Overview:
+- Assigned Clients
+- Active Clients
+- Delayed Clients
+- Tasks In Progress
+
+2) Clients List:
+- Client Name
+- Assigned Teams
+- Status
+- Progress %
+- Delays
+
+3) Client Details:
+- Timeline
+- Notes (read-only)
+- Teams assigned
+
+4) Assignment:
+- Assign Social Media TL
+- Assign Media Buyer TL
+
+5) Tasks Overview:
+- Read-only tasks
+- Status tracking
+
+-------------------------------------
+KEY GOAL:
+-------------------------------------
+Distribute workload across teams efficiently

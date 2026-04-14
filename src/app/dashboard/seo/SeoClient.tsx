@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import ClientDetailModal from "@/components/ClientDetailModal";
+import NotesPanel from "@/components/NotesPanel";
+import CreateWarningModal from "@/components/CreateWarningModal";
 
 /**
  * SEO Department client component with advanced filtering,
@@ -10,6 +13,10 @@ import { useRouter } from "next/navigation";
 export default function SeoClient({ tasks, teamMembers, designLeaders, userRole, userId }: any) {
   const router = useRouter();
   const [createSubTask, setCreateSubTask] = useState<any>(null);
+  const [detailModal, setDetailModal] = useState<any>(null);
+  const [notesPanel, setNotesPanel] = useState<any>(null);
+  const [warningModal, setWarningModal] = useState<any>(null);
+
   const [subTaskType, setSubTaskType] = useState("graphic_design");
   const [subTaskBrief, setSubTaskBrief] = useState("");
   const [subTaskLeader, setSubTaskLeader] = useState("");
@@ -24,16 +31,18 @@ export default function SeoClient({ tasks, teamMembers, designLeaders, userRole,
   const isAgent = ["agent_seo", "agent_content_seo"].includes(userRole);
 
   // ── Filter logic ──
-  const filteredTasks = tasks.filter((t: any) => {
-    const matchesSearch =
-      !searchQuery ||
-      t.project?.deal?.lead?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.taskType?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.brief?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || t.status === statusFilter;
-    const matchesPriority = priorityFilter === "all" || t.priority === priorityFilter;
-    return matchesSearch && matchesStatus && matchesPriority;
-  });
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((t: any) => {
+      const matchesSearch =
+        !searchQuery ||
+        t.project?.deal?.lead?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.taskType?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.brief?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === "all" || t.status === statusFilter;
+      const matchesPriority = priorityFilter === "all" || t.priority === priorityFilter;
+      return matchesSearch && matchesStatus && matchesPriority;
+    });
+  }, [tasks, searchQuery, statusFilter, priorityFilter]);
 
   // ── Handlers ──
   async function handleAssign(taskId: string, targetId: string) {
@@ -156,6 +165,10 @@ export default function SeoClient({ tasks, teamMembers, designLeaders, userRole,
                   <div className="flex items-center gap-2 mt-1">
                      <span className="font-bold text-[10px] uppercase bg-indigo-100 px-2 py-0.5 rounded text-indigo-800">{t.taskType.replace(/_/g, " ")}</span>
                      <span className="text-sm text-slate-600">{t.brief ? t.brief : "No specific brief provided"}</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <button onClick={() => setDetailModal(t.project)} className="border px-2 py-1 text-[10px] uppercase font-bold rounded hover:bg-slate-50 transition">Details</button>
+                    <button onClick={() => setNotesPanel(t.project)} className="border px-2 py-1 text-[10px] uppercase font-bold rounded hover:bg-slate-50 transition">Notes</button>
                   </div>
                 </div>
                 {t.deadline && (
@@ -282,6 +295,18 @@ export default function SeoClient({ tasks, teamMembers, designLeaders, userRole,
           </div>
         </div>
       )}
+
+      {/* MODALS */}
+      {detailModal && <ClientDetailModal isOpen={!!detailModal} currentUserRole={userRole} project={detailModal} onClose={() => setDetailModal(null)} />}
+      {notesPanel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden relative">
+            <button onClick={() => setNotesPanel(null)} className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 z-10 transition">✕ Close</button>
+            <NotesPanel projectId={notesPanel.id} currentUserRole={userRole} />
+          </div>
+        </div>
+      )}
+      {warningModal && <CreateWarningModal isOpen={!!warningModal} projectId={warningModal.id} clientId={warningModal.deal?.leadId} onClose={() => setWarningModal(null)} />}
     </div>
   );
 }

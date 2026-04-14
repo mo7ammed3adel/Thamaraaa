@@ -27,7 +27,7 @@ export default async function WarningsPage() {
   });
 
   // Fetch sender names
-  const senderIds = Array.from(new Set(warnings.map((w) => w.senderUserId)));
+  const senderIds = warnings.map((w) => w.senderUserId).filter((v, i, a) => a.indexOf(v) === i);
   const senders = await prisma.user.findMany({
     where: { id: { in: senderIds } },
     select: { id: true, name: true },

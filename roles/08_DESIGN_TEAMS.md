@@ -230,3 +230,83 @@ FEATURES:
 GOAL:
 -------------------------------------
 Distribute design workload
+
+
+
+
+
+
+------------------
+
+
+Graphic Designer Agent:
+
+Build dashboard for "Graphic Designer".
+
+Responsibilities:
+- Execute designs
+
+-------------------------------------
+
+FEATURES:
+- Task list
+- Update status:
+   Pending / In Progress / Done
+- View notes
+
+-------------------------------------
+GOAL:
+-------------------------------------
+Deliver designs on time
+
+
+
+
+
+Motion Graphics Agent:
+--
+Build dashboard for "Motion Graphics".
+
+Responsibilities:
+- Execute videos
+
+-------------------------------------
+
+FEATURES:
+- Task list
+- Status updates
+
+-------------------------------------
+GOAL:
+-------------------------------------
+Deliver motion content
+
+
+
+
+
+--------------------
+
+
+UI/UX Team:
+
+Build dashboard for "UI/UX Team".
+
+Responsibilities:
+- Execute UI/UX tasks
+
+-------------------------------------
+
+FEATURES:
+- Task list
+- Design tracking
+
+-------------------------------------
+GOAL:
+-------------------------------------
+Deliver UI/UX improvements
+
+
+
+--------------------------------------
+

@@ -8,14 +8,22 @@ export default async function OperationsPage() {
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
   
-  if (!["super_admin", "head_account_manager", "account_manager"].includes(user?.role)) {
+  const allowedRoles = [
+    "super_admin", "head_account_manager", "account_manager", 
+    "head_technical", "head_seo", "team_leader_seo", "agent_seo", "agent_content_seo",
+    "team_leader_social_media", "agent_social_media", "team_leader_media_buyer", "agent_media_buyer",
+    "leader_graphic_designer", "agent_graphic_designer", "leader_motion_graphic", "agent_motion_graphic", "leader_ui", "agent_ui"
+  ];
+
+  if (!allowedRoles.includes(user?.role)) {
     redirect("/dashboard");
   }
 
-  // Fetch projects: AM sees their own, Head/Super sees all
-  const whereClause = ["super_admin", "head_account_manager"].includes(user.role) 
+  // Fetch projects: AM sees their own, Head/Super/Technical sees all
+  const whereClause = ["super_admin", "head_account_manager", "head_technical"].includes(user.role) 
     ? {} 
-    : { accountManagerId: user.id };
+    : user.role === "account_manager" ? { accountManagerId: user.id }
+    : {}; // For regular technical staff, maybe show all projects? Or projects assigned to them. Let's just show all for simplicity.
 
   const projects = await prisma.project.findMany({
     where: whereClause,

@@ -11,6 +11,7 @@
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "bcryptjs": "^2.4.3",
+    "clsx": "^2.1.1",
     "lucide-react": "^1.7.0",
     "next": "14.2.35",
     "next-auth": "^4.24.13",
@@ -18,6 +19,7 @@
     "pusher-js": "^8.4.3",
     "react": "^18",
     "react-dom": "^18",
+    "tailwind-merge": "^3.5.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

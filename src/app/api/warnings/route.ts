@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   const user = session.user as any;
 
   const body = await req.json();
-  const { message, clientId, projectId, recipientRoles } = body;
+  const { subject, message, severity, clientId, projectId, recipientRoles } = body;
 
   if (!message || !recipientRoles || !Array.isArray(recipientRoles)) {
     return NextResponse.json({ error: "message and recipientRoles[] required" }, { status: 400 });
@@ -50,7 +50,9 @@ export async function POST(req: NextRequest) {
 
   const warning = await prisma.warning.create({
     data: {
+      subject: subject || "Warning",
       message,
+      severity: severity || "Medium",
       clientId: clientId || null,
       projectId: projectId || null,
       senderUserId: user.id,
@@ -65,7 +67,9 @@ export async function POST(req: NextRequest) {
     if (pusherServer) {
       await pusherServer.trigger("warnings-channel", "new-warning", {
         id: warning.id,
+        subject: warning.subject,
         message: warning.message,
+        severity: warning.severity,
         senderRole: warning.senderRole,
         senderUserId: warning.senderUserId,
         recipientRoles,
