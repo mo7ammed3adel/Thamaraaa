@@ -14,6 +14,7 @@ export default function AccountManagerClient({ userId, projects, kpis }: any) {
   const [taskFilterClient, setTaskFilterClient] = useState("");
   const [taskFilterStatus, setTaskFilterStatus] = useState("");
   const [taskFilterTeam, setTaskFilterTeam] = useState("");
+  const [activeKpi, setActiveKpi] = useState("all");
 
   // Modals state
   const [selectedClient, setSelectedClient] = useState<any>(null);
@@ -22,9 +23,25 @@ export default function AccountManagerClient({ userId, projects, kpis }: any) {
 
   const filteredProjects = useMemo(() => {
     return projects.filter((p: any) => {
-      return !searchQuery || (p.deal?.lead?.name?.toLowerCase().includes(searchQuery.toLowerCase()) || p.deal?.lead?.phone?.includes(searchQuery));
+      const matchSearch = !searchQuery || (p.deal?.lead?.name?.toLowerCase().includes(searchQuery.toLowerCase()) || p.deal?.lead?.phone?.includes(searchQuery));
+      let matchKpi = true;
+      if (activeKpi === "active_clients") {
+        matchKpi = ["in_progress", "setup"].includes(p.projectStatus);
+      } else if (activeKpi === "warning_clients") {
+        matchKpi = p.warnings && p.warnings.length > 0;
+      } else if (activeKpi === "tasks_in_progress") {
+        matchKpi = (p.tasks || []).some((t: any) => t.status === "in_progress");
+      } else if (activeKpi === "tasks_delayed") {
+        const now = new Date();
+        matchKpi = (p.tasks || []).some((t: any) => t.deadline && new Date(t.deadline) < now && t.status !== "done");
+      } else if (activeKpi === "tasks_done") {
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        matchKpi = (p.tasks || []).some((t: any) => t.status === "done" && t.completedAt && new Date(t.completedAt) > oneWeekAgo);
+      }
+      return matchSearch && matchKpi;
     });
-  }, [projects, searchQuery]);
+  }, [projects, searchQuery, activeKpi]);
 
   const filteredTasks = useMemo(() => {
     let allTasks = projects.flatMap((p: any) => (p.tasks || []).map((t: any) => ({ ...t, project: p })));
@@ -33,13 +50,24 @@ export default function AccountManagerClient({ userId, projects, kpis }: any) {
     if (taskFilterStatus) allTasks = allTasks.filter((t: any) => t.status === taskFilterStatus);
     if (taskFilterTeam) allTasks = allTasks.filter((t: any) => t.taskType === taskFilterTeam);
 
+    if (activeKpi === "tasks_in_progress") {
+      allTasks = allTasks.filter((t: any) => t.status === "in_progress");
+    } else if (activeKpi === "tasks_delayed") {
+      const now = new Date();
+      allTasks = allTasks.filter((t: any) => t.deadline && new Date(t.deadline) < now && t.status !== "done");
+    } else if (activeKpi === "tasks_done") {
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      allTasks = allTasks.filter((t: any) => t.status === "done" && t.completedAt && new Date(t.completedAt) > oneWeekAgo);
+    }
+
     // Sort pending/in_progress first
     return allTasks.sort((a: any, b: any) => {
       if (a.status !== "done" && b.status === "done") return -1;
       if (a.status === "done" && b.status !== "done") return 1;
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-  }, [projects, taskFilterClient, taskFilterStatus, taskFilterTeam]);
+  }, [projects, taskFilterClient, taskFilterStatus, taskFilterTeam, activeKpi]);
 
   const getProgressColor = (val: number) => val < 30 ? "bg-red-500" : val < 70 ? "bg-amber-400" : "bg-emerald-500";
 
@@ -52,45 +80,45 @@ export default function AccountManagerClient({ userId, projects, kpis }: any) {
 
       {/* ── KPI Grid ── */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="p-5 rounded-2xl border bg-blue-50 border-blue-200 text-blue-900">
-          <div className="flex justify-between items-start">
-            <p className="text-sm font-medium opacity-80">Active Clients</p>
-            <Briefcase className="w-5 h-5 opacity-50" />
+        <button onClick={() => setActiveKpi(activeKpi === "active_clients" ? "all" : "active_clients")} className={`p-4 rounded-xl border-2 text-left transition cursor-pointer ${activeKpi === "active_clients" ? "border-blue-500 bg-blue-50" : "border-transparent bg-white hover:bg-gray-50 shadow-sm"} flex flex-col justify-between`}>
+          <div className="flex items-center gap-2 mb-2">
+            <Briefcase className="w-5 h-5 text-blue-500" />
+            <span className="text-[11px] font-bold uppercase text-gray-500">Active Clients</span>
           </div>
-          <p className="text-3xl font-bold mt-1">{kpis.activeClients}</p>
-        </div>
+          <p className="text-2xl font-bold text-gray-900">{kpis.activeClients}</p>
+        </button>
 
-        <div className="p-5 rounded-2xl border bg-red-50 border-red-200 text-red-900">
-          <div className="flex justify-between items-start">
-            <p className="text-sm font-medium opacity-80">Clients w/ Warnings</p>
-            <AlertTriangle className="w-5 h-5 opacity-50" />
+        <button onClick={() => setActiveKpi(activeKpi === "warning_clients" ? "all" : "warning_clients")} className={`p-4 rounded-xl border-2 text-left transition cursor-pointer ${activeKpi === "warning_clients" ? "border-red-500 bg-red-50" : "border-transparent bg-white hover:bg-gray-50 shadow-sm"} flex flex-col justify-between`}>
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="w-5 h-5 text-red-500" />
+            <span className="text-[11px] font-bold uppercase text-gray-500">Clients w/ Warnings</span>
           </div>
-          <p className="text-3xl font-bold mt-1">{kpis.clientsWithWarnings}</p>
-        </div>
+          <p className="text-2xl font-bold text-gray-900">{kpis.clientsWithWarnings}</p>
+        </button>
 
-        <div className="p-5 rounded-2xl border bg-amber-50 border-amber-200 text-amber-900">
-          <div className="flex justify-between items-start">
-            <p className="text-sm font-medium opacity-80">Tasks In Progress</p>
-            <ListTodo className="w-5 h-5 opacity-50" />
+        <button onClick={() => setActiveKpi(activeKpi === "tasks_in_progress" ? "all" : "tasks_in_progress")} className={`p-4 rounded-xl border-2 text-left transition cursor-pointer ${activeKpi === "tasks_in_progress" ? "border-amber-500 bg-amber-50" : "border-transparent bg-white hover:bg-gray-50 shadow-sm"} flex flex-col justify-between`}>
+          <div className="flex items-center gap-2 mb-2">
+            <ListTodo className="w-5 h-5 text-amber-500" />
+            <span className="text-[11px] font-bold uppercase text-gray-500">Tasks In Progress</span>
           </div>
-          <p className="text-3xl font-bold mt-1">{kpis.tasksInProgress}</p>
-        </div>
+          <p className="text-2xl font-bold text-gray-900">{kpis.tasksInProgress}</p>
+        </button>
 
-        <div className="p-5 rounded-2xl border bg-red-50 border-red-200 text-red-900">
-          <div className="flex justify-between items-start">
-            <p className="text-sm font-medium opacity-80">Delayed Tasks</p>
-            <Clock className="w-5 h-5 opacity-50" />
+        <button onClick={() => setActiveKpi(activeKpi === "tasks_delayed" ? "all" : "tasks_delayed")} className={`p-4 rounded-xl border-2 text-left transition cursor-pointer ${activeKpi === "tasks_delayed" ? "border-red-500 bg-red-50" : "border-transparent bg-white hover:bg-gray-50 shadow-sm"} flex flex-col justify-between`}>
+          <div className="flex items-center gap-2 mb-2">
+            <Clock className="w-5 h-5 text-red-500" />
+            <span className="text-[11px] font-bold uppercase text-gray-500">Delayed Tasks</span>
           </div>
-          <p className="text-3xl font-bold mt-1">{kpis.tasksDelayed}</p>
-        </div>
+          <p className="text-2xl font-bold text-gray-900">{kpis.tasksDelayed}</p>
+        </button>
 
-        <div className="p-5 rounded-2xl border bg-emerald-50 border-emerald-200 text-emerald-900">
-          <div className="flex justify-between items-start">
-            <p className="text-sm font-medium opacity-80">Tasks Done This Week</p>
-            <CheckCircle className="w-5 h-5 opacity-50" />
+        <button onClick={() => setActiveKpi(activeKpi === "tasks_done" ? "all" : "tasks_done")} className={`p-4 rounded-xl border-2 text-left transition cursor-pointer ${activeKpi === "tasks_done" ? "border-emerald-500 bg-emerald-50" : "border-transparent bg-white hover:bg-gray-50 shadow-sm"} flex flex-col justify-between`}>
+          <div className="flex items-center gap-2 mb-2">
+            <CheckCircle className="w-5 h-5 text-emerald-500" />
+            <span className="text-[11px] font-bold uppercase text-gray-500">Tasks Done This Week</span>
           </div>
-          <p className="text-3xl font-bold mt-1">{kpis.tasksDoneThisWeek}</p>
-        </div>
+          <p className="text-2xl font-bold text-gray-900">{kpis.tasksDoneThisWeek}</p>
+        </button>
       </div>
 
       {/* ── My Clients List ── */}

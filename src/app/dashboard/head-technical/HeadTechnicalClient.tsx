@@ -1,12 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
 export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userId }: any) {
   const router = useRouter();
   const [assignModal, setAssignModal] = useState<any>(null);
   const [taskFilter, setTaskFilter] = useState("all");
+  const [activeKpi, setActiveKpi] = useState("all");
+
+  const filteredProjects = useMemo(() => {
+    return projects.filter((p: any) => {
+      if (activeKpi === "assigned") return p.accountManagerId || p.tasks?.some((t: any) => ["social_media", "media_buying", "seo", "content_seo"].includes(t.taskType) && t.leaderId);
+      if (activeKpi === "active") return ["in_progress", "setup", "assigned"].includes(p.projectStatus);
+      if (activeKpi === "delayed") return p.projectStatus === "delayed";
+      if (activeKpi === "in_progress") return p.tasks?.some((t: any) => t.status === "in_progress");
+      return true;
+    });
+  }, [projects, activeKpi]);
 
   const getProgressColor = (val: number) => val < 30 ? "bg-red-500" : val < 70 ? "bg-amber-400" : "bg-emerald-500";
 
@@ -48,15 +59,22 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Assigned Clients", val: kpis.assignedClients, colors: "bg-white border-slate-200 text-slate-800" },
-          { label: "Active Clients", val: kpis.activeClients, colors: "bg-indigo-50 border-indigo-200 text-indigo-900" },
-          { label: "Delayed Clients", val: kpis.delayedClients, colors: "bg-red-50 border-red-200 text-red-900" },
-          { label: "Tasks In Progress", val: kpis.tasksInProgress, colors: "bg-amber-50 border-amber-200 text-amber-900" }
+          { id: "all", label: "My Total Projects", val: kpis.assignedClients + kpis.activeClients + kpis.delayedClients, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-slate-500 bg-slate-50", icnColor: "text-slate-500" },
+          { id: "assigned", label: "Assigned Clients", val: kpis.assignedClients, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-blue-500 bg-blue-50", icnColor: "text-blue-500" },
+          { id: "active", label: "Active Clients", val: kpis.activeClients, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-indigo-500 bg-indigo-50", icnColor: "text-indigo-500" },
+          { id: "delayed", label: "Delayed Clients", val: kpis.delayedClients, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-red-500 bg-red-50", icnColor: "text-red-500" },
+          { id: "in_progress", label: "Tasks In Progress", val: kpis.tasksInProgress, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-amber-500 bg-amber-50", icnColor: "text-amber-500" }
         ].map(k => (
-          <div key={k.label} className={`p-5 rounded-2xl border ${k.colors}`}>
-            <p className="text-sm font-bold opacity-80 uppercase tracking-wider">{k.label}</p>
-            <p className="text-3xl font-black mt-2">{k.val}</p>
-          </div>
+          <button 
+            key={k.label} 
+            onClick={() => setActiveKpi(activeKpi === k.id ? "all" : k.id)}
+            className={`p-4 flex flex-col justify-between rounded-xl border-2 text-left transition cursor-pointer ${activeKpi === k.id ? k.activeColors : `${k.colors} shadow-sm`}`}
+          >
+            <div className={`flex items-center gap-2 mb-2 ${k.icnColor}`}>
+              <span className="text-[11px] font-bold uppercase tracking-wider">{k.label}</span>
+            </div>
+            <p className="text-2xl font-black mt-1 text-slate-900">{k.val}</p>
+          </button>
         ))}
       </div>
 
@@ -77,7 +95,7 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {projects.map((p: any) => {
+              {filteredProjects.map((p: any) => {
                 const delayedTasks = p.tasks?.filter((t:any) => t.status !== "done" && t.deadline && new Date(t.deadline) < new Date()).length || 0;
                 
                 return (
@@ -134,7 +152,7 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
                   </tr>
                 );
               })}
-              {projects.length === 0 && (
+              {filteredProjects.length === 0 && (
                 <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400 italic">No clients available.</td></tr>
               )}
             </tbody>

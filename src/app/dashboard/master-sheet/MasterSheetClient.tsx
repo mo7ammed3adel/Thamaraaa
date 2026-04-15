@@ -49,8 +49,31 @@ export default function MasterSheetClient({ leads }: { leads: any[] }) {
     XLSX.writeFile(workbook, "Thamaraa_Master_Sheet.xlsx");
   };
 
+  const kpis = [
+    { label: "Total Leads", value: leads.length, filter: "All", textColor: "text-gray-600", bg: "bg-gray-100", border: "border-gray-500" },
+    { label: "New", value: leads.filter(l => l.status === "New").length, filter: "New", textColor: "text-blue-600", bg: "bg-blue-100", border: "border-blue-500" },
+    { label: "In TeleSales", value: leads.filter(l => l.status === "In_TeleSales").length, filter: "In_TeleSales", textColor: "text-purple-600", bg: "bg-purple-100", border: "border-purple-500" },
+    { label: "Transferred", value: leads.filter(l => l.status === "Transferred").length, filter: "Transferred", textColor: "text-indigo-600", bg: "bg-indigo-100", border: "border-indigo-500" },
+    { label: "Closed Won", value: leads.filter(l => l.status === "Closed_Won").length, filter: "Closed_Won", textColor: "text-green-600", bg: "bg-green-100", border: "border-green-500" },
+  ];
+
   return (
     <div className="space-y-4">
+      {/* KPI Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        {kpis.map((kpi) => (
+          <div
+            key={kpi.label}
+            onClick={() => setStatusFilter(kpi.filter)}
+            className={`p-4 rounded-xl shadow-sm border-2 cursor-pointer transition-all ${
+              statusFilter === kpi.filter ? `${kpi.border} ${kpi.bg}` : "border-transparent bg-white hover:bg-gray-50"
+            }`}
+          >
+            <p className={`text-xs font-bold ${kpi.textColor} uppercase tracking-wider mb-1`}>{kpi.label}</p>
+            <p className="text-2xl font-black text-gray-900">{kpi.value}</p>
+          </div>
+        ))}
+      </div>
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
         <div className="flex items-center gap-4 w-full md:w-auto">
           <div className="relative w-full md:w-64">

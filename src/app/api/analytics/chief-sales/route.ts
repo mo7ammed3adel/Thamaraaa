@@ -33,7 +33,7 @@ export async function GET(req: Request) {
       where: dateFilter ? { createdAt: dateFilter } : {},
       include: {
         salesAgent: { select: { name: true } },
-        lead: { select: { name: true, nio: true, source: true } }
+        lead: { select: { name: true, niche: true, source: true } }
       }
     });
 

@@ -15,7 +15,7 @@ export default async function AccountManagerPage() {
     redirect("/login");
   }
 
-  const user = session.user as any;
+  const user = session.user;
   if (!["super_admin", "head_account_manager", "account_manager"].includes(user.role)) {
     redirect("/dashboard");
   }
@@ -27,7 +27,14 @@ export default async function AccountManagerPage() {
     },
     include: {
       deal: {
-        include: { lead: true }
+        include: { 
+          lead: { 
+            include: { 
+              callLogs: { include: { agent: true }, orderBy: { createdAt: "asc" } },
+              meetings: { include: { teleAgent: true, salesAgent: true }, orderBy: { createdAt: "asc" } }
+            } 
+          } 
+        }
       },
       tasks: {
         include: { leader: true, agent: true }

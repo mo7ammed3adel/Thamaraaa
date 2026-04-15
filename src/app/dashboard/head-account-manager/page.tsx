@@ -6,15 +6,24 @@ import HeadAccountManagerClient from "./HeadAccountManagerClient";
 
 export default async function HeadAccountManagerPage() {
   const session = await getServerSession(authOptions);
-  const user = session?.user as any;
+  const user = session?.user;
 
-  if (!["super_admin", "head_account_manager"].includes(user?.role)) {
+  if (!user || !["super_admin", "head_account_manager"].includes(user.role)) {
     redirect("/dashboard");
   }
 
   const projects = await prisma.project.findMany({
     include: {
-      deal: { include: { lead: true } },
+      deal: { 
+        include: { 
+          lead: { 
+            include: { 
+              callLogs: { include: { agent: true }, orderBy: { createdAt: "asc" } },
+              meetings: { include: { teleAgent: true, salesAgent: true }, orderBy: { createdAt: "asc" } }
+            } 
+          } 
+        } 
+      },
       tasks: { include: { leader: true, agent: true } },
       accountManager: true,
       logs: true,

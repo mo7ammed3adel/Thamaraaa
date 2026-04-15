@@ -97,19 +97,21 @@ export default function SeoClient({ tasks, teamMembers, designLeaders, userRole,
       {/* Stats — Clickable KPI cards set the status filter */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
-          { label: "Total Tasks", value: tasks.length, filter: "all", colors: "bg-white border-slate-200 text-slate-800" },
-          { label: "Pending", value: tasks.filter((t: any) => t.status === "pending").length, filter: "pending", colors: "bg-slate-50 border-slate-200 text-slate-600" },
-          { label: "In Progress", value: tasks.filter((t: any) => t.status === "in_progress").length, filter: "in_progress", colors: "bg-amber-50 border-amber-200 text-amber-900" },
-          { label: "In Review", value: tasks.filter((t: any) => t.status === "review").length, filter: "review", colors: "bg-blue-50 border-blue-200 text-blue-900" },
-          { label: "Completed", value: tasks.filter((t: any) => t.status === "done").length, filter: "done", colors: "bg-emerald-50 border-emerald-200 text-emerald-900" },
+          { label: "Total Tasks", value: tasks.length, filter: "all", colors: "border-transparent bg-white hover:bg-gray-50", activeCls: "border-slate-500 bg-slate-50", iconColor: "text-slate-500" },
+          { label: "Pending", value: tasks.filter((t: any) => t.status === "pending").length, filter: "pending", colors: "border-transparent bg-white hover:bg-gray-50", activeCls: "border-slate-400 bg-slate-50", iconColor: "text-slate-500" },
+          { label: "In Progress", value: tasks.filter((t: any) => t.status === "in_progress").length, filter: "in_progress", colors: "border-transparent bg-white hover:bg-gray-50", activeCls: "border-amber-500 bg-amber-50", iconColor: "text-amber-500" },
+          { label: "In Review", value: tasks.filter((t: any) => t.status === "review").length, filter: "review", colors: "border-transparent bg-white hover:bg-gray-50", activeCls: "border-blue-500 bg-blue-50", iconColor: "text-blue-500" },
+          { label: "Completed", value: tasks.filter((t: any) => t.status === "done").length, filter: "done", colors: "border-transparent bg-white hover:bg-gray-50", activeCls: "border-emerald-500 bg-emerald-50", iconColor: "text-emerald-500" },
         ].map(kpi => (
           <button 
             key={kpi.label} 
-            onClick={() => setStatusFilter(kpi.filter)} 
-            className={`p-5 rounded-2xl border text-left hover:shadow-md transition cursor-pointer ${kpi.colors} ${statusFilter === kpi.filter ? "ring-2 ring-indigo-500 shadow-sm" : "opacity-80 hover:opacity-100"}`}
+            onClick={() => setStatusFilter(statusFilter === kpi.filter ? "all" : kpi.filter)} 
+            className={`p-4 flex flex-col justify-between rounded-xl border-2 text-left transition cursor-pointer ${statusFilter === kpi.filter ? kpi.activeCls : `${kpi.colors} shadow-sm`}`}
           >
-            <p className="text-xs font-bold uppercase tracking-wider">{kpi.label}</p>
-            <p className="text-3xl font-black mt-2">{kpi.value}</p>
+            <div className={`flex items-center gap-2 mb-2 ${kpi.iconColor}`}>
+              <span className="text-[11px] font-bold uppercase tracking-wider">{kpi.label}</span>
+            </div>
+            <p className="text-2xl font-black mt-1 text-slate-900">{kpi.value}</p>
           </button>
         ))}
       </div>

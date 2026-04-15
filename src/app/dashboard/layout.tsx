@@ -19,10 +19,10 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  const role = (session.user as any).role;
-  const userId = (session.user as any).id;
+  const role = session.user.role;
+  const userId = session.user.id;
 
-  // Helper to check if user has one of the given roles
+  /** Check if user has one of the given roles (super_admin always passes) */
   const hasRole = (...roles: string[]) => roles.includes(role) || role === "super_admin";
 
   return (

@@ -18,6 +18,7 @@ export default function SocialMediaClient({
   const isTL = ["super_admin", "team_leader_social_media"].includes(userRole);
   
   const [activeTab, setActiveTab] = useState(isTL ? "incoming" : "clients");
+  const [activeKpi, setActiveKpi] = useState("all");
   const [createSubTask, setCreateSubTask] = useState<any>(null);
   const [detailModal, setDetailModal] = useState<any>(null);
   const [notesPanel, setNotesPanel] = useState<any>(null);
@@ -30,8 +31,29 @@ export default function SocialMediaClient({
   const [subTaskDeadline, setSubTaskDeadline] = useState("");
 
   const incomingClients = useMemo(() => projects.filter((p: any) => p.tasks.some((t: any) => t.taskType === departmentTaskType && t.leaderId === userId && !t.agentId)), [projects, departmentTaskType, userId]);
-  const assignedProjects = useMemo(() => isTL ? projects : projects.filter((p: any) => p.tasks.some((t: any) => t.taskType === departmentTaskType && t.agentId === userId)), [isTL, projects, departmentTaskType, userId]);
-  const allTasks = useMemo(() => projects.flatMap((p: any) => p.tasks.filter((t: any) => t.taskType === departmentTaskType || t.parentTaskId)), [projects, departmentTaskType]);
+  
+  const baseAssignedProjects = useMemo(() => isTL ? projects : projects.filter((p: any) => p.tasks.some((t: any) => t.taskType === departmentTaskType && t.agentId === userId)), [isTL, projects, departmentTaskType, userId]);
+  const assignedProjects = useMemo(() => {
+    return baseAssignedProjects.filter((p: any) => {
+      if (activeKpi === "all") return true;
+      if (activeKpi === "active") return ["in_progress", "setup", "assigned"].includes(p.projectStatus);
+      if (activeKpi === "pending") return p.projectStatus === "new";
+      if (activeKpi === "delayed") return p.tasks?.some((t: any) => t.status !== "done" && t.deadline && new Date(t.deadline) < new Date());
+      if (activeKpi === "warnings") return p.warnings && p.warnings.length > 0;
+      return true;
+    });
+  }, [baseAssignedProjects, activeKpi]);
+
+  const baseAllTasks = useMemo(() => projects.flatMap((p: any) => p.tasks.filter((t: any) => t.taskType === departmentTaskType || t.parentTaskId)), [projects, departmentTaskType]);
+  const allTasks = useMemo(() => {
+    return baseAllTasks.filter((t: any) => {
+      if (activeKpi === "all") return true;
+      if (activeKpi === "active") return ["in_progress", "review"].includes(t.status);
+      if (activeKpi === "pending") return t.status === "pending";
+      if (activeKpi === "delayed") return t.status !== "done" && t.deadline && new Date(t.deadline) < new Date();
+      return true;
+    });
+  }, [baseAllTasks, activeKpi]);
 
   async function handleAssignAgent(taskId: string, targetAgentId: string) {
     if (!targetAgentId) return;
@@ -78,19 +100,27 @@ export default function SocialMediaClient({
       {/* KPI Overview */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
-          { icon: Users, label: "Total Clients", val: kpis.totalClients, colors: "bg-indigo-50 border-indigo-200 text-indigo-700 font-black", icn: "text-indigo-400" },
-          { icon: CheckCircle, label: "Active Clients", val: kpis.activeClients, colors: "bg-emerald-50 border-emerald-200 text-emerald-700", icn: "text-emerald-400" },
-          { icon: Calendar, label: "Pending Clients", val: kpis.pendingClients, colors: "bg-slate-50 border-slate-200 text-slate-700", icn: "text-slate-400" },
-          { icon: Clock, label: "Delayed Tasks", val: kpis.delayedTasks, colors: "bg-amber-50 border-amber-200 text-amber-700", icn: "text-amber-400" },
-          { icon: AlertCircle, label: "Active Warnings", val: kpis.activeWarnings, colors: "bg-red-50 border-red-200 text-red-700 font-black ring-1 ring-red-400", icn: "text-red-500" },
+          { id: "all", icon: Users, label: "Total Clients", val: kpis.totalClients, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-indigo-500 bg-indigo-50", defaultTab: "clients", icn: "text-indigo-500" },
+          { id: "active", icon: CheckCircle, label: "Active Clients", val: kpis.activeClients, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-emerald-500 bg-emerald-50", defaultTab: "clients", icn: "text-emerald-500" },
+          { id: "pending", icon: Calendar, label: "Pending Clients", val: kpis.pendingClients, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-slate-500 bg-slate-50", defaultTab: "clients", icn: "text-slate-500" },
+          { id: "delayed", icon: Clock, label: "Delayed Tasks", val: kpis.delayedTasks, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-amber-500 bg-amber-50", defaultTab: "tasks", icn: "text-amber-500" },
+          { id: "warnings", icon: AlertCircle, label: "Active Warnings", val: kpis.activeWarnings, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-red-500 bg-red-50", defaultTab: "clients", icn: "text-red-500" },
         ].map((k, i) => (
-          <div key={i} className={`p-5 rounded-2xl border ${k.colors} shadow-sm flex flex-col justify-between`}>
-            <div className="flex justify-between items-start">
-              <span className="text-xs font-bold uppercase tracking-wide opacity-80">{k.label}</span>
-              <k.icon className={`w-5 h-5 ${k.icn}`} />
+          <button 
+            key={i} 
+            onClick={() => {
+              const newKpi = activeKpi === k.id ? "all" : k.id;
+              setActiveKpi(newKpi);
+              if (newKpi !== "all") setActiveTab(k.defaultTab);
+            }}
+            className={`p-4 rounded-xl border-2 transition cursor-pointer flex flex-col justify-between text-left ${activeKpi === k.id ? k.activeColors : `${k.colors} shadow-sm`}`}
+          >
+            <div className={`flex items-center gap-2 mb-2 ${k.icn}`}>
+              <k.icon className="w-5 h-5" />
+              <span className="text-[11px] font-bold uppercase tracking-wider">{k.label}</span>
             </div>
-            <p className="text-3xl mt-3">{k.val}</p>
-          </div>
+            <p className="text-2xl font-black mt-1 text-slate-900">{k.val}</p>
+          </button>
         ))}
       </div>
 

@@ -15,15 +15,15 @@ import {
  */
 export default function DesignClient({ tasks, agents, userRole, userId, teamLabel }: any) {
   const router = useRouter();
+  const isLeader = userRole.startsWith("leader_") || userRole === "super_admin";
   const [viewClient, setViewClient] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState("incoming");
+  const [activeTab, setActiveTab] = useState(isLeader ? "incoming" : "tasks");
+  const [activeKpi, setActiveKpi] = useState("all");
 
   // ── Advanced Filters ──
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
-
-  const isLeader = userRole.startsWith("leader_") || userRole === "super_admin";
 
   // ── Derived Data ──
   const now = new Date();
@@ -35,17 +35,17 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
   // ── KPIs ──
   const kpis = isLeader
     ? [
-        { icon: Inbox, label: "Incoming New", val: incomingTasks.length, colors: "bg-violet-50 border-violet-200 text-violet-700", icn: "text-violet-400" },
-        { icon: Clock, label: "In Progress", val: tasks.filter((t: any) => t.status === "in_progress").length, colors: "bg-amber-50 border-amber-200 text-amber-700", icn: "text-amber-400" },
-        { icon: CheckCircle, label: "Done This Week", val: completedThisWeek.length, colors: "bg-emerald-50 border-emerald-200 text-emerald-700", icn: "text-emerald-400" },
-        { icon: AlertTriangle, label: "Delayed", val: delayedTasks.length, colors: "bg-red-50 border-red-200 text-red-700", icn: "text-red-400" },
-        { icon: Users, label: "Team Size", val: agents.length, colors: "bg-slate-50 border-slate-200 text-slate-700", icn: "text-slate-400" },
+        { id: "incoming", icon: Inbox, label: "Incoming New", val: incomingTasks.length, colors: "border-transparent bg-white hover:bg-gray-50", icn: "text-violet-500", activeColors: "border-violet-500 bg-violet-50", defaultTab: "incoming" as string | undefined, disableFilter: false },
+        { id: "in_progress", icon: Clock, label: "In Progress", val: tasks.filter((t: any) => t.status === "in_progress").length, colors: "border-transparent bg-white hover:bg-gray-50", icn: "text-amber-500", activeColors: "border-amber-500 bg-amber-50", defaultTab: "all" as string | undefined, disableFilter: false },
+        { id: "done_time", icon: CheckCircle, label: "Done This Week", val: completedThisWeek.length, colors: "border-transparent bg-white hover:bg-gray-50", icn: "text-emerald-500", activeColors: "border-emerald-500 bg-emerald-50", defaultTab: "all" as string | undefined, disableFilter: false },
+        { id: "delayed", icon: AlertTriangle, label: "Delayed", val: delayedTasks.length, colors: "border-transparent bg-white hover:bg-gray-50", icn: "text-red-500", activeColors: "border-red-500 bg-red-50", defaultTab: "all" as string | undefined, disableFilter: false },
+        { id: "team", icon: Users, label: "Team Size", val: agents.length, colors: "border-transparent bg-white", icn: "text-slate-500", activeColors: "border-slate-500 bg-slate-50", defaultTab: undefined as string | undefined, disableFilter: true },
       ]
     : [
-        { icon: Inbox, label: "Pending", val: tasks.filter((t: any) => t.status === "pending").length, colors: "bg-slate-50 border-slate-200 text-slate-700", icn: "text-slate-400" },
-        { icon: Clock, label: "In Progress", val: tasks.filter((t: any) => t.status === "in_progress").length, colors: "bg-amber-50 border-amber-200 text-amber-700", icn: "text-amber-400" },
-        { icon: CheckCircle, label: "Completed", val: tasks.filter((t: any) => t.status === "done").length, colors: "bg-emerald-50 border-emerald-200 text-emerald-700", icn: "text-emerald-400" },
-        { icon: AlertTriangle, label: "Delayed", val: delayedTasks.length, colors: "bg-red-50 border-red-200 text-red-700", icn: "text-red-400" },
+        { id: "pending", icon: Inbox, label: "Pending", val: tasks.filter((t: any) => t.status === "pending").length, colors: "border-transparent bg-white hover:bg-gray-50", icn: "text-slate-500", activeColors: "border-slate-500 bg-slate-50", defaultTab: undefined as string | undefined, disableFilter: false },
+        { id: "in_progress", icon: Clock, label: "In Progress", val: tasks.filter((t: any) => t.status === "in_progress").length, colors: "border-transparent bg-white hover:bg-gray-50", icn: "text-amber-500", activeColors: "border-amber-500 bg-amber-50", defaultTab: undefined as string | undefined, disableFilter: false },
+        { id: "done", icon: CheckCircle, label: "Completed", val: tasks.filter((t: any) => t.status === "done").length, colors: "border-transparent bg-white hover:bg-gray-50", icn: "text-emerald-500", activeColors: "border-emerald-500 bg-emerald-50", defaultTab: undefined as string | undefined, disableFilter: false },
+        { id: "delayed", icon: AlertTriangle, label: "Delayed", val: delayedTasks.length, colors: "border-transparent bg-white hover:bg-gray-50", icn: "text-red-500", activeColors: "border-red-500 bg-red-50", defaultTab: undefined as string | undefined, disableFilter: false },
       ];
 
   // ── Filter logic ──
@@ -57,7 +57,16 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
       t.requesterRole?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || t.status === statusFilter;
     const matchesPriority = priorityFilter === "all" || t.priority === priorityFilter;
-    return matchesSearch && matchesStatus && matchesPriority;
+
+    let matchesKpi = true;
+    if (activeKpi === "incoming") matchesKpi = !t.agentId;
+    else if (activeKpi === "in_progress") matchesKpi = t.status === "in_progress";
+    else if (activeKpi === "done_time") matchesKpi = t.status === "done" && t.completedAt && new Date(t.completedAt) >= weekAgo;
+    else if (activeKpi === "delayed") matchesKpi = t.status !== "done" && t.deadline && new Date(t.deadline) < now;
+    else if (activeKpi === "pending") matchesKpi = t.status === "pending";
+    else if (activeKpi === "done") matchesKpi = t.status === "done";
+
+    return matchesSearch && matchesStatus && matchesPriority && matchesKpi;
   });
 
   // ── Handlers ──
@@ -183,13 +192,22 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
       {/* KPI Overview */}
       <div className={`grid grid-cols-2 ${isLeader ? "md:grid-cols-5" : "md:grid-cols-4"} gap-4`}>
         {kpis.map((k, i) => (
-          <div key={i} className={`p-5 rounded-2xl border ${k.colors} shadow-sm flex flex-col justify-between`}>
-            <div className="flex justify-between items-start">
-              <span className="text-xs font-bold uppercase tracking-wide opacity-80">{k.label}</span>
-              <k.icon className={`w-5 h-5 ${k.icn}`} />
+          <button 
+            key={i} 
+            onClick={() => {
+              if (k.disableFilter) return;
+              const newKpi = activeKpi === k.id ? "all" : k.id;
+              setActiveKpi(newKpi);
+              if (k.defaultTab && newKpi !== "all") setActiveTab(k.defaultTab);
+            }}
+            className={`p-4 rounded-xl border-2 transition text-left flex flex-col justify-between ${k.disableFilter ? "cursor-default shadow-sm" : "cursor-pointer"} ${activeKpi === k.id ? k.activeColors : `${k.colors} ${k.disableFilter ? "" : "shadow-sm"}`}`}
+          >
+            <div className={`flex items-center gap-2 mb-2 ${k.icn}`}>
+              <k.icon className="w-5 h-5" />
+              <span className="text-[11px] font-bold uppercase tracking-wider">{k.label}</span>
             </div>
-            <p className="text-3xl font-black mt-3">{k.val}</p>
-          </div>
+            <p className="text-2xl font-black mt-1 text-slate-900">{k.val}</p>
+          </button>
         ))}
       </div>
 

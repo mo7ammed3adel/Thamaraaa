@@ -102,8 +102,11 @@ export default function ChiefSalesClient() {
           <p className="text-xs text-slate-400">Target: {overview.totalNetTarget.toLocaleString()} EGP</p>
         </div>
 
-        <div className="bg-white border p-5 rounded-xl shadow-sm border-slate-200 space-y-2 relative overflow-hidden">
-          <div className="absolute -right-4 -top-4 opacity-5 text-indigo-500"><CheckCircle2 size={80} /></div>
+        <div 
+          onClick={() => openDrillDown("Collected Payments Breakdown", "recentDeals", dealColumns)}
+          className="bg-white border hover:border-indigo-300 hover:shadow-md cursor-pointer transition p-5 rounded-xl shadow-sm border-slate-200 space-y-2 relative overflow-hidden group"
+        >
+          <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition text-indigo-500"><CheckCircle2 size={80} /></div>
           <p className="text-sm font-medium text-slate-500">Collected Payments</p>
           <h3 className="text-3xl font-bold text-indigo-600">{overview.totalCollected.toLocaleString()}<span className="text-lg text-slate-400 font-normal ml-1">EGP</span></h3>
           <p className="text-xs text-slate-400">Actual money in bank</p>

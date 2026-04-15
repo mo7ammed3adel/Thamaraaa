@@ -89,7 +89,7 @@ export const SEVERITY = {
 // ── Currency ──
 export const CURRENCY = "SAR";
 
-// ── Helper: Check if user has one of allowed roles ──
+// ── Helper: Check if user has one of allowed roles (super_admin always passes) ──
 export function hasRole(userRole: string, allowedRoles: readonly string[]): boolean {
-  return allowedRoles.includes(userRole);
+  return userRole === "super_admin" || allowedRoles.includes(userRole);
 }

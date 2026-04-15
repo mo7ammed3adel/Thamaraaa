@@ -10,9 +10,10 @@ export default function NotificationBell({ variant = "dropdown" }: { variant?: "
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  // Poll for notifications every 30 seconds
+  // Poll for notifications every 30 seconds (skip when tab is hidden)
   useEffect(() => {
     const fetchNotifications = async () => {
+      if (typeof document !== "undefined" && document.hidden) return;
       try {
         const res = await fetch("/api/notifications");
         if (res.ok) {
@@ -26,7 +27,17 @@ export default function NotificationBell({ variant = "dropdown" }: { variant?: "
 
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
+
+    // Re-fetch immediately when tab becomes visible again
+    const handleVisibility = () => {
+      if (!document.hidden) fetchNotifications();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, []);
 
   const markAsRead = async (id: string, e: React.MouseEvent) => {

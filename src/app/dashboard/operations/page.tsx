@@ -6,8 +6,8 @@ import OperationsClient from "./OperationsClient";
 
 export default async function OperationsPage() {
   const session = await getServerSession(authOptions);
-  const user = session?.user as any;
-  
+  const user = session?.user;
+
   const allowedRoles = [
     "super_admin", "head_account_manager", "account_manager", 
     "head_technical", "head_seo", "team_leader_seo", "agent_seo", "agent_content_seo",
@@ -15,7 +15,7 @@ export default async function OperationsPage() {
     "leader_graphic_designer", "agent_graphic_designer", "leader_motion_graphic", "agent_motion_graphic", "leader_ui", "agent_ui"
   ];
 
-  if (!allowedRoles.includes(user?.role)) {
+  if (!user || !allowedRoles.includes(user.role)) {
     redirect("/dashboard");
   }
 
@@ -28,7 +28,17 @@ export default async function OperationsPage() {
   const projects = await prisma.project.findMany({
     where: whereClause,
     include: {
-      deal: { include: { lead: true, salesAgent: true } },
+      deal: { 
+        include: { 
+          lead: { 
+            include: { 
+              callLogs: { include: { agent: true }, orderBy: { createdAt: "asc" } },
+              meetings: { include: { teleAgent: true, salesAgent: true }, orderBy: { createdAt: "asc" } }
+            } 
+          }, 
+          salesAgent: true 
+        } 
+      },
       tasks: { include: { leader: true, agent: true } }
     },
     orderBy: { createdAt: "desc" }

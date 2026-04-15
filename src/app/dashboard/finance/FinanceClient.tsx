@@ -1,23 +1,26 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
 import { DollarSign, AlertCircle, FileText, CheckCircle2 } from "lucide-react";
 
 export default function FinanceClient() {
-  const router = useRouter();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
+  const [activeFilter, setActiveFilter] = useState("all");
 
-  useEffect(() => {
+  const loadData = useCallback(() => {
+    setLoading(true);
     fetch("/api/finance/overview")
-      .then(res => res.json())
-      .then(d => {
-        setData(d);
-        setLoading(false);
-      });
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then(d => { setData(d); setLoading(false); })
+      .catch(() => { setData(null); setLoading(false); });
   }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
 
   const handleMarkInstallmentPaid = async (id: string) => {
     if (!confirm("Are you sure you want to mark this installment as Paid?")) return;
@@ -29,13 +32,7 @@ export default function FinanceClient() {
     });
     
     // Refresh Data
-    setLoading(true);
-    fetch("/api/finance/overview")
-      .then(res => res.json())
-      .then(d => {
-        setData(d);
-        setLoading(false);
-      });
+    loadData();
   };
 
   if (loading) return <div className="flex justify-center p-12"><div className="animate-spin h-8 w-8 border-b-2 border-green-600 rounded-full"></div></div>;
@@ -44,29 +41,45 @@ export default function FinanceClient() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+        <div 
+          onClick={() => setActiveFilter("all")}
+          className={`cursor-pointer transition-all p-5 rounded-2xl border-2 shadow-sm ${
+            activeFilter === "all" ? "border-gray-500 bg-gray-100" : "border-transparent bg-white hover:bg-gray-50 border-gray-200"
+          }`}>
           <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Total Revenue</p>
           <p className="text-3xl font-black text-gray-900">SAR {data.overview.totalRevenue.toLocaleString()}</p>
         </div>
-        <div className="bg-green-50 p-5 rounded-2xl border border-green-200 shadow-sm">
+        <div 
+          onClick={() => setActiveFilter("fully_paid")}
+          className={`cursor-pointer transition-all p-5 rounded-2xl border-2 shadow-sm ${
+            activeFilter === "fully_paid" ? "border-green-500 bg-green-100" : "border-transparent bg-green-50 hover:bg-green-100 border-green-200"
+          }`}>
           <p className="text-xs font-bold text-green-700 uppercase tracking-widest mb-2">Total Collected</p>
           <p className="text-3xl font-black text-green-700">SAR {data.overview.totalCollected.toLocaleString()}</p>
         </div>
-        <div className="bg-amber-50 p-5 rounded-2xl border border-amber-200 shadow-sm">
+        <div 
+          onClick={() => setActiveFilter("partial")}
+          className={`cursor-pointer transition-all p-5 rounded-2xl border-2 shadow-sm ${
+            activeFilter === "partial" ? "border-amber-500 bg-amber-100" : "border-transparent bg-amber-50 hover:bg-amber-100 border-amber-200"
+          }`}>
           <p className="text-xs font-bold text-amber-700 uppercase tracking-widest mb-2">Total Remaining</p>
           <p className="text-3xl font-black text-amber-700">SAR {data.overview.totalRemaining.toLocaleString()}</p>
         </div>
-        <div className="bg-blue-50 p-5 rounded-2xl border border-blue-200 shadow-sm">
+        <div 
+          onClick={() => { setActiveTab("installments"); setActiveFilter("overdue"); }}
+          className={`cursor-pointer transition-all p-5 rounded-2xl border-2 shadow-sm ${
+            activeFilter === "overdue" && activeTab === "installments" ? "border-blue-500 bg-blue-100" : "border-transparent bg-blue-50 hover:bg-blue-100 border-blue-200"
+          }`}>
           <p className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-2">Upcoming Installments</p>
           <p className="text-3xl font-black text-blue-700">SAR {data.overview.upcomingAmounts.toLocaleString()}</p>
         </div>
       </div>
 
       <div className="flex border-b border-gray-200">
-        <button onClick={() => setActiveTab("overview")} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "overview" ? "border-green-600 text-green-600" : "border-transparent text-gray-500"}`}>
+        <button onClick={() => { setActiveTab("overview"); setActiveFilter("all"); }} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "overview" ? "border-green-600 text-green-600" : "border-transparent text-gray-500"}`}>
           💰 All Deals
         </button>
-        <button onClick={() => setActiveTab("installments")} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "installments" ? "border-green-600 text-green-600" : "border-transparent text-gray-500"}`}>
+        <button onClick={() => { setActiveTab("installments"); setActiveFilter("all"); }} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "installments" ? "border-green-600 text-green-600" : "border-transparent text-gray-500"}`}>
           📆 Pending Installments
         </button>
       </div>
@@ -88,6 +101,10 @@ export default function FinanceClient() {
                 if (d.installment1Collected) collected += d.installment1Amount || 0;
                 if (d.installment2Collected) collected += d.installment2Amount || 0;
                 if (d.installment3Collected) collected += d.installment3Amount || 0;
+
+                const isFullyPaid = collected >= d.totalAmount;
+                if (activeFilter === "fully_paid" && !isFullyPaid) return null;
+                if (activeFilter === "partial" && isFullyPaid) return null;
 
                 return (
                   <tr key={d.id} className="hover:bg-gray-50">

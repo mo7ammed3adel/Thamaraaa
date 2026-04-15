@@ -164,15 +164,15 @@ export default function OperationsClient({
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
-          { label: "My Total Projects", value: kpiCounts.total, cls: "bg-white border", filter: "all" },
-          { label: "Needs Setup", value: kpiCounts.needsSetup, cls: "bg-purple-50 border-purple-100", filter: "new" },
-          { label: "Active", value: kpiCounts.active, cls: "bg-blue-50 border-blue-100", filter: "active" },
-          { label: "Delayed", value: kpiCounts.delayed, cls: "bg-red-50 border-red-100", filter: "delayed" },
-          { label: "Completed", value: kpiCounts.completed, cls: "bg-emerald-50 border-emerald-100", filter: "completed" },
+          { label: "My Total Projects", value: kpiCounts.total, cls: "border-transparent bg-white hover:bg-gray-50", activeCls: "border-slate-500 bg-slate-50", filter: "all" },
+          { label: "Needs Setup", value: kpiCounts.needsSetup, cls: "border-transparent bg-white hover:bg-gray-50", activeCls: "border-purple-500 bg-purple-50", filter: "new" },
+          { label: "Active", value: kpiCounts.active, cls: "border-transparent bg-white hover:bg-gray-50", activeCls: "border-blue-500 bg-blue-50", filter: "active" },
+          { label: "Delayed", value: kpiCounts.delayed, cls: "border-transparent bg-white hover:bg-gray-50", activeCls: "border-red-500 bg-red-50", filter: "delayed" },
+          { label: "Completed", value: kpiCounts.completed, cls: "border-transparent bg-white hover:bg-gray-50", activeCls: "border-emerald-500 bg-emerald-50", filter: "completed" },
         ].map((kpi) => (
-          <button key={kpi.label} onClick={() => setStatusFilter(kpi.filter)} className={`${kpi.cls} p-4 rounded-xl border shadow-sm flex flex-col justify-center items-center hover:shadow-md transition cursor-pointer`}>
-            <span className="text-sm font-medium text-slate-500">{kpi.label}</span>
-            <span className="text-2xl font-bold text-slate-800">{kpi.value}</span>
+          <button key={kpi.label} onClick={() => setStatusFilter(statusFilter === kpi.filter ? "all" : kpi.filter)} className={`p-4 rounded-xl border-2 shadow-sm flex flex-col justify-center items-center transition cursor-pointer ${statusFilter === kpi.filter ? kpi.activeCls : `${kpi.cls} shadow-sm`}`}>
+            <span className="text-[11px] font-bold uppercase tracking-wider opacity-70 text-slate-500">{kpi.label}</span>
+            <span className="text-2xl font-black mt-1 text-slate-900">{kpi.value}</span>
           </button>
         ))}
       </div>

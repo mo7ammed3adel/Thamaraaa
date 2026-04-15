@@ -58,7 +58,7 @@ export default function ClientJourney({ leadName, phone, callLogs, meetings, dea
       agentName: m.salesAgent?.name || m.teleAgent?.name || "Agent",
       agentRole: "Sales",
       notes: m.salesNotes || m.summary,
-      details: `Status: ${m.status}${m.dealAmount ? ` | Amount: ${m.dealAmount.toLocaleString()} EGP` : ""}`,
+      details: `Status: ${m.status}${m.dealAmount ? ` | Amount: ${m.dealAmount.toLocaleString()} SAR` : ""}`,
     });
   });
 
@@ -70,7 +70,7 @@ export default function ClientJourney({ leadName, phone, callLogs, meetings, dea
       agentName: d.salesAgent?.name || "Sales Agent",
       agentRole: "Sales",
       notes: `Package: ${d.package} | Payment: ${d.paymentMethod}`,
-      details: `Total: ${d.totalAmount?.toLocaleString()} EGP | First Payment: ${d.firstAmount?.toLocaleString() || "N/A"} EGP | Status: ${d.status}`,
+      details: `Total: ${d.totalAmount?.toLocaleString()} SAR | First Payment: ${d.firstAmount?.toLocaleString() || "N/A"} SAR | Status: ${d.status}`,
     });
   });
 

@@ -13,6 +13,7 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterWarning, setFilterWarning] = useState("all");
   const [filterDelay, setFilterDelay] = useState("all");
+  const [activeKpi, setActiveKpi] = useState("all");
   
   const [selectedClient, setSelectedClient] = useState<any>(null);
 
@@ -28,9 +29,25 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
       const isDelayed = p.projectStatus === "delayed" || (p.tasks && p.tasks.some((t:any) => t.status !== "done" && t.deadline && new Date(t.deadline) < new Date()));
       const matchesDelay = filterDelay === "all" ? true : filterDelay === "yes" ? isDelayed : true;
 
-      return matchesAM && matchesSearch && matchesStatus && matchesWarning && matchesDelay;
+      let matchesKpi = true;
+      if (activeKpi === "newToday") {
+         const today = new Date().toLocaleDateString();
+         matchesKpi = new Date(p.createdAt).toLocaleDateString() === today;
+      } else if (activeKpi === "active") {
+         matchesKpi = ["in_progress", "setup", "assigned"].includes(p.projectStatus);
+      } else if (activeKpi === "unassigned") {
+         matchesKpi = !p.accountManagerId;
+      } else if (activeKpi === "delayed") {
+         matchesKpi = isDelayed;
+      } else if (activeKpi === "completed") {
+         matchesKpi = p.projectStatus === "completed";
+      } else if (activeKpi === "warnings") {
+         matchesKpi = hasWarnings;
+      }
+
+      return matchesAM && matchesSearch && matchesStatus && matchesWarning && matchesDelay && matchesKpi;
     });
-  }, [projects, filterAM, searchQuery, filterStatus, filterWarning, filterDelay]);
+  }, [projects, filterAM, searchQuery, filterStatus, filterWarning, filterDelay, activeKpi]);
 
   const handleAssignAM = async (projectId: string, amId: string) => {
     await fetch(`/api/projects/${projectId}/status`, {
@@ -48,19 +65,24 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
       {/* ── KPI Grid ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
         {[
-          { label: "Total Projects", val: kpis.total, colors: "bg-white border-slate-200 text-slate-800" },
-          { label: "New Today", val: kpis.newToday, colors: "bg-blue-50 border-blue-200 text-blue-900" },
-          { label: "Active", val: kpis.active, colors: "bg-indigo-50 border-indigo-200 text-indigo-900" },
-          { label: "Unassigned", val: kpis.unassigned, colors: "bg-purple-50 border-purple-200 text-purple-900" },
-          { label: "Delayed", val: kpis.delayed, colors: "bg-red-50 border-red-200 text-red-900" },
-          { label: "Completed", val: kpis.completed, colors: "bg-emerald-50 border-emerald-200 text-emerald-900" },
-          { label: "Warnings", val: kpis.warnings, colors: "bg-orange-50 border-orange-200 text-orange-900" },
-          { label: "Avg Progress", val: `${kpis.avgCompletion}%`, colors: "bg-teal-50 border-teal-200 text-teal-900" },
+          { id: "all", label: "Total Projects", val: kpis.total, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-slate-500 bg-slate-50" },
+          { id: "newToday", label: "New Today", val: kpis.newToday, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-blue-500 bg-blue-50" },
+          { id: "active", label: "Active", val: kpis.active, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-indigo-500 bg-indigo-50" },
+          { id: "unassigned", label: "Unassigned", val: kpis.unassigned, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-purple-500 bg-purple-50" },
+          { id: "delayed", label: "Delayed", val: kpis.delayed, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-red-500 bg-red-50" },
+          { id: "completed", label: "Completed", val: kpis.completed, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-emerald-500 bg-emerald-50" },
+          { id: "warnings", label: "Warnings", val: kpis.warnings, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-orange-500 bg-orange-50" },
+          { id: "avg", label: "Avg Progress", val: `${kpis.avgCompletion}%`, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-teal-500 bg-teal-50", disableFilter: true },
         ].map(k => (
-          <div key={k.label} className={`p-4 rounded-xl border ${k.colors}`}>
-            <p className="text-[11px] font-bold opacity-70 uppercase tracking-wider">{k.label}</p>
-            <p className="text-2xl font-black mt-1">{k.val}</p>
-          </div>
+          <button 
+            key={k.label} 
+            onClick={() => !k.disableFilter && setActiveKpi(activeKpi === k.id ? "all" : k.id)}
+            disabled={k.disableFilter}
+            className={`p-4 rounded-xl border-2 text-left transition ${k.disableFilter ? "cursor-default shadow-sm" : "cursor-pointer"} ${activeKpi === k.id ? k.activeColors : `${k.colors} ${k.disableFilter ? "" : "shadow-sm"}`}`}
+          >
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{k.label}</p>
+            <p className="text-2xl font-black mt-1 text-slate-900">{k.val}</p>
+          </button>
         ))}
       </div>
 
