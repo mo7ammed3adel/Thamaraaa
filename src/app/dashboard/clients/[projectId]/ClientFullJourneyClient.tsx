@@ -104,6 +104,17 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
     router.refresh();
   }
 
+  // ── Team Assignment Handler (Bulk update & TeamAssignment records) ──
+  async function handleTeamAssignment(department: string, roleType: "leader" | "agent", newUserId: string) {
+    if (!department || !newUserId) return;
+    await fetch(`/api/projects/${project.id}/team-assignment`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ department, assignedRoleType: roleType, newUserId }),
+    });
+    router.refresh();
+  }
+
   const safeUserRole = userRole || "";
   const isAdmin = ["super_admin", "head_account_manager", "head_technical", "head_seo"].includes(safeUserRole);
 
@@ -406,8 +417,8 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
               <tbody className="divide-y divide-gray-100">
                 {teamGrid.map((row) => {
                   const isLeader = row.leaderId === userId;
-                  const canAssignLeader = isAdmin && row.taskId;
-                  const canAssignAgent = (isAdmin || isLeader) && row.taskId;
+                  const canAssignLeader = isAdmin;
+                  const canAssignAgent = isAdmin || isLeader;
 
                   // Simplified role matching
                   const deptShort = row.department.toLowerCase().split(" ")[0]; // "seo", "social", "media", "graphic", "motion", "ui/ux"
@@ -420,7 +431,7 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
                       <td className="px-6 py-4 text-sm text-slate-600">
                         {canAssignLeader ? (
                           <select 
-                            onChange={(e) => handleAssignUser(row.taskId, "leaderId", e.target.value)}
+                            onChange={(e) => handleTeamAssignment(row.department, "leader", e.target.value)}
                             className="bg-slate-50 border rounded text-xs px-2 py-1 max-w-[150px]"
                             defaultValue=""
                           >
@@ -434,7 +445,7 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
                       <td className="px-6 py-4 text-sm text-slate-600">
                         {canAssignAgent ? (
                           <select 
-                            onChange={(e) => handleAssignUser(row.taskId, "agentId", e.target.value)}
+                            onChange={(e) => handleTeamAssignment(row.department, "agent", e.target.value)}
                             className="bg-slate-50 border rounded text-xs px-2 py-1 max-w-[150px]"
                             defaultValue=""
                           >
