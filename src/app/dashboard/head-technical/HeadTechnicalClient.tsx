@@ -158,7 +158,12 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
           onClose={() => setDistributeModalProject(null)}
           projectId={distributeModalProject.id}
           projectName={distributeModalProject.deal?.lead?.name || "Client"}
-          distributorRole="head_technical"
+          availableUsers={teamLeaders as any[]}
+          actionLabel="Assign Team Leader"
+          onDistributed={() => {
+            setDistributeModalProject(null);
+            router.refresh();
+          }}
         />
       )}
 

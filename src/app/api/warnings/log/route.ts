@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
       include: {
         sender: { select: { id: true, name: true, role: true } },
         receipts: { include: { user: { select: { id: true, name: true, role: true } } } },
-        project: { select: { id: true, name: true } }
+        project: { include: { deal: { include: { lead: { select: { name: true } } } } } }
       },
       orderBy: { createdAt: "desc" }
     });

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { CROSS_TEAM_TASK_TYPES } from "@/lib/constants";
 
 export default function CrossTeamTaskForm({ projectId, onClose }: { projectId: string; onClose: () => void }) {
-  const [taskType, setTaskType] = useState(CROSS_TEAM_TASK_TYPES[0]);
+  const [taskType, setTaskType] = useState<string>(CROSS_TEAM_TASK_TYPES[0]);
   const [brief, setBrief] = useState("");
   const [priority, setPriority] = useState("Medium");
   const [loading, setLoading] = useState(false);

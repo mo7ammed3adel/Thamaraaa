@@ -10,7 +10,7 @@ import LifecycleChangeModal from "@/components/LifecycleChangeModal";
 import DistributeModal from "@/components/DistributeModal";
 import TeamOverview from "@/components/TeamOverview";
 
-export default function AccountManagerClient({ userId, projects, kpis }: any) {
+export default function AccountManagerClient({ userId, projects, kpis, headSeoUsers }: any) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -486,8 +486,12 @@ export default function AccountManagerClient({ userId, projects, kpis }: any) {
           onClose={() => setDistributeModalProject(null)}
           projectId={distributeModalProject.id}
           projectName={distributeModalProject.deal?.lead?.name || "Client"}
-          distributorRole="account_manager"
-          preselectedTargetRole="head_seo"
+          availableUsers={headSeoUsers || []}
+          actionLabel="Assign Head SEO"
+          onDistributed={() => {
+            setDistributeModalProject(null);
+            router.refresh();
+          }}
         />
       )}
 
@@ -498,7 +502,7 @@ export default function AccountManagerClient({ userId, projects, kpis }: any) {
           projectId={lifecycleModalProject.id}
           projectName={lifecycleModalProject.deal?.lead?.name || "Client"}
           currentState={lifecycleModalProject.lifecycleState || "Onboarding"}
-          onSuccess={() => { setLifecycleModalProject(null); router.refresh(); }}
+          onChanged={() => { setLifecycleModalProject(null); router.refresh(); }}
         />
       )}
     </div>

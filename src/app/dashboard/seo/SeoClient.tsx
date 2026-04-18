@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "react-hot-toast";
 import LifecycleStateBadge from "@/components/LifecycleStateBadge";
 import DistributionPanel from "@/components/DistributionPanel";
-import WorkloadIndicator from "@/components/WorkloadIndicator";
+
 import TeamOverview from "@/components/TeamOverview";
 import CrossTeamTaskForm from "@/components/CrossTeamTaskForm";
 
@@ -28,15 +27,15 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
         body: JSON.stringify({ projectId, targetUserId: leaderId }),
       });
       if (res.ok) {
-        toast.success("Team Leader assigned successfully");
+        alert("Team Leader assigned successfully");
         setActiveDistribution(null);
         router.refresh();
       } else {
         const errorData = await res.json();
-        toast.error(errorData.error || "Failed to assign Team Leader");
+        alert(errorData.error || "Failed to assign Team Leader");
       }
     } catch (e) {
-      toast.error("An unexpected error occurred");
+      alert("An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -51,15 +50,15 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
         body: JSON.stringify({ agentUserId: agentId, department: "seo" }),
       });
       if (res.ok) {
-        toast.success("Agent assigned successfully");
+        alert("Agent assigned successfully");
         setActiveDistribution(null);
         router.refresh();
       } else {
         const errorData = await res.json();
-        toast.error(errorData.error || "Failed to assign Agent");
+        alert(errorData.error || "Failed to assign Agent");
       }
     } catch (e) {
-      toast.error("An unexpected error occurred");
+      alert("An unexpected error occurred");
     } finally {
       setLoading(false);
     }
