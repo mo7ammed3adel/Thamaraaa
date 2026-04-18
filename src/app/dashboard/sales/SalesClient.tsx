@@ -299,7 +299,10 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     setStatus("Active");
     setShowClosingForm(false);
     setFeedbackDraft(false);
+    // Update lead local state to Closed_Won so UI reflects immediately
+    setLeads(prev => prev.map(l => l.id === activeLead.id ? { ...l, status: "Closed_Won" } : l));
     setActiveLead(null);
+    setFeedback({ notes: "", outcome: "won", followUpDate: "", meetingDate: "", meetingTime: "", hasStore: "No", storeLink: "", customerType: "Launch" });
     setDealData({
       packageType: "SEO", contractStart: "", contractEnd: "",
       totalAmount: "", firstAmount: "", paymentType: "Full",
@@ -604,7 +607,11 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                    {activeLead?.id === l.id ? (
+                    {l.status === "Closed_Won" ? (
+                      <span className="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-md text-xs font-bold">✓ Won</span>
+                    ) : l.status === "Closed_Lost" ? (
+                      <span className="px-3 py-1.5 bg-red-100 text-red-700 rounded-md text-xs font-bold">✗ Lost</span>
+                    ) : activeLead?.id === l.id ? (
                       <button onClick={endTask} className="px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700">End Task</button>
                     ) : (
                       <button onClick={() => startTask(l)} disabled={!!activeLead} className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 disabled:opacity-50">Start Task</button>
