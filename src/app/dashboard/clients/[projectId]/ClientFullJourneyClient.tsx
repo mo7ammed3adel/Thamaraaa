@@ -93,26 +93,44 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
     router.refresh();
   }
 
-  // ── Assignment Handler ──
+  // ── Task-level Assignment Handler ──
   async function handleAssignUser(taskId: string, field: "leaderId" | "agentId", newValue: string) {
     if (!taskId || !newValue) return;
-    await fetch(`/api/tasks/${taskId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ [field]: newValue }),
-    });
-    router.refresh();
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: newValue }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(`Assignment failed: ${data.error || "Unknown error"}`);
+        return;
+      }
+      router.refresh();
+    } catch (err) {
+      alert("Network error — could not reach server.");
+    }
   }
 
   // ── Team Assignment Handler (Bulk update & TeamAssignment records) ──
   async function handleTeamAssignment(department: string, roleType: "leader" | "agent", newUserId: string) {
     if (!department || !newUserId) return;
-    await fetch(`/api/projects/${project.id}/team-assignment`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ department, assignedRoleType: roleType, newUserId }),
-    });
-    router.refresh();
+    try {
+      const res = await fetch(`/api/projects/${project.id}/team-assignment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ department, assignedRoleType: roleType, newUserId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(`Assignment failed: ${data.error || "Unknown error"}`);
+        return;
+      }
+      router.refresh();
+    } catch (err) {
+      alert("Network error — could not reach server.");
+    }
   }
 
   const safeUserRole = userRole || "";
