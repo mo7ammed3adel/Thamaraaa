@@ -502,8 +502,16 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
             <p className="text-sm text-slate-400 italic py-4">No tasks created yet.</p>
           ) : (
             <div className="space-y-3">
-              {project.tasks.map((t: any) => (
-                <div key={t.id} className="border rounded-lg p-4 hover:shadow-sm transition">
+              {project.tasks.map((t: any) => {
+                const isTaskLeader = t.leaderId === userId;
+                const taskCanAssignLeader = isAdmin;
+                const taskCanAssignAgent = isAdmin || isTaskLeader;
+
+                const taskLeaders = teamMembers?.filter((u: any) => u.role?.includes("leader") || u.role?.includes("head")) || [];
+                const taskAgents = teamMembers?.filter((u: any) => u.role?.includes("agent") || u.role?.includes("design")) || [];
+
+                return (
+                 <div key={t.id} className="border rounded-lg p-4 hover:shadow-sm transition">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-bold text-slate-800 capitalize">{t.taskType.replace(/_/g, " ")}</span>
@@ -514,9 +522,37 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
                       Created: {new Date(t.createdAt).toLocaleDateString()} {t.completedAt && `• Completed: ${new Date(t.completedAt).toLocaleDateString()}`}
                     </div>
                   </div>
-                  <div className="flex gap-6 mt-2 text-xs text-slate-500 flex-wrap">
-                    <span>Assigned By: <strong>{t.leader?.name || "—"}</strong></span>
-                    <span>Assigned To: <strong>{t.agent?.name || "Unassigned"}</strong></span>
+                  <div className="flex gap-6 mt-2 text-xs text-slate-500 flex-wrap items-center">
+                    <span className="flex items-center gap-2">
+                      Assigned By: 
+                      {taskCanAssignLeader ? (
+                        <select 
+                          onChange={(e) => handleAssignUser(t.id, "leaderId", e.target.value)}
+                          className="bg-slate-50 border rounded px-1 py-0.5 max-w-[120px]"
+                          defaultValue=""
+                        >
+                          <option value="" disabled>{t.leader?.name || "Unassigned"}</option>
+                          {taskLeaders.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                        </select>
+                      ) : (
+                        <strong>{t.leader?.name || "—"}</strong>
+                      )}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      Assigned To: 
+                      {taskCanAssignAgent ? (
+                        <select 
+                          onChange={(e) => handleAssignUser(t.id, "agentId", e.target.value)}
+                          className="bg-slate-50 border rounded px-1 py-0.5 max-w-[120px]"
+                          defaultValue=""
+                        >
+                          <option value="" disabled>{t.agent?.name || "Unassigned"}</option>
+                          {taskAgents.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                        </select>
+                      ) : (
+                        <strong>{t.agent?.name || "Unassigned"}</strong>
+                      )}
+                    </span>
                     {t.brief && <span>Brief: {t.brief}</span>}
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2">
@@ -532,8 +568,9 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
                       ))}
                     </div>
                   )}
-                </div>
-              ))}
+                 </div>
+                );
+              })}
             </div>
             )}
           </div>
