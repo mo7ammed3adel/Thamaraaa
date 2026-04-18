@@ -52,6 +52,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       updateData.agentId = body.agentId;
     }
 
+    // Only admins can reassign leaders
+    if (body.leaderId !== undefined) {
+      if (!isAdmin) {
+        return NextResponse.json({ error: "Only admins can reassign team leaders." }, { status: 403 });
+      }
+      updateData.leaderId = body.leaderId;
+    }
+
     if (body.progressPct !== undefined) {
       const pct = Number(body.progressPct);
       if (isNaN(pct) || pct < 0 || pct > 100) {

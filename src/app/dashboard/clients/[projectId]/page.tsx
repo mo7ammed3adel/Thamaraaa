@@ -11,8 +11,10 @@ import ClientFullJourneyClient from "./ClientFullJourneyClient";
  */
 export default async function ClientJourneyPage({
   params,
+  searchParams,
 }: {
   params: { projectId: string };
+  searchParams: { tab?: string };
 }) {
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
@@ -52,6 +54,11 @@ export default async function ClientJourneyPage({
     },
   });
 
+  const teamMembers = await prisma.user.findMany({
+    where: { status: "Active" },
+    select: { id: true, name: true, role: true }
+  });
+
   if (!project) redirect("/dashboard");
 
   return (
@@ -60,6 +67,8 @@ export default async function ClientJourneyPage({
       userRole={user.role}
       userId={user.id}
       userName={user.name}
+      teamMembers={teamMembers}
+      initialTab={searchParams?.tab || "timeline"}
     />
   );
 }

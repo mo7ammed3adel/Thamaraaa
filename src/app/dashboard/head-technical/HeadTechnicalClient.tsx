@@ -132,7 +132,7 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex flex-col items-end gap-2">
-                        <button onClick={() => setDistributeModalProject(p)} className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 shadow-sm transition w-28 text-center">
+                        <button onClick={() => router.push(`/dashboard/clients/${p.id}?tab=team`)} className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 shadow-sm transition w-28 text-center">
                           Distribute to Depts
                         </button>
                         <button onClick={() => router.push(`/dashboard/clients/${p.id}`)} className="px-3 py-1.5 bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-900 shadow-sm transition w-28 text-center">

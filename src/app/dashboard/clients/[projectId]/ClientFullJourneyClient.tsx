@@ -20,9 +20,9 @@ const TABS = [
  * Client Full Journey — the central truth page.
  * Shows everything about a client across all departments in one place.
  */
-export default function ClientFullJourneyClient({ project, userRole, userId, userName }: any) {
+export default function ClientFullJourneyClient({ project, userRole, userId, userName, teamMembers = [], initialTab = "timeline" }: any) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("timeline");
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [noteContent, setNoteContent] = useState("");
   const [noteCategory, setNoteCategory] = useState("general");
   const [saving, setSaving] = useState(false);
@@ -92,6 +92,20 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
     });
     router.refresh();
   }
+
+  // ── Assignment Handler ──
+  async function handleAssignUser(taskId: string, field: "leaderId" | "agentId", newValue: string) {
+    if (!taskId || !newValue) return;
+    await fetch(`/api/tasks/${taskId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [field]: newValue }),
+    });
+    router.refresh();
+  }
+
+  const safeUserRole = userRole || "";
+  const isAdmin = ["super_admin", "head_account_manager", "head_technical", "head_seo"].includes(safeUserRole);
 
   // ── Build Timeline Entries ──
   function buildTimeline() {
@@ -213,7 +227,15 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
       const agent = tasks[0]?.agent;
       const statuses = tasks.map((t: any) => t.status);
       const overallStatus = statuses.includes("in_progress") ? "in_progress" : statuses.includes("pending") ? "pending" : statuses.includes("done") ? "done" : "N/A";
-      return { department: dept.name, leader: leader?.name || "—", agent: agent?.name || "—", status: overallStatus, taskCount: tasks.length };
+      return { 
+        department: dept.name, 
+        leader: leader?.name, 
+        agent: agent?.name, 
+        status: overallStatus, 
+        taskCount: tasks.length,
+        taskId: tasks[0]?.id,
+        leaderId: leader?.id,
+      };
     });
   }
 
@@ -382,19 +404,56 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {teamGrid.map((row) => (
-                  <tr key={row.department} className="hover:bg-slate-50/50">
-                    <td className="px-6 py-4 text-sm font-bold text-slate-800">{row.department}</td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{row.leader}</td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{row.agent}</td>
-                    <td className="px-6 py-4 text-sm text-center font-medium">{row.taskCount}</td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`px-2 py-0.5 rounded text-xs font-bold capitalize ${row.status === "done" ? "bg-emerald-100 text-emerald-700" : row.status === "in_progress" ? "bg-amber-100 text-amber-700" : row.status === "pending" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"}`}>
-                        {row.status === "N/A" ? "Not Assigned" : row.status.replace(/_/g, " ")}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {teamGrid.map((row) => {
+                  const isLeader = row.leaderId === userId;
+                  const canAssignLeader = isAdmin && row.taskId;
+                  const canAssignAgent = (isAdmin || isLeader) && row.taskId;
+
+                  // Simplified role matching
+                  const deptShort = row.department.toLowerCase().split(" ")[0]; // "seo", "social", "media", "graphic", "motion", "ui/ux"
+                  const leaders = teamMembers?.filter((u: any) => u.role?.includes("leader") || u.role?.includes("head")) || [];
+                  const agents = teamMembers?.filter((u: any) => u.role?.includes("agent") || u.role?.includes("design")) || [];
+
+                  return (
+                    <tr key={row.department} className="hover:bg-slate-50/50">
+                      <td className="px-6 py-4 text-sm font-bold text-slate-800">{row.department}</td>
+                      <td className="px-6 py-4 text-sm text-slate-600">
+                        {canAssignLeader ? (
+                          <select 
+                            onChange={(e) => handleAssignUser(row.taskId, "leaderId", e.target.value)}
+                            className="bg-slate-50 border rounded text-xs px-2 py-1 max-w-[150px]"
+                            defaultValue=""
+                          >
+                            <option value="" disabled>{row.leader || "Assign Leader..."}</option>
+                            {leaders.map((u: any) => <option key={u.id} value={u.id}>{u.name} ({u.role?.replace(/_/g, " ")})</option>)}
+                          </select>
+                        ) : (
+                          row.leader || "—"
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-600">
+                        {canAssignAgent ? (
+                          <select 
+                            onChange={(e) => handleAssignUser(row.taskId, "agentId", e.target.value)}
+                            className="bg-slate-50 border rounded text-xs px-2 py-1 max-w-[150px]"
+                            defaultValue=""
+                          >
+                            <option value="" disabled>{row.agent || "Assign Agent..."}</option>
+                            {agents.map((u: any) => <option key={u.id} value={u.id}>{u.name} ({u.role?.replace(/_/g, " ")})</option>)}
+                          </select>
+                        ) : (
+                          row.agent || "—"
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-center font-medium">{row.taskCount}</td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold capitalize ${row.status === "done" ? "bg-emerald-100 text-emerald-700" : row.status === "in_progress" ? "bg-amber-100 text-amber-700" : row.status === "pending" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"}`}>
+                          {row.status === "N/A" ? "No Tasks" : row.status.replace(/_/g, " ")}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
