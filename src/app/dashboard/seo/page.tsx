@@ -28,7 +28,7 @@ export default async function SeoPage() {
         },
         tasks: { select: { id: true, status: true, taskType: true } },
       },
-      orderBy: { updatedAt: "desc" },
+      orderBy: { createdAt: "desc" },
     });
     teamMembers = await prisma.user.findMany({
       where: { role: "team_leader_seo", status: "Active" },
@@ -46,7 +46,7 @@ export default async function SeoPage() {
         },
         tasks: { select: { id: true, status: true, taskType: true, agentId: true } },
       },
-      orderBy: { updatedAt: "desc" },
+      orderBy: { createdAt: "desc" },
     });
     teamMembers = await prisma.user.findMany({
       where: { role: { in: ["agent_seo", "agent_content_seo"] }, status: "Active" },
@@ -60,10 +60,9 @@ export default async function SeoPage() {
         accountManager: { select: { id: true, name: true } },
         tasks: {
           where: { agentId: user.id },
-          include: { requester: { select: { id: true, name: true, role: true } } },
         },
       },
-      orderBy: { updatedAt: "desc" },
+      orderBy: { createdAt: "desc" },
     });
   }
 

@@ -29,7 +29,7 @@ export default async function MediaBuyerPage() {
         },
         tasks: { select: { id: true, status: true, taskType: true, agentId: true } },
       },
-      orderBy: { updatedAt: "desc" },
+      orderBy: { createdAt: "desc" },
     });
     teamMembers = await prisma.user.findMany({
       where: { role: "agent_media_buyer", status: "Active" },
@@ -43,10 +43,9 @@ export default async function MediaBuyerPage() {
         accountManager: { select: { id: true, name: true } },
         tasks: {
           where: { agentId: user.id },
-          include: { requester: { select: { id: true, name: true, role: true } } },
         },
       },
-      orderBy: { updatedAt: "desc" },
+      orderBy: { createdAt: "desc" },
     });
   }
 

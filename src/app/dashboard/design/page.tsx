@@ -38,7 +38,6 @@ export default async function DesignPage({ searchParams }: { searchParams: { tea
       project: { include: { deal: { include: { lead: true } }, accountManager: true } },
       leader: true,
       agent: true,
-      requester: true, // we need requester for cross-team tasks
       parentTask: true,
     },
     orderBy: { createdAt: "desc" },
