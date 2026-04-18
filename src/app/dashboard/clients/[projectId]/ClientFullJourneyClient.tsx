@@ -243,27 +243,50 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
   // ── Build Team Assignment Grid ──
   function buildTeamGrid() {
     const departments = [
-      { name: "SEO", types: ["seo", "content_seo"] },
-      { name: "Social Media", types: ["social_media"] },
-      { name: "Media Buyer", types: ["media_buyer"] },
-      { name: "Graphic Design", types: ["graphic_design"] },
-      { name: "Motion Graphics", types: ["motion_graphic"] },
-      { name: "UI/UX Design", types: ["ui_design"] },
+      { name: "SEO", types: ["SEO", "seo", "content_seo"], deptCodes: ["seo", "content_seo"], leaderRoles: ["team_leader_seo", "head_seo"], agentRoles: ["agent_seo", "agent_content_seo"] },
+      { name: "Social Media", types: ["Social_Media", "social_media"], deptCodes: ["social_media"], leaderRoles: ["team_leader_social_media"], agentRoles: ["agent_social_media"] },
+      { name: "Media Buyer", types: ["Media_Buyer", "media_buyer", "media_buying"], deptCodes: ["media_buyer"], leaderRoles: ["team_leader_media_buyer"], agentRoles: ["agent_media_buyer"] },
+      { name: "Graphic Design", types: ["graphic_design"], deptCodes: ["graphic_design"], leaderRoles: ["leader_graphic_designer"], agentRoles: ["agent_graphic_designer"] },
+      { name: "Motion Graphics", types: ["motion_graphic"], deptCodes: ["motion_graphic"], leaderRoles: ["leader_motion_graphic"], agentRoles: ["agent_motion_graphic"] },
+      { name: "UI/UX Design", types: ["ui_design"], deptCodes: ["ui_design"], leaderRoles: ["leader_ui"], agentRoles: ["agent_ui"] },
     ];
+
+    const assignments = project.teamAssignments || [];
+
     return departments.map((dept) => {
       const tasks = project.tasks?.filter((t: any) => dept.types.includes(t.taskType)) || [];
-      const leader = tasks[0]?.leader;
-      const agent = tasks[0]?.agent;
+
+      // Get leader/agent from tasks first
+      let leaderName = tasks[0]?.leader?.name || null;
+      let leaderId = tasks[0]?.leader?.id || null;
+      let agentName = tasks[0]?.agent?.name || null;
+      let agentId = tasks[0]?.agent?.id || null;
+
+      // Fallback: read from teamAssignments if tasks don't have leader/agent
+      const deptAssignments = assignments.filter((a: any) => dept.deptCodes.includes(a.department));
+      for (const a of deptAssignments) {
+        if (!leaderName && dept.leaderRoles.includes(a.user?.role)) {
+          leaderName = a.user.name;
+          leaderId = a.user.id;
+        }
+        if (!agentName && dept.agentRoles.includes(a.user?.role)) {
+          agentName = a.user.name;
+          agentId = a.user.id;
+        }
+      }
+
       const statuses = tasks.map((t: any) => t.status);
       const overallStatus = statuses.includes("in_progress") ? "in_progress" : statuses.includes("pending") ? "pending" : statuses.includes("done") ? "done" : "N/A";
+
       return { 
         department: dept.name, 
-        leader: leader?.name, 
-        agent: agent?.name, 
+        leader: leaderName, 
+        agent: agentName, 
         status: overallStatus, 
         taskCount: tasks.length,
         taskId: tasks[0]?.id,
-        leaderId: leader?.id,
+        leaderId,
+        agentId,
       };
     });
   }
@@ -476,11 +499,12 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
                       <td className="px-6 py-4 text-sm text-slate-600">
                         {canAssignLeader ? (
                           <select 
+                            key={`leader-${row.department}-${row.leaderId || "none"}`}
                             onChange={(e) => handleTeamAssignment(row.department, "leader", e.target.value)}
                             className="bg-slate-50 border rounded text-xs px-2 py-1 max-w-[150px]"
-                            defaultValue=""
+                            defaultValue={row.leaderId || ""}
                           >
-                            <option value="" disabled>{row.leader || "Assign Leader..."}</option>
+                            <option value="" disabled>Assign Leader...</option>
                             {leaders.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
                           </select>
                         ) : (
@@ -490,11 +514,12 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
                       <td className="px-6 py-4 text-sm text-slate-600">
                         {canAssignAgent ? (
                           <select 
+                            key={`agent-${row.department}-${row.agentId || "none"}`}
                             onChange={(e) => handleTeamAssignment(row.department, "agent", e.target.value)}
                             className="bg-slate-50 border rounded text-xs px-2 py-1 max-w-[150px]"
-                            defaultValue=""
+                            defaultValue={row.agentId || ""}
                           >
-                            <option value="" disabled>{row.agent || "Assign Agent..."}</option>
+                            <option value="" disabled>Assign Agent...</option>
                             {agents.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
                           </select>
                         ) : (

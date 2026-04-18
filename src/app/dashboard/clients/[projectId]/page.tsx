@@ -48,6 +48,10 @@ export default async function ClientJourneyPage({
         },
         orderBy: { createdAt: "asc" },
       },
+      teamAssignments: {
+        where: { status: "active" },
+        include: { user: { select: { id: true, name: true, role: true } } },
+      },
       files: { orderBy: { createdAt: "desc" } },
       logs: { orderBy: { createdAt: "desc" } },
       globalNotes: { orderBy: { createdAt: "desc" } },
