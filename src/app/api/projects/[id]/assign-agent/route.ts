@@ -81,6 +81,24 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       },
     });
 
+    // Determine the task types for the given department
+    let taskTypes: string[] = [];
+    if (department === "seo" || department === "content_seo") taskTypes = ["SEO", "seo", "content_seo"];
+    else if (department === "social_media") taskTypes = ["Social_Media", "social_media"];
+    else if (department === "media_buyer") taskTypes = ["Media_Buyer", "media_buyer", "media_buying"];
+    else if (department === "graphic_design") taskTypes = ["graphic_design"];
+    else if (department === "motion_graphic") taskTypes = ["motion_graphic"];
+    else if (department === "ui_design") taskTypes = ["ui_design"];
+
+    // Assign existing tasks to this agent
+    await prisma.task.updateMany({
+      where: {
+        projectId: params.id,
+        taskType: { in: taskTypes },
+      },
+      data: { agentId: agentUserId },
+    });
+
     await prisma.projectLog.create({
       data: {
         projectId: params.id,

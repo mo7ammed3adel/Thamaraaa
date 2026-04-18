@@ -53,17 +53,21 @@ export default async function SeoPage() {
       include: { _count: { select: { teamAssignments: { where: { status: "active" } } } } },
     });
   } else if (["agent_seo", "agent_content_seo"].includes(user.role)) {
-    projects = await prisma.project.findMany({
-      where: { teamAssignments: { some: { userId: user.id, status: "active" } } },
-      include: {
-        deal: { include: { lead: true } },
-        accountManager: { select: { id: true, name: true } },
-        tasks: {
-          where: { agentId: user.id },
+    try {
+      projects = await prisma.project.findMany({
+        where: { teamAssignments: { some: { userId: user.id, status: "active" } } },
+        include: {
+          deal: { include: { lead: true } },
+          accountManager: { select: { id: true, name: true } },
+          tasks: {
+            where: { agentId: user.id },
+          },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+        orderBy: { createdAt: "desc" },
+      });
+    } catch (err: any) {
+      return <div className="p-8"><h1 className="text-red-500 font-bold">Fetch Error:</h1><p>{err.message}</p></div>;
+    }
   }
 
   return (

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
 import LifecycleStateBadge from "@/components/LifecycleStateBadge";
 import DistributionPanel from "@/components/DistributionPanel";
 import WorkloadIndicator from "@/components/WorkloadIndicator";
@@ -20,26 +21,48 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
 
   const handleDistributeTeam = async (projectId: string, leaderId: string) => {
     setLoading(true);
-    await fetch(`/api/projects/${projectId}/distribute-team`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: leaderId, department: "seo", role: "team_leader_seo" }),
-    });
-    setLoading(false);
-    setActiveDistribution(null);
-    router.refresh();
+    try {
+      const res = await fetch(`/api/projects/distribute`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId, targetUserId: leaderId }),
+      });
+      if (res.ok) {
+        toast.success("Team Leader assigned successfully");
+        setActiveDistribution(null);
+        router.refresh();
+      } else {
+        const errorData = await res.json();
+        toast.error(errorData.error || "Failed to assign Team Leader");
+      }
+    } catch (e) {
+      toast.error("An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAssignAgent = async (projectId: string, agentId: string) => {
     setLoading(true);
-    await fetch(`/api/projects/${projectId}/assign-agent`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ agentUserId: agentId, department: "seo" }),
-    });
-    setLoading(false);
-    setActiveDistribution(null);
-    router.refresh();
+    try {
+      const res = await fetch(`/api/projects/${projectId}/assign-agent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agentUserId: agentId, department: "seo" }),
+      });
+      if (res.ok) {
+        toast.success("Agent assigned successfully");
+        setActiveDistribution(null);
+        router.refresh();
+      } else {
+        const errorData = await res.json();
+        toast.error(errorData.error || "Failed to assign Agent");
+      }
+    } catch (e) {
+      toast.error("An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleUpdateTaskStatus = async (taskId: string, status: string) => {
@@ -180,36 +203,42 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
               )}
 
               {/* Agent View: Show Tasks */}
-              {isAgent && project.tasks?.length > 0 && (
+              {isAgent && (
                 <div className="p-4 space-y-3">
-                   <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-2">My Tasks</h4>
-                   {project.tasks.map((task: any) => (
-                     <div key={task.id} className="border rounded-lg p-4 flex flex-col md:flex-row justify-between items-center bg-slate-50">
+                  <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-2">My Tasks</h4>
+                  {!project.tasks || project.tasks.length === 0 ? (
+                    <div className="bg-slate-50 border rounded-lg p-6 text-center text-slate-500 italic">
+                      No tasks assigned yet.
+                    </div>
+                  ) : (
+                    project.tasks.map((task: any) => (
+                      <div key={task.id} className="border rounded-lg p-4 flex flex-col md:flex-row justify-between items-center bg-slate-50">
                         <div>
-                           <p className="font-bold text-sm uppercase text-indigo-800 mb-1">{task.taskType.replace(/_/g, " ")}</p>
-                           {task.requester && (
-                             <p className="text-xs text-slate-500">Requested by: {task.requester.name} ({task.requester.role.replace(/_/g, " ")})</p>
-                           )}
+                          <p className="font-bold text-sm uppercase text-indigo-800 mb-1">{task.taskType.replace(/_/g, " ")}</p>
+                          {task.requester && (
+                            <p className="text-xs text-slate-500">Requested by: {task.requester.name} ({task.requester.role.replace(/_/g, " ")})</p>
+                          )}
                         </div>
                         <div className="mt-3 md:mt-0 flex items-center gap-3">
-                           <select 
-                             value={task.status}
-                             onChange={(e) => handleUpdateTaskStatus(task.id, e.target.value)}
-                             className="border-2 border-slate-200 rounded-lg text-sm font-bold px-3 py-1.5 focus:border-indigo-500 outline-none bg-white"
-                           >
-                             <option value="pending">Pending / On Hold</option>
-                             <option value="in_progress">In Progress</option>
-                             <option value="done">Done</option>
-                           </select>
-                           <button 
-                             onClick={() => setCrossTeamProject(project.id)}
-                             className="bg-slate-800 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-slate-900 transition"
-                           >
-                             + Cross-Team Task
-                           </button>
+                          <select 
+                            value={task.status}
+                            onChange={(e) => handleUpdateTaskStatus(task.id, e.target.value)}
+                            className="border-2 border-slate-200 rounded-lg text-sm font-bold px-3 py-1.5 focus:border-indigo-500 outline-none bg-white"
+                          >
+                            <option value="pending">Pending / On Hold</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="done">Done</option>
+                          </select>
+                          <button 
+                            onClick={() => setCrossTeamProject(project.id)}
+                            className="bg-slate-800 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-slate-900 transition"
+                          >
+                            + Cross-Team Task
+                          </button>
                         </div>
-                     </div>
-                   ))}
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
 
