@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thamaraa CRM - Workflow Presentation</title>
+
+    <!-- Fonts: Cairo for Arabic, Archivo/Space Grotesk for Display -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Mermaid.js for Diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({ startOnLoad: true, theme: 'dark', fontFamily: 'Cairo' });</script>
+
+    <style>
+        /* ===========================================
+           VIEWPORT FITTING: MANDATORY BASE STYLES
+           =========================================== */
+        html, body { height: 100%; overflow: hidden; margin: 0; padding: 0; background: #1a1a1a; color: #fff; scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+        .slide { width: 100vw; height: 100vh; height: 100dvh; overflow: hidden; scroll-snap-align: start; display: flex; flex-direction: column; position: relative; background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%); transition: background 0.5s ease; }
+        
+        /* THEME: BOLD SIGNAL (Style A) */
+        :root {
+            --bg-primary: #1a1a1a;
+            --accent: #FF5722;
+            --accent-soft: rgba(255, 87, 34, 0.1);
+            --text-primary: #ffffff;
+            --font-display: 'Archivo Black', 'Cairo', sans-serif;
+            --font-body: 'Space Grotesk', 'Cairo', sans-serif;
+            
+            --title-size: clamp(1.8rem, 6vw, 4.5rem);
+            --h2-size: clamp(1.4rem, 4vw, 3rem);
+            --body-size: clamp(0.9rem, 1.5vw, 1.2rem);
+            --slide-padding: clamp(1.5rem, 5vw, 5rem);
+            --content-gap: clamp(1rem, 3vh, 3rem);
+        }
+
+        .slide-content { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: var(--slide-padding); max-height: 100%; z-index: 2; }
+        
+        /* SIGNATURE ELEMENTS */
+        .number { position: absolute; top: 1.5rem; left: 2rem; font-family: var(--font-display); font-size: clamp(2rem, 10vh, 7rem); opacity: 0.05; pointer-events: none; }
+        .accent-card { position: absolute; top: 0; right: 0; width: 35vw; height: 100%; background: var(--accent); transform: skewX(-8deg) translateX(15%); z-index: 1; opacity: 0.8; }
+        .nav-breadcrumb { position: absolute; top: 2rem; right: var(--slide-padding); font-family: var(--font-body); font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; opacity: 0.5; z-index: 10; }
+
+        /* TYPOGRAPHY */
+        h1, h2 { font-family: var(--font-display); margin: 0; line-height: 1.1; }
+        p, li { font-family: var(--font-body); line-height: 1.5; }
+        .badge { display: inline-block; background: var(--accent); color: #1a1a1a; padding: 0.4rem 1.2rem; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; margin-bottom: 1rem; border-radius: 2px; }
+
+        /* LISTS & TABLES */
+        ul { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.8rem; }
+        li { padding-right: 1.5rem; position: relative; }
+        li::before { content: ""; position: absolute; right: 0; top: 0.6rem; width: 10px; height: 2px; background: var(--accent); }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.85rem; background: rgba(255,255,255,0.03); border-radius: 8px; overflow: hidden; }
+        th { background: var(--accent); color: #1a1a1a; padding: 0.8rem; text-align: right; }
+        td { padding: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+        /* REVEAL ANIMATIONS */
+        .reveal { opacity: 0; transform: translateY(40px); transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1); }
+        .slide.active .reveal { opacity: 1; transform: translateY(0); }
+        .slide.active .reveal.delay-1 { transition-delay: 0.2s; }
+        .slide.active .reveal.delay-2 { transition-delay: 0.4s; }
+        .slide.active .reveal.delay-3 { transition-delay: 0.6s; }
+
+        /* PROGRESS & NAV */
+        .progress-bar { position: fixed; bottom: 0; right: 0; height: 4px; background: var(--accent); width: 0%; z-index: 1000; transition: width 0.3s ease; }
+        .nav-dots { position: fixed; left: 2rem; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 1rem; z-index: 1000; }
+        .dot { width: 10px; height: 10px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; cursor: pointer; transition: all 0.3s; }
+        .dot.active { background: var(--accent); border-color: var(--accent); transform: scale(1.5); }
+
+        /* SPECIAL CONTENT */
+        .mermaid { background: transparent !important; margin-top: 2rem; max-width: 100%; overflow: visible; }
+        .mermaid svg { max-height: min(60vh, 500px) !important; width: auto !important; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 2rem; }
+        .kpi-card { background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 12px; border-right: 4px solid var(--accent); }
+        .kpi-val { font-family: var(--font-display); font-size: 2rem; color: var(--accent); }
+        .kpi-label { font-size: 0.8rem; opacity: 0.6; margin-top: 0.5rem; }
+
+        @media (max-width: 1000px) { .accent-card { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+    <nav class="nav-dots" id="navDots"></nav>
+
+    <!-- SLIDE 0: TITLE -->
+    <section class="slide" id="slide-0">
+        <div class="number">00</div>
+        <div class="accent-card"></div>
+        <div class="slide-content">
+            <div class="badge reveal">Thamaraa ERP v2.0</div>
+            <h1 class="reveal delay-1">Thamaraa CRM<br>Workflow System</h1>
+            <p class="reveal delay-2" style="max-width: 600px; margin-top: 2rem; opacity: 0.8;">
+                استعراض شامل للشريان الرقمي لكل سنتيمتر في المشروع. من لحظة اكتساب العميل إلى تسوية الحسابات، كل خطوة محسوبة ومؤتمتة لضمان الكفاءة القصوى.
+            </p>
+        </div>
+    </section>
+
+    <!-- SLIDE 1: MAP -->
+    <section class="slide" id="slide-1">
+        <div class="number">01</div>
+        <div class="slide-content" style="align-items: center; text-align: center;">
+            <div class="badge reveal">System Overview</div>
+            <h2 class="reveal delay-1">خريطة الطريق — رحلة العميل</h2>
+            <div class="mermaid reveal delay-2">
+                flowchart LR
+                    A[TeleSales] --> B[Sales]
+                    B --> C[Operations]
+                    C --> D[Teams]
+                    D --> E[Delivery]
+                    E --> F[Finance]
+                    style A fill:#FF5722,color:#000
+                    style B fill:#FF5722,color:#000
+                    style F fill:#4CAF50,color:#fff
+            </div>
+            <p class="reveal delay-3" style="font-size: 0.9rem; opacity: 0.6; margin-top: 2rem;">كل مرحلة مربوطة بنظام إشعارات Real-Time ونظام تحذيرات إجباري.</p>
+        </div>
+    </section>
+
+    <!-- SLIDE 2: TELESALES 1 -->
+    <section class="slide" id="slide-2">
+        <div class="number">02</div>
+        <div class="slide-content">
+            <div class="badge reveal">Phase 1: Acquisition</div>
+            <h2 class="reveal delay-1">TeleSales — إثراء القائمة</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; margin-top: 2rem;">
+                <div class="reveal delay-2">
+                    <h3>💻 إدارة الـ Leads</h3>
+                    <ul>
+                        <li>إدخال Leads يدوياً أو Bulk Import</li>
+                        <li>توزيع أوتوماتيكي أو يدوي للوكلاء</li>
+                        <li>نظام Cold Leads لإعادة الاستهداف</li>
+                        <li>سلة المهملات لإعادة التدوير الذكية</li>
+                    </ul>
+                </div>
+                <div class="reveal delay-3">
+                    <h3>📞 دورة الاتصال الذكي</h3>
+                    <ul>
+                        <li>تسجيل كل مكالمة بنتائج محددة</li>
+                        <li>تصنيف فوري (Accepted/Rejected/etc)</li>
+                        <li>تحديث الحالة بنقرة واحدة</li>
+                        <li>إشعارات Real-time عند التعيين</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 3: TELESALES 2 -->
+    <section class="slide" id="slide-3">
+        <div class="number">03</div>
+        <div class="slide-content">
+            <h2 class="reveal">TeleSales — الميزات المتقدمة</h2>
+            <div class="kpi-grid reveal delay-1">
+                <div class="kpi-card">
+                    <div class="kpi-val">Dynamic</div>
+                    <div class="kpi-label">Custom Columns لجمع البيانات المخصصة</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-val">Live</div>
+                    <div class="kpi-label">تحليلات فورية لأداء الوكيل</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-val">Linked</div>
+                    <div class="kpi-label">تحويل فوري للاجتماعات المحجوزة</div>
+                </div>
+            </div>
+            <p class="reveal delay-2" style="margin-top: 3rem; background: var(--accent-soft); padding: 1.5rem; border-right: 4px solid var(--accent);">
+                <strong>ملاحظة هامة:</strong> الـ Custom Columns تسمح للمدراء بإضافة حقول بيانات جديدة للـ Leads تظهر فوراً لدى الموظفين دون الحاجة لتحديث الكود.
+            </p>
+        </div>
+    </section>
+
+    <!-- SLIDE 4: SALES 1 -->
+    <section class="slide" id="slide-4">
+        <div class="number">04</div>
+        <div class="slide-content">
+            <div class="badge reveal">Phase 2: Conversion</div>
+            <h2 class="reveal delay-1">Sales — تحويل الفرص</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; margin-top: 2rem;">
+                <div class="reveal delay-2">
+                    <h3>📅 إدارة الاجتماعات</h3>
+                    <ul>
+                        <li>استقبال الاجتماعات من TeleSales</li>
+                        <li>تحديث حالة الحضور والجدولة</li>
+                        <li>نظام Feedback Form بعد كل اجتماع</li>
+                    </ul>
+                </div>
+                <div class="reveal delay-3">
+                    <h3>⏱️ نظام الحالات الذكي</h3>
+                    <p>عداد زمني يحسب وقت العمل الفعلي لكل وكيل مبيعات (In Call / Active / Busy) لقياس الإنتاجية بدقة.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 5: SALES 2 (CLOSING) -->
+    <section class="slide" id="slide-5">
+        <div class="number">05</div>
+        <div class="accent-card"></div>
+        <div class="slide-content">
+            <h1 class="reveal">إقفال الصفقة (Deal Closing)</h1>
+            <p class="reveal delay-1" style="max-width: 600px;">أخطر خطوة في النظام. بمجرد إدخال البيانات، يتم تفعيل العميل رسمياً.</p>
+            <table class="reveal delay-2">
+                <tr><th>الحقل</th><th>البيانات المسجلة</th></tr>
+                <tr><td>Package</td><td>الباقة المختارة (Starter/Pro/Enterprise)</td></tr>
+                <tr><td>Finance</td><td>المبلغ الإجمالي + الدفعة الأولى + الأقساط</td></tr>
+                <tr><td>Method</td><td>طريقة الدفع (كاش / تحويل / تقسيط)</td></tr>
+                <tr><td>Activation</td><td>إنشاء المشروع أوتوماتيكياً في العمليات</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <!-- SLIDE 6: HEAD AM -->
+    <section class="slide" id="slide-6">
+        <div class="number">06</div>
+        <div class="slide-content">
+            <div class="badge reveal">Phase 3: Operations</div>
+            <h2 class="reveal delay-1">Head Account Manager — مركز التوزيع</h2>
+            <p class="reveal delay-2">العقل المدبر لتوزيع العمل التقني والإداري.</p>
+            <div class="kpi-grid reveal delay-3">
+                <div class="kpi-card">
+                    <div class="kpi-val">Assign</div>
+                    <div class="kpi-label">Account Managers</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-val">Distribute</div>
+                    <div class="kpi-label">Head Technicals</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-val">Direct</div>
+                    <div class="kpi-label">Head SEO</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 7: AM SETUP -->
+    <section class="slide" id="slide-7">
+        <div class="number">07</div>
+        <div class="slide-content">
+            <h2 class="reveal">Account Manager — إعداد العمليات</h2>
+            <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 3rem; margin-top: 2rem;">
+                <div class="reveal delay-1">
+                    <h3>📋 خطة العمل</h3>
+                    <ul>
+                        <li>إدخال الـ Store URL وروابط الـ Drive</li>
+                        <li>كتابة الـ Project Brief والـ Niche</li>
+                        <li>تحديد الموعد النهائي (Deadline)</li>
+                        <li>دفع المهام للأقسام (Push to Teams)</li>
+                    </ul>
+                </div>
+                <div class="reveal delay-2" style="background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 8px;">
+                    <h3 style="color: var(--accent);">Lifecycle States</h3>
+                    <p>New → Setup → In Progress → Delayed → On Hold → Completed</p>
+                    <p style="font-size: 0.8rem; margin-top: 1rem; opacity: 0.6;">الحالة تتحدث فوراً لدى العميل والإدارة عند كل تغيير.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 8: TECH DISTRIBUTION -->
+    <section class="slide" id="slide-8">
+        <div class="number">08</div>
+        <div class="slide-content">
+            <div class="badge reveal">Phase 4: Technical</div>
+            <h2 class="reveal delay-1">التوزيع التقني — السلسلة القيادية</h2>
+            <ul class="reveal delay-2" style="font-size: 1.2rem; margin-top: 2rem;">
+                <li><strong>Head Technical:</strong> يستلم المشروع ويوزع على رؤساء الفرق (Team Leaders).</li>
+                <li><strong>Team Leaders:</strong> يستقبلون المشاريع من HT ويوزعون المهام على الموظفين (Agents).</li>
+                <li><strong>Head SEO:</strong> قيادة موازية لتوزيع مهام الأرشفة والمحتوى.</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- SLIDE 9: TEAM EXECUTION -->
+    <section class="slide" id="slide-9">
+        <div class="number">09</div>
+        <div class="slide-content">
+            <h2 class="reveal">تنفيذ المهام — الـ Agents</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; margin-top: 2rem;">
+                <div class="reveal delay-1">
+                    <h3>📱 Social Media & Buyer</h3>
+                    <ul>
+                        <li>استلام المهام من الـ Team Leader</li>
+                        <li>إنشاء مهام Cross-Team للتصميم</li>
+                        <li>تحديث الحالة (Pending → Done)</li>
+                    </ul>
+                </div>
+                <div class="reveal delay-2">
+                    <h3>🤝 Cross-Team Task System</h3>
+                    <p style="background: var(--accent-soft); padding: 1rem;">النظام يسمح للموظفين بطلب تصميمات أو تعديلات من أقسام أخرى بشكل موثق ومربوط بالمشروع.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 10: DESIGN -->
+    <section class="slide" id="slide-10">
+        <div class="number">10</div>
+        <div class="slide-content">
+            <h2 class="reveal">Design Department — مصنع الإبداع</h2>
+            <div class="kpi-grid reveal delay-1">
+                <div class="kpi-card"><h3>Incoming</h3><p>عرض المهام الواردة من كل الأقسام الأخرى.</p></div>
+                <div class="kpi-card"><h3>My Team</h3><p>متابعة أداء المصممين وحمل العمل الحالي.</p></div>
+                <div class="kpi-card"><h3>Execution</h3><p>Start Task → Review → Submit للنتائج النهائية.</p></div>
+            </div>
+            <p class="reveal delay-2" style="margin-top: 1rem; opacity: 0.7;">يغطي: Graphic Design, Motion Graphics, UI/UX.</p>
+        </div>
+    </section>
+
+    <!-- SLIDE 11: WARNING SYSTEM -->
+    <section class="slide" id="slide-11" style="background: linear-gradient(135deg, #1a1a1a 0%, #3d0000 100%);">
+        <div class="number">11</div>
+        <div class="slide-content">
+            <div class="badge reveal" style="background: #ff0000; color: #fff;">CRITICAL SYSTEM</div>
+            <h2 class="reveal delay-1">نظام التحذيرات (Warning System)</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 4rem; margin-top: 2rem;">
+                <div class="reveal delay-2">
+                    <h3 style="color: #ff5252;">⚠️ Blocking Popup</h3>
+                    <p>لا يمكن للموظف الاستمرار في العمل أو التحرك في النظام قبل قراءة التحذير والضغط على "تم الاستيعاب".</p>
+                </div>
+                <div class="reveal delay-3">
+                    <table style="background: rgba(0,0,0,0.4);">
+                        <tr><th>Severity</th><th>Effect</th></tr>
+                        <tr><td style="color:#ff5252;">High</td><td>ممنوع التخطي، تسجيل دخول الحدث</td></tr>
+                        <tr><td style="color:#ffd740;">Medium</td><td>تأكيد إلزامي للقراءة</td></tr>
+                        <tr><td style="color:#4eadff;">Low</td><td>إشعار تنبيهي بموافقة</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 12: JOURNEY -->
+    <section class="slide" id="slide-12">
+        <div class="number">12</div>
+        <div class="slide-content">
+            <div class="badge reveal">Transparency</div>
+            <h2 class="reveal delay-1">رحلة العميل (Client Journey)</h2>
+            <p class="reveal delay-2">جدول زمني لا يكذب. يسجل كل مكالمة، كل اجتماع، كل تعديل حالة، وكل ملاحظة منذ اليوم الأول.</p>
+            <div style="margin-top: 2rem; border-right: 2px solid var(--accent); padding-right: 2rem;" class="reveal delay-3">
+                <div style="margin-bottom: 1rem; color: #4CAF50;">● Deal Created (Sales)</div>
+                <div style="margin-bottom: 1rem; color: #2196F3;">● Task Assigned (Account Manager)</div>
+                <div style="margin-bottom: 1rem; color: #f44336;">● Warning Issued (Critical)</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 13: FINANCE -->
+    <section class="slide" id="slide-13">
+        <div class="number">13</div>
+        <div class="slide-content">
+            <h2 class="reveal">نظام المالية (Finance Dashboard)</h2>
+            <div class="kpi-grid reveal delay-1">
+                <div class="kpi-card"><div class="kpi-val">Total</div><div class="kpi-label">Revenue Collected</div></div>
+                <div class="kpi-card"><div class="kpi-val">Pending</div><div class="kpi-label">Upcoming Installments</div></div>
+                <div class="kpi-card"><div class="kpi-val">Partial</div><div class="kpi-label">Balance Tracking</div></div>
+            </div>
+            <p class="reveal delay-2" style="margin-top: 2rem;">إدارة الأقساط بتواريخ محددة مع إشعارات للمالية عند استحقاق أي دفعة.</p>
+        </div>
+    </section>
+
+    <!-- SLIDE 14: CHIEF SALES -->
+    <section class="slide" id="slide-14">
+        <div class="number">14</div>
+        <div class="slide-content">
+            <h2 class="reveal">القيادة والمتابعة (Chief Sales)</h2>
+            <p class="reveal delay-1">لوحة تحكم للمدراء لمراقبة الـ Leaderboard، معدلات التحويل، وأداء الفرق لحظة بلحظة.</p>
+            <div class="kpi-grid reveal delay-2">
+                <div class="kpi-card"><h3>Top Agents</h3><p>تصنيف المبيعات والـ TeleSales.</p></div>
+                <div class="kpi-card"><h3>Conversion %</h3><p>تحليل مسار العميل (Funnel).</p></div>
+                <div class="kpi-card"><h3>Targets</h3><p>متابعة تحقيق الأهداف الشهرية.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 15: HR -->
+    <section class="slide" id="slide-15">
+        <div class="number">15</div>
+        <div class="slide-content">
+            <h2 class="reveal">الموارد البشرية (HR Management)</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; margin-top: 2rem;">
+                <div class="reveal delay-1">
+                    <h3>🕒 الحضور والانصراف</h3>
+                    <p>نظام Check-in/out مع حساب دقيق لعدد دقائق التأخير وعدد الساعات الفعلية.</p>
+                </div>
+                <div class="reveal delay-2">
+                    <h3>👥 إدارة الموظفين</h3>
+                    <p>إضافة موظفين لـ 25 دور وظيفي مختلف مع صلاحيات دقيقة جداً لكل دور.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 16: TECH FOUNDATION -->
+    <section class="slide" id="slide-16">
+        <div class="number">16</div>
+        <div class="slide-content">
+            <h2 class="reveal">الأساس التقني (The Foundation)</h2>
+            <div class="kpi-grid reveal delay-1">
+                <div class="kpi-card"><h3>Real-Time</h3><p>Pusher Integration لكافة الإشعارات.</p></div>
+                <div class="kpi-card"><h3>Security</h3><p>نظام RBAC متقدم (NextAuth).</p></div>
+                <div class="kpi-card"><h3>Reliable</h3><p>Next.js + Prisma + PostgreSQL.</p></div>
+            </div>
+            <div class="reveal delay-2" style="margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+                <p><strong>DB Schema:</strong> 22 Model مترابطة تضمن سلامة البيانات من الـ Lead حتى الـ Attendance.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 17: END -->
+    <section class="slide" id="slide-17">
+        <div class="accent-card"></div>
+        <div class="slide-content" style="align-items: center; text-align: center;">
+            <h1 class="reveal">شكراً لكم</h1>
+            <p class="reveal delay-1">Thamaraa CRM — الشريك التقني لنمو أعمالكم.</p>
+            <div class="badge reveal delay-2" style="margin-top: 2rem;">Q&A SECTION</div>
+        </div>
+    </section>
+
+    <script>
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.dotsContainer = document.getElementById('navDots');
+                this.progressBar = document.getElementById('progressBar');
+                this.currentSlide = 0;
+                
+                this.init();
+            }
+
+            init() {
+                // Generate dots
+                this.slides.forEach((_, i) => {
+                    const dot = document.createElement('div');
+                    dot.className = 'dot' + (i === 0 ? ' active' : '');
+                    dot.onclick = () => this.scrollToSlide(i);
+                    this.dotsContainer.appendChild(dot);
+                });
+
+                // Intersection Observer for reveal animations
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('active');
+                            this.updateActiveState(entry.target.id);
+                        }
+                    });
+                }, { threshold: 0.5 });
+
+                this.slides.forEach(slide => observer.observe(slide));
+
+                // Keyboard Nav
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowDown' || e.key === ' ' || e.key === 'ArrowRight') this.nextSlide();
+                    if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') this.prevSlide();
+                });
+
+                // Scroll Progress
+                window.addEventListener('scroll', () => {
+                    const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+                    const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+                    const scrolled = (winScroll / height) * 100;
+                    this.progressBar.style.width = scrolled + "%";
+                });
+            }
+
+            updateActiveState(id) {
+                const index = parseInt(id.split('-')[1]);
+                this.currentSlide = index;
+                
+                // Update dots
+                const dots = document.querySelectorAll('.dot');
+                dots.forEach((dot, i) => dot.classList.toggle('active', i === index));
+            }
+
+            scrollToSlide(index) {
+                this.slides[index].scrollIntoView({ behavior: 'smooth' });
+            }
+
+            nextSlide() {
+                if (this.currentSlide < this.slides.length - 1) {
+                    this.scrollToSlide(this.currentSlide + 1);
+                }
+            }
+
+            prevSlide() {
+                if (this.currentSlide > 0) {
+                    this.scrollToSlide(this.currentSlide - 1);
+                }
+            }
+        }
+
+        // Initialize presentation
+        window.onload = () => new SlidePresentation();
+    </script>
+</body>
+</html>
