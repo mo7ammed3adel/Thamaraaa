@@ -103,7 +103,7 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
                       Distribute to Team Leader
                     </button>
                   )}
-                  {ishead && assignedLeaders.length > 0 && (
+                  {isHead && assignedLeaders.length > 0 && (
                      <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm font-medium border border-emerald-200">
                        ✓ Distributed to {assignedLeaders[0].user.name}
                      </div>
