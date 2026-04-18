@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🌿 Thamaraa CRM (ERP Operations System)
 
-## Getting Started
+نظام إداري متكامل وحيوي مصمم لإدارة عمليات شركة "ثمرة". يغطي النظام الدورة الكاملة للعميل من مرحلة الـ Lead وصولاً إلى تسوية الحسابات المالية وإدارة الموارد البشرية.
 
-First, run the development server:
+## 🚀 رحلة العميل والعرض التقديمي (Presentation)
 
+للحصول على نظرة شاملة واحترافية عن كيفية عمل النظام بكل تفاصيله (14 قسماً)، يمكنك تصفح المصادر التالية:
+
+- **[العرض التقديمي التفاعلي (Thamaraa Presentation)](./thamaraa_presentation.html)**: عرض سينمائي يشرح كل خطوة في النظام بصرياً.
+- **[وثيقة الـ Workflow التفصيلية (Workflow Walkthrough)](./workflow_walkthrough.md)**: توثيق نصي وتقني عميق لكل مرحلة.
+
+## 📊 الأقسام المدعومة في النظام
+1.  **TeleSales**: إدارة العملاء المحتملين والمكالمات.
+2.  **Sales**: إقفال الصفقات وإدارة الاجتماعات.
+3.  **Head Account Manager**: مركز التوزيع الرئيسي.
+4.  **Account Manager**: إعداد العمليات ومتابعة دورة حياة المشروع.
+5.  **Head Technical & SEO**: القيادة الفنية والتوزيع.
+6.  **Teams (SM, MB, SEO, Content)**: تنفيذ المهام اليومية.
+7.  **Design (Graphic, Motion, UI/UX)**: إدارة طلبات التصميم.
+8.  **Warning System**: نظام تحذيرات إجباري لضمان دقة العمل.
+9.  **Finance**: تحصيل الأقساط ومتابعة الإيرادات.
+10. **Chief Sales**: لوحة قيادة وتحليلات الأداء.
+11. **HR**: إدارة الموظفين والحضور والانصراف.
+
+## 🛠️ التقنيات المستخدمة
+- **Frontend**: Next.js 14 (App Router)
+- **Database**: PostgreSQL with Prisma ORM
+- **Real-time**: Pusher.js for instant notifications
+- **Authentication**: NextAuth.js (RBAC System)
+- **Styling**: Tailwind CSS & Modern UI Components
+
+## 🏁 البداية السريعة
+
+1. قم بتثبيت التبعات:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. قم بإعداد ملف `.env` (قاعدة البيانات وبيانات Pusher).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. تشغيل وضع التطوير:
+```bash
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
+*تم التطوير بواسطة شركة ثمرة لخدمات الأعمال.*
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
