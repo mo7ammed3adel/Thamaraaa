@@ -63,7 +63,7 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
           <div className="bg-white p-4 rounded-xl border shadow-sm flex flex-col justify-between">
             <span className="text-xs font-bold text-slate-500 uppercase">My Active Tasks</span>
             <span className="text-2xl font-black">
-              {projects.reduce((acc: number, p: any) => acc + p.tasks?.filter((t: any) => ["pending", "in_progress"].includes(t.status)).length, 0)}
+              {projects.reduce((acc: number, p: any) => acc + (p.tasks || []).filter((t: any) => ["pending", "in_progress"].includes(t.status)).length, 0)}
             </span>
           </div>
         )}
