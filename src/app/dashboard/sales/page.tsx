@@ -53,7 +53,7 @@ export default async function SalesWorkspacePage() {
         orderBy: { createdAt: "asc" }
       },
       warnings: {
-        where: { resolved: false }
+        where: { status: "Active" }
       }
     },
     orderBy: { createdAt: "desc" }
