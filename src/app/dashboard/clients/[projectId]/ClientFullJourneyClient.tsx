@@ -420,10 +420,37 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
                   const canAssignLeader = isAdmin;
                   const canAssignAgent = isAdmin || isLeader;
 
-                  // Simplified role matching
-                  const deptShort = row.department.toLowerCase().split(" ")[0]; // "seo", "social", "media", "graphic", "motion", "ui/ux"
-                  const leaders = teamMembers?.filter((u: any) => u.role?.includes("leader") || u.role?.includes("head")) || [];
-                  const agents = teamMembers?.filter((u: any) => u.role?.includes("agent") || u.role?.includes("design")) || [];
+                  // ── Department-specific role mapping ──
+                  const deptRoleMap: Record<string, { leaders: string[]; agents: string[] }> = {
+                    "SEO": {
+                      leaders: ["team_leader_seo", "head_seo"],
+                      agents: ["agent_seo", "agent_content_seo"],
+                    },
+                    "Social Media": {
+                      leaders: ["team_leader_social_media"],
+                      agents: ["agent_social_media"],
+                    },
+                    "Media Buyer": {
+                      leaders: ["team_leader_media_buyer"],
+                      agents: ["agent_media_buyer"],
+                    },
+                    "Graphic Design": {
+                      leaders: ["leader_graphic_designer"],
+                      agents: ["agent_graphic_designer"],
+                    },
+                    "Motion Graphics": {
+                      leaders: ["leader_motion_graphic"],
+                      agents: ["agent_motion_graphic"],
+                    },
+                    "UI/UX Design": {
+                      leaders: ["leader_ui"],
+                      agents: ["agent_ui"],
+                    },
+                  };
+
+                  const deptRoles = deptRoleMap[row.department] || { leaders: [], agents: [] };
+                  const leaders = teamMembers?.filter((u: any) => deptRoles.leaders.includes(u.role)) || [];
+                  const agents = teamMembers?.filter((u: any) => deptRoles.agents.includes(u.role)) || [];
 
                   return (
                     <tr key={row.department} className="hover:bg-slate-50/50">
@@ -436,7 +463,7 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
                             defaultValue=""
                           >
                             <option value="" disabled>{row.leader || "Assign Leader..."}</option>
-                            {leaders.map((u: any) => <option key={u.id} value={u.id}>{u.name} ({u.role?.replace(/_/g, " ")})</option>)}
+                            {leaders.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
                           </select>
                         ) : (
                           row.leader || "—"
@@ -450,7 +477,7 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
                             defaultValue=""
                           >
                             <option value="" disabled>{row.agent || "Assign Agent..."}</option>
-                            {agents.map((u: any) => <option key={u.id} value={u.id}>{u.name} ({u.role?.replace(/_/g, " ")})</option>)}
+                            {agents.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
                           </select>
                         ) : (
                           row.agent || "—"
@@ -518,8 +545,24 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
                 const taskCanAssignLeader = isAdmin;
                 const taskCanAssignAgent = isAdmin || isTaskLeader;
 
-                const taskLeaders = teamMembers?.filter((u: any) => u.role?.includes("leader") || u.role?.includes("head")) || [];
-                const taskAgents = teamMembers?.filter((u: any) => u.role?.includes("agent") || u.role?.includes("design")) || [];
+                // ── Task-type to department role mapping ──
+                const taskTypeRoleMap: Record<string, { leaders: string[]; agents: string[] }> = {
+                  "SEO": { leaders: ["team_leader_seo", "head_seo"], agents: ["agent_seo", "agent_content_seo"] },
+                  "seo": { leaders: ["team_leader_seo", "head_seo"], agents: ["agent_seo", "agent_content_seo"] },
+                  "content_seo": { leaders: ["team_leader_seo", "head_seo"], agents: ["agent_seo", "agent_content_seo"] },
+                  "Social_Media": { leaders: ["team_leader_social_media"], agents: ["agent_social_media"] },
+                  "social_media": { leaders: ["team_leader_social_media"], agents: ["agent_social_media"] },
+                  "Media_Buyer": { leaders: ["team_leader_media_buyer"], agents: ["agent_media_buyer"] },
+                  "media_buyer": { leaders: ["team_leader_media_buyer"], agents: ["agent_media_buyer"] },
+                  "media_buying": { leaders: ["team_leader_media_buyer"], agents: ["agent_media_buyer"] },
+                  "graphic_design": { leaders: ["leader_graphic_designer"], agents: ["agent_graphic_designer"] },
+                  "motion_graphic": { leaders: ["leader_motion_graphic"], agents: ["agent_motion_graphic"] },
+                  "ui_design": { leaders: ["leader_ui"], agents: ["agent_ui"] },
+                  "technical": { leaders: ["head_technical"], agents: ["agent_technical"] },
+                };
+                const ttRoles = taskTypeRoleMap[t.taskType] || { leaders: [], agents: [] };
+                const taskLeaders = teamMembers?.filter((u: any) => ttRoles.leaders.includes(u.role)) || [];
+                const taskAgents = teamMembers?.filter((u: any) => ttRoles.agents.includes(u.role)) || [];
 
                 return (
                  <div key={t.id} className="border rounded-lg p-4 hover:shadow-sm transition">
