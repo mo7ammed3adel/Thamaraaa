@@ -4,7 +4,9 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, TrendingUp, CheckCircle, Clock, UserPlus, Bell } from "lucide-react";
 import ClientDetailModal from "@/components/ClientDetailModal";
-
+import LifecycleStateBadge from "@/components/LifecycleStateBadge";
+import LifecycleChangeModal from "@/components/LifecycleChangeModal";
+import DistributeModal from "@/components/DistributeModal";
 export default function HeadAccountManagerClient({ projects, accountManagers, headTechnicals, kpis, userId }: any) {
   const router = useRouter();
   const [filterAM, setFilterAM] = useState("all");
@@ -13,9 +15,12 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterWarning, setFilterWarning] = useState("all");
   const [filterDelay, setFilterDelay] = useState("all");
+  const [filterLifecycle, setFilterLifecycle] = useState("all");
   const [activeKpi, setActiveKpi] = useState("all");
   
   const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [lifecycleProject, setLifecycleProject] = useState<any>(null);
+  const [distributeProject, setDistributeProject] = useState<any>(null);
 
   const filteredProjects = useMemo(() => {
     return projects.filter((p: any) => {
@@ -45,9 +50,11 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
          matchesKpi = hasWarnings;
       }
 
-      return matchesAM && matchesSearch && matchesStatus && matchesWarning && matchesDelay && matchesKpi;
+      const matchesLifecycle = filterLifecycle === "all" ? true : p.lifecycleState === filterLifecycle;
+
+      return matchesAM && matchesSearch && matchesStatus && matchesWarning && matchesDelay && matchesKpi && matchesLifecycle;
     });
-  }, [projects, filterAM, searchQuery, filterStatus, filterWarning, filterDelay, activeKpi]);
+  }, [projects, filterAM, searchQuery, filterStatus, filterWarning, filterDelay, activeKpi, filterLifecycle]);
 
   const handleAssignAM = async (projectId: string, amId: string) => {
     await fetch(`/api/projects/${projectId}/status`, {
@@ -167,6 +174,14 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
               <option value="all">Delay: Any</option>
               <option value="yes">Delayed Tasks/Project</option>
             </select>
+            <select value={filterLifecycle} onChange={e => setFilterLifecycle(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none">
+              <option value="all">Lifecycle: All</option>
+              <option value="Onboarding">Onboarding</option>
+              <option value="Active">Active</option>
+              <option value="On_Hold">On Hold</option>
+              <option value="Completed">Completed</option>
+              <option value="Churned">Churned</option>
+            </select>
           </div>
         </div>
         
@@ -174,6 +189,7 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
           <thead className="bg-slate-50 text-xs font-semibold text-slate-500 uppercase">
             <tr>
               <th className="px-6 py-3 text-left w-64">Client & Details</th>
+              <th className="px-6 py-3 text-left w-32">Lifecycle</th>
               <th className="px-6 py-3 text-left w-48">Assignments</th>
               <th className="px-6 py-3 text-left w-64">General Progress</th>
               <th className="px-6 py-3 text-center w-32">Status & Tasks</th>
@@ -199,6 +215,17 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
                     <div className="flex gap-2 items-center">
                       <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium">{p.deal?.lead?.source || "Direct"}</span>
                       <span className="text-xs text-purple-600 font-bold">{p.package}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col gap-2">
+                      <LifecycleStateBadge state={p.lifecycleState || "Onboarding"} compact />
+                      <button
+                        onClick={() => setLifecycleProject(p)}
+                        className="text-[10px] text-indigo-600 font-bold hover:underline"
+                      >
+                        Change
+                      </button>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -250,18 +277,23 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button onClick={() => setSelectedClient(p)} className="px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-medium hover:bg-slate-900 shadow-sm transition inline-flex items-center gap-2 whitespace-nowrap">
-                      Client Center <span>→</span>
-                    </button>
-                    <button onClick={() => router.push(`/dashboard/clients/${p.id}`)} className="block w-full mt-2 text-center text-[10px] text-indigo-600 font-bold hover:underline">
-                      Full Portal UI
-                    </button>
+                    <div className="flex flex-col gap-1 items-end">
+                      <button onClick={() => setSelectedClient(p)} className="px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-medium hover:bg-slate-900 shadow-sm transition inline-flex items-center gap-2 whitespace-nowrap">
+                        Client Center <span>→</span>
+                      </button>
+                      <button onClick={() => setDistributeProject(p)} className="text-[10px] text-purple-600 font-bold hover:underline mt-1">
+                        Assign Head Technical
+                      </button>
+                      <button onClick={() => router.push(`/dashboard/clients/${p.id}`)} className="text-[10px] text-indigo-600 font-bold hover:underline">
+                        Full Portal UI
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );
             })}
             {filteredProjects.length === 0 && (
-              <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400 italic">No projects found for current filters.</td></tr>
+              <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-slate-400 italic">No projects found for current filters.</td></tr>
             )}
           </tbody>
         </table>
@@ -273,6 +305,29 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
           onClose={() => setSelectedClient(null)}
           project={selectedClient}
           currentUserRole="head_account_manager"
+        />
+      )}
+
+      {lifecycleProject && (
+        <LifecycleChangeModal
+          isOpen={!!lifecycleProject}
+          onClose={() => setLifecycleProject(null)}
+          projectId={lifecycleProject.id}
+          currentState={lifecycleProject.lifecycleState || "Onboarding"}
+          projectName={lifecycleProject.deal?.lead?.name || "Unknown Client"}
+          onChanged={() => { setLifecycleProject(null); router.refresh(); }}
+        />
+      )}
+
+      {distributeProject && (
+        <DistributeModal
+          isOpen={!!distributeProject}
+          onClose={() => setDistributeProject(null)}
+          projectId={distributeProject.id}
+          projectName={distributeProject.deal?.lead?.name || "Unknown Client"}
+          availableUsers={headTechnicals}
+          actionLabel="Assign Head Technical"
+          onDistributed={() => { setDistributeProject(null); router.refresh(); }}
         />
       )}
     </div>

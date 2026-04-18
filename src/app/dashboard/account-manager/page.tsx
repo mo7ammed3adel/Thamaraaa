@@ -40,10 +40,26 @@ export default async function AccountManagerPage() {
         include: { leader: true, agent: true }
       },
       accountManager: true,
+      headTechnical: { select: { id: true, name: true } },
+      headSeo: { select: { id: true, name: true } },
+      teamAssignments: {
+        where: { status: "active" },
+        include: { user: { select: { id: true, name: true, role: true } } },
+      },
       globalNotes: true,
-      logs: true
+      logs: { orderBy: { createdAt: "desc" } },
     },
     orderBy: { createdAt: "desc" },
+  });
+
+  // Fetch Head SEO users for distribution
+  const headSeoUsers = await prisma.user.findMany({
+    where: { role: "head_seo", status: "Active" },
+    include: {
+      seoProjects: {
+        where: { projectStatus: { in: ["new", "setup", "in_progress", "assigned", "delayed"] } }
+      }
+    }
   });
 
   // Fetch warnings for these projects
@@ -81,10 +97,19 @@ export default async function AccountManagerPage() {
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
   const tasksDoneThisWeek = allTasks.filter(t => t.status === "done" && t.completedAt && new Date(t.completedAt) > oneWeekAgo).length;
 
+  // Map Head SEO users for DistributeModal format
+  const headSeoForModal = headSeoUsers.map(hs => ({
+    id: hs.id,
+    name: hs.name,
+    role: hs.role,
+    managedProjects: hs.seoProjects || [],
+  }));
+
   return (
     <AccountManagerClient 
       userId={user.id} 
       projects={projectsWithWarnings}
+      headSeoUsers={headSeoForModal}
       kpis={{
         activeClients,
         clientsWithWarnings,

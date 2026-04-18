@@ -20,19 +20,25 @@ interface ClientJourneyProps {
   projectNotes?: string;
   tasks?: any[];
   globalNotes?: any[];
+  warnings?: any[];
+  payments?: any[];
+  projectCreatedAt?: Date | string;
 }
 
 const stageColors: Record<string, { bg: string; border: string; dot: string; text: string }> = {
+  project_creation: { bg: "bg-slate-50", border: "border-slate-200", dot: "bg-slate-800", text: "text-slate-800" },
   telesales: { bg: "bg-blue-50", border: "border-blue-200", dot: "bg-blue-500", text: "text-blue-700" },
   sales: { bg: "bg-purple-50", border: "border-purple-200", dot: "bg-purple-500", text: "text-purple-700" },
   deal: { bg: "bg-emerald-50", border: "border-emerald-200", dot: "bg-emerald-500", text: "text-emerald-700" },
   accounts: { bg: "bg-amber-50", border: "border-amber-200", dot: "bg-amber-500", text: "text-amber-700" },
   technical: { bg: "bg-indigo-50", border: "border-indigo-200", dot: "bg-indigo-500", text: "text-indigo-700" },
   delivery: { bg: "bg-teal-50", border: "border-teal-200", dot: "bg-teal-500", text: "text-teal-700" },
-  note: { bg: "bg-slate-50", border: "border-slate-200", dot: "bg-slate-400", text: "text-slate-600" },
+  note: { bg: "bg-cyan-50", border: "border-cyan-200", dot: "bg-cyan-400", text: "text-cyan-700" },
+  warning: { bg: "bg-red-50", border: "border-red-200", dot: "bg-red-500", text: "text-red-700" },
+  payment: { bg: "bg-green-50", border: "border-green-200", dot: "bg-green-500", text: "text-green-700" },
 };
 
-export default function ClientJourney({ leadName, phone, callLogs, meetings, deals, projectNotes, tasks, globalNotes }: ClientJourneyProps) {
+export default function ClientJourney({ leadName, phone, callLogs, meetings, deals, projectNotes, tasks, globalNotes, warnings, payments, projectCreatedAt }: ClientJourneyProps) {
   const [expanded, setExpanded] = useState<string | null>(null);
 
   // Build timeline entries from all data
@@ -97,6 +103,42 @@ export default function ClientJourney({ leadName, phone, callLogs, meetings, dea
       details: `Category: ${n.category}`,
     });
   });
+
+  // Warnings
+  warnings?.forEach((w) => {
+    timeline.push({
+      stage: "warning",
+      date: w.createdAt,
+      agentName: w.authorUserName || "System",
+      agentRole: w.authorUserRole || "System",
+      notes: w.content,
+      details: `Severity: ${w.severity} | Code: ${w.type}${w.resolved ? " | RESOLVED" : " | UNRESOLVED"}`,
+    });
+  });
+
+  // Payments
+  payments?.forEach((p) => {
+    timeline.push({
+      stage: "payment",
+      date: p.createdAt,
+      agentName: "Accountant",
+      agentRole: "Finance",
+      notes: `Received payment of ${p.amount.toLocaleString()} SAR for ${p.type}`,
+      details: `Transaction ID: ${p.transactionId || "N/A"}${p.note ? ` | Note: ${p.note}` : ""}`,
+    });
+  });
+
+  // Project Creation
+  if (projectCreatedAt) {
+    timeline.push({
+      stage: "project_creation",
+      date: typeof projectCreatedAt === "string" ? projectCreatedAt : projectCreatedAt.toISOString(),
+      agentName: "System",
+      agentRole: "System",
+      notes: "Project automatically created from closed deal.",
+      details: `Base configuration instantiated`,
+    });
+  }
 
   // Sort by date
   timeline.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());

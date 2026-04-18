@@ -94,24 +94,31 @@ export default function TeleSalesClient({
     e.preventDefault();
     setLoading(true);
 
-    const res = await fetch("/api/call-logs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        leadId: selectedLead.id,
-        classification: selectedLead.classification,
-        ...logData,
-      }),
-    });
+    try {
+      const res = await fetch("/api/call-logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leadId: selectedLead.id,
+          classification: selectedLead.classification,
+          ...logData,
+        }),
+      });
 
-    if (res.ok) {
-      setSelectedLead(null);
-      setLogData({ callStatus: "Accept but lost", notes: "", meetingDate: "", meetingTime: "" });
-      router.refresh();
-      const updatedLead = await res.json();
-      setLeads(leads.map((l) => (l.id === updatedLead.id ? updatedLead : l)));
-    } else {
-      alert("Error logging call");
+      if (res.ok) {
+        const updatedLead = await res.json();
+        // Update local state first with the full lead data (includes callLogs)
+        setLeads(leads.map((l) => (l.id === updatedLead.id ? updatedLead : l)));
+        setSelectedLead(null);
+        setLogData({ callStatus: "Accept but lost", notes: "", meetingDate: "", meetingTime: "" });
+        // Then refresh server data in the background
+        router.refresh();
+      } else {
+        const errData = await res.json();
+        alert(`Error logging call: ${errData.error || "Unknown error"}`);
+      }
+    } catch {
+      alert("Network error. Please try again.");
     }
     setLoading(false);
   };
@@ -328,6 +335,8 @@ export default function TeleSalesClient({
               <option value="No_Answer">No Answer</option>
               <option value="Interested">Interested</option>
               <option value="Transferred">Transferred</option>
+              <option value="Waiting">Waiting</option>
+              <option value="Closed_Lost">Closed / Lost</option>
             </select>
           </div>
           <div>

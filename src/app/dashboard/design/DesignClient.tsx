@@ -89,6 +89,15 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
     router.refresh();
   }
 
+  async function handleUpdateFiles(taskId: string, filesString: string) {
+    await fetch(`/api/tasks/${taskId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ files: filesString }),
+    });
+    router.refresh();
+  }
+
   // ── Task Card (reusable) ──
   function TaskCard({ t, showAssign }: { t: any; showAssign: boolean }) {
     const lead = t.project?.deal?.lead;
@@ -165,7 +174,21 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
             )}
 
             {/* Status Actions */}
-            <div className="grid grid-cols-1 gap-2">
+            <div className="grid grid-cols-1 gap-2 border-t pt-2 border-gray-100">
+              <p className="text-xs font-bold text-gray-700 mb-1">Deliverables</p>
+              <textarea 
+                placeholder="Links to final files (Drive, Figma, etc)"
+                className="w-full border rounded-lg px-2 py-1 text-xs outline-none focus:border-violet-500 bg-gray-50 h-16"
+                defaultValue={t.files || ""}
+                onBlur={(e) => {
+                  if (e.target.value !== t.files) {
+                    handleUpdateFiles(t.id, e.target.value);
+                  }
+                }}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-2 pt-2">
               {t.status !== "in_progress" && t.status !== "done" && t.status !== "review" && (
                 <button onClick={() => handleUpdateStatus(t.id, "in_progress")} className="w-full py-2 bg-gray-800 text-white rounded-xl text-sm font-bold hover:bg-gray-900 shadow-sm transition">Start Task</button>
               )}

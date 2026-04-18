@@ -1,10 +1,14 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Briefcase, AlertTriangle, ListTodo, Clock, CheckCircle, Search, FileEdit } from "lucide-react";
 import ClientDetailModal from "@/components/ClientDetailModal";
 import CreateWarningModal from "@/components/CreateWarningModal";
+import LifecycleStateBadge from "@/components/LifecycleStateBadge";
+import LifecycleChangeModal from "@/components/LifecycleChangeModal";
+import DistributeModal from "@/components/DistributeModal";
+import TeamOverview from "@/components/TeamOverview";
 
 export default function AccountManagerClient({ userId, projects, kpis }: any) {
   const router = useRouter();
@@ -16,10 +20,16 @@ export default function AccountManagerClient({ userId, projects, kpis }: any) {
   const [taskFilterTeam, setTaskFilterTeam] = useState("");
   const [activeKpi, setActiveKpi] = useState("all");
 
-  // Modals state
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [warningModalOpen, setWarningModalOpen] = useState(false);
   const [warningTarget, setWarningTarget] = useState<{ projectId: string, clientId?: string } | null>(null);
+  
+  // Expanded row state
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+
+  // Distribute & Lifecycle Modals
+  const [distributeModalProject, setDistributeModalProject] = useState<any>(null);
+  const [lifecycleModalProject, setLifecycleModalProject] = useState<any>(null);
 
   const filteredProjects = useMemo(() => {
     return projects.filter((p: any) => {
@@ -141,7 +151,7 @@ export default function AccountManagerClient({ userId, projects, kpis }: any) {
                 <th className="px-6 py-3 text-left">Client Info</th>
                 <th className="px-6 py-3 text-left">Start Date</th>
                 <th className="px-6 py-3 text-left">Technical Progress</th>
-                <th className="px-6 py-3 text-center">Status</th>
+                <th className="px-6 py-3 text-center">Lifecycle</th>
                 <th className="px-6 py-3 text-center">Tasks</th>
                 <th className="px-6 py-3 text-center">Last Activity</th>
                 <th className="px-6 py-3 text-right">Actions</th>
@@ -155,7 +165,8 @@ export default function AccountManagerClient({ userId, projects, kpis }: any) {
                 const lastActivity = p.logs && p.logs.length > 0 ? new Date(p.logs[0].createdAt).toLocaleDateString() : new Date(p.createdAt).toLocaleDateString();
 
                 return (
-                  <tr key={p.id} className="hover:bg-slate-50 transition">
+                  <React.Fragment key={p.id}>
+                  <tr className="hover:bg-slate-50 transition cursor-pointer" onClick={() => setExpandedRow(expandedRow === p.id ? null : p.id)}>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <div className="font-bold text-slate-900">{p.deal?.lead?.name}</div>
@@ -182,14 +193,7 @@ export default function AccountManagerClient({ userId, projects, kpis }: any) {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className={`px-2 py-0.5 text-xs font-bold rounded capitalize border ${p.projectStatus === "completed" ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        : p.projectStatus === "delayed" ? "bg-red-50 text-red-700 border-red-200"
-                          : p.projectStatus === "in_progress" ? "bg-blue-50 text-blue-700 border-blue-200"
-                            : p.projectStatus === "new" ? "bg-purple-50 text-purple-700 border-purple-200"
-                              : "bg-slate-50 text-slate-700 border-slate-200"
-                        }`}>
-                        {p.projectStatus.replace(/_/g, " ")}
-                      </span>
+                      <LifecycleStateBadge state={p.lifecycleState || "Onboarding"} />
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex flex-col gap-1 items-center">
@@ -209,13 +213,13 @@ export default function AccountManagerClient({ userId, projects, kpis }: any) {
                     <td className="px-6 py-4 text-right space-y-2">
                       <div className="flex flex-col gap-2 relative">
                         <button
-                          onClick={() => setSelectedClient(p)}
+                          onClick={(e) => { e.stopPropagation(); setSelectedClient(p); }}
                           className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 shadow-sm transition inline-flex items-center justify-center gap-2"
                         >
                           Client Details <span>→</span>
                         </button>
                         <button
-                          onClick={() => { setWarningTarget({ projectId: p.id, clientId: p.deal?.leadId }); setWarningModalOpen(true); }}
+                          onClick={(e) => { e.stopPropagation(); setWarningTarget({ projectId: p.id, clientId: p.deal?.leadId }); setWarningModalOpen(true); }}
                           className="px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg text-xs font-bold hover:bg-red-100 transition inline-flex items-center justify-center gap-2"
                         >
                           <AlertTriangle className="w-3 h-3" /> Issue Warning
@@ -223,6 +227,141 @@ export default function AccountManagerClient({ userId, projects, kpis }: any) {
                       </div>
                     </td>
                   </tr>
+                  
+                  {/* Expanded Row */}
+                  {expandedRow === p.id && (
+                    <tr className="bg-slate-50/50">
+                      <td colSpan={7} className="px-6 py-4 border-b border-t">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                          
+                          {/* Left Column: Lifecycle & Distribution Controls */}
+                          <div className="space-y-4">
+                            <div className="bg-white p-4 rounded-lg border shadow-sm">
+                              <h3 className="text-sm font-bold text-slate-800 mb-3 border-b pb-2">Client Governance</h3>
+                              
+                              <div className="space-y-3">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs text-slate-500 font-medium">Head Technical:</span>
+                                  {p.headTechnicalId ? (
+                                    <span className="text-sm font-semibold text-slate-700">{p.headTechnical?.name}</span>
+                                  ) : (
+                                    <span className="text-xs italic text-slate-400">Not assigned</span>
+                                  )}
+                                </div>
+                                
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs text-slate-500 font-medium">Head SEO:</span>
+                                  {p.headSeoId ? (
+                                    <span className="text-sm font-semibold text-slate-700">{p.headSeo?.name}</span>
+                                  ) : (
+                                    <button 
+                                      onClick={(e) => { e.stopPropagation(); setDistributeModalProject(p); }}
+                                      className="text-xs font-bold px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded hover:bg-blue-100 transition"
+                                    >
+                                      Distribute SEO Scope
+                                    </button>
+                                  )}
+                                </div>
+
+                                <div className="flex justify-between items-center pt-2 border-t mt-2">
+                                  <span className="text-xs text-slate-500 font-medium">Lifecycle State:</span>
+                                    <button 
+                                      onClick={(e) => { e.stopPropagation(); setLifecycleModalProject(p); }}
+                                      className="text-xs font-bold px-3 py-1 bg-slate-100 text-slate-700 border rounded hover:bg-slate-200 transition"
+                                    >
+                                      Manage State
+                                    </button>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="bg-white p-4 rounded-lg border shadow-sm">
+                              <h3 className="text-sm font-bold text-slate-800 mb-3 border-b pb-2">Recent Notes</h3>
+                              {p.notes && p.notes.length > 0 ? (
+                                <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
+                                  {p.notes.slice(0, 3).map((note: any) => (
+                                    <div key={note.id} className="text-xs">
+                                      <div className="flex justify-between text-slate-500 mb-1">
+                                        <span className="font-semibold text-slate-700">{note.user?.name}</span>
+                                        <span>{new Date(note.createdAt).toLocaleDateString()}</span>
+                                      </div>
+                                      <p className="text-slate-600 line-clamp-2">{note.content}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-slate-400 italic">No notes found.</p>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Right Column: Team Overview */}
+                          <div className="lg:col-span-2 space-y-3">
+                            <h3 className="text-sm font-bold text-slate-800">Operational Teams</h3>
+                            {(() => {
+                              // Group team assignments by department
+                              const assignments = p.teamAssignments || [];
+                              const tasks = p.tasks || [];
+                              const deptMap = new Map<string, any>();
+                              
+                              // First build from active assignments
+                              assignments.forEach((assignment: any) => {
+                                const dept = assignment.department;
+                                if (!deptMap.has(dept)) {
+                                  deptMap.set(dept, {
+                                    department: dept,
+                                    leader: null,
+                                    agents: [],
+                                    taskCounts: { hold: 0, inProgress: 0, done: 0, total: 0 },
+                                    progressPercentage: 0
+                                  });
+                                }
+                                
+                                const deptObj = deptMap.get(dept);
+                                const isLeader = assignment.role.includes("leader") || assignment.role.includes("head");
+                                
+                                if (isLeader) {
+                                  deptObj.leader = assignment.user;
+                                } else {
+                                  deptObj.agents.push(assignment.user);
+                                }
+                              });
+                              
+                              // Check tasks to fill taskCounts per department
+                              tasks.forEach((t: any) => {
+                                const dept = t.taskType; // assuming taskType maps to department (mostly true)
+                                // Only process if the department is in our map (assigned)
+                                // or if it's not, we might create a ghost dept entry
+                                if (!deptMap.has(dept)) {
+                                  deptMap.set(dept, {
+                                    department: dept,
+                                    leader: null,
+                                    agents: [],
+                                    taskCounts: { hold: 0, inProgress: 0, done: 0, total: 0 },
+                                    progressPercentage: 0
+                                  });
+                                }
+                                
+                                const deptObj = deptMap.get(dept);
+                                deptObj.taskCounts.total++;
+                                if (t.status === "done") deptObj.taskCounts.done++;
+                                else if (t.status === "in_progress") deptObj.taskCounts.inProgress++;
+                                else deptObj.taskCounts.hold++;
+                              });
+
+                              const teamsArray = Array.from(deptMap.values()).map(t => {
+                                t.progressPercentage = t.taskCounts.total > 0 ? Math.round((t.taskCounts.done / t.taskCounts.total) * 100) : 0;
+                                return t;
+                              });
+
+                              return <TeamOverview teams={teamsArray} />;
+                            })()}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </React.Fragment>
                 );
               })}
               {filteredProjects.length === 0 && (
@@ -338,6 +477,28 @@ export default function AccountManagerClient({ userId, projects, kpis }: any) {
           onClose={() => { setWarningModalOpen(false); setWarningTarget(null); }}
           projectId={warningTarget.projectId}
           clientId={warningTarget.clientId}
+        />
+      )}
+
+      {distributeModalProject && (
+        <DistributeModal
+          isOpen={!!distributeModalProject}
+          onClose={() => setDistributeModalProject(null)}
+          projectId={distributeModalProject.id}
+          projectName={distributeModalProject.deal?.lead?.name || "Client"}
+          distributorRole="account_manager"
+          preselectedTargetRole="head_seo"
+        />
+      )}
+
+      {lifecycleModalProject && (
+        <LifecycleChangeModal
+          isOpen={!!lifecycleModalProject}
+          onClose={() => setLifecycleModalProject(null)}
+          projectId={lifecycleModalProject.id}
+          projectName={lifecycleModalProject.deal?.lead?.name || "Client"}
+          currentState={lifecycleModalProject.lifecycleState || "Onboarding"}
+          onSuccess={() => { setLifecycleModalProject(null); router.refresh(); }}
         />
       )}
     </div>

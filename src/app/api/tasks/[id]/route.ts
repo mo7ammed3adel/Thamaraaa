@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { checkProjectBlockers } from "@/lib/distribution";
 
 /**
  * PATCH /api/tasks/[id]
@@ -65,6 +66,17 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       if (!validStatuses.includes(body.status)) {
         return NextResponse.json({ error: `Invalid status: ${body.status}` }, { status: 400 });
       }
+
+      if (["in_progress", "review", "done"].includes(body.status)) {
+        const blockers = await checkProjectBlockers(existingTask.projectId);
+        if (blockers.isBlocked) {
+          return NextResponse.json({ 
+            error: "Action blocked by unresolved project warnings.", 
+            warnings: blockers.warnings 
+          }, { status: 403 });
+        }
+      }
+
       updateData.status = body.status;
     }
     if (body.priority !== undefined) updateData.priority = body.priority;

@@ -13,11 +13,15 @@ export default async function HeadTechnicalPage() {
   }
 
   const projects = await prisma.project.findMany({
-    where: { projectStatus: { in: ["assigned", "in_progress", "setup"] } },
+    where: user.role === "super_admin" ? {} : { headTechnicalId: user.id },
     include: {
       deal: { include: { lead: true } },
       accountManager: true,
       tasks: { include: { leader: true, agent: true } },
+      teamAssignments: {
+        where: { status: "active" },
+        include: { user: { select: { id: true, name: true, role: true } } },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -27,6 +31,11 @@ export default async function HeadTechnicalPage() {
     where: {
       role: { in: ["team_leader_social_media", "team_leader_media_buyer", "head_seo"] },
       status: "Active",
+    },
+    include: {
+      _count: {
+        select: { teamAssignments: { where: { status: "active" } } },
+      },
     },
   });
 

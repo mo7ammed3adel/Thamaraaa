@@ -32,12 +32,13 @@ export default async function DesignPage({ searchParams }: { searchParams: { tea
 
   const tasks = await prisma.task.findMany({
     where: isLeader
-      ? { OR: [{ leaderId: user.id }, { taskType: { contains: taskType } }] }
+      ? { leaderId: user.id }
       : { agentId: user.id },
     include: {
-      project: { include: { deal: { include: { lead: { include: { callLogs: { include: { agent: true } }, meetings: { include: { salesAgent: true } } } } } } } },
+      project: { include: { deal: { include: { lead: true } }, accountManager: true } },
       leader: true,
       agent: true,
+      requester: true, // we need requester for cross-team tasks
       parentTask: true,
     },
     orderBy: { createdAt: "desc" },

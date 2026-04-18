@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import ProjectLogsPanel from "@/components/ProjectLogsPanel";
 
 const TABS = [
   { key: "timeline", label: "📋 Timeline", icon: "📋" },
@@ -12,6 +13,7 @@ const TABS = [
   { key: "progress", label: "📊 Progress", icon: "📊" },
   { key: "notes", label: "📝 Notes", icon: "📝" },
   { key: "files", label: "📁 Files", icon: "📁" },
+  { key: "logs", label: "⚙️ System Logs", icon: "⚙️" },
 ];
 
 /**
@@ -600,6 +602,14 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
               <a href={project.storeUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-indigo-600 hover:underline">🛒 Store Link</a>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ═══ SECTION 9: System Logs ═══ */}
+      {activeTab === "logs" && (
+        <div className="bg-white rounded-xl border shadow-sm p-6">
+          <h2 className="text-lg font-bold text-slate-800 mb-4">Project Operational Logs</h2>
+          <ProjectLogsPanel logs={project.logs || []} />
         </div>
       )}
     </div>

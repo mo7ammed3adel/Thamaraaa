@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { findTeamLeaderRoleForTaskType } from "@/lib/distribution";
+import { CROSS_TEAM_TASK_TYPES } from "@/lib/constants";
 
 export async function POST(req: Request) {
   try {
@@ -16,8 +18,20 @@ export async function POST(req: Request) {
     const user = session.user as any;
 
     let finalLeaderId = leaderId;
+    let finalAssignedRole = assignedRole;
 
-    if (!finalLeaderId) {
+    const isCrossTeam = CROSS_TEAM_TASK_TYPES.includes(taskType);
+
+    if (isCrossTeam && !finalLeaderId) {
+      const leaderRole = findTeamLeaderRoleForTaskType(taskType);
+      if (leaderRole) {
+        const leader = await prisma.user.findFirst({ where: { role: leaderRole, status: "Active" } });
+        if (leader) {
+          finalLeaderId = leader.id;
+          finalAssignedRole = leaderRole;
+        }
+      }
+    } else if (!finalLeaderId) {
       let roleToFind = "super_admin"; // fallback
       switch (taskType) {
         case "seo":
@@ -29,15 +43,6 @@ export async function POST(req: Request) {
           break;
         case "media_buyer":
           roleToFind = "team_leader_media_buyer";
-          break;
-        case "graphic_design":
-          roleToFind = "leader_graphic_designer";
-          break;
-        case "motion_graphic":
-          roleToFind = "leader_motion_graphic";
-          break;
-        case "ui_design":
-          roleToFind = "leader_ui";
           break;
         case "technical":
           roleToFind = "head_technical";
@@ -52,11 +57,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required fields or cannot find a leader for this task type" }, { status: 400 });
     }
 
+    // Get project name for logging
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      include: { deal: { include: { lead: true } } }
+    });
+
+    const projectName = project?.deal?.lead?.name || "Unknown Project";
+
     const newTask = await prisma.task.create({
       data: {
         projectId,
         leaderId: finalLeaderId,
-        assignedRole: assignedRole || null,
+        assignedRole: finalAssignedRole || null,
         taskType,
         brief: brief || "",
         priority: priority || "Medium",
@@ -67,6 +80,47 @@ export async function POST(req: Request) {
         progressPct: 0
       }
     });
+
+    if (isCrossTeam) {
+      await prisma.projectLog.create({
+        data: {
+          projectId,
+          action: "task_created",
+          details: JSON.stringify({
+            description: `Cross-team task created: ${taskType.replace(/_/g, " ")} for ${projectName}`,
+            taskType,
+            priority: priority || "Medium"
+          }),
+          userId: user.id
+        }
+      });
+
+      await prisma.notification.create({
+        data: {
+          userId: finalLeaderId,
+          type: "task_assigned",
+          title: "Cross-Team Task Request",
+          message: `A new ${taskType.replace(/_/g, " ")} task has been requested by ${user.name} for ${projectName}`,
+          link: "/dashboard/operations"
+        }
+      });
+
+      try {
+        const { pusherServer } = await import("@/lib/pusher");
+        if (pusherServer) {
+          await pusherServer.trigger(`private-user-${finalLeaderId}`, "task-assigned", {
+            projectId,
+            taskId: newTask.id
+          });
+          await pusherServer.trigger(`private-project-${projectId}`, "task-status-changed", {
+            taskId: newTask.id,
+            status: "pending"
+          });
+        }
+      } catch (err) {
+        console.error("Pusher error in cross-team task:", err);
+      }
+    }
 
     return NextResponse.json({ success: true, task: newTask });
   } catch (error: any) {

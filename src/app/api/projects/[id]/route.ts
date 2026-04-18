@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { checkProjectBlockers } from "@/lib/distribution";
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -57,6 +58,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   try {
     const body = await req.json();
+
+    if (body.projectStatus && ["in_progress", "completed", "review"].includes(body.projectStatus)) {
+      const blockers = await checkProjectBlockers(params.id);
+      if (blockers.isBlocked) {
+        return NextResponse.json({ 
+          error: "Action blocked by unresolved warnings.", 
+          warnings: blockers.warnings 
+        }, { status: 403 });
+      }
+    }
+
     const project = await prisma.project.update({
       where: { id: params.id },
       data: body

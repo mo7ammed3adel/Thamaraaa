@@ -86,8 +86,97 @@ export const SEVERITY = {
   CRITICAL: "Critical",
 } as const;
 
+// ── Media Buyer Roles ──
+export const MEDIA_BUYER_ROLES = [
+  "super_admin",
+  "team_leader_media_buyer",
+  "agent_media_buyer",
+] as const;
+
 // ── Currency ──
 export const CURRENCY = "SAR";
+
+// ── Client Lifecycle State Constants ──
+export const LIFECYCLE_STATE = {
+  ONBOARDING: "Onboarding",
+  ACTIVE: "Active",
+  ON_HOLD: "On_Hold",
+  COMPLETED: "Completed",
+  CHURNED: "Churned",
+} as const;
+
+// ── Allowed Lifecycle Transitions (state machine) ──
+export const LIFECYCLE_TRANSITIONS: Record<string, string[]> = {
+  Onboarding: ["Active", "Churned"],
+  Active: ["On_Hold", "Completed", "Churned"],
+  On_Hold: ["Active", "Completed", "Churned"],
+  Completed: ["Churned"],
+  Churned: [],
+};
+
+// ── Operations Department Identifiers ──
+export const OPERATIONS_DEPARTMENTS = [
+  "social_media",
+  "media_buyer",
+  "seo",
+  "graphic_design",
+  "motion_graphic",
+  "ui_design",
+  "content_seo",
+] as const;
+
+// ── Roles allowed to change client lifecycle state ──
+export const LIFECYCLE_CHANGE_ROLES = [
+  "account_manager",
+  "head_account_manager",
+  "super_admin",
+] as const;
+
+// ── Roles allowed to issue warnings ──
+export const WARNING_ISSUER_ROLES = [
+  "account_manager",
+  "sales_agent",
+  "sales_manager",
+  "head_account_manager",
+  "super_admin",
+] as const;
+
+// ── Cross-team task types (tasks that route to creative leads) ──
+export const CROSS_TEAM_TASK_TYPES = [
+  "graphic_design",
+  "motion_graphic",
+  "ui_design",
+  "content_seo",
+] as const;
+
+// ── Mapping from cross-team task type to the leader role that receives it ──
+export const TASK_TYPE_TO_LEADER_ROLE: Record<string, string> = {
+  graphic_design: "leader_graphic_designer",
+  motion_graphic: "leader_motion_graphic",
+  ui_design: "leader_ui",
+  content_seo: "team_leader_seo",
+};
+
+// ── Team Leader roles (used for filtering) ──
+export const TEAM_LEADER_ROLES = [
+  "team_leader_social_media",
+  "team_leader_media_buyer",
+  "team_leader_seo",
+  "leader_graphic_designer",
+  "leader_motion_graphic",
+  "leader_ui",
+] as const;
+
+// ── All agent distribution roles (Team Leaders that can assign to agents) ──
+export const AGENT_ASSIGNER_ROLES = [
+  "team_leader_social_media",
+  "team_leader_media_buyer",
+  "team_leader_seo",
+  "leader_graphic_designer",
+  "leader_motion_graphic",
+  "leader_ui",
+  "super_admin",
+] as const;
 
 // ── Helper: Check if user has one of allowed roles (super_admin always passes) ──
 export function hasRole(userRole: string, allowedRoles: readonly string[]): boolean {
