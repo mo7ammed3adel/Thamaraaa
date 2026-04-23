@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { Search, X } from "lucide-react";
 import LifecycleStateBadge from "@/components/LifecycleStateBadge";
 import DistributionPanel from "@/components/DistributionPanel";
 import CrossTeamTaskForm from "@/components/CrossTeamTaskForm";
@@ -16,9 +17,80 @@ export default function MediaBuyerClient({ projects, teamMembers, userRole, user
   const [reassignTask, setReassignTask] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
+  // ── Filter State ──
+  const [activeKpi, setActiveKpi] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [taskStatusFilter, setTaskStatusFilter] = useState("all");
+
   const isTL = ["super_admin", "team_leader_media_buyer"].includes(userRole);
   const isAgent = userRole === "agent_media_buyer";
 
+  // ── KPI Calculations ──
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const allTasks = projects.flatMap((p: any) => (p.tasks || []).map((t: any) => ({ ...t, _project: p })));
+  const pendingTasks = allTasks.filter((t: any) => t.status === "pending");
+  const inProgressTasks = allTasks.filter((t: any) => t.status === "in_progress");
+  const doneTasks = allTasks.filter((t: any) => t.status === "done");
+  const doneThisWeek = doneTasks.filter((t: any) => t.completedAt && new Date(t.completedAt) >= weekAgo);
+  const delayedTasks = allTasks.filter((t: any) => t.status !== "done" && t.deadline && new Date(t.deadline) < now);
+
+  const kpiCards = isTL ? [
+    { id: "all", label: "My Projects", val: projects.length, color: "slate" },
+    { id: "pending", label: "Pending Tasks", val: pendingTasks.length, color: "blue" },
+    { id: "in_progress", label: "In Progress", val: inProgressTasks.length, color: "amber" },
+    { id: "delayed", label: "Delayed", val: delayedTasks.length, color: "red" },
+    { id: "done", label: "Completed", val: doneTasks.length, color: "emerald" },
+  ] : [
+    { id: "all", label: "My Projects", val: projects.length, color: "slate" },
+    { id: "pending", label: "Pending", val: pendingTasks.length, color: "blue" },
+    { id: "in_progress", label: "In Progress", val: inProgressTasks.length, color: "amber" },
+    { id: "done", label: "Completed", val: doneTasks.length, color: "emerald" },
+  ];
+
+  const colorMap: Record<string, { border: string; bg: string; text: string }> = {
+    slate: { border: "border-slate-500", bg: "bg-slate-50", text: "text-slate-500" },
+    blue: { border: "border-blue-500", bg: "bg-blue-50", text: "text-blue-500" },
+    amber: { border: "border-amber-500", bg: "bg-amber-50", text: "text-amber-500" },
+    red: { border: "border-red-500", bg: "bg-red-50", text: "text-red-500" },
+    emerald: { border: "border-emerald-500", bg: "bg-emerald-50", text: "text-emerald-500" },
+  };
+
+  // ── Filtered Projects ──
+  const filteredProjects = useMemo(() => {
+    return projects.filter((p: any) => {
+      const matchSearch = !searchQuery ||
+        p.deal?.lead?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.deal?.lead?.phone?.includes(searchQuery);
+
+      const projectTasks = p.tasks || [];
+      const hasDelayed = projectTasks.some((t: any) => t.status !== "done" && t.deadline && new Date(t.deadline) < now);
+
+      let matchKpi = true;
+      if (activeKpi === "in_progress") matchKpi = projectTasks.some((t: any) => t.status === "in_progress");
+      else if (activeKpi === "pending") matchKpi = projectTasks.some((t: any) => t.status === "pending");
+      else if (activeKpi === "delayed") matchKpi = hasDelayed;
+      else if (activeKpi === "done") matchKpi = projectTasks.some((t: any) => t.status === "done");
+      else if (activeKpi === "done_week") matchKpi = projectTasks.some((t: any) => t.status === "done" && t.completedAt && new Date(t.completedAt) >= weekAgo);
+
+      let matchTaskStatus = true;
+      if (taskStatusFilter !== "all") {
+        matchTaskStatus = projectTasks.some((t: any) => t.status === taskStatusFilter);
+      }
+
+      return matchSearch && matchKpi && matchTaskStatus;
+    });
+  }, [projects, searchQuery, activeKpi, taskStatusFilter]);
+
+  const hasActiveFilters = searchQuery || activeKpi !== "all" || taskStatusFilter !== "all";
+
+  const clearAllFilters = () => {
+    setSearchQuery("");
+    setActiveKpi("all");
+    setTaskStatusFilter("all");
+  };
+
+  // ── Handlers ──
   const handleAssignAgent = async (projectId: string, agentId: string) => {
     setLoading(true);
     try {
@@ -53,48 +125,103 @@ export default function MediaBuyerClient({ projects, teamMembers, userRole, user
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-4 rounded-xl border shadow-sm flex flex-col justify-between">
-          <span className="text-xs font-bold text-slate-500 uppercase">Assigned Projects</span>
-          <span className="text-2xl font-black">{projects.length}</span>
-        </div>
-        {isAgent && (
-          <div className="bg-white p-4 rounded-xl border shadow-sm flex flex-col justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase">My Active Tasks</span>
-            <span className="text-2xl font-black">
-              {projects.reduce((acc: number, p: any) => acc + (p.tasks || []).filter((t: any) => ["pending", "in_progress"].includes(t.status)).length, 0)}
-            </span>
-          </div>
-        )}
+      {/* ── KPI Grid (Clickable Filters) ── */}
+      <div className={`grid grid-cols-2 ${kpiCards.length >= 5 ? "md:grid-cols-5" : "md:grid-cols-4"} gap-4`}>
+        {kpiCards.map(k => {
+          const c = colorMap[k.color];
+          const isActive = activeKpi === k.id;
+          return (
+            <button
+              key={k.id}
+              onClick={() => setActiveKpi(isActive ? "all" : k.id)}
+              className={`p-4 rounded-xl border-2 text-left transition cursor-pointer flex flex-col justify-between ${isActive ? `${c.border} ${c.bg}` : "border-transparent bg-white hover:bg-gray-50 shadow-sm"}`}
+            >
+              <span className={`text-[11px] font-bold uppercase tracking-wider ${c.text}`}>{k.label}</span>
+              <p className="text-2xl font-black mt-2 text-slate-900">{k.val}</p>
+            </button>
+          );
+        })}
       </div>
 
-      {projects.length === 0 && (
-        <div className="bg-white border rounded-xl p-8 text-center text-slate-500">
-          No active projects assigned to you.
+      {/* ── Filter Bar ── */}
+      <div className="bg-white rounded-xl border shadow-sm p-4 flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search client name or phone..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+          />
+        </div>
+        <select
+          value={taskStatusFilter}
+          onChange={(e) => setTaskStatusFilter(e.target.value)}
+          className="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
+        >
+          <option value="all">All Task Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="in_progress">In Progress</option>
+          <option value="done">Done</option>
+        </select>
+        {hasActiveFilters && (
+          <button
+            onClick={clearAllFilters}
+            className="inline-flex items-center gap-1 px-3 py-2 text-xs font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition"
+          >
+            <X className="w-3 h-3" /> Clear Filters
+          </button>
+        )}
+        <span className="text-xs text-slate-400 ml-auto">
+          Showing {filteredProjects.length} of {projects.length} projects
+        </span>
+      </div>
+
+      {/* ── Empty State ── */}
+      {filteredProjects.length === 0 && (
+        <div className="bg-white border border-dashed border-slate-300 rounded-xl p-12 text-center text-slate-500">
+          {hasActiveFilters ? "No projects match your current filters." : "No active projects assigned to you."}
         </div>
       )}
 
+      {/* ── Project Cards ── */}
       <div className="grid grid-cols-1 gap-6">
-        {projects.map((project: any) => {
+        {filteredProjects.map((project: any) => {
           const isDistributing = activeDistribution === project.id;
           const assignedAgents = project.teamAssignments?.filter((ta: any) => ta.role === "agent_media_buyer") || [];
+          const projectTasks = project.tasks || [];
+          const activeTasks = projectTasks.filter((t: any) => t.status !== "done").length;
+          const doneCount = projectTasks.filter((t: any) => t.status === "done").length;
 
           return (
             <div key={project.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              {/* Project Header */}
               <div className="bg-slate-50 border-b p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-3 mb-1">
                     <h3 className="font-bold text-lg">{project.deal?.lead?.name || "Unknown Client"}</h3>
                     <LifecycleStateBadge state={project.lifecycleState || "Active"} />
+                    {activeTasks > 0 && (
+                      <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full">
+                        {activeTasks} Active
+                      </span>
+                    )}
+                    {doneCount > 0 && (
+                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full">
+                        {doneCount} Done
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm text-slate-500">
                     Account Manager: <span className="font-medium text-slate-700">{project.accountManager?.name || "Not Assigned"}</span>
+                    {project.package && <span className="ml-3 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-bold">{project.package}</span>}
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2">
                   {isTL && (
-                    <button 
+                    <button
                       onClick={() => setActiveDistribution(isDistributing ? null : project.id)}
                       className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition"
                     >
@@ -128,7 +255,7 @@ export default function MediaBuyerClient({ projects, teamMembers, userRole, user
                   <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Assigned Agents</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {assignedAgents.map((ta: any) => {
-                      const agentTasks = project.tasks?.filter((t: any) => t.agentId === ta.userId) || [];
+                      const agentTasks = projectTasks.filter((t: any) => t.agentId === ta.userId);
                       return (
                         <div key={ta.id} className="border rounded-lg p-3">
                           <div className="flex justify-between items-start mb-2">
@@ -171,17 +298,24 @@ export default function MediaBuyerClient({ projects, teamMembers, userRole, user
               {isAgent && (
                 <div className="p-4 space-y-3">
                   <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-2">My Tasks</h4>
-                  {!project.tasks || project.tasks.length === 0 ? (
+                  {projectTasks.length === 0 ? (
                     <div className="bg-slate-50 border rounded-lg p-6 text-center text-slate-500 italic">
                       No tasks assigned yet.
                     </div>
                   ) : (
-                    project.tasks.map((task: any) => (
+                    projectTasks.map((task: any) => (
                       <div key={task.id} className="border rounded-lg p-4 flex flex-col md:flex-row justify-between items-center bg-slate-50">
                         <div>
                           <p className="font-bold text-sm uppercase text-indigo-800 mb-1">{task.taskType.replace(/_/g, " ")}</p>
+                          {task.brief && <p className="text-xs text-slate-600 mb-1">{task.brief}</p>}
                           {task.requester && (
                             <p className="text-xs text-slate-500">Requested by: {task.requester.name} ({task.requester.role.replace(/_/g, " ")})</p>
+                          )}
+                          {task.deadline && (
+                            <p className={`text-xs mt-1 font-medium ${new Date(task.deadline) < now ? "text-red-600" : "text-slate-500"}`}>
+                              Deadline: {new Date(task.deadline).toLocaleDateString()}
+                              {new Date(task.deadline) < now && task.status !== "done" && " ⚠️ OVERDUE"}
+                            </p>
                           )}
                         </div>
                         <div className="mt-3 md:mt-0 flex items-center gap-3">

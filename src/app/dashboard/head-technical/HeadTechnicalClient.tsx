@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { Search, X } from "lucide-react";
 
 import DistributeModal from "@/components/DistributeModal";
 import TeamWorkloadBadge from "@/components/TeamWorkloadBadge";
@@ -12,23 +13,38 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
   const [distributeModalProject, setDistributeModalProject] = useState<any>(null);
   const [taskFilter, setTaskFilter] = useState("all");
   const [activeKpi, setActiveKpi] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const filteredProjects = useMemo(() => {
     return projects.filter((p: any) => {
-      if (activeKpi === "assigned") return p.accountManagerId || p.tasks?.some((t: any) => ["social_media", "media_buying", "seo", "content_seo"].includes(t.taskType) && t.leaderId);
-      if (activeKpi === "active") return ["in_progress", "setup", "assigned"].includes(p.projectStatus);
-      if (activeKpi === "delayed") return p.projectStatus === "delayed";
-      if (activeKpi === "in_progress") return p.tasks?.some((t: any) => t.status === "in_progress");
-      return true;
+      const matchSearch = !searchQuery ||
+        p.deal?.lead?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.deal?.lead?.phone?.includes(searchQuery) ||
+        p.package?.toLowerCase().includes(searchQuery.toLowerCase());
+
+      let matchKpi = true;
+      if (activeKpi === "assigned") matchKpi = p.accountManagerId || p.tasks?.some((t: any) => ["social_media", "media_buying", "seo", "content_seo"].includes(t.taskType) && t.leaderId);
+      else if (activeKpi === "active") matchKpi = ["in_progress", "setup", "assigned"].includes(p.projectStatus);
+      else if (activeKpi === "delayed") matchKpi = p.projectStatus === "delayed";
+      else if (activeKpi === "in_progress") matchKpi = p.tasks?.some((t: any) => t.status === "in_progress");
+
+      return matchSearch && matchKpi;
     });
-  }, [projects, activeKpi]);
+  }, [projects, activeKpi, searchQuery]);
+
+  const hasActiveFilters = searchQuery || activeKpi !== "all";
+
+  const clearAllFilters = () => {
+    setSearchQuery("");
+    setActiveKpi("all");
+  };
 
   const getProgressColor = (val: number) => val < 30 ? "bg-red-500" : val < 70 ? "bg-amber-400" : "bg-emerald-500";
 
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
           { id: "all", label: "My Total Projects", val: kpis.assignedClients + kpis.activeClients + kpis.delayedClients, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-slate-500 bg-slate-50", icnColor: "text-slate-500" },
           { id: "assigned", label: "Assigned Clients", val: kpis.assignedClients, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-blue-500 bg-blue-50", icnColor: "text-blue-500" },
@@ -51,8 +67,33 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
 
       {/* Projects Table */}
       <div className="bg-white rounded-xl shadow border overflow-hidden">
-        <div className="p-4 border-b bg-slate-50">
-          <h2 className="text-lg font-bold text-slate-800">Master Clients List</h2>
+        <div className="p-4 border-b bg-slate-50 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-bold text-slate-800 whitespace-nowrap">Master Clients List</h2>
+            {hasActiveFilters && (
+              <button
+                onClick={clearAllFilters}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 rounded-full hover:bg-red-100 transition"
+              >
+                <X className="w-3 h-3" /> Clear Filters
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2 w-full md:w-auto">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search clients..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+              />
+            </div>
+            <span className="text-xs text-slate-400 self-center whitespace-nowrap">
+              {filteredProjects.length} / {projects.length}
+            </span>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -68,13 +109,21 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
             <tbody className="divide-y divide-gray-100">
               {filteredProjects.map((p: any) => {
                 const delayedTasks = p.tasks?.filter((t:any) => t.status !== "done" && t.deadline && new Date(t.deadline) < new Date()).length || 0;
+                const activeTasks = p.tasks?.filter((t: any) => t.status !== "done").length || 0;
                 
                 return (
                   <tr key={p.id} className="hover:bg-slate-50/50 transition">
                     <td className="px-6 py-4">
                       <div className="font-bold text-slate-900">{p.deal?.lead?.name}</div>
                       <div className="text-xs text-slate-500">{p.deal?.lead?.phone}</div>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-100 text-purple-800 inline-block mt-1">{p.package}</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-100 text-purple-800">{p.package}</span>
+                        {activeTasks > 0 && (
+                          <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full">
+                            {activeTasks} Active
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-2">
@@ -92,7 +141,6 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
                           }
                           return acc;
                         }, []).map((dept: any, i: number) => {
-                          // Check if this department has delayed tasks
                           const hasDelayed = p.tasks?.some((t: any) => t.taskType === dept.department && t.status !== "done" && t.deadline && new Date(t.deadline) < new Date());
                           return (
                             <TeamWorkloadBadge 
@@ -144,7 +192,11 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
                 );
               })}
               {filteredProjects.length === 0 && (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400 italic">No clients available.</td></tr>
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400 italic">
+                    {hasActiveFilters ? "No clients match your current filters." : "No clients available."}
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
@@ -169,15 +221,32 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
 
       {/* Tasks Overview (Global) */}
       <div className="bg-white rounded-xl shadow border overflow-hidden">
-        <div className="p-4 border-b bg-slate-50 flex items-center justify-between">
+        <div className="p-4 border-b bg-slate-50 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-bold text-slate-800">Global Tasks Execution</h2>
-          <select value={taskFilter} onChange={(e) => setTaskFilter(e.target.value)} className="text-sm border rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500">
-            <option value="all">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="in_progress">In Progress</option>
-            <option value="delayed">Delayed</option>
-            <option value="done">Done</option>
-          </select>
+          <div className="flex items-center gap-3">
+            <select value={taskFilter} onChange={(e) => setTaskFilter(e.target.value)} className="text-sm border rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="all">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="in_progress">In Progress</option>
+              <option value="delayed">Delayed</option>
+              <option value="done">Done</option>
+            </select>
+            {taskFilter !== "all" && (
+              <button
+                onClick={() => setTaskFilter("all")}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition"
+              >
+                <X className="w-3 h-3" /> Clear
+              </button>
+            )}
+            <span className="text-xs text-slate-400">
+              {kpis.allTasks.filter((t:any) => {
+                if(taskFilter === "all") return true;
+                if(taskFilter === "delayed") return t.status !== "done" && t.deadline && new Date(t.deadline) < new Date();
+                return t.status === taskFilter;
+              }).length} tasks
+            </span>
+          </div>
         </div>
         <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
           <table className="min-w-full divide-y divide-gray-200 relative">
