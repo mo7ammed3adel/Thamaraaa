@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import WarningResolveButton from "@/components/WarningResolveButton";
 
 const ALL_TEAM_ROLES = [
   "account_manager", "head_account_manager", "chief_sales",
@@ -127,6 +128,19 @@ export default function WarningsCenterClient({ warnings, leads, userRole, userId
                     <p className="text-xs text-red-400 italic">No acknowledgments yet</p>
                   )}
                 </div>
+              </div>
+              {/* Resolve Action */}
+              <div className="mt-3 pt-2 border-t flex items-center justify-between">
+                <span className={`px-2 py-0.5 text-xs font-bold rounded ${w.status === "Resolved" ? "bg-green-100 text-green-700" : w.status === "Active" ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-600"}`}>
+                  {w.status}
+                </span>
+                <WarningResolveButton
+                  warningId={w.id}
+                  senderUserId={w.senderUserId}
+                  currentUserId={userId}
+                  currentStatus={w.status}
+                  onSuccess={() => router.refresh()}
+                />
               </div>
             </div>
           </div>

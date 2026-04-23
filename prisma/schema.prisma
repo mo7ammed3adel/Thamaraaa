@@ -250,6 +250,9 @@ model Task {
   subTasks       Task[]    @relation("SubTasks")
   files          String?   // JSON string for deliverable URLs
   startedAt      DateTime? // When the agent actually started working
+  flagReason      String?   // Reason text when agent flags/returns task to Team Leader
+  flaggedAt       DateTime? // Timestamp of flag action
+  flaggedByUserId String?   // User ID of agent who flagged the task
   createdAt      DateTime  @default(now())
   completedAt    DateTime?
 }
@@ -404,6 +407,8 @@ model Warning {
   senderRole     String
   recipientRoles String   // JSON array of target role strings
   acknowledgedBy String   @default("[]") // JSON: DEPRECATED — use WarningReceipt
+  resolvedAt       DateTime? // Timestamp when creator marked as resolved
+  resolvedByUserId String?   // User ID of the resolver (must match senderUserId)
   createdAt      DateTime @default(now())
 
   receipts WarningReceipt[]

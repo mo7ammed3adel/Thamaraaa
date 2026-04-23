@@ -7,11 +7,15 @@ import DistributionPanel from "@/components/DistributionPanel";
 
 import TeamOverview from "@/components/TeamOverview";
 import CrossTeamTaskForm from "@/components/CrossTeamTaskForm";
+import TaskFlagModal from "@/components/TaskFlagModal";
+import TaskReassignModal from "@/components/TaskReassignModal";
 
 export default function SeoClient({ projects, teamMembers, userRole, userId }: any) {
   const router = useRouter();
   const [activeDistribution, setActiveDistribution] = useState<string | null>(null);
   const [crossTeamProject, setCrossTeamProject] = useState<string | null>(null);
+  const [flagTask, setFlagTask] = useState<any>(null);
+  const [reassignTask, setReassignTask] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
   const isHead = ["super_admin", "head_seo"].includes(userRole);
@@ -190,6 +194,12 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
                                   task.status === "in_progress" ? "bg-amber-100 text-amber-700" : 
                                   "bg-slate-200 text-slate-700"
                                 }`}>{task.status.replace(/_/g, " ")}</span>
+                                <button
+                                  onClick={() => setReassignTask(task)}
+                                  className="ml-2 text-blue-600 hover:text-blue-800 text-[10px] font-bold underline"
+                                >
+                                  Reassign
+                                </button>
                               </div>
                             ))}
                             {agentTasks.length === 0 && <p className="text-xs text-slate-400 italic">No tasks created yet</p>}
@@ -234,6 +244,12 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
                           >
                             + Cross-Team Task
                           </button>
+                          <button
+                            onClick={() => setFlagTask(task)}
+                            className="bg-orange-50 text-orange-700 border border-orange-200 text-xs font-bold px-3 py-2 rounded-lg hover:bg-orange-100 transition"
+                          >
+                            ⚑ Flag
+                          </button>
                         </div>
                       </div>
                     ))
@@ -262,6 +278,28 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
           );
         })}
       </div>
+
+      {flagTask && (
+        <TaskFlagModal
+          taskId={flagTask.id}
+          taskName={flagTask.taskType.replace(/_/g, " ")}
+          isOpen={!!flagTask}
+          onClose={() => setFlagTask(null)}
+          onSuccess={() => { setFlagTask(null); router.refresh(); }}
+        />
+      )}
+
+      {reassignTask && (
+        <TaskReassignModal
+          taskId={reassignTask.id}
+          taskName={reassignTask.taskType.replace(/_/g, " ")}
+          leaderRole="team_leader_seo"
+          currentAgentId={reassignTask.agentId}
+          isOpen={!!reassignTask}
+          onClose={() => setReassignTask(null)}
+          onSuccess={() => { setReassignTask(null); router.refresh(); }}
+        />
+      )}
     </div>
   );
 }

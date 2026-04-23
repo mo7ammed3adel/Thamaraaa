@@ -7,6 +7,7 @@ import ClientDetailModal from "@/components/ClientDetailModal";
 import LifecycleStateBadge from "@/components/LifecycleStateBadge";
 import LifecycleChangeModal from "@/components/LifecycleChangeModal";
 import DistributeModal from "@/components/DistributeModal";
+import ClientReassignModal from "@/components/ClientReassignModal";
 export default function HeadAccountManagerClient({ projects, accountManagers, headTechnicals, kpis, userId }: any) {
   const router = useRouter();
   const [filterAM, setFilterAM] = useState("all");
@@ -21,6 +22,7 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [lifecycleProject, setLifecycleProject] = useState<any>(null);
   const [distributeProject, setDistributeProject] = useState<any>(null);
+  const [reassignProject, setReassignProject] = useState<any>(null);
 
   const filteredProjects = useMemo(() => {
     return projects.filter((p: any) => {
@@ -287,6 +289,11 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
                       <button onClick={() => router.push(`/dashboard/clients/${p.id}`)} className="text-[10px] text-indigo-600 font-bold hover:underline">
                         Full Portal UI
                       </button>
+                      {p.accountManagerId && (
+                        <button onClick={() => setReassignProject(p)} className="text-[10px] text-orange-600 font-bold hover:underline">
+                          Reassign AM
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -328,6 +335,17 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
           availableUsers={headTechnicals}
           actionLabel="Assign Head Technical"
           onDistributed={() => { setDistributeProject(null); router.refresh(); }}
+        />
+      )}
+
+      {reassignProject && (
+        <ClientReassignModal
+          isOpen={!!reassignProject}
+          onClose={() => setReassignProject(null)}
+          projectId={reassignProject.id}
+          clientName={reassignProject.deal?.lead?.name || "Unknown Client"}
+          currentAccountManagerId={reassignProject.accountManagerId}
+          onSuccess={() => { setReassignProject(null); router.refresh(); }}
         />
       )}
     </div>

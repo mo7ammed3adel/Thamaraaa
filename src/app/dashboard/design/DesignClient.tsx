@@ -7,6 +7,8 @@ import Link from "next/link";
 import {
   Inbox, Clock, CheckCircle, AlertTriangle, Users, ArrowRight
 } from "lucide-react";
+import TaskFlagModal from "@/components/TaskFlagModal";
+import TaskReassignModal from "@/components/TaskReassignModal";
 
 /**
  * Design & Creative department client component (Graphic, Motion, UI/UX).
@@ -19,6 +21,8 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
   const [viewClient, setViewClient] = useState<any>(null);
   const [activeTab, setActiveTab] = useState(isLeader ? "incoming" : "tasks");
   const [activeKpi, setActiveKpi] = useState("all");
+  const [flagTask, setFlagTask] = useState<any>(null);
+  const [reassignTask, setReassignTask] = useState<any>(null);
 
   // ── Advanced Filters ──
   const [searchQuery, setSearchQuery] = useState("");
@@ -204,6 +208,26 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
             <button onClick={() => setViewClient(t)} className="w-full py-2 bg-gray-50 text-gray-700 border border-gray-200 rounded-xl text-sm font-bold hover:bg-gray-100 shadow-sm transition flex items-center justify-center gap-2">
               Client Info <ArrowRight className="w-4 h-4" />
             </button>
+
+            {/* Leader Reassign Button */}
+            {isLeader && t.agentId && t.status !== "done" && (
+              <button
+                onClick={() => setReassignTask(t)}
+                className="w-full py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-sm font-bold hover:bg-blue-100 shadow-sm transition"
+              >
+                ⇄ Reassign Agent
+              </button>
+            )}
+
+            {/* Agent Flag Button */}
+            {!isLeader && t.agentId === userId && t.status !== "done" && (
+              <button
+                onClick={() => setFlagTask(t)}
+                className="w-full py-2 bg-orange-50 text-orange-700 border border-orange-200 rounded-xl text-sm font-bold hover:bg-orange-100 shadow-sm transition"
+              >
+                ⚑ Flag / Return Task
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -357,6 +381,28 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
             />
           </div>
         </div>
+      )}
+
+      {flagTask && (
+        <TaskFlagModal
+          taskId={flagTask.id}
+          taskName={flagTask.taskType?.replace(/_/g, " ") || "Design Task"}
+          isOpen={!!flagTask}
+          onClose={() => setFlagTask(null)}
+          onSuccess={() => { setFlagTask(null); router.refresh(); }}
+        />
+      )}
+
+      {reassignTask && (
+        <TaskReassignModal
+          taskId={reassignTask.id}
+          taskName={reassignTask.taskType?.replace(/_/g, " ") || "Design Task"}
+          leaderRole={userRole}
+          currentAgentId={reassignTask.agentId}
+          isOpen={!!reassignTask}
+          onClose={() => setReassignTask(null)}
+          onSuccess={() => { setReassignTask(null); router.refresh(); }}
+        />
       )}
     </div>
   );

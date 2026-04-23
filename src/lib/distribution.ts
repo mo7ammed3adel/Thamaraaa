@@ -1,4 +1,4 @@
-import { TASK_TYPE_TO_LEADER_ROLE } from "./constants";
+import { TASK_TYPE_TO_LEADER_ROLE, TEAM_LEADER_ROLES } from "./constants";
 import { prisma } from "./prisma";
 
 /**
@@ -56,34 +56,73 @@ export function findTeamLeaderRoleForTaskType(taskType: string): string | null {
 }
 
 /**
- * Checks if a project has any unresolved warnings that block its progress.
+ * Checks if a project has any unresolved, unacknowledged warnings that block its progress.
+ * Uses the WarningReceipt table for acknowledgment tracking (not deprecated acknowledgedBy JSON).
  * Returns { isBlocked: true, warnings: [...] } if blocked, else { isBlocked: false }.
  */
 export async function checkProjectBlockers(projectId: string) {
   const unresolvedWarnings = await prisma.warning.findMany({
     where: {
       projectId: projectId,
-    }
+      status: { not: "Resolved" },
+    },
+    include: {
+      receipts: true,
+    },
   });
 
-  // A warning blocks if not all recipient roles have acknowledged it.
-  // Wait, the specification says "any unresolved warning strictly blocks moving the project..."
-  // If a warning is "acknowledgedBy" someone in the recipient role, is it resolved?
-  // Let's filter out warnings where all recipients have acknowledged or it has some specific resolved status.
-  // Actually, let's just check if there's any warning that has no acknowledgements from its required roles.
-  
-  const blockingWarnings = unresolvedWarnings.filter(w => {
-    let ackList: any[] = [];
-    try { ackList = JSON.parse(w.acknowledgedBy || "[]"); } catch {}
-    
-    // For simplicity, a warning blocks if it hasn't been acknowledged by ANY user
-    // In a fully strict system: if it requires 3 roles, it needs 3 acks.
-    // Let's enforce that it requires at least one acknowledgement to unblock.
-    return ackList.length === 0;
+  // A warning blocks if it has no acknowledgment receipts from any user.
+  // Resolved warnings are excluded from the query above.
+  const blockingWarnings = unresolvedWarnings.filter((w: any) => {
+    const receiptCount = w.receipts?.length ?? 0;
+    return receiptCount === 0;
   });
 
   return {
     isBlocked: blockingWarnings.length > 0,
-    warnings: blockingWarnings
+    warnings: blockingWarnings,
   };
+}
+
+
+/**
+ * Checks whether a user can flag/return a task.
+ * Only the currently assigned agent can flag their own task.
+ * @param userRole - Role of the user attempting to flag
+ * @param taskAgentId - The user ID currently assigned as the task agent
+ * @param currentUserId - The user ID of the person attempting the flag
+ * @returns true if the user is the assigned agent for this task
+ */
+export function canFlagTask(
+  userRole: string,
+  taskAgentId: string | null,
+  currentUserId: string
+): boolean {
+  if (!taskAgentId) return false;
+  return taskAgentId === currentUserId;
+}
+
+/**
+ * Checks whether a user can reassign a task within their team.
+ * Only Team Leader roles are allowed to reassign tasks.
+ * @param userRole - Role of the user attempting the reassignment
+ * @returns true if the user has a Team Leader role
+ */
+export function canReassignTask(userRole: string): boolean {
+  if (userRole === "super_admin") return true;
+  return TEAM_LEADER_ROLES.includes(userRole as typeof TEAM_LEADER_ROLES[number]);
+}
+
+/**
+ * Checks whether a user can resolve a warning.
+ * Only the original sender of a warning can mark it as resolved.
+ * @param userId - The user ID of the person attempting to resolve
+ * @param warningSenderUserId - The user ID of the warning creator
+ * @returns true if the user is the warning creator
+ */
+export function canResolveWarning(
+  userId: string,
+  warningSenderUserId: string
+): boolean {
+  return userId === warningSenderUserId;
 }
