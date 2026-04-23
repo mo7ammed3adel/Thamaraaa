@@ -6,7 +6,7 @@ import { prisma } from "./prisma";
  * Maps each distributor role to the roles they are allowed to distribute TO.
  */
 const DISTRIBUTION_MAP: Record<string, string[]> = {
-  head_account_manager: ["account_manager", "head_technical"],
+  head_account_manager: ["account_manager", "head_technical", "head_seo"],
   head_technical: ["team_leader_social_media", "team_leader_media_buyer"],
   account_manager: ["head_seo"],
   head_seo: ["team_leader_seo"],

@@ -49,6 +49,15 @@ export default async function HeadAccountManagerPage() {
     }
   });
 
+  const headSeoUsers = await prisma.user.findMany({
+    where: { role: "head_seo", status: "Active" },
+    include: {
+      seoProjects: {
+        where: { projectStatus: { in: ["new", "setup", "in_progress", "assigned", "delayed"] } }
+      }
+    }
+  });
+
   // Warnings
   const projectIds = projects.map(p => p.id);
   const leadIds = projects.map(p => p.deal?.leadId).filter(Boolean);
@@ -84,12 +93,18 @@ export default async function HeadAccountManagerPage() {
   const totalProgress = projectsWithData.reduce((acc, p) => acc + ((p.seoProgress + p.socialMediaProgress + p.mediaBuyerProgress) / 3), 0);
   const avgCompletionRate = projectsWithData.length > 0 ? Math.round(totalProgress / projectsWithData.length) : 0;
 
-  // Map headTechnicals for DistributeModal format (with managedProjects for workload)
   const headTechnicalsForModal = headTechnicals.map(ht => ({
     id: ht.id,
     name: ht.name,
     role: ht.role,
     managedProjects: ht.technicalProjects || [],
+  }));
+
+  const headSeoForModal = headSeoUsers.map(hs => ({
+    id: hs.id,
+    name: hs.name,
+    role: hs.role,
+    managedProjects: hs.seoProjects || [],
   }));
 
   return (
@@ -99,6 +114,7 @@ export default async function HeadAccountManagerPage() {
         projects={projectsWithData}
         accountManagers={accountManagers}
         headTechnicals={headTechnicalsForModal}
+        headSeoUsers={headSeoForModal}
         kpis={{
           total: projectsWithData.length,
           active: activeCount,

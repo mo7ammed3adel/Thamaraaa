@@ -8,7 +8,9 @@ import LifecycleStateBadge from "@/components/LifecycleStateBadge";
 import LifecycleChangeModal from "@/components/LifecycleChangeModal";
 import DistributeModal from "@/components/DistributeModal";
 import ClientReassignModal from "@/components/ClientReassignModal";
-export default function HeadAccountManagerClient({ projects, accountManagers, headTechnicals, kpis, userId }: any) {
+import CreateWarningModal from "@/components/CreateWarningModal";
+
+export default function HeadAccountManagerClient({ projects, accountManagers, headTechnicals, headSeoUsers, kpis, userId }: any) {
   const router = useRouter();
   const [filterAM, setFilterAM] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -22,7 +24,9 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [lifecycleProject, setLifecycleProject] = useState<any>(null);
   const [distributeProject, setDistributeProject] = useState<any>(null);
+  const [distributeSeoProject, setDistributeSeoProject] = useState<any>(null);
   const [reassignProject, setReassignProject] = useState<any>(null);
+  const [warningProject, setWarningProject] = useState<any>(null);
 
   const filteredProjects = useMemo(() => {
     return projects.filter((p: any) => {
@@ -286,6 +290,12 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
                       <button onClick={() => setDistributeProject(p)} className="text-[10px] text-purple-600 font-bold hover:underline mt-1">
                         Assign Head Technical
                       </button>
+                      <button onClick={() => setDistributeSeoProject(p)} className="text-[10px] text-teal-600 font-bold hover:underline">
+                        Assign Head SEO
+                      </button>
+                      <button onClick={() => { setWarningProject(p); }} className="text-[10px] text-red-600 font-bold hover:underline">
+                        ⚠ Send Warning
+                      </button>
                       <button onClick={() => router.push(`/dashboard/clients/${p.id}`)} className="text-[10px] text-indigo-600 font-bold hover:underline">
                         Full Portal UI
                       </button>
@@ -346,6 +356,27 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
           clientName={reassignProject.deal?.lead?.name || "Unknown Client"}
           currentAccountManagerId={reassignProject.accountManagerId}
           onSuccess={() => { setReassignProject(null); router.refresh(); }}
+        />
+      )}
+
+      {distributeSeoProject && (
+        <DistributeModal
+          isOpen={!!distributeSeoProject}
+          onClose={() => setDistributeSeoProject(null)}
+          projectId={distributeSeoProject.id}
+          projectName={distributeSeoProject.deal?.lead?.name || "Unknown Client"}
+          availableUsers={headSeoUsers || []}
+          actionLabel="Assign Head SEO"
+          onDistributed={() => { setDistributeSeoProject(null); router.refresh(); }}
+        />
+      )}
+
+      {warningProject && (
+        <CreateWarningModal
+          isOpen={!!warningProject}
+          onClose={() => setWarningProject(null)}
+          projectId={warningProject.id}
+          clientId={warningProject.deal?.leadId}
         />
       )}
     </div>
