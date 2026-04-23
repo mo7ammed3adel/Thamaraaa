@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, PhoneCall, ChevronDown, ChevronUp, CheckCircle2, XCircle, FileText, Send, X, Clock } from "lucide-react";
+import Link from "next/link";
+import { Calendar, PhoneCall, ChevronDown, ChevronUp, CheckCircle2, XCircle, FileText, Send, X, Clock, AlertTriangle, ExternalLink } from "lucide-react";
+import CreateWarningModal from "@/components/CreateWarningModal";
 
 export default function SalesClient({ initialLeads, userRole, userId, initialStatus, postSaleProjects = [] }: { initialLeads: any[], userRole: string, userId: string, initialStatus: string, postSaleProjects?: any[] }) {
   const router = useRouter();
@@ -12,6 +14,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
   const [expandedLead, setExpandedLead] = useState<string | null>(null);
   const [logFilter, setLogFilter] = useState("All");
   const [activeTab, setActiveTab] = useState("leads"); // "leads" or "post-sale"
+  const [warningProject, setWarningProject] = useState<any>(null);
   
   // Search, Pagination, & Dates
   const [searchQuery, setSearchQuery] = useState("");
@@ -684,7 +687,8 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                 <th className="px-6 py-3 text-left text-xs font-medium text-emerald-700 uppercase tracking-wider">Account Manager</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-emerald-700 uppercase tracking-wider">Current Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-emerald-700 uppercase tracking-wider">Progress</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-emerald-700 uppercase tracking-wider">Active Warnings</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-emerald-700 uppercase tracking-wider">Active Warnings</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-emerald-700 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -721,12 +725,30 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                         <span className="text-xs text-gray-400">None</span>
                       )}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Link
+                          href={`/dashboard/clients/${project.id}`}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-md text-xs font-bold transition"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          Journey
+                        </Link>
+                        <button
+                          onClick={() => setWarningProject(project)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-red-50 text-red-700 hover:bg-red-100 rounded-md text-xs font-bold transition"
+                        >
+                          <AlertTriangle className="h-3 w-3" />
+                          Warning
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
               {postSaleProjects.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
+                  <td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-500">
                     No closed deals have transitioned to projects yet.
                   </td>
                 </tr>
@@ -734,6 +756,15 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Warning Modal for Post-Sale Projects */}
+      {warningProject && (
+        <CreateWarningModal
+          isOpen={true}
+          projectId={warningProject.id}
+          onClose={() => { setWarningProject(null); router.refresh(); }}
+        />
       )}
 
       {showFeedbackForm && (

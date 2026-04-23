@@ -3,9 +3,36 @@
 import { useState } from "react";
 import { CROSS_TEAM_TASK_TYPES } from "@/lib/constants";
 
-export default function CrossTeamTaskForm({ projectId, onClose }: { projectId: string; onClose: () => void }) {
-  const [taskType, setTaskType] = useState<string>(CROSS_TEAM_TASK_TYPES[0]);
+/**
+ * Returns allowed cross-team task types based on the requesting user's role.
+ * - SEO / Content SEO agents → graphic_design, ui_design, content_seo only
+ * - Social Media / Media Buyer agents → graphic_design, motion_graphic, ui_design
+ * - All others → all cross-team types
+ */
+function getAllowedTaskTypes(userRole: string): string[] {
+  const seoRoles = ["agent_seo", "agent_content_seo", "team_leader_seo", "head_seo"];
+  const mediaRoles = ["agent_social_media", "agent_media_buyer", "team_leader_social_media", "team_leader_media_buyer"];
+
+  if (seoRoles.includes(userRole)) {
+    return ["graphic_design", "ui_design", "content_seo"];
+  }
+  if (mediaRoles.includes(userRole)) {
+    return ["graphic_design", "motion_graphic", "ui_design"];
+  }
+  return [...CROSS_TEAM_TASK_TYPES];
+}
+
+interface CrossTeamTaskFormProps {
+  projectId: string;
+  onClose: () => void;
+  userRole?: string;
+}
+
+export default function CrossTeamTaskForm({ projectId, onClose, userRole = "" }: CrossTeamTaskFormProps) {
+  const allowedTypes = getAllowedTaskTypes(userRole);
+  const [taskType, setTaskType] = useState<string>(allowedTypes[0]);
   const [brief, setBrief] = useState("");
+  const [taskLink, setTaskLink] = useState("");
   const [priority, setPriority] = useState("Medium");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,14 +46,14 @@ export default function CrossTeamTaskForm({ projectId, onClose }: { projectId: s
       const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, taskType, brief, priority }),
+        body: JSON.stringify({ projectId, taskType, brief, taskLink: taskLink || undefined, priority }),
       });
 
       if (!res.ok) {
         throw new Error("Failed to create task");
       }
 
-      onClose(); // Automatically close overlay on success
+      onClose();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -45,7 +72,7 @@ export default function CrossTeamTaskForm({ projectId, onClose }: { projectId: s
           onChange={(e) => setTaskType(e.target.value)}
           className="w-full border-2 border-slate-200 rounded-lg p-2 outline-none focus:border-indigo-500 font-medium bg-slate-50 relative appearance-none"
         >
-          {CROSS_TEAM_TASK_TYPES.map(type => (
+          {allowedTypes.map(type => (
             <option key={type} value={type}>
               {type.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
             </option>
@@ -65,6 +92,17 @@ export default function CrossTeamTaskForm({ projectId, onClose }: { projectId: s
           <option value="High">High</option>
           <option value="Urgent">Urgent</option>
         </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-bold text-slate-700 mb-1">Task Link (optional)</label>
+        <input 
+          type="url"
+          value={taskLink}
+          onChange={(e) => setTaskLink(e.target.value)}
+          placeholder="https://example.com/reference-material"
+          className="w-full border-2 border-slate-200 rounded-lg p-2 outline-none focus:border-indigo-500 font-medium bg-slate-50"
+        />
       </div>
 
       <div>

@@ -266,7 +266,7 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
                       <button onClick={() => setCrossTeamProject(null)} className="text-slate-400 hover:text-slate-600 font-bold">&times;</button>
                     </div>
                     <div className="p-6">
-                      <CrossTeamTaskForm projectId={project.id} onClose={() => {
+                      <CrossTeamTaskForm projectId={project.id} userRole={userRole} onClose={() => {
                         setCrossTeamProject(null);
                         router.refresh();
                       }} />

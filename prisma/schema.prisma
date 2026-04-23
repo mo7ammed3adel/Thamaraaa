@@ -242,6 +242,7 @@ model Task {
   requesterRole  String?   // Role that created/requested this task
   assignedRole   String?   // Target role for the task
   brief          String?   // Creative brief or task description
+  taskLink       String?   // Reference link attached by requesting agent
   deadline       DateTime? // Task-level deadline
   priority       String    @default("Medium") // High, Medium, Low
   status         String    @default("pending") // pending, in_progress, review, done
@@ -312,6 +313,7 @@ model Notification {
   type      String? // lead_assigned, meeting_update, deal_closed, etc.
   read      Boolean  @default(false)
   link      String?
+  relatedId String?   // Generic reference to related entity (task, project, etc.)
   createdAt DateTime @default(now())
 }
 

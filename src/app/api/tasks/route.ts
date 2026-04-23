@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { projectId, leaderId, assignedRole, taskType, priority, brief, deadline, checklistItems } = body;
+    const { projectId, leaderId, assignedRole, taskType, priority, brief, taskLink, deadline, checklistItems } = body;
 
     const user = session.user as any;
 
@@ -72,6 +72,7 @@ export async function POST(req: Request) {
         assignedRole: finalAssignedRole || null,
         taskType,
         brief: brief || "",
+        taskLink: taskLink || null,
         priority: priority || "Medium",
         deadline: deadline ? new Date(deadline) : null,
         checklistItems: checklistItems || "[]",

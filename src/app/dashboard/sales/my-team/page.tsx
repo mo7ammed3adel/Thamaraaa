@@ -8,11 +8,11 @@ export default async function SalesMyTeamPage() {
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
 
-  if (!["super_admin", "cheif_sales", "sales_manager"].includes(user?.role)) {
+  if (!["super_admin", "chief_sales", "sales_manager"].includes(user?.role)) {
     redirect("/dashboard");
   }
 
-  // Get agents under this manager (or all sales agents for super_admin/cheif_sales)
+  // Get agents under this manager (or all sales agents for super_admin/chief_sales)
   const whereClause: any = { role: "sales_agent" };
   if (user.role === "sales_manager") {
     whereClause.directManagerId = user.id;
