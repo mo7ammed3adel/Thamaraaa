@@ -113,6 +113,46 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
     }
   }
 
+  // ── Task Status Update Handler ──
+  async function handleUpdateStatus(taskId: string, status: string) {
+    try {
+      const payload: any = { status };
+      if (status === "done") payload.completedAt = new Date().toISOString();
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to update status");
+        return;
+      }
+      router.refresh();
+    } catch (err) {
+      alert("Network error — could not reach server.");
+    }
+  }
+
+  // ── Task Progress Update Handler ──
+  async function handleUpdateProgress(taskId: string, progressPct: number) {
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ progressPct }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to update progress");
+        return;
+      }
+      router.refresh();
+    } catch (err) {
+      alert("Network error — could not reach server.");
+    }
+  }
+
   // ── Team Assignment Handler (Bulk update & TeamAssignment records) ──
   async function handleTeamAssignment(department: string, roleType: "leader" | "agent", newUserId: string) {
     if (!department || !newUserId) return;
@@ -607,6 +647,8 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
                 const taskLeaders = teamMembers?.filter((u: any) => ttRoles.leaders.includes(u.role)) || [];
                 const taskAgents = teamMembers?.filter((u: any) => ttRoles.agents.includes(u.role)) || [];
 
+                const canUpdateTask = isAdmin || isTaskLeader || t.agentId === userId;
+
                 return (
                  <div key={t.id} className="border rounded-lg p-4 hover:shadow-sm transition">
                   <div className="flex items-center justify-between flex-wrap gap-2">
@@ -615,8 +657,24 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
                       <span className={`px-2 py-0.5 text-xs font-bold rounded ${t.status === "done" ? "bg-emerald-100 text-emerald-700" : t.status === "in_progress" ? "bg-amber-100 text-amber-700" : t.status === "review" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"}`}>{t.status}</span>
                       <span className={`px-2 py-0.5 text-xs font-medium rounded ${t.priority === "High" ? "bg-red-100 text-red-700" : t.priority === "Low" ? "bg-slate-100 text-slate-500" : "bg-amber-100 text-amber-600"}`}>{t.priority}</span>
                     </div>
-                    <div className="text-xs text-slate-400">
-                      Created: {new Date(t.createdAt).toLocaleDateString()} {t.completedAt && `• Completed: ${new Date(t.completedAt).toLocaleDateString()}`}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs text-slate-400">
+                        Created: {new Date(t.createdAt).toLocaleDateString()} {t.completedAt && `• Completed: ${new Date(t.completedAt).toLocaleDateString()}`}
+                      </span>
+                      {/* ── Status Buttons ── */}
+                      {canUpdateTask && t.status !== "done" && (
+                        <div className="flex gap-1">
+                          {t.status === "pending" && (
+                            <button onClick={() => handleUpdateStatus(t.id, "in_progress")} className="px-3 py-1 bg-amber-100 text-amber-700 rounded-lg text-xs font-bold hover:bg-amber-200 transition">▶ Start</button>
+                          )}
+                          {t.status === "in_progress" && (
+                            <button onClick={() => handleUpdateStatus(t.id, "review")} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-bold hover:bg-blue-200 transition">📋 Review</button>
+                          )}
+                          {t.status === "review" && (
+                            <button onClick={() => handleUpdateStatus(t.id, "done")} className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold hover:bg-emerald-200 transition">✓ Done</button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-6 mt-2 text-xs text-slate-500 flex-wrap items-center">
@@ -652,9 +710,29 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
                     </span>
                     {t.brief && <span>Brief: {t.brief}</span>}
                   </div>
-                  <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2">
-                    <div className="bg-indigo-500 h-1.5 rounded-full transition-all" style={{ width: `${t.progressPct}%` }} />
-                  </div>
+
+                  {/* ── Progress Slider ── */}
+                  {canUpdateTask && t.status !== "done" ? (
+                    <div className="mt-3 flex items-center gap-3">
+                      <span className="text-xs font-semibold text-slate-500 w-16">Progress</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="5"
+                        defaultValue={t.progressPct}
+                        onMouseUp={(e) => handleUpdateProgress(t.id, Number((e.target as HTMLInputElement).value))}
+                        onTouchEnd={(e) => handleUpdateProgress(t.id, Number((e.target as HTMLInputElement).value))}
+                        className="flex-1 h-2 accent-indigo-600 cursor-pointer"
+                      />
+                      <span className="text-xs font-bold text-indigo-600 w-10 text-right">{t.progressPct}%</span>
+                    </div>
+                  ) : (
+                    <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2">
+                      <div className="bg-indigo-500 h-1.5 rounded-full transition-all" style={{ width: `${t.progressPct}%` }} />
+                    </div>
+                  )}
+
                   {t.subTasks?.length > 0 && (
                     <div className="mt-2 pl-4 border-l-2 border-indigo-200 space-y-1">
                       {t.subTasks.map((st: any) => (
