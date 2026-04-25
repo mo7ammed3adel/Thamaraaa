@@ -2,7 +2,8 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, X } from "lucide-react";
+import Link from "next/link";
+import { Search, X, ExternalLink } from "lucide-react";
 import LifecycleStateBadge from "@/components/LifecycleStateBadge";
 import DistributionPanel from "@/components/DistributionPanel";
 import CrossTeamTaskForm from "@/components/CrossTeamTaskForm";
@@ -220,6 +221,12 @@ export default function SocialMediaClient({ projects, teamMembers, userRole, use
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <Link
+                    href={`/dashboard/clients/${project.id}`}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-medium hover:bg-slate-900 transition shadow-sm"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" /> Client Full Journey
+                  </Link>
                   {isTL && (
                     <button
                       onClick={() => setActiveDistribution(isDistributing ? null : project.id)}

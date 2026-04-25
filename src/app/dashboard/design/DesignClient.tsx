@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import ClientJourney from "@/components/ClientJourney";
 import Link from "next/link";
 import {
-  Inbox, Clock, CheckCircle, AlertTriangle, Users, ArrowRight
+  Inbox, Clock, CheckCircle, AlertTriangle, Users, ExternalLink
 } from "lucide-react";
 import TaskFlagModal from "@/components/TaskFlagModal";
 import TaskReassignModal from "@/components/TaskReassignModal";
@@ -18,7 +17,6 @@ import TaskReassignModal from "@/components/TaskReassignModal";
 export default function DesignClient({ tasks, agents, userRole, userId, teamLabel }: any) {
   const router = useRouter();
   const isLeader = userRole.startsWith("leader_") || userRole === "super_admin";
-  const [viewClient, setViewClient] = useState<any>(null);
   const [activeTab, setActiveTab] = useState(isLeader ? "incoming" : "tasks");
   const [activeKpi, setActiveKpi] = useState("all");
   const [flagTask, setFlagTask] = useState<any>(null);
@@ -204,10 +202,13 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
               )}
             </div>
 
-            {/* View Client Journey */}
-            <button onClick={() => setViewClient(t)} className="w-full py-2 bg-gray-50 text-gray-700 border border-gray-200 rounded-xl text-sm font-bold hover:bg-gray-100 shadow-sm transition flex items-center justify-center gap-2">
-              Client Info <ArrowRight className="w-4 h-4" />
-            </button>
+            {/* View Client Full Journey */}
+            <Link
+              href={`/dashboard/clients/${t.projectId}`}
+              className="w-full py-2 bg-slate-800 text-white rounded-xl text-sm font-bold hover:bg-slate-900 shadow-sm transition flex items-center justify-center gap-2"
+            >
+              <ExternalLink className="w-4 h-4" /> Client Full Journey
+            </Link>
 
             {/* Leader Reassign Button */}
             {isLeader && t.agentId && t.status !== "done" && (
@@ -363,25 +364,6 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
         </div>
       )}
 
-      {/* Client Notes Drawer */}
-      {viewClient && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-gray-900/50 backdrop-blur-sm">
-          <div className="w-full max-w-xl bg-white h-full shadow-2xl overflow-y-auto p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-800">Client Journey & Notes</h2>
-              <button onClick={() => setViewClient(null)} className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 text-sm font-bold">Close ✕</button>
-            </div>
-            <ClientJourney
-              leadName={viewClient.project?.deal?.lead?.name || "Client"}
-              phone={viewClient.project?.deal?.lead?.phone}
-              callLogs={viewClient.project?.deal?.lead?.callLogs}
-              meetings={viewClient.project?.deal?.lead?.meetings}
-              deals={[viewClient.project?.deal]}
-              tasks={[viewClient]}
-            />
-          </div>
-        </div>
-      )}
 
       {flagTask && (
         <TaskFlagModal

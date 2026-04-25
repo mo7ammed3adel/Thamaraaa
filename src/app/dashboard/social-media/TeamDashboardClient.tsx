@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ExternalLink } from "lucide-react";
 
 interface SubTaskType {
   value: string;
@@ -191,6 +193,12 @@ export default function TeamDashboardClient({ tasks, agents, designLeaders, user
                     <button onClick={() => setCreateSubTask(t)} className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-medium hover:bg-indigo-200">+ Sub-Task</button>
                   )}
                 </div>
+                <Link
+                  href={`/dashboard/clients/${t.projectId}`}
+                  className="inline-flex items-center justify-center gap-1 px-2 py-1.5 bg-slate-800 text-white rounded text-xs font-medium hover:bg-slate-900 transition w-full mt-1"
+                >
+                  <ExternalLink className="w-3 h-3" /> Full Journey
+                </Link>
               </div>
             </div>
           </div>

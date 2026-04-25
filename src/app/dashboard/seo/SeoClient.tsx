@@ -2,7 +2,8 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Inbox, Clock, CheckCircle, AlertTriangle, Users, Search, X } from "lucide-react";
+import Link from "next/link";
+import { Inbox, Clock, CheckCircle, AlertTriangle, Users, Search, X, ExternalLink } from "lucide-react";
 import LifecycleStateBadge from "@/components/LifecycleStateBadge";
 import DistributionPanel from "@/components/DistributionPanel";
 import TeamOverview from "@/components/TeamOverview";
@@ -259,6 +260,12 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
+                  <Link
+                    href={`/dashboard/clients/${project.id}`}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-medium hover:bg-slate-900 transition shadow-sm"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" /> Client Full Journey
+                  </Link>
                   {isHead && assignedLeaders.length === 0 && (
                     <button
                       onClick={() => setActiveDistribution(isDistributing ? null : project.id)}
