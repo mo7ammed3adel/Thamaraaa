@@ -308,7 +308,7 @@ export default async function DashboardLayout({
           )}
 
           {/* ===== WARNINGS CENTER ===== */}
-          {hasRole("chief_sales", "head_account_manager", "account_manager", "head_technical", "head_seo", "sales_manager", "team_leader_seo", "team_leader_social_media", "team_leader_media_buyer", "leader_graphic_designer", "leader_motion_graphic", "leader_ui") && (
+          {hasRole("chief_sales", "head_account_manager", "account_manager", "head_technical", "head_seo", "sales_manager", "team_leader_seo", "team_leader_social_media", "team_leader_media_buyer", "leader_graphic_designer", "leader_motion_graphic", "leader_ui", "agent_seo", "agent_content_seo", "agent_social_media", "agent_media_buyer", "agent_graphic_designer", "agent_motion_graphic", "agent_ui") && (
             <>
               <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-6 mb-2 px-3">Communication</div>
               <Link href="/dashboard/warnings" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">

@@ -237,6 +237,9 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
 
   return (
     <div className="space-y-6">
+      {/* ── Section Title ── */}
+      <h2 className="text-lg font-bold text-slate-800">{isLeader ? `${teamLabel} Projects` : `My ${teamLabel} Tasks`}</h2>
+
       {/* KPI Overview */}
       <div className={`grid grid-cols-2 ${isLeader ? "md:grid-cols-5" : "md:grid-cols-4"} gap-4`}>
         {kpis.map((k, i) => (
@@ -364,6 +367,50 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
         </div>
       )}
 
+      {/* ── Aggregated My Tasks (All Roles) ── */}
+      {tasks.length > 0 && (
+        <div className="bg-white rounded-xl shadow border overflow-hidden">
+          <div className="p-4 border-b bg-slate-50">
+            <h2 className="text-lg font-bold text-slate-800">My Tasks Overview</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Client</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Task Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Brief</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Deadline</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Progress</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {tasks.map((t: any) => {
+                  const isDelayed = t.status !== "done" && t.deadline && new Date(t.deadline) < now;
+                  return (
+                    <tr key={t.id} className="hover:bg-slate-50/50">
+                      <td className="px-6 py-4 font-bold text-sm text-slate-900">{t.project?.deal?.lead?.name || "Unknown"}</td>
+                      <td className="px-6 py-4"><span className="font-bold text-[10px] uppercase bg-violet-100 px-2 py-0.5 rounded text-violet-700">{t.taskType?.replace(/_/g, " ")}</span></td>
+                      <td className="px-6 py-4 text-sm text-slate-700 max-w-xs truncate">{t.brief || "—"}</td>
+                      <td className="px-6 py-4"><span className={`text-sm font-medium ${isDelayed ? "text-red-600" : "text-slate-600"}`}>{t.deadline ? new Date(t.deadline).toLocaleDateString() : "No Deadline"}</span></td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-gray-100 rounded-full h-1.5 w-16">
+                            <div className="bg-violet-500 h-1.5 rounded-full" style={{ width: `${t.progressPct || 0}%` }} />
+                          </div>
+                          <span className="text-xs font-bold text-violet-600">{t.progressPct || 0}%</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center"><span className={`px-2 py-0.5 text-[10px] rounded font-bold uppercase border ${t.status === "done" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : isDelayed ? "bg-red-50 text-red-700 border-red-200" : t.status === "in_progress" ? "bg-amber-50 text-amber-700 border-amber-200" : t.status === "review" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-slate-50 text-slate-700 border-slate-200"}`}>{isDelayed ? "DELAYED" : (t.status || "pending").replace(/_/g, " ")}</span></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {flagTask && (
         <TaskFlagModal

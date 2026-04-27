@@ -186,6 +186,9 @@ export default function MediaBuyerClient({ projects, teamMembers, userRole, user
         </div>
       )}
 
+      {/* ── Section Title ── */}
+      <h2 className="text-lg font-bold text-slate-800">{isTL ? "Media Buyer Campaigns" : "My Assigned Projects"}</h2>
+
       {/* ── Project Cards ── */}
       <div className="grid grid-cols-1 gap-6">
         {filteredProjects.map((project: any) => {
@@ -375,6 +378,42 @@ export default function MediaBuyerClient({ projects, teamMembers, userRole, user
           );
         })}
       </div>
+
+      {/* ── Aggregated My Tasks ── */}
+      {allTasks.length > 0 && (
+        <div className="bg-white rounded-xl shadow border overflow-hidden">
+          <div className="p-4 border-b bg-slate-50">
+            <h2 className="text-lg font-bold text-slate-800">My Tasks Overview</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Client</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Task Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Brief</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Deadline</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {allTasks.map((t: any) => {
+                  const isDelayed = t.status !== "done" && t.deadline && new Date(t.deadline) < now;
+                  return (
+                    <tr key={t.id} className="hover:bg-slate-50/50">
+                      <td className="px-6 py-4 font-bold text-sm text-slate-900">{t._project?.deal?.lead?.name || "Unknown"}</td>
+                      <td className="px-6 py-4"><span className="font-bold text-[10px] uppercase bg-slate-100 px-2 py-0.5 rounded text-slate-600">{t.taskType?.replace(/_/g, " ")}</span></td>
+                      <td className="px-6 py-4 text-sm text-slate-700 max-w-xs truncate">{t.brief || "—"}</td>
+                      <td className="px-6 py-4"><span className={`text-sm font-medium ${isDelayed ? "text-red-600" : "text-slate-600"}`}>{t.deadline ? new Date(t.deadline).toLocaleDateString() : "No Deadline"}</span></td>
+                      <td className="px-6 py-4 text-center"><span className={`px-2 py-0.5 text-[10px] rounded font-bold uppercase border ${t.status === "done" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : isDelayed ? "bg-red-50 text-red-700 border-red-200" : t.status === "in_progress" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-slate-50 text-slate-700 border-slate-200"}`}>{isDelayed ? "DELAYED" : (t.status || "pending").replace(/_/g, " ")}</span></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {flagTask && (
         <TaskFlagModal

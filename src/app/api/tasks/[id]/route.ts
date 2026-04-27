@@ -50,6 +50,32 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         return NextResponse.json({ error: "Only team leaders or admins can reassign agents." }, { status: 403 });
       }
       updateData.agentId = body.agentId;
+
+      if (body.agentId !== null) {
+        const agent = await prisma.user.findUnique({ where: { id: body.agentId }, select: { role: true } });
+        if (agent) {
+          const deptMap: Record<string, string> = {
+            agent_seo: "seo", agent_content_seo: "content_seo",
+            agent_social_media: "social_media", agent_media_buyer: "media_buyer",
+            agent_graphic_designer: "graphic_design", agent_motion_graphic: "motion_graphic",
+            agent_ui: "ui_design",
+          };
+          const dept = deptMap[agent.role];
+          if (dept) {
+            await prisma.teamAssignment.upsert({
+              where: { projectId_userId: { projectId: existingTask.projectId, userId: body.agentId } },
+              update: { status: "active" },
+              create: {
+                projectId: existingTask.projectId,
+                userId: body.agentId,
+                assignedByUserId: user.id,
+                role: agent.role,
+                department: dept,
+              },
+            });
+          }
+        }
+      }
     }
 
     // Only admins can reassign leaders

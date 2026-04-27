@@ -37,7 +37,12 @@ export default async function MediaBuyerPage() {
     });
   } else if (user.role === "agent_media_buyer") {
     projects = await prisma.project.findMany({
-      where: { teamAssignments: { some: { userId: user.id, status: "active" } } },
+      where: {
+        OR: [
+          { teamAssignments: { some: { userId: user.id, status: "active" } } },
+          { tasks: { some: { agentId: user.id } } },
+        ]
+      },
       include: {
         deal: { include: { lead: true } },
         accountManager: { select: { id: true, name: true } },

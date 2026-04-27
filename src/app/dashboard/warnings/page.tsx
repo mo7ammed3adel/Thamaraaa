@@ -8,8 +8,15 @@ export default async function WarningsPage() {
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
 
-  const managerRoles = ["super_admin", "chief_sales", "head_account_manager", "account_manager", "head_technical", "head_seo", "sales_manager"];
-  if (!managerRoles.includes(user?.role)) {
+  const allowedRoles = [
+    "super_admin", "chief_sales", "head_account_manager", "account_manager",
+    "head_technical", "head_seo", "sales_manager",
+    "team_leader_seo", "team_leader_social_media", "team_leader_media_buyer",
+    "leader_graphic_designer", "leader_motion_graphic", "leader_ui",
+    "agent_seo", "agent_content_seo", "agent_social_media", "agent_media_buyer",
+    "agent_graphic_designer", "agent_motion_graphic", "agent_ui",
+  ];
+  if (!allowedRoles.includes(user?.role)) {
     redirect("/dashboard");
   }
 
