@@ -50,7 +50,8 @@ export default function CrossTeamTaskForm({ projectId, onClose, userRole = "" }:
       });
 
       if (!res.ok) {
-        throw new Error("Failed to create task");
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Failed to create task (${res.status})`);
       }
 
       onClose();

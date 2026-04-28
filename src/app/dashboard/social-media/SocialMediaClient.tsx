@@ -119,12 +119,21 @@ export default function SocialMediaClient({ projects, teamMembers, userRole, use
   };
 
   const handleUpdateTaskStatus = async (taskId: string, status: string) => {
-    await fetch(`/api/tasks/${taskId}/status`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    router.refresh();
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Failed to update task status");
+        return;
+      }
+      router.refresh();
+    } catch {
+      alert("Network error — please try again");
+    }
   };
 
   return (
