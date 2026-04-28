@@ -4,23 +4,26 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  Inbox, Clock, CheckCircle, AlertTriangle, Users, ExternalLink
+  Inbox, Clock, CheckCircle, AlertTriangle, Users, ExternalLink, Plus, ChevronDown, ChevronUp
 } from "lucide-react";
 import TaskFlagModal from "@/components/TaskFlagModal";
 import TaskReassignModal from "@/components/TaskReassignModal";
+import SelfTaskForm from "@/components/SelfTaskForm";
 
 /**
  * Design & Creative department client component (Graphic, Motion, UI/UX).
  * Full-spec implementation with Leader tabs (Incoming, My Team, All Tasks)
  * and Agent-focused task execution view.
  */
-export default function DesignClient({ tasks, agents, userRole, userId, teamLabel }: any) {
+export default function DesignClient({ tasks, agents, userRole, userId, teamLabel, crossTeamTasks = [] }: any) {
   const router = useRouter();
   const isLeader = userRole.startsWith("leader_") || userRole === "super_admin";
   const [activeTab, setActiveTab] = useState(isLeader ? "incoming" : "tasks");
   const [activeKpi, setActiveKpi] = useState("all");
   const [flagTask, setFlagTask] = useState<any>(null);
   const [reassignTask, setReassignTask] = useState<any>(null);
+  const [selfTaskProject, setSelfTaskProject] = useState<string | null>(null);
+  const [expandedCrossTeam, setExpandedCrossTeam] = useState(false);
 
   // ── Advanced Filters ──
   const [searchQuery, setSearchQuery] = useState("");
@@ -116,6 +119,9 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
                 {isDelayed ? "DELAYED" : (t.status || "pending").replace(/_/g, " ")}
               </span>
               <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${t.priority === "High" ? "bg-red-50 text-red-700 border-red-200" : "bg-slate-50 text-slate-600 border-slate-200"}`}>{t.priority || "Medium"}</span>
+              {t.requesterRole === t.agent?.role && t.agentId === userId && (
+                <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-bold rounded uppercase border border-emerald-200">Self</span>
+              )}
               {t.parentTask && (
                 <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                   From: {t.parentTask.taskType.replace(/_/g, " ")}
@@ -356,6 +362,17 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
             {(searchQuery || statusFilter !== "all" || priorityFilter !== "all") && (
               <button onClick={() => { setSearchQuery(""); setStatusFilter("all"); setPriorityFilter("all"); }} className="px-3 py-2 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition">✕ Clear</button>
             )}
+            {!isLeader && (
+              <button
+                onClick={() => {
+                  const firstProjectId = filteredTasks[0]?.projectId;
+                  if (firstProjectId) setSelfTaskProject(firstProjectId);
+                }}
+                className="inline-flex items-center gap-1.5 bg-emerald-600 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-emerald-700 transition shadow-sm ml-auto"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add My Task
+              </button>
+            )}
           </div>
 
           <p className="text-xs text-gray-400">Showing {filteredTasks.length} of {tasks.length} requests</p>
@@ -412,6 +429,66 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
         </div>
       )}
 
+      {/* ── Cross-Team Tasks (Other Teams) for Agents ── */}
+      {!isLeader && crossTeamTasks.length > 0 && (
+        <div className="border border-slate-200 rounded-xl overflow-hidden">
+          <button
+            onClick={() => setExpandedCrossTeam(prev => !prev)}
+            className="w-full flex items-center justify-between px-4 py-3 bg-slate-100 hover:bg-slate-200 transition text-sm font-bold text-slate-700"
+          >
+            <span>👁️ Other Teams Tasks ({crossTeamTasks.length})</span>
+            {expandedCrossTeam ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+          {expandedCrossTeam && (
+            <div className="p-3 space-y-2 bg-white">
+              {crossTeamTasks.map((ct: any) => {
+                const deptColorMap: Record<string, { bg: string; text: string; border: string; icon: string }> = {
+                  seo: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200", icon: "🔍" },
+                  content_seo: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200", icon: "🔍" },
+                  social_media: { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200", icon: "📱" },
+                  graphic_design: { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200", icon: "🎨" },
+                  motion_graphic: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200", icon: "🎬" },
+                  ui_design: { bg: "bg-cyan-50", text: "text-cyan-700", border: "border-cyan-200", icon: "🖥️" },
+                  media_buyer: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200", icon: "📊" },
+                  media_buying: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200", icon: "📊" },
+                };
+                const defaultDept = { bg: "bg-slate-50", text: "text-slate-700", border: "border-slate-200", icon: "📋" };
+                const dept = deptColorMap[ct.taskType] || defaultDept;
+                const isDelayed = ct.status !== "done" && ct.deadline && new Date(ct.deadline) < new Date();
+                const clientName = ct.project?.deal?.lead?.name || "Unknown Client";
+
+                return (
+                  <div key={ct.id} className={`${dept.bg} ${dept.border} border rounded-lg p-3`}>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">{dept.icon}</span>
+                        <span className={`text-[10px] font-bold uppercase ${dept.text}`}>{ct.taskType.replace(/_/g, " ")}</span>
+                        <span className="text-[10px] text-slate-500 font-medium">• {clientName}</span>
+                        <span className={`px-1.5 py-0.5 text-[9px] rounded font-bold uppercase border ${
+                          ct.status === "done" ? "bg-emerald-100 text-emerald-700 border-emerald-200" :
+                          isDelayed ? "bg-red-100 text-red-700 border-red-200" :
+                          ct.status === "in_progress" ? "bg-amber-100 text-amber-700 border-amber-200" :
+                          "bg-slate-100 text-slate-600 border-slate-200"
+                        }`}>{isDelayed ? "DELAYED" : ct.status.replace(/_/g, " ")}</span>
+                      </div>
+                      <div className="text-[10px] text-slate-500">
+                        {ct.agent?.name || "Unassigned"}
+                        {ct.deadline && (
+                          <span className={`ml-2 ${isDelayed ? "text-red-600 font-bold" : ""}`}>
+                            Due: {new Date(ct.deadline).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {ct.brief && <p className="text-xs text-slate-600 mt-1.5 line-clamp-2">{ct.brief}</p>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {flagTask && (
         <TaskFlagModal
           taskId={flagTask.id}
@@ -432,6 +509,24 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
           onClose={() => setReassignTask(null)}
           onSuccess={() => { setReassignTask(null); router.refresh(); }}
         />
+      )}
+
+      {/* Self-Task Modal for Design Agents */}
+      {selfTaskProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div className="p-4 border-b bg-emerald-50 flex justify-between items-center">
+              <h3 className="font-bold text-lg text-slate-800">📝 Create My Task</h3>
+              <button onClick={() => setSelfTaskProject(null)} className="text-slate-400 hover:text-slate-600 font-bold">&times;</button>
+            </div>
+            <div className="p-6">
+              <SelfTaskForm projectId={selfTaskProject} userRole={userRole} onClose={() => {
+                setSelfTaskProject(null);
+                router.refresh();
+              }} />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

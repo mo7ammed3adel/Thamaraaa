@@ -52,6 +52,35 @@ export default async function MediaBuyerPage() {
       },
       orderBy: { createdAt: "desc" },
     });
+
+    // Fetch cross-team tasks for the same projects (other teams' tasks)
+    const projectIds = projects.map((p: any) => p.id);
+    if (projectIds.length > 0) {
+      const otherTeamsTasks = await prisma.task.findMany({
+        where: {
+          projectId: { in: projectIds },
+          agentId: { not: user.id },
+        },
+        include: {
+          agent: { select: { id: true, name: true, role: true } },
+          leader: { select: { id: true, name: true, role: true } },
+          project: {
+            select: {
+              id: true,
+              deal: { select: { lead: { select: { name: true } } } },
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      // Attach cross-team tasks to their respective projects
+      for (const project of projects) {
+        (project as any).crossTeamTasks = otherTeamsTasks.filter(
+          (t: any) => t.projectId === project.id
+        );
+      }
+    }
   }
 
   return (

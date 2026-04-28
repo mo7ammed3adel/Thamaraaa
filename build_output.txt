@@ -1,0 +1,143 @@
+﻿npx : npm warn cli npm v11.6.1 does not support Node.js v20.9.0. This version of npm supports the following node 
+versions: `^20.17.0 || >=22.9.0`. You can find the latest version at https://nodejs.org/.
+At line:1 char:1
++ npx next build 2>&1 | Out-File -FilePath ".\build_output.txt" -Encodi ...
++ ~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn cli np...://nodejs.org/.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  Γû▓ Next.js 14.2.35
+  - Environments: .env
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully
+   Skipping validation of types
+   Skipping linting
+   Collecting page data ...
+   Generating static pages (0/70) ...
+   Generating static pages (17/70) 
+   Generating static pages (34/70) 
+   Generating static pages (52/70) 
+ Γ£ô Generating static pages (70/70)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+Γöî ╞Æ /                                    151 B          87.5 kB
+Γö£ Γùï /_not-found                          879 B          88.2 kB
+Γö£ ╞Æ /api/analytics/agent                 0 B                0 B
+Γö£ ╞Æ /api/analytics/chief-sales           0 B                0 B
+Γö£ ╞Æ /api/analytics/drill-down            0 B                0 B
+Γö£ ╞Æ /api/analytics/my-progress           0 B                0 B
+Γö£ ╞Æ /api/analytics/sales-agent           0 B                0 B
+Γö£ ╞Æ /api/analytics/sales-team            0 B                0 B
+Γö£ ╞Æ /api/analytics/sales-team/drill      0 B                0 B
+Γö£ ╞Æ /api/analytics/team                  0 B                0 B
+Γö£ ╞Æ /api/analytics/team/drill            0 B                0 B
+Γö£ ╞Æ /api/attendance                      0 B                0 B
+Γö£ ╞Æ /api/auth/[...nextauth]              0 B                0 B
+Γö£ ╞Æ /api/call-logs                       0 B                0 B
+Γö£ ╞Æ /api/cron/reminders                  0 B                0 B
+Γö£ ╞Æ /api/custom-columns                  0 B                0 B
+Γö£ ╞Æ /api/custom-columns/values           0 B                0 B
+Γö£ ╞Æ /api/deals                           0 B                0 B
+Γö£ ╞Æ /api/deals/list                      0 B                0 B
+Γö£ ╞Æ /api/finance/installments/[id]       0 B                0 B
+Γö£ ╞Æ /api/finance/overview                0 B                0 B
+Γö£ ╞Æ /api/hr/applicants                   0 B                0 B
+Γö£ ╞Æ /api/hr/applicants/[id]              0 B                0 B
+Γö£ ╞Æ /api/hr/documents                    0 B                0 B
+Γö£ ╞Æ /api/hr/employees                    0 B                0 B
+Γö£ ╞Æ /api/hr/evaluations                  0 B                0 B
+Γö£ ╞Æ /api/hr/requests                     0 B                0 B
+Γö£ ╞Æ /api/hr/requests/[id]                0 B                0 B
+Γö£ ╞Æ /api/leads                           0 B                0 B
+Γö£ ╞Æ /api/leads/[id]                      0 B                0 B
+Γö£ ╞Æ /api/leads/bulk/delete               0 B                0 B
+Γö£ ╞Æ /api/leads/bulk/promote              0 B                0 B
+Γö£ ╞Æ /api/leads/import                    0 B                0 B
+Γö£ ╞Æ /api/niches                          0 B                0 B
+Γö£ ╞Æ /api/notes                           0 B                0 B
+Γö£ ╞Æ /api/notifications                   0 B                0 B
+Γö£ ╞Æ /api/notifications/[id]              0 B                0 B
+Γö£ ╞Æ /api/notifications/send              0 B                0 B
+Γö£ ╞Æ /api/packages                        0 B                0 B
+Γö£ ╞Æ /api/projects/[id]                   0 B                0 B
+Γö£ ╞Æ /api/projects/[id]/assign            0 B                0 B
+Γö£ ╞Æ /api/projects/[id]/assign-agent      0 B                0 B
+Γö£ ╞Æ /api/projects/[id]/files             0 B                0 B
+Γö£ ╞Æ /api/projects/[id]/logs              0 B                0 B
+Γö£ ╞Æ /api/projects/[id]/reassign-am       0 B                0 B
+Γö£ ╞Æ /api/projects/[id]/setup             0 B                0 B
+Γö£ ╞Æ /api/projects/[id]/status            0 B                0 B
+Γö£ ╞Æ /api/projects/[id]/team-assignment   0 B                0 B
+Γö£ ╞Æ /api/projects/distribute             0 B                0 B
+Γö£ ╞Æ /api/projects/lifecycle              0 B                0 B
+Γö£ ╞Æ /api/projects/setup                  0 B                0 B
+Γö£ ╞Æ /api/settings                        0 B                0 B
+Γö£ ╞Æ /api/settings/commissions            0 B                0 B
+Γö£ ╞Æ /api/tasks                           0 B                0 B
+Γö£ ╞Æ /api/tasks/[id]                      0 B                0 B
+Γö£ ╞Æ /api/tasks/[id]/flag                 0 B                0 B
+Γö£ ╞Æ /api/tasks/[id]/reassign             0 B                0 B
+Γö£ ╞Æ /api/tasks/generate                  0 B                0 B
+Γö£ ╞Æ /api/team-assignments                0 B                0 B
+Γö£ ╞Æ /api/users                           0 B                0 B
+Γö£ ╞Æ /api/users/[id]                      0 B                0 B
+Γö£ ╞Æ /api/users/[id]/specialization       0 B                0 B
+Γö£ ╞Æ /api/users/[id]/status               0 B                0 B
+Γö£ ╞Æ /api/users/[id]/target               0 B                0 B
+Γö£ ╞Æ /api/warnings                        0 B                0 B
+Γö£ ╞Æ /api/warnings/[id]/acknowledge       0 B                0 B
+Γö£ ╞Æ /api/warnings/[id]/resolve           0 B                0 B
+Γö£ ╞Æ /api/warnings/log                    0 B                0 B
+Γö£ ╞Æ /api/warnings/unread                 0 B                0 B
+Γö£ ╞Æ /dashboard                           151 B          87.5 kB
+Γö£ ╞Æ /dashboard/account-manager           5.59 kB         102 kB
+Γö£ ╞Æ /dashboard/chief-sales               4.54 kB        91.9 kB
+Γö£ ╞Æ /dashboard/chief-sales/pipeline      1.93 kB        89.3 kB
+Γö£ ╞Æ /dashboard/clients/[projectId]       9.7 kB           97 kB
+Γö£ ╞Æ /dashboard/deals                     6.13 kB        93.5 kB
+Γö£ ╞Æ /dashboard/design                    5.92 kB         103 kB
+Γö£ ╞Æ /dashboard/finance                   3.06 kB        90.4 kB
+Γö£ ╞Æ /dashboard/head-account-manager      6.01 kB         103 kB
+Γö£ ╞Æ /dashboard/head-technical            4.02 kB        94.3 kB
+Γö£ ╞Æ /dashboard/hr                        5.37 kB        92.7 kB
+Γö£ ╞Æ /dashboard/hr/hiring                 2.77 kB        90.1 kB
+Γö£ ╞Æ /dashboard/hr/requests               2.01 kB        89.3 kB
+Γö£ ╞Æ /dashboard/leads-import              4.88 kB         230 kB
+Γö£ ╞Æ /dashboard/master-sheet              4.24 kB         229 kB
+Γö£ ╞Æ /dashboard/media-buyer               3.84 kB         104 kB
+Γö£ ╞Æ /dashboard/notifications             2.17 kB        89.5 kB
+Γö£ ╞Æ /dashboard/operations                4.15 kB        91.5 kB
+Γö£ ╞Æ /dashboard/operations/packages       1.75 kB        89.1 kB
+Γö£ ╞Æ /dashboard/profile                   3.35 kB        90.7 kB
+Γö£ ╞Æ /dashboard/sales                     10.5 kB         107 kB
+Γö£ ╞Æ /dashboard/sales/analytics           5.25 kB        92.6 kB
+Γö£ ╞Æ /dashboard/sales/my-progress         4.34 kB        91.7 kB
+Γö£ ╞Æ /dashboard/sales/my-team             4.87 kB        92.2 kB
+Γö£ ╞Æ /dashboard/sales/recycle-bin         2.52 kB        89.9 kB
+Γö£ ╞Æ /dashboard/seo                       4.11 kB         104 kB
+Γö£ ╞Æ /dashboard/settings                  1.5 kB         88.8 kB
+Γö£ ╞Æ /dashboard/social-media              3.84 kB         104 kB
+Γö£ ╞Æ /dashboard/telesales                 6.5 kB         93.8 kB
+Γö£ ╞Æ /dashboard/telesales/analytics       5.32 kB        92.7 kB
+Γö£ ╞Æ /dashboard/telesales/cold-leads      4.43 kB        91.8 kB
+Γö£ ╞Æ /dashboard/telesales/meets           5.28 kB        92.6 kB
+Γö£ ╞Æ /dashboard/telesales/my-progress     4.49 kB        91.8 kB
+Γö£ ╞Æ /dashboard/telesales/my-team         5.08 kB        92.4 kB
+Γö£ ╞Æ /dashboard/telesales/recycle         3.76 kB        91.1 kB
+Γö£ ╞Æ /dashboard/users                     4.32 kB        91.7 kB
+Γö£ ╞Æ /dashboard/warnings                  2.69 kB          90 kB
+Γöö Γùï /login                               1.18 kB        98.2 kB
++ First Load JS shared by all            87.3 kB
+  Γö£ chunks/2117-76b63a1525ed134b.js      31.7 kB
+  Γö£ chunks/fd9d1056-1642f76854e135c6.js  53.7 kB
+  Γöö other shared chunks (total)          1.94 kB
+
+
+╞Æ Middleware                             49.1 kB
+
+Γùï  (Static)   prerendered as static content
+╞Æ  (Dynamic)  server-rendered on demand
+
