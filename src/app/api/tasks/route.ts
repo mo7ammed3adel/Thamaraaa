@@ -31,6 +31,14 @@ export async function POST(req: Request) {
           finalAssignedRole = leaderRole;
         }
       }
+      // Fallback: assign to super_admin if no specific leader found
+      if (!finalLeaderId) {
+        const admin = await prisma.user.findFirst({ where: { role: "super_admin", status: "Active" } });
+        if (admin) {
+          finalLeaderId = admin.id;
+          finalAssignedRole = "super_admin";
+        }
+      }
     } else if (!finalLeaderId) {
       let roleToFind = "super_admin"; // fallback
       switch (taskType) {
@@ -49,12 +57,12 @@ export async function POST(req: Request) {
           break;
       }
       
-      const leader = await prisma.user.findFirst({ where: { role: { in: [roleToFind, "team_leader_seo"].includes(roleToFind) ? ["head_seo", "team_leader_seo"] : [roleToFind, "super_admin"] }, status: "Active" } });
+      const leader = await prisma.user.findFirst({ where: { role: { in: ["team_leader_seo"].includes(roleToFind) ? ["head_seo", "team_leader_seo"] : [roleToFind, "super_admin"] }, status: "Active" } });
       if (leader) finalLeaderId = leader.id;
     }
 
     if (!projectId || !finalLeaderId || !taskType) {
-      return NextResponse.json({ error: "Missing required fields or cannot find a leader for this task type" }, { status: 400 });
+      return NextResponse.json({ error: `Cannot find a leader for task type "${taskType}". Please ensure a leader with the correct role exists in the system.` }, { status: 400 });
     }
 
     // Get project name for logging

@@ -3,11 +3,12 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Inbox, Clock, CheckCircle, AlertTriangle, Users, Search, X, ExternalLink } from "lucide-react";
+import { Inbox, Clock, CheckCircle, AlertTriangle, Users, Search, X, ExternalLink, Plus, ChevronDown, ChevronUp } from "lucide-react";
 import LifecycleStateBadge from "@/components/LifecycleStateBadge";
 import DistributionPanel from "@/components/DistributionPanel";
 import TeamOverview from "@/components/TeamOverview";
 import CrossTeamTaskForm from "@/components/CrossTeamTaskForm";
+import SelfTaskForm from "@/components/SelfTaskForm";
 import TaskFlagModal from "@/components/TaskFlagModal";
 import TaskReassignModal from "@/components/TaskReassignModal";
 
@@ -18,6 +19,8 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
   const [flagTask, setFlagTask] = useState<any>(null);
   const [reassignTask, setReassignTask] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [selfTaskProject, setSelfTaskProject] = useState<string | null>(null);
+  const [expandedCrossTeam, setExpandedCrossTeam] = useState<Record<string, boolean>>({});
 
   // ── Filter State ──
   const [activeKpi, setActiveKpi] = useState("all");
@@ -154,12 +157,21 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
   };
 
   const handleUpdateTaskStatus = async (taskId: string, status: string) => {
-    await fetch(`/api/tasks/${taskId}/status`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    router.refresh();
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Failed to update task status");
+        return;
+      }
+      router.refresh();
+    } catch {
+      alert("Network error — please try again");
+    }
   };
 
   return (
@@ -223,6 +235,9 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
           {hasActiveFilters ? "No projects match your current filters." : "No active projects assigned to you."}
         </div>
       )}
+
+      {/* ── Section Title ── */}
+      <h2 className="text-lg font-bold text-slate-800">{isHead ? "SEO Projects" : isTL ? "My Team Projects" : "My Assigned Projects"}</h2>
 
       {/* ── Project Cards ── */}
       <div className="grid grid-cols-1 gap-6">
@@ -358,53 +373,132 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
               {/* Agent View: Show Tasks */}
               {isAgent && (
                 <div className="p-4 space-y-3">
-                  <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-2">My Tasks</h4>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">My Tasks</h4>
+                    <button
+                      onClick={() => setSelfTaskProject(project.id)}
+                      className="inline-flex items-center gap-1.5 bg-emerald-600 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-emerald-700 transition shadow-sm"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add My Task
+                    </button>
+                  </div>
                   {!projectTasks || projectTasks.length === 0 ? (
                     <div className="bg-slate-50 border rounded-lg p-6 text-center text-slate-500 italic">
-                      No tasks assigned yet.
+                      No tasks yet. Click "Add My Task" to organize your work.
                     </div>
                   ) : (
-                    projectTasks.map((task: any) => (
-                      <div key={task.id} className="border rounded-lg p-4 flex flex-col md:flex-row justify-between items-center bg-slate-50">
-                        <div>
-                          <p className="font-bold text-sm uppercase text-indigo-800 mb-1">{task.taskType.replace(/_/g, " ")}</p>
-                          {task.brief && <p className="text-xs text-slate-600 mb-1">{task.brief}</p>}
-                          {task.requester && (
-                            <p className="text-xs text-slate-500">Requested by: {task.requester.name} ({task.requester.role.replace(/_/g, " ")})</p>
-                          )}
-                          {task.deadline && (
-                            <p className={`text-xs mt-1 font-medium ${new Date(task.deadline) < now ? "text-red-600" : "text-slate-500"}`}>
-                              Deadline: {new Date(task.deadline).toLocaleDateString()}
-                              {new Date(task.deadline) < now && task.status !== "done" && " ⚠️ OVERDUE"}
-                            </p>
-                          )}
+                    projectTasks.map((task: any) => {
+                      const isSelfTask = task.requesterRole === userRole && task.agentId === userId;
+                      return (
+                        <div key={task.id} className={`border rounded-lg p-4 flex flex-col md:flex-row justify-between items-center ${isSelfTask ? "bg-emerald-50/50 border-emerald-200" : "bg-slate-50"}`}>
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-bold text-sm uppercase text-indigo-800">{task.taskType.replace(/_/g, " ")}</p>
+                              {isSelfTask && (
+                                <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-bold rounded uppercase border border-emerald-200">Self</span>
+                              )}
+                            </div>
+                            {task.brief && <p className="text-xs text-slate-600 mb-1">{task.brief}</p>}
+                            {task.requester && !isSelfTask && (
+                              <p className="text-xs text-slate-500">Requested by: {task.requester.name} ({task.requester.role.replace(/_/g, " ")})</p>
+                            )}
+                            {task.deadline && (
+                              <p className={`text-xs mt-1 font-medium ${new Date(task.deadline) < now ? "text-red-600" : "text-slate-500"}`}>
+                                Deadline: {new Date(task.deadline).toLocaleDateString()}
+                                {new Date(task.deadline) < now && task.status !== "done" && " ⚠️ OVERDUE"}
+                              </p>
+                            )}
+                          </div>
+                          <div className="mt-3 md:mt-0 flex items-center gap-3">
+                            <select 
+                              value={task.status}
+                              onChange={(e) => handleUpdateTaskStatus(task.id, e.target.value)}
+                              className="border-2 border-slate-200 rounded-lg text-sm font-bold px-3 py-1.5 focus:border-indigo-500 outline-none bg-white"
+                            >
+                              <option value="pending">Pending / On Hold</option>
+                              <option value="in_progress">In Progress</option>
+                              <option value="done">Done</option>
+                            </select>
+                            <button 
+                              onClick={() => setCrossTeamProject(project.id)}
+                              className="bg-slate-800 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-slate-900 transition"
+                            >
+                              + Cross-Team Task
+                            </button>
+                            <button
+                              onClick={() => setFlagTask(task)}
+                              className="bg-orange-50 text-orange-700 border border-orange-200 text-xs font-bold px-3 py-2 rounded-lg hover:bg-orange-100 transition"
+                            >
+                              ⚑ Flag
+                            </button>
+                          </div>
                         </div>
-                        <div className="mt-3 md:mt-0 flex items-center gap-3">
-                          <select 
-                            value={task.status}
-                            onChange={(e) => handleUpdateTaskStatus(task.id, e.target.value)}
-                            className="border-2 border-slate-200 rounded-lg text-sm font-bold px-3 py-1.5 focus:border-indigo-500 outline-none bg-white"
-                          >
-                            <option value="pending">Pending / On Hold</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="done">Done</option>
-                          </select>
-                          <button 
-                            onClick={() => setCrossTeamProject(project.id)}
-                            className="bg-slate-800 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-slate-900 transition"
-                          >
-                            + Cross-Team Task
-                          </button>
-                          <button
-                            onClick={() => setFlagTask(task)}
-                            className="bg-orange-50 text-orange-700 border border-orange-200 text-xs font-bold px-3 py-2 rounded-lg hover:bg-orange-100 transition"
-                          >
-                            ⚑ Flag
-                          </button>
-                        </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
+
+                  {/* ── Cross-Team Tasks (Other Teams) ── */}
+                  {(() => {
+                    const crossTeamTasks = project.crossTeamTasks || [];
+                    if (crossTeamTasks.length === 0) return null;
+                    const isExpanded = expandedCrossTeam[project.id] ?? false;
+
+                    const deptColorMap: Record<string, { bg: string; text: string; border: string; icon: string }> = {
+                      seo: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200", icon: "🔍" },
+                      content_seo: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200", icon: "🔍" },
+                      social_media: { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200", icon: "📱" },
+                      graphic_design: { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200", icon: "🎨" },
+                      motion_graphic: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200", icon: "🎬" },
+                      ui_design: { bg: "bg-cyan-50", text: "text-cyan-700", border: "border-cyan-200", icon: "🖥️" },
+                      media_buyer: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200", icon: "📊" },
+                    };
+                    const defaultDept = { bg: "bg-slate-50", text: "text-slate-700", border: "border-slate-200", icon: "📋" };
+
+                    return (
+                      <div className="mt-4 border border-slate-200 rounded-xl overflow-hidden">
+                        <button
+                          onClick={() => setExpandedCrossTeam(prev => ({ ...prev, [project.id]: !isExpanded }))}
+                          className="w-full flex items-center justify-between px-4 py-3 bg-slate-100 hover:bg-slate-200 transition text-sm font-bold text-slate-700"
+                        >
+                          <span>👁️ Other Teams Tasks ({crossTeamTasks.length})</span>
+                          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </button>
+                        {isExpanded && (
+                          <div className="p-3 space-y-2 bg-white">
+                            {crossTeamTasks.map((ct: any) => {
+                              const dept = deptColorMap[ct.taskType] || defaultDept;
+                              const isDelayed = ct.status !== "done" && ct.deadline && new Date(ct.deadline) < now;
+                              return (
+                                <div key={ct.id} className={`${dept.bg} ${dept.border} border rounded-lg p-3`}>
+                                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-base">{dept.icon}</span>
+                                      <span className={`text-[10px] font-bold uppercase ${dept.text}`}>{ct.taskType.replace(/_/g, " ")}</span>
+                                      <span className={`px-1.5 py-0.5 text-[9px] rounded font-bold uppercase border ${
+                                        ct.status === "done" ? "bg-emerald-100 text-emerald-700 border-emerald-200" :
+                                        isDelayed ? "bg-red-100 text-red-700 border-red-200" :
+                                        ct.status === "in_progress" ? "bg-amber-100 text-amber-700 border-amber-200" :
+                                        "bg-slate-100 text-slate-600 border-slate-200"
+                                      }`}>{isDelayed ? "DELAYED" : ct.status.replace(/_/g, " ")}</span>
+                                    </div>
+                                    <div className="text-[10px] text-slate-500">
+                                      {ct.agent?.name || "Unassigned"}
+                                      {ct.deadline && (
+                                        <span className={`ml-2 ${isDelayed ? "text-red-600 font-bold" : ""}`}>
+                                          Due: {new Date(ct.deadline).toLocaleDateString()}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {ct.brief && <p className="text-xs text-slate-600 mt-1.5 line-clamp-2">{ct.brief}</p>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
@@ -425,10 +519,64 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
                   </div>
                 </div>
               )}
+
+              {/* Self-Task Modal */}
+              {selfTaskProject === project.id && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                  <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+                    <div className="p-4 border-b bg-emerald-50 flex justify-between items-center">
+                      <h3 className="font-bold text-lg text-slate-800">📝 Create My Task</h3>
+                      <button onClick={() => setSelfTaskProject(null)} className="text-slate-400 hover:text-slate-600 font-bold">&times;</button>
+                    </div>
+                    <div className="p-6">
+                      <SelfTaskForm projectId={project.id} userRole={userRole} onClose={() => {
+                        setSelfTaskProject(null);
+                        router.refresh();
+                      }} />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
       </div>
+
+      {/* ── Aggregated My Tasks ── */}
+      {allTasks.length > 0 && (
+        <div className="bg-white rounded-xl shadow border overflow-hidden">
+          <div className="p-4 border-b bg-slate-50">
+            <h2 className="text-lg font-bold text-slate-800">My Tasks Overview</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Client</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Task Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Brief</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Deadline</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {allTasks.map((t: any) => {
+                  const isDelayed = t.status !== "done" && t.deadline && new Date(t.deadline) < now;
+                  return (
+                    <tr key={t.id} className="hover:bg-slate-50/50">
+                      <td className="px-6 py-4 font-bold text-sm text-slate-900">{t._project?.deal?.lead?.name || "Unknown"}</td>
+                      <td className="px-6 py-4"><span className="font-bold text-[10px] uppercase bg-slate-100 px-2 py-0.5 rounded text-slate-600">{t.taskType?.replace(/_/g, " ")}</span></td>
+                      <td className="px-6 py-4 text-sm text-slate-700 max-w-xs truncate">{t.brief || "—"}</td>
+                      <td className="px-6 py-4"><span className={`text-sm font-medium ${isDelayed ? "text-red-600" : "text-slate-600"}`}>{t.deadline ? new Date(t.deadline).toLocaleDateString() : "No Deadline"}</span></td>
+                      <td className="px-6 py-4 text-center"><span className={`px-2 py-0.5 text-[10px] rounded font-bold uppercase border ${t.status === "done" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : isDelayed ? "bg-red-50 text-red-700 border-red-200" : t.status === "in_progress" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-slate-50 text-slate-700 border-slate-200"}`}>{isDelayed ? "DELAYED" : (t.status || "pending").replace(/_/g, " ")}</span></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {flagTask && (
         <TaskFlagModal

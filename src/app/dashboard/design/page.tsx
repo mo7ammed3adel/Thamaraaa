@@ -52,12 +52,37 @@ export default async function DesignPage({ searchParams }: { searchParams: { tea
       })
     : [];
 
+  // Fetch cross-team tasks for Design agents
+  let crossTeamTasks: any[] = [];
+  if (!isLeader) {
+    const projectIds = [...new Set(tasks.map((t: any) => t.projectId).filter(Boolean))];
+    if (projectIds.length > 0) {
+      crossTeamTasks = await prisma.task.findMany({
+        where: {
+          projectId: { in: projectIds },
+          agentId: { not: user.id },
+        },
+        include: {
+          agent: { select: { id: true, name: true, role: true } },
+          leader: { select: { id: true, name: true, role: true } },
+          project: {
+            select: {
+              id: true,
+              deal: { select: { lead: { select: { name: true } } } },
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+    }
+  }
+
   const teamLabel = team === "graphic" ? "Graphic Design" : team === "motion" ? "Motion Graphics" : "UI/UX Design";
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">{teamLabel} {isLeader ? "Queue" : "Tasks"}</h1>
-      <DesignClient tasks={tasks} agents={agents} userRole={user.role} userId={user.id} teamLabel={teamLabel} />
+      <DesignClient tasks={tasks} agents={agents} userRole={user.role} userId={user.id} teamLabel={teamLabel} crossTeamTasks={crossTeamTasks} />
     </div>
   );
 }
