@@ -95,6 +95,11 @@ export default function SelfTaskForm({ projectId, userRole, onClose }: SelfTaskF
         </div>
       )}
 
+      <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-lg font-medium flex items-center gap-2">
+        <span className="text-base">🔓</span>
+        <span>Self-managed task — no team leader approval needed. Start it whenever you&apos;re ready.</span>
+      </div>
+
       <div>
         <label className="block text-sm font-bold text-slate-700 mb-1">Task Description *</label>
         <textarea

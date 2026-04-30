@@ -388,18 +388,18 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
                     </div>
                   ) : (
                     projectTasks.map((task: any) => {
-                      const isSelfTask = task.requesterRole === userRole && task.agentId === userId;
+                      const isSelfManaged = task.leaderId && task.agentId && task.leaderId === task.agentId;
                       return (
-                        <div key={task.id} className={`border rounded-lg p-4 flex flex-col md:flex-row justify-between items-center ${isSelfTask ? "bg-emerald-50/50 border-emerald-200" : "bg-slate-50"}`}>
+                        <div key={task.id} className={`border rounded-lg p-4 flex flex-col md:flex-row justify-between items-center ${isSelfManaged ? "bg-emerald-50/50 border-emerald-200" : "bg-slate-50"}`}>
                           <div>
                             <div className="flex items-center gap-2 mb-1">
                               <p className="font-bold text-sm uppercase text-indigo-800">{task.taskType.replace(/_/g, " ")}</p>
-                              {isSelfTask && (
-                                <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-bold rounded uppercase border border-emerald-200">Self</span>
+                              {isSelfManaged && (
+                                <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-bold rounded uppercase border border-emerald-200">🔓 Self-Managed</span>
                               )}
                             </div>
                             {task.brief && <p className="text-xs text-slate-600 mb-1">{task.brief}</p>}
-                            {task.requester && !isSelfTask && (
+                            {task.requester && !isSelfManaged && (
                               <p className="text-xs text-slate-500">Requested by: {task.requester.name} ({task.requester.role.replace(/_/g, " ")})</p>
                             )}
                             {task.deadline && (

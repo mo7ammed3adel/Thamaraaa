@@ -33,6 +33,11 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
   const [newTaskDeadline, setNewTaskDeadline] = useState("");
   const [creatingTask, setCreatingTask] = useState(false);
 
+  // ── Task Filters ──
+  const [taskFilterTeam, setTaskFilterTeam] = useState("all");
+  const [taskFilterStatus, setTaskFilterStatus] = useState("all");
+  const [taskFilterCreator, setTaskFilterCreator] = useState("all");
+
   const deal = project.deal;
   const lead = deal?.lead;
 
@@ -618,12 +623,104 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
           </div>
 
           <div className="bg-white rounded-xl border shadow-sm p-6">
-            <h2 className="text-lg font-bold text-slate-800 mb-4">Tasks & Tracking</h2>
+            <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+              <h2 className="text-lg font-bold text-slate-800">Tasks & Tracking</h2>
+              <span className="text-xs text-slate-400 font-medium">
+                {(() => {
+                  const filtered = (project.tasks || []).filter((t: any) => {
+                    if (taskFilterTeam !== "all" && t.taskType !== taskFilterTeam) return false;
+                    if (taskFilterStatus !== "all" && t.status !== taskFilterStatus) return false;
+                    if (taskFilterCreator !== "all" && t.leaderId !== taskFilterCreator) return false;
+                    return true;
+                  });
+                  return `Showing ${filtered.length} of ${project.tasks?.length || 0} tasks`;
+                })()}
+              </span>
+            </div>
+
+            {/* ── Filter Bar ── */}
+            <div className="flex flex-wrap gap-3 mb-5 p-3 bg-slate-50 rounded-xl border border-slate-100">
+              {/* Team Filter */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Team</label>
+                <select
+                  value={taskFilterTeam}
+                  onChange={(e) => setTaskFilterTeam(e.target.value)}
+                  className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-white min-w-[140px] focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition"
+                >
+                  <option value="all">All Teams</option>
+                  <option value="seo">SEO</option>
+                  <option value="content_seo">Content SEO</option>
+                  <option value="social_media">Social Media</option>
+                  <option value="media_buyer">Media Buyer</option>
+                  <option value="graphic_design">Graphic Design</option>
+                  <option value="motion_graphic">Motion Graphic</option>
+                  <option value="ui_design">UI/UX Design</option>
+                  <option value="technical">Technical (Web)</option>
+                </select>
+              </div>
+
+              {/* Status Filter */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Status</label>
+                <select
+                  value={taskFilterStatus}
+                  onChange={(e) => setTaskFilterStatus(e.target.value)}
+                  className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-white min-w-[130px] focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="review">In Review</option>
+                  <option value="done">Done</option>
+                </select>
+              </div>
+
+              {/* Creator Filter */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Assigned By</label>
+                <select
+                  value={taskFilterCreator}
+                  onChange={(e) => setTaskFilterCreator(e.target.value)}
+                  className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-white min-w-[140px] focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition"
+                >
+                  <option value="all">All Creators</option>
+                  {/* Build unique creators from tasks */}
+                  {Array.from(
+                    new Map(
+                      (project.tasks || []).filter((t: any) => t.leader).map((t: any) => [t.leaderId, t.leader.name])
+                    ).entries()
+                  ).map(([id, name]: any) => (
+                    <option key={id} value={id}>{name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Reset */}
+              {(taskFilterTeam !== "all" || taskFilterStatus !== "all" || taskFilterCreator !== "all") && (
+                <div className="flex items-end">
+                  <button
+                    onClick={() => { setTaskFilterTeam("all"); setTaskFilterStatus("all"); setTaskFilterCreator("all"); }}
+                    className="px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition"
+                  >
+                    ✕ Reset Filters
+                  </button>
+                </div>
+              )}
+            </div>
+
             {project.tasks?.length === 0 ? (
             <p className="text-sm text-slate-400 italic py-4">No tasks created yet.</p>
           ) : (
             <div className="space-y-3">
-              {project.tasks.map((t: any) => {
+              {project.tasks
+                .filter((t: any) => {
+                  if (taskFilterTeam !== "all" && t.taskType !== taskFilterTeam) return false;
+                  if (taskFilterStatus !== "all" && t.status !== taskFilterStatus) return false;
+                  if (taskFilterCreator !== "all" && t.leaderId !== taskFilterCreator) return false;
+                  return true;
+                })
+                .map((t: any) => {
                 const isTaskLeader = t.leaderId === userId;
                 const taskCanAssignLeader = isAdmin;
                 const taskCanAssignAgent = isAdmin || isTaskLeader;
@@ -648,6 +745,7 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
                 const taskAgents = teamMembers?.filter((u: any) => ttRoles.agents.includes(u.role)) || [];
 
                 const canUpdateTask = isAdmin || isTaskLeader || t.agentId === userId;
+                const isSelfManaged = t.leaderId && t.agentId && t.leaderId === t.agentId;
 
                 return (
                  <div key={t.id} className="border rounded-lg p-4 hover:shadow-sm transition">
@@ -656,6 +754,9 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
                       <span className="text-sm font-bold text-slate-800 capitalize">{t.taskType.replace(/_/g, " ")}</span>
                       <span className={`px-2 py-0.5 text-xs font-bold rounded ${t.status === "done" ? "bg-emerald-100 text-emerald-700" : t.status === "in_progress" ? "bg-amber-100 text-amber-700" : t.status === "review" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"}`}>{t.status}</span>
                       <span className={`px-2 py-0.5 text-xs font-medium rounded ${t.priority === "High" ? "bg-red-100 text-red-700" : t.priority === "Low" ? "bg-slate-100 text-slate-500" : "bg-amber-100 text-amber-600"}`}>{t.priority}</span>
+                      {isSelfManaged && (
+                         <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-50 text-emerald-600 border border-emerald-200 uppercase tracking-wide">🔓 Self-Managed</span>
+                       )}
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs text-slate-400">
@@ -746,6 +847,23 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
                  </div>
                 );
               })}
+              {/* No results after filtering */}
+              {project.tasks.filter((t: any) => {
+                if (taskFilterTeam !== "all" && t.taskType !== taskFilterTeam) return false;
+                if (taskFilterStatus !== "all" && t.status !== taskFilterStatus) return false;
+                if (taskFilterCreator !== "all" && t.leaderId !== taskFilterCreator) return false;
+                return true;
+              }).length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-sm text-slate-400 italic">No tasks match the selected filters.</p>
+                  <button
+                    onClick={() => { setTaskFilterTeam("all"); setTaskFilterStatus("all"); setTaskFilterCreator("all"); }}
+                    className="mt-2 text-xs text-indigo-600 hover:underline font-medium"
+                  >
+                    Clear all filters
+                  </button>
+                </div>
+              )}
             </div>
             )}
           </div>
