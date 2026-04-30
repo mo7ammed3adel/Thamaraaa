@@ -4,6 +4,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { autoAssignLead } from "@/lib/autoAssign";
 
+/**
+ * POST /api/call-logs
+ * Logs a call for a lead and updates lead status accordingly.
+ * Returns the full lead with callLogs included so the frontend
+ * can update its local state without losing related data.
+ */
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -15,6 +21,10 @@ export async function POST(req: Request) {
     const { leadId, callStatus, classification, notes, meetingDate, meetingTime } = data;
     const userRole = (session.user as any).role;
     const userId = (session.user as any).id;
+
+    if (!leadId || !callStatus || !notes) {
+      return NextResponse.json({ error: "leadId, callStatus, and notes are required" }, { status: 400 });
+    }
 
     const existingLead = await prisma.lead.findUnique({ where: { id: leadId } });
     if (!existingLead) {
@@ -29,11 +39,12 @@ export async function POST(req: Request) {
     if (!isAuthorized) {
       return NextResponse.json({ error: "Forbidden: You are not assigned to this lead." }, { status: 403 });
     }
+
     // Create call log
-    const callLog = await prisma.callLog.create({
+    await prisma.callLog.create({
       data: {
         leadId,
-        agentId: (session.user as any).id,
+        agentId: userId,
         callStatus,
         classification,
         notes,
@@ -41,46 +52,65 @@ export async function POST(req: Request) {
       }
     });
 
-    // Update lead status
-    const updateData: any = {
-      classification,
-      status: "Contacted"
+    // Determine the new lead status based on call outcome
+    const statusMap: Record<string, string> = {
+      "Busy": "No_Answer",
+      "Wrong Number": "Closed_Lost",
+      "Invalid": "Closed_Lost",
+      "Accept and book meeting": "Transferred",
+      "Accept but lost": "Closed_Lost",
+      "Not Interested": "Closed_Lost",
     };
 
-    if (callStatus === "Busy") updateData.status = "No_Answer";
-    if (callStatus === "Wrong Number" || callStatus === "Invalid") updateData.status = "Closed_Lost"; // Marking invalid as lost per request
-    if (callStatus === "Accept and book meeting") updateData.status = "Transferred";
-    if (callStatus === "Accept but lost" || callStatus === "Not Interested") updateData.status = "Closed_Lost";
+    const newStatus = statusMap[callStatus] || "Contacted";
+
+    const updateData: any = {
+      classification,
+      status: newStatus,
+    };
 
     if (callStatus === "Accept and book meeting" && meetingDate) {
       updateData.meetingDate = new Date(meetingDate + "T00:00:00Z");
       updateData.meetingTime = meetingTime;
     }
 
-    const updatedLead = await prisma.lead.update({
+    await prisma.lead.update({
       where: { id: leadId },
-      data: updateData
+      data: updateData,
     });
 
-    if (callStatus === "Accept and book meeting") {
-      if (meetingDate) {
-        await prisma.meeting.create({
-          data: {
-            leadId,
-            teleAgentId: (session.user as any).id,
-            meetingDate: new Date(meetingDate + "T" + (meetingTime || "00:00") + ":00Z"),
-            meetingTime,
-            status: "Scheduled"
-          }
-        });
-      }
+    // Create meeting record and trigger auto-assignment for booked meetings
+    if (callStatus === "Accept and book meeting" && meetingDate) {
+      await prisma.meeting.create({
+        data: {
+          leadId,
+          teleAgentId: userId,
+          meetingDate: new Date(meetingDate + "T" + (meetingTime || "00:00") + ":00Z"),
+          meetingTime,
+          status: "Scheduled",
+        }
+      });
       // Trigger auto-assignment engine asynchronously
       autoAssignLead(leadId).catch(console.error);
     }
 
-    return NextResponse.json(updatedLead, { status: 201 });
+    // Return the FULL lead with callLogs and related data so the frontend
+    // can update its local state without losing the callLogs array
+    const fullLead = await prisma.lead.findUnique({
+      where: { id: leadId },
+      include: {
+        teleAgent: { select: { name: true } },
+        salesAgent: { select: { name: true } },
+        callLogs: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
+      },
+    });
+
+    return NextResponse.json(fullLead, { status: 201 });
   } catch (error) {
-    console.error(error);
+    console.error("Failed to log call:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

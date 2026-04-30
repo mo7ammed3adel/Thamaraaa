@@ -2,15 +2,19 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, PhoneCall, ChevronDown, ChevronUp, CheckCircle2, XCircle, FileText, Send, X, Clock } from "lucide-react";
+import Link from "next/link";
+import { Calendar, PhoneCall, ChevronDown, ChevronUp, CheckCircle2, XCircle, FileText, Send, X, Clock, AlertTriangle, ExternalLink } from "lucide-react";
+import CreateWarningModal from "@/components/CreateWarningModal";
 
-export default function SalesClient({ initialLeads, userRole, userId, initialStatus }: { initialLeads: any[], userRole: string, userId: string, initialStatus: string }) {
+export default function SalesClient({ initialLeads, userRole, userId, initialStatus, postSaleProjects = [] }: { initialLeads: any[], userRole: string, userId: string, initialStatus: string, postSaleProjects?: any[] }) {
   const router = useRouter();
   const [leads, setLeads] = useState(initialLeads);
   const [status, setStatus] = useState(initialStatus);
   const [activeLead, setActiveLead] = useState<any>(null);
   const [expandedLead, setExpandedLead] = useState<string | null>(null);
   const [logFilter, setLogFilter] = useState("All");
+  const [activeTab, setActiveTab] = useState("leads"); // "leads" or "post-sale"
+  const [warningProject, setWarningProject] = useState<any>(null);
   
   // Search, Pagination, & Dates
   const [searchQuery, setSearchQuery] = useState("");
@@ -266,17 +270,28 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     });
 
     if (res.ok) {
-        const newDeal = await res.json();
-        // Auto-Setup Project for AM
-        await fetch("/api/projects/setup", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                dealId: newDeal.id,
-                niche: activeLead.niche || "General",
-                dealData: newDeal
-            })
+      const newDeal = await res.json();
+      // Create project for Head Account Manager distribution
+      try {
+        const setupRes = await fetch("/api/projects/setup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            dealId: newDeal.id,
+            niche: activeLead.niche || "General",
+          })
         });
+        if (!setupRes.ok) {
+          const setupErr = await setupRes.json();
+          console.error("Project setup failed:", setupErr.error);
+        }
+      } catch (setupError) {
+        console.error("Project setup network error:", setupError);
+      }
+    } else {
+      const errData = await res.json();
+      alert(`Failed to close deal: ${errData.error || "Unknown error"}`);
+      return;
     }
     
     await fetch(`/api/users/${userId}/status`, {
@@ -286,7 +301,16 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     });
     setStatus("Active");
     setShowClosingForm(false);
+    setFeedbackDraft(false);
+    // Update lead local state to Closed_Won so UI reflects immediately
+    setLeads(prev => prev.map(l => l.id === activeLead.id ? { ...l, status: "Closed_Won" } : l));
     setActiveLead(null);
+    setFeedback({ notes: "", outcome: "won", followUpDate: "", meetingDate: "", meetingTime: "", hasStore: "No", storeLink: "", customerType: "Launch" });
+    setDealData({
+      packageType: "SEO", contractStart: "", contractEnd: "",
+      totalAmount: "", firstAmount: "", paymentType: "Full",
+      paymentMethod: "Cash", installments: [], contractImageUrl: "", receiptUrl: ""
+    });
     router.refresh();
   };
 
@@ -370,6 +394,21 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
 
   return (
     <div>
+      <div className="flex gap-4 mb-4 border-b border-gray-200">
+        <button 
+          onClick={() => setActiveTab("leads")}
+          className={`pb-2 px-4 font-bold text-sm transition-colors border-b-2 ${activeTab === "leads" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+        >
+          Active Leads Workspace
+        </button>
+        <button 
+          onClick={() => setActiveTab("post-sale")}
+          className={`pb-2 px-4 font-bold text-sm transition-colors border-b-2 ${activeTab === "post-sale" ? "border-emerald-600 text-emerald-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+        >
+          Post-Sale Journey ({postSaleProjects.length})
+        </button>
+      </div>
+
       <div className="mb-6 flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
         <div>
           <h2 className="text-sm font-semibold text-gray-500 uppercase">My Status</h2>
@@ -408,8 +447,10 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         </button>
       </div>
 
-      {/* Workspace Summary Filters */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      {activeTab === "leads" ? (
+        <>
+          {/* Workspace Summary Filters */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         <div 
           onClick={() => setLogFilter("All")} 
           className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "All" ? "border-blue-500 bg-blue-50" : "border-transparent bg-white hover:bg-gray-50"}`}
@@ -569,7 +610,11 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                    {activeLead?.id === l.id ? (
+                    {l.status === "Closed_Won" ? (
+                      <span className="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-md text-xs font-bold">✓ Won</span>
+                    ) : l.status === "Closed_Lost" ? (
+                      <span className="px-3 py-1.5 bg-red-100 text-red-700 rounded-md text-xs font-bold">✗ Lost</span>
+                    ) : activeLead?.id === l.id ? (
                       <button onClick={endTask} className="px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700">End Task</button>
                     ) : (
                       <button onClick={() => startTask(l)} disabled={!!activeLead} className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 disabled:opacity-50">Start Task</button>
@@ -631,6 +676,95 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
             Next
           </button>
         </div>
+      )}
+      </>
+      ) : (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-emerald-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-emerald-700 uppercase tracking-wider">Client (Project)</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-emerald-700 uppercase tracking-wider">Account Manager</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-emerald-700 uppercase tracking-wider">Current Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-emerald-700 uppercase tracking-wider">Progress</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-emerald-700 uppercase tracking-wider">Active Warnings</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-emerald-700 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {postSaleProjects.map(project => {
+                const totalProgress = Math.round(((project.seoProgress || 0) + (project.socialMediaProgress || 0) + (project.mediaBuyerProgress || 0)) / 3);
+                return (
+                  <tr key={project.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-bold text-gray-900">{project.deal?.lead?.name}</div>
+                      <div className="text-xs text-gray-500">{project.package} Package</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {project.accountManager?.name || <span className="text-gray-400 italic">Unassigned</span>}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-bold uppercase border">
+                        {project.projectStatus.replace(/_/g, " ")}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <div className="w-24 bg-gray-200 rounded-full h-2">
+                          <div className={`h-2 rounded-full ${totalProgress > 70 ? 'bg-emerald-500' : totalProgress > 30 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${totalProgress}%` }}></div>
+                        </div>
+                        <span className="text-xs font-bold text-gray-700">{totalProgress}%</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      {project.warnings && project.warnings.length > 0 ? (
+                        <span className="inline-flex items-center justify-center px-2 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-bold">
+                          {project.warnings.length} Unresolved
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400">None</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Link
+                          href={`/dashboard/clients/${project.id}`}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-md text-xs font-bold transition"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          Journey
+                        </Link>
+                        <button
+                          onClick={() => setWarningProject(project)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-red-50 text-red-700 hover:bg-red-100 rounded-md text-xs font-bold transition"
+                        >
+                          <AlertTriangle className="h-3 w-3" />
+                          Warning
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {postSaleProjects.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-500">
+                    No closed deals have transitioned to projects yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Warning Modal for Post-Sale Projects */}
+      {warningProject && (
+        <CreateWarningModal
+          isOpen={true}
+          projectId={warningProject.id}
+          onClose={() => { setWarningProject(null); router.refresh(); }}
+        />
       )}
 
       {showFeedbackForm && (

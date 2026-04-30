@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import ProjectLogsPanel from "@/components/ProjectLogsPanel";
 
 const TABS = [
   { key: "timeline", label: "📋 Timeline", icon: "📋" },
@@ -12,15 +13,16 @@ const TABS = [
   { key: "progress", label: "📊 Progress", icon: "📊" },
   { key: "notes", label: "📝 Notes", icon: "📝" },
   { key: "files", label: "📁 Files", icon: "📁" },
+  { key: "logs", label: "⚙️ System Logs", icon: "⚙️" },
 ];
 
 /**
  * Client Full Journey — the central truth page.
  * Shows everything about a client across all departments in one place.
  */
-export default function ClientFullJourneyClient({ project, userRole, userId, userName }: any) {
+export default function ClientFullJourneyClient({ project, userRole, userId, userName, teamMembers = [], initialTab = "timeline" }: any) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("timeline");
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [noteContent, setNoteContent] = useState("");
   const [noteCategory, setNoteCategory] = useState("general");
   const [saving, setSaving] = useState(false);
@@ -90,6 +92,89 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
     });
     router.refresh();
   }
+
+  // ── Task-level Assignment Handler ──
+  async function handleAssignUser(taskId: string, field: "leaderId" | "agentId", newValue: string) {
+    if (!taskId || !newValue) return;
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: newValue }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(`Assignment failed: ${data.error || "Unknown error"}`);
+        return;
+      }
+      router.refresh();
+    } catch (err) {
+      alert("Network error — could not reach server.");
+    }
+  }
+
+  // ── Task Status Update Handler ──
+  async function handleUpdateStatus(taskId: string, status: string) {
+    try {
+      const payload: any = { status };
+      if (status === "done") payload.completedAt = new Date().toISOString();
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to update status");
+        return;
+      }
+      router.refresh();
+    } catch (err) {
+      alert("Network error — could not reach server.");
+    }
+  }
+
+  // ── Task Progress Update Handler ──
+  async function handleUpdateProgress(taskId: string, progressPct: number) {
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ progressPct }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to update progress");
+        return;
+      }
+      router.refresh();
+    } catch (err) {
+      alert("Network error — could not reach server.");
+    }
+  }
+
+  // ── Team Assignment Handler (Bulk update & TeamAssignment records) ──
+  async function handleTeamAssignment(department: string, roleType: "leader" | "agent", newUserId: string) {
+    if (!department || !newUserId) return;
+    try {
+      const res = await fetch(`/api/projects/${project.id}/team-assignment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ department, assignedRoleType: roleType, newUserId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(`Assignment failed: ${data.error || "Unknown error"}`);
+        return;
+      }
+      router.refresh();
+    } catch (err) {
+      alert("Network error — could not reach server.");
+    }
+  }
+
+  const safeUserRole = userRole || "";
+  const isAdmin = ["super_admin", "head_account_manager", "head_technical", "head_seo"].includes(safeUserRole);
 
   // ── Build Timeline Entries ──
   function buildTimeline() {
@@ -198,20 +283,51 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
   // ── Build Team Assignment Grid ──
   function buildTeamGrid() {
     const departments = [
-      { name: "SEO", types: ["seo", "content_seo"] },
-      { name: "Social Media", types: ["social_media"] },
-      { name: "Media Buyer", types: ["media_buyer"] },
-      { name: "Graphic Design", types: ["graphic_design"] },
-      { name: "Motion Graphics", types: ["motion_graphic"] },
-      { name: "UI/UX Design", types: ["ui_design"] },
+      { name: "SEO", types: ["SEO", "seo", "content_seo"], deptCodes: ["seo", "content_seo"], leaderRoles: ["team_leader_seo", "head_seo"], agentRoles: ["agent_seo", "agent_content_seo"] },
+      { name: "Social Media", types: ["Social_Media", "social_media"], deptCodes: ["social_media"], leaderRoles: ["team_leader_social_media"], agentRoles: ["agent_social_media"] },
+      { name: "Media Buyer", types: ["Media_Buyer", "media_buyer", "media_buying"], deptCodes: ["media_buyer"], leaderRoles: ["team_leader_media_buyer"], agentRoles: ["agent_media_buyer"] },
+      { name: "Graphic Design", types: ["graphic_design"], deptCodes: ["graphic_design"], leaderRoles: ["leader_graphic_designer"], agentRoles: ["agent_graphic_designer"] },
+      { name: "Motion Graphics", types: ["motion_graphic"], deptCodes: ["motion_graphic"], leaderRoles: ["leader_motion_graphic"], agentRoles: ["agent_motion_graphic"] },
+      { name: "UI/UX Design", types: ["ui_design"], deptCodes: ["ui_design"], leaderRoles: ["leader_ui"], agentRoles: ["agent_ui"] },
     ];
+
+    const assignments = project.teamAssignments || [];
+
     return departments.map((dept) => {
       const tasks = project.tasks?.filter((t: any) => dept.types.includes(t.taskType)) || [];
-      const leader = tasks[0]?.leader;
-      const agent = tasks[0]?.agent;
+
+      // Get leader/agent from tasks first
+      let leaderName = tasks[0]?.leader?.name || null;
+      let leaderId = tasks[0]?.leader?.id || null;
+      let agentName = tasks[0]?.agent?.name || null;
+      let agentId = tasks[0]?.agent?.id || null;
+
+      // Fallback: read from teamAssignments if tasks don't have leader/agent
+      const deptAssignments = assignments.filter((a: any) => dept.deptCodes.includes(a.department));
+      for (const a of deptAssignments) {
+        if (!leaderName && dept.leaderRoles.includes(a.user?.role)) {
+          leaderName = a.user.name;
+          leaderId = a.user.id;
+        }
+        if (!agentName && dept.agentRoles.includes(a.user?.role)) {
+          agentName = a.user.name;
+          agentId = a.user.id;
+        }
+      }
+
       const statuses = tasks.map((t: any) => t.status);
       const overallStatus = statuses.includes("in_progress") ? "in_progress" : statuses.includes("pending") ? "pending" : statuses.includes("done") ? "done" : "N/A";
-      return { department: dept.name, leader: leader?.name || "—", agent: agent?.name || "—", status: overallStatus, taskCount: tasks.length };
+
+      return { 
+        department: dept.name, 
+        leader: leaderName, 
+        agent: agentName, 
+        status: overallStatus, 
+        taskCount: tasks.length,
+        taskId: tasks[0]?.id,
+        leaderId,
+        agentId,
+      };
     });
   }
 
@@ -380,19 +496,85 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {teamGrid.map((row) => (
-                  <tr key={row.department} className="hover:bg-slate-50/50">
-                    <td className="px-6 py-4 text-sm font-bold text-slate-800">{row.department}</td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{row.leader}</td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{row.agent}</td>
-                    <td className="px-6 py-4 text-sm text-center font-medium">{row.taskCount}</td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`px-2 py-0.5 rounded text-xs font-bold capitalize ${row.status === "done" ? "bg-emerald-100 text-emerald-700" : row.status === "in_progress" ? "bg-amber-100 text-amber-700" : row.status === "pending" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"}`}>
-                        {row.status === "N/A" ? "Not Assigned" : row.status.replace(/_/g, " ")}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {teamGrid.map((row) => {
+                  const isLeader = row.leaderId === userId;
+                  const canAssignLeader = isAdmin;
+                  const canAssignAgent = isAdmin || isLeader;
+
+                  // ── Department-specific role mapping ──
+                  const deptRoleMap: Record<string, { leaders: string[]; agents: string[] }> = {
+                    "SEO": {
+                      leaders: ["team_leader_seo", "head_seo"],
+                      agents: ["agent_seo", "agent_content_seo"],
+                    },
+                    "Social Media": {
+                      leaders: ["team_leader_social_media"],
+                      agents: ["agent_social_media"],
+                    },
+                    "Media Buyer": {
+                      leaders: ["team_leader_media_buyer"],
+                      agents: ["agent_media_buyer"],
+                    },
+                    "Graphic Design": {
+                      leaders: ["leader_graphic_designer"],
+                      agents: ["agent_graphic_designer"],
+                    },
+                    "Motion Graphics": {
+                      leaders: ["leader_motion_graphic"],
+                      agents: ["agent_motion_graphic"],
+                    },
+                    "UI/UX Design": {
+                      leaders: ["leader_ui"],
+                      agents: ["agent_ui"],
+                    },
+                  };
+
+                  const deptRoles = deptRoleMap[row.department] || { leaders: [], agents: [] };
+                  const leaders = teamMembers?.filter((u: any) => deptRoles.leaders.includes(u.role)) || [];
+                  const agents = teamMembers?.filter((u: any) => deptRoles.agents.includes(u.role)) || [];
+
+                  return (
+                    <tr key={row.department} className="hover:bg-slate-50/50">
+                      <td className="px-6 py-4 text-sm font-bold text-slate-800">{row.department}</td>
+                      <td className="px-6 py-4 text-sm text-slate-600">
+                        {canAssignLeader ? (
+                          <select 
+                            key={`leader-${row.department}-${row.leaderId || "none"}`}
+                            onChange={(e) => handleTeamAssignment(row.department, "leader", e.target.value)}
+                            className="bg-slate-50 border rounded text-xs px-2 py-1 max-w-[150px]"
+                            defaultValue={row.leaderId || ""}
+                          >
+                            <option value="" disabled>Assign Leader...</option>
+                            {leaders.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                          </select>
+                        ) : (
+                          row.leader || "—"
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-600">
+                        {canAssignAgent ? (
+                          <select 
+                            key={`agent-${row.department}-${row.agentId || "none"}`}
+                            onChange={(e) => handleTeamAssignment(row.department, "agent", e.target.value)}
+                            className="bg-slate-50 border rounded text-xs px-2 py-1 max-w-[150px]"
+                            defaultValue={row.agentId || ""}
+                          >
+                            <option value="" disabled>Assign Agent...</option>
+                            {agents.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                          </select>
+                        ) : (
+                          row.agent || "—"
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-center font-medium">{row.taskCount}</td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold capitalize ${row.status === "done" ? "bg-emerald-100 text-emerald-700" : row.status === "in_progress" ? "bg-amber-100 text-amber-700" : row.status === "pending" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"}`}>
+                          {row.status === "N/A" ? "No Tasks" : row.status.replace(/_/g, " ")}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -441,26 +623,116 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
             <p className="text-sm text-slate-400 italic py-4">No tasks created yet.</p>
           ) : (
             <div className="space-y-3">
-              {project.tasks.map((t: any) => (
-                <div key={t.id} className="border rounded-lg p-4 hover:shadow-sm transition">
+              {project.tasks.map((t: any) => {
+                const isTaskLeader = t.leaderId === userId;
+                const taskCanAssignLeader = isAdmin;
+                const taskCanAssignAgent = isAdmin || isTaskLeader;
+
+                // ── Task-type to department role mapping ──
+                const taskTypeRoleMap: Record<string, { leaders: string[]; agents: string[] }> = {
+                  "SEO": { leaders: ["team_leader_seo", "head_seo"], agents: ["agent_seo", "agent_content_seo"] },
+                  "seo": { leaders: ["team_leader_seo", "head_seo"], agents: ["agent_seo", "agent_content_seo"] },
+                  "content_seo": { leaders: ["team_leader_seo", "head_seo"], agents: ["agent_seo", "agent_content_seo"] },
+                  "Social_Media": { leaders: ["team_leader_social_media"], agents: ["agent_social_media"] },
+                  "social_media": { leaders: ["team_leader_social_media"], agents: ["agent_social_media"] },
+                  "Media_Buyer": { leaders: ["team_leader_media_buyer"], agents: ["agent_media_buyer"] },
+                  "media_buyer": { leaders: ["team_leader_media_buyer"], agents: ["agent_media_buyer"] },
+                  "media_buying": { leaders: ["team_leader_media_buyer"], agents: ["agent_media_buyer"] },
+                  "graphic_design": { leaders: ["leader_graphic_designer"], agents: ["agent_graphic_designer"] },
+                  "motion_graphic": { leaders: ["leader_motion_graphic"], agents: ["agent_motion_graphic"] },
+                  "ui_design": { leaders: ["leader_ui"], agents: ["agent_ui"] },
+                  "technical": { leaders: ["head_technical"], agents: ["agent_technical"] },
+                };
+                const ttRoles = taskTypeRoleMap[t.taskType] || { leaders: [], agents: [] };
+                const taskLeaders = teamMembers?.filter((u: any) => ttRoles.leaders.includes(u.role)) || [];
+                const taskAgents = teamMembers?.filter((u: any) => ttRoles.agents.includes(u.role)) || [];
+
+                const canUpdateTask = isAdmin || isTaskLeader || t.agentId === userId;
+
+                return (
+                 <div key={t.id} className="border rounded-lg p-4 hover:shadow-sm transition">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-bold text-slate-800 capitalize">{t.taskType.replace(/_/g, " ")}</span>
                       <span className={`px-2 py-0.5 text-xs font-bold rounded ${t.status === "done" ? "bg-emerald-100 text-emerald-700" : t.status === "in_progress" ? "bg-amber-100 text-amber-700" : t.status === "review" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"}`}>{t.status}</span>
                       <span className={`px-2 py-0.5 text-xs font-medium rounded ${t.priority === "High" ? "bg-red-100 text-red-700" : t.priority === "Low" ? "bg-slate-100 text-slate-500" : "bg-amber-100 text-amber-600"}`}>{t.priority}</span>
                     </div>
-                    <div className="text-xs text-slate-400">
-                      Created: {new Date(t.createdAt).toLocaleDateString()} {t.completedAt && `• Completed: ${new Date(t.completedAt).toLocaleDateString()}`}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs text-slate-400">
+                        Created: {new Date(t.createdAt).toLocaleDateString()} {t.completedAt && `• Completed: ${new Date(t.completedAt).toLocaleDateString()}`}
+                      </span>
+                      {/* ── Status Buttons ── */}
+                      {canUpdateTask && t.status !== "done" && (
+                        <div className="flex gap-1">
+                          {t.status === "pending" && (
+                            <button onClick={() => handleUpdateStatus(t.id, "in_progress")} className="px-3 py-1 bg-amber-100 text-amber-700 rounded-lg text-xs font-bold hover:bg-amber-200 transition">▶ Start</button>
+                          )}
+                          {t.status === "in_progress" && (
+                            <button onClick={() => handleUpdateStatus(t.id, "review")} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-bold hover:bg-blue-200 transition">📋 Review</button>
+                          )}
+                          {t.status === "review" && (
+                            <button onClick={() => handleUpdateStatus(t.id, "done")} className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold hover:bg-emerald-200 transition">✓ Done</button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="flex gap-6 mt-2 text-xs text-slate-500 flex-wrap">
-                    <span>Assigned By: <strong>{t.leader?.name || "—"}</strong></span>
-                    <span>Assigned To: <strong>{t.agent?.name || "Unassigned"}</strong></span>
+                  <div className="flex gap-6 mt-2 text-xs text-slate-500 flex-wrap items-center">
+                    <span className="flex items-center gap-2">
+                      Assigned By: 
+                      {taskCanAssignLeader ? (
+                        <select 
+                          onChange={(e) => handleAssignUser(t.id, "leaderId", e.target.value)}
+                          className="bg-slate-50 border rounded px-1 py-0.5 max-w-[120px]"
+                          defaultValue=""
+                        >
+                          <option value="" disabled>{t.leader?.name || "Unassigned"}</option>
+                          {taskLeaders.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                        </select>
+                      ) : (
+                        <strong>{t.leader?.name || "—"}</strong>
+                      )}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      Assigned To: 
+                      {taskCanAssignAgent ? (
+                        <select 
+                          onChange={(e) => handleAssignUser(t.id, "agentId", e.target.value)}
+                          className="bg-slate-50 border rounded px-1 py-0.5 max-w-[120px]"
+                          defaultValue=""
+                        >
+                          <option value="" disabled>{t.agent?.name || "Unassigned"}</option>
+                          {taskAgents.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                        </select>
+                      ) : (
+                        <strong>{t.agent?.name || "Unassigned"}</strong>
+                      )}
+                    </span>
                     {t.brief && <span>Brief: {t.brief}</span>}
                   </div>
-                  <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2">
-                    <div className="bg-indigo-500 h-1.5 rounded-full transition-all" style={{ width: `${t.progressPct}%` }} />
-                  </div>
+
+                  {/* ── Progress Slider ── */}
+                  {canUpdateTask && t.status !== "done" ? (
+                    <div className="mt-3 flex items-center gap-3">
+                      <span className="text-xs font-semibold text-slate-500 w-16">Progress</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="5"
+                        defaultValue={t.progressPct}
+                        onMouseUp={(e) => handleUpdateProgress(t.id, Number((e.target as HTMLInputElement).value))}
+                        onTouchEnd={(e) => handleUpdateProgress(t.id, Number((e.target as HTMLInputElement).value))}
+                        className="flex-1 h-2 accent-indigo-600 cursor-pointer"
+                      />
+                      <span className="text-xs font-bold text-indigo-600 w-10 text-right">{t.progressPct}%</span>
+                    </div>
+                  ) : (
+                    <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2">
+                      <div className="bg-indigo-500 h-1.5 rounded-full transition-all" style={{ width: `${t.progressPct}%` }} />
+                    </div>
+                  )}
+
                   {t.subTasks?.length > 0 && (
                     <div className="mt-2 pl-4 border-l-2 border-indigo-200 space-y-1">
                       {t.subTasks.map((st: any) => (
@@ -471,8 +743,9 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
                       ))}
                     </div>
                   )}
-                </div>
-              ))}
+                 </div>
+                );
+              })}
             </div>
             )}
           </div>
@@ -600,6 +873,14 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
               <a href={project.storeUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-indigo-600 hover:underline">🛒 Store Link</a>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ═══ SECTION 9: System Logs ═══ */}
+      {activeTab === "logs" && (
+        <div className="bg-white rounded-xl border shadow-sm p-6">
+          <h2 className="text-lg font-bold text-slate-800 mb-4">Project Operational Logs</h2>
+          <ProjectLogsPanel logs={project.logs || []} />
         </div>
       )}
     </div>

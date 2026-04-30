@@ -14,61 +14,47 @@ export default async function SocialMediaPage() {
 
   const isTL = ["super_admin", "team_leader_social_media"].includes(user.role);
 
-  // Fetch Projects linked to this TL or Agent through social_media tasks
-  const rawProjects = await prisma.project.findMany({
-    where: isTL
-      ? { tasks: { some: { taskType: "social_media", leaderId: user.id } } }
-      : { tasks: { some: { taskType: "social_media", agentId: user.id } } },
-    include: {
-      deal: { include: { lead: true } },
-      accountManager: true,
-      tasks: { include: { leader: true, agent: true, subTasks: { include: { leader: true, agent: true } } } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  let projects: any[] = [];
+  let teamMembers: any[] = [];
 
-  const projectIds = rawProjects.map(p => p.id);
-  const leadIds = rawProjects.map(p => p.deal?.leadId).filter(Boolean);
-
-  const warnings = await prisma.warning.findMany({
-    where: {
-      OR: [
-        { projectId: { in: projectIds } },
-        { clientId: { in: leadIds as string[] } }
-      ]
-    }
-  });
-
-  const projects = rawProjects.map(p => ({
-    ...p,
-    warnings: warnings.filter(w => w.projectId === p.id || w.clientId === p.deal?.leadId)
-  }));
-
-  const agents = isTL
-    ? await prisma.user.findMany({ where: { role: "agent_social_media", status: "Active" } })
-    : [];
-
-  const designLeaders = await prisma.user.findMany({ 
-    where: { role: { in: ["leader_graphic_designer", "leader_motion_graphic", "leader_ui"] }, status: "Active" } 
-  });
-
-  // Calculate KPIs
-  const kpis = {
-    totalClients: projects.length,
-    activeClients: projects.filter(p => ["in_progress", "setup"].includes(p.projectStatus)).length,
-    pendingClients: projects.filter(p => p.projectStatus === "new" || p.projectStatus === "assigned").length,
-    delayedTasks: projects.flatMap(p => p.tasks).filter(t => t.status !== "done" && t.deadline && new Date(t.deadline) < new Date()).length,
-    activeWarnings: projects.filter(p => p.warnings.some(w => !w.acknowledgedBy?.includes(user.id))).length
-  };
+  if (isTL) {
+    projects = await prisma.project.findMany({
+      where: user.role === "super_admin" ? {} : { teamAssignments: { some: { userId: user.id, status: "active" } } },
+      include: {
+        deal: { include: { lead: true } },
+        accountManager: { select: { id: true, name: true } },
+        teamAssignments: {
+          where: { status: "active" },
+          include: { user: { select: { id: true, name: true, role: true } } },
+        },
+        tasks: { select: { id: true, status: true, taskType: true, agentId: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    teamMembers = await prisma.user.findMany({
+      where: { role: "agent_social_media", status: "Active" },
+      include: { _count: { select: { teamAssignments: { where: { status: "active" } } } } },
+    });
+  } else if (user.role === "agent_social_media") {
+    projects = await prisma.project.findMany({
+      where: { teamAssignments: { some: { userId: user.id, status: "active" } } },
+      include: {
+        deal: { include: { lead: true } },
+        accountManager: { select: { id: true, name: true } },
+        tasks: {
+          where: { agentId: user.id },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  }
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">{isTL ? "Social Media Leader Dashboard" : "My Social Media Clients"}</h1>
       <SocialMediaClient
         projects={projects}
-        agents={agents}
-        designLeaders={designLeaders}
-        kpis={kpis}
+        teamMembers={teamMembers}
         userRole={user.role}
         userId={user.id}
         departmentTaskType="social_media"

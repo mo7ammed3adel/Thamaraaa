@@ -7,6 +7,7 @@ import { User, Settings, PhoneCall, Briefcase, ListTodo, LogOut, Upload, RotateC
 import LogoutButton from "@/components/LogoutButton";
 import NotificationBell from "@/components/NotificationBell";
 import WarningPopup from "@/components/WarningPopup";
+import GlobalWarningAlert from "@/components/GlobalWarningAlert";
 
 export default async function DashboardLayout({
   children,
@@ -29,6 +30,7 @@ export default async function DashboardLayout({
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Warning Popup - renders for all roles, filters internally */}
       <WarningPopup userRole={role} userId={userId} />
+      <GlobalWarningAlert />
 
       {/* Sidebar */}
       <aside className="w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col">

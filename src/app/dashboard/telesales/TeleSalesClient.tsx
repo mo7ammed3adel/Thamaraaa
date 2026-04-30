@@ -94,24 +94,31 @@ export default function TeleSalesClient({
     e.preventDefault();
     setLoading(true);
 
-    const res = await fetch("/api/call-logs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        leadId: selectedLead.id,
-        classification: selectedLead.classification,
-        ...logData,
-      }),
-    });
+    try {
+      const res = await fetch("/api/call-logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leadId: selectedLead.id,
+          classification: selectedLead.classification,
+          ...logData,
+        }),
+      });
 
-    if (res.ok) {
-      setSelectedLead(null);
-      setLogData({ callStatus: "Accept but lost", notes: "", meetingDate: "", meetingTime: "" });
-      router.refresh();
-      const updatedLead = await res.json();
-      setLeads(leads.map((l) => (l.id === updatedLead.id ? updatedLead : l)));
-    } else {
-      alert("Error logging call");
+      if (res.ok) {
+        const updatedLead = await res.json();
+        // Update local state first with the full lead data (includes callLogs)
+        setLeads(leads.map((l) => (l.id === updatedLead.id ? updatedLead : l)));
+        setSelectedLead(null);
+        setLogData({ callStatus: "Accept but lost", notes: "", meetingDate: "", meetingTime: "" });
+        // Then refresh server data in the background
+        router.refresh();
+      } else {
+        const errData = await res.json();
+        alert(`Error logging call: ${errData.error || "Unknown error"}`);
+      }
+    } catch {
+      alert("Network error. Please try again.");
     }
     setLoading(false);
   };
@@ -328,6 +335,8 @@ export default function TeleSalesClient({
               <option value="No_Answer">No Answer</option>
               <option value="Interested">Interested</option>
               <option value="Transferred">Transferred</option>
+              <option value="Waiting">Waiting</option>
+              <option value="Closed_Lost">Closed / Lost</option>
             </select>
           </div>
           <div>
@@ -493,14 +502,20 @@ export default function TeleSalesClient({
                   })}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div className="flex items-center gap-2">
-                      {userRole === "tele_sales_agent" && (
+                      {l.status === "Transferred" || l.status === "In_Sales" ? (
+                        <span className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-md text-xs font-bold">📅 Meeting Booked</span>
+                      ) : l.status === "Closed_Won" ? (
+                        <span className="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-md text-xs font-bold">✓ Won</span>
+                      ) : l.status === "Closed_Lost" ? (
+                        <span className="px-3 py-1.5 bg-red-100 text-red-700 rounded-md text-xs font-bold">✗ Lost</span>
+                      ) : userRole === "tele_sales_agent" ? (
                         <button
                           onClick={() => { setSelectedLead(l); setLogData({ callStatus: "Accept but lost", notes: "", meetingDate: "", meetingTime: "" }); }}
                           className="px-3 py-1.5 bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 rounded-md font-medium transition text-xs"
                         >
                           Log Call
                         </button>
-                      )}
+                      ) : null}
                       {isManager && (
                         <button
                           onClick={() => handleDeleteLead(l.id)}

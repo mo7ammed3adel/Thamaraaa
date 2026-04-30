@@ -2,62 +2,49 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { Search, X } from "lucide-react";
+
+import DistributeModal from "@/components/DistributeModal";
+import TeamWorkloadBadge from "@/components/TeamWorkloadBadge";
+import LifecycleStateBadge from "@/components/LifecycleStateBadge";
 
 export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userId }: any) {
   const router = useRouter();
-  const [assignModal, setAssignModal] = useState<any>(null);
+  const [distributeModalProject, setDistributeModalProject] = useState<any>(null);
   const [taskFilter, setTaskFilter] = useState("all");
   const [activeKpi, setActiveKpi] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const filteredProjects = useMemo(() => {
     return projects.filter((p: any) => {
-      if (activeKpi === "assigned") return p.accountManagerId || p.tasks?.some((t: any) => ["social_media", "media_buying", "seo", "content_seo"].includes(t.taskType) && t.leaderId);
-      if (activeKpi === "active") return ["in_progress", "setup", "assigned"].includes(p.projectStatus);
-      if (activeKpi === "delayed") return p.projectStatus === "delayed";
-      if (activeKpi === "in_progress") return p.tasks?.some((t: any) => t.status === "in_progress");
-      return true;
+      const matchSearch = !searchQuery ||
+        p.deal?.lead?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.deal?.lead?.phone?.includes(searchQuery) ||
+        p.package?.toLowerCase().includes(searchQuery.toLowerCase());
+
+      let matchKpi = true;
+      if (activeKpi === "assigned") matchKpi = p.accountManagerId || p.tasks?.some((t: any) => ["social_media", "media_buying", "seo", "content_seo"].includes(t.taskType) && t.leaderId);
+      else if (activeKpi === "active") matchKpi = ["in_progress", "setup", "assigned"].includes(p.projectStatus);
+      else if (activeKpi === "delayed") matchKpi = p.projectStatus === "delayed";
+      else if (activeKpi === "in_progress") matchKpi = p.tasks?.some((t: any) => t.status === "in_progress");
+
+      return matchSearch && matchKpi;
     });
-  }, [projects, activeKpi]);
+  }, [projects, activeKpi, searchQuery]);
+
+  const hasActiveFilters = searchQuery || activeKpi !== "all";
+
+  const clearAllFilters = () => {
+    setSearchQuery("");
+    setActiveKpi("all");
+  };
 
   const getProgressColor = (val: number) => val < 30 ? "bg-red-500" : val < 70 ? "bg-amber-400" : "bg-emerald-500";
-
-  const handleAssignToTeamLeader = async (projectId: string, leaderId: string, taskType: string) => {
-    if (taskType === "head_seo") {
-      await fetch(`/api/projects/${projectId}/assign`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetRole: "head_seo", assigneeId: leaderId }),
-      });
-      // Also generate SEO general task
-      await fetch("/api/tasks/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          projectId,
-          packageType: "seo",
-          seoLeaderId: leaderId,
-        }),
-      });
-    } else {
-      await fetch("/api/tasks/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          projectId,
-          packageType: taskType,
-          socialLeaderId: taskType === "social_media" ? leaderId : undefined,
-          mediaLeaderId: taskType === "media_buying" ? leaderId : undefined,
-        }),
-      });
-    }
-    setAssignModal(null);
-    router.refresh();
-  };
 
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
           { id: "all", label: "My Total Projects", val: kpis.assignedClients + kpis.activeClients + kpis.delayedClients, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-slate-500 bg-slate-50", icnColor: "text-slate-500" },
           { id: "assigned", label: "Assigned Clients", val: kpis.assignedClients, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-blue-500 bg-blue-50", icnColor: "text-blue-500" },
@@ -80,8 +67,33 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
 
       {/* Projects Table */}
       <div className="bg-white rounded-xl shadow border overflow-hidden">
-        <div className="p-4 border-b bg-slate-50">
-          <h2 className="text-lg font-bold text-slate-800">Master Clients List</h2>
+        <div className="p-4 border-b bg-slate-50 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-bold text-slate-800 whitespace-nowrap">Master Clients List</h2>
+            {hasActiveFilters && (
+              <button
+                onClick={clearAllFilters}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 rounded-full hover:bg-red-100 transition"
+              >
+                <X className="w-3 h-3" /> Clear Filters
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2 w-full md:w-auto">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search clients..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+              />
+            </div>
+            <span className="text-xs text-slate-400 self-center whitespace-nowrap">
+              {filteredProjects.length} / {projects.length}
+            </span>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -97,24 +109,51 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
             <tbody className="divide-y divide-gray-100">
               {filteredProjects.map((p: any) => {
                 const delayedTasks = p.tasks?.filter((t:any) => t.status !== "done" && t.deadline && new Date(t.deadline) < new Date()).length || 0;
+                const activeTasks = p.tasks?.filter((t: any) => t.status !== "done").length || 0;
                 
                 return (
                   <tr key={p.id} className="hover:bg-slate-50/50 transition">
                     <td className="px-6 py-4">
                       <div className="font-bold text-slate-900">{p.deal?.lead?.name}</div>
                       <div className="text-xs text-slate-500">{p.deal?.lead?.phone}</div>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-100 text-purple-800 inline-block mt-1">{p.package}</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-100 text-purple-800">{p.package}</span>
+                        {activeTasks > 0 && (
+                          <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full">
+                            {activeTasks} Active
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-xs space-y-1">
-                        {p.tasks?.filter((t:any) => ["social_media", "media_buying", "seo", "content_seo"].includes(t.taskType)).map((t:any) => (
-                          <div key={t.id} className="flex flex-col bg-slate-50 border rounded p-1.5">
-                            <span className="font-bold text-slate-700 uppercase" style={{fontSize: "10px"}}>{t.taskType.replace(/_/g, " ")}</span>
-                            <span className="text-slate-500">{t.leader?.name || "Pending..."}</span>
-                          </div>
-                        ))}
-                        {(!p.tasks || p.tasks.filter((t:any) => ["social_media", "media_buying", "seo", "content_seo"].includes(t.taskType)).length === 0) && (
-                          <span className="text-slate-400 italic">No operational teams assigned</span>
+                      <div className="flex flex-wrap gap-2">
+                        {p.teamAssignments?.filter((ta: any) => ta.status === 'active').reduce((acc: any[], ta: any) => {
+                          const existingDept = acc.find(a => a.department === ta.department);
+                          if (existingDept) {
+                            if (ta.role.includes("leader")) existingDept.leader = ta.user;
+                            else existingDept.agentCount++;
+                          } else {
+                            acc.push({
+                              department: ta.department,
+                              leader: ta.role.includes("leader") ? ta.user : null,
+                              agentCount: ta.role.includes("leader") ? 0 : 1,
+                            });
+                          }
+                          return acc;
+                        }, []).map((dept: any, i: number) => {
+                          const hasDelayed = p.tasks?.some((t: any) => t.taskType === dept.department && t.status !== "done" && t.deadline && new Date(t.deadline) < new Date());
+                          return (
+                            <TeamWorkloadBadge 
+                              key={i} 
+                              department={dept.department}
+                              leader={dept.leader}
+                              agentCount={dept.agentCount}
+                              hasDelayedTasks={hasDelayed || false}
+                            />
+                          );
+                        })}
+                        {(!p.teamAssignments || p.teamAssignments.length === 0) && (
+                          <span className="text-slate-400 italic text-xs">No operational teams assigned</span>
                         )}
                       </div>
                     </td>
@@ -141,8 +180,8 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex flex-col items-end gap-2">
-                        <button onClick={() => setAssignModal(p)} className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 shadow-sm transition w-28 text-center">
-                          Assign Teams
+                        <button onClick={() => router.push(`/dashboard/clients/${p.id}?tab=team`)} className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 shadow-sm transition w-28 text-center">
+                          Distribute to Depts
                         </button>
                         <button onClick={() => router.push(`/dashboard/clients/${p.id}`)} className="px-3 py-1.5 bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-900 shadow-sm transition w-28 text-center">
                           Full Journey →
@@ -153,7 +192,11 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
                 );
               })}
               {filteredProjects.length === 0 && (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400 italic">No clients available.</td></tr>
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400 italic">
+                    {hasActiveFilters ? "No clients match your current filters." : "No clients available."}
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
@@ -161,46 +204,49 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
       </div>
 
       {/* Assign Modal */}
-      {assignModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6">
-            <h3 className="text-lg font-bold text-slate-800 mb-4">Assign Team for: {assignModal.deal?.lead?.name}</h3>
-            <p className="text-sm text-slate-500 mb-4">Select a team leader to assign this project to:</p>
-            <div className="space-y-2">
-              {teamLeaders.map((tl: any) => {
-                let mappedType = tl.role.includes("social") ? "social_media" : tl.role.includes("media") ? "media_buying" : "head_seo";
-                return (
-                  <button
-                    key={tl.id}
-                    onClick={() => handleAssignToTeamLeader(assignModal.id, tl.id, mappedType)}
-                    className="w-full text-left p-3 bg-slate-50 hover:bg-indigo-50 border rounded-lg transition flex justify-between items-center"
-                  >
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800">{tl.name}</p>
-                      <p className="text-xs text-slate-500 capitalize">{tl.role.replace(/_/g, " ")}</p>
-                    </div>
-                    <span className="text-indigo-600 text-xs font-medium">Assign →</span>
-                  </button>
-                )
-              })}
-              {teamLeaders.length === 0 && <p className="text-sm text-slate-400 italic">No team leaders available</p>}
-            </div>
-            <button onClick={() => setAssignModal(null)} className="mt-4 w-full py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-200">Cancel</button>
-          </div>
-        </div>
+      {distributeModalProject && (
+        <DistributeModal
+          isOpen={!!distributeModalProject}
+          onClose={() => setDistributeModalProject(null)}
+          projectId={distributeModalProject.id}
+          projectName={distributeModalProject.deal?.lead?.name || "Client"}
+          availableUsers={teamLeaders as any[]}
+          actionLabel="Assign Team Leader"
+          onDistributed={() => {
+            setDistributeModalProject(null);
+            router.refresh();
+          }}
+        />
       )}
 
       {/* Tasks Overview (Global) */}
       <div className="bg-white rounded-xl shadow border overflow-hidden">
-        <div className="p-4 border-b bg-slate-50 flex items-center justify-between">
+        <div className="p-4 border-b bg-slate-50 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-bold text-slate-800">Global Tasks Execution</h2>
-          <select value={taskFilter} onChange={(e) => setTaskFilter(e.target.value)} className="text-sm border rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500">
-            <option value="all">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="in_progress">In Progress</option>
-            <option value="delayed">Delayed</option>
-            <option value="done">Done</option>
-          </select>
+          <div className="flex items-center gap-3">
+            <select value={taskFilter} onChange={(e) => setTaskFilter(e.target.value)} className="text-sm border rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="all">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="in_progress">In Progress</option>
+              <option value="delayed">Delayed</option>
+              <option value="done">Done</option>
+            </select>
+            {taskFilter !== "all" && (
+              <button
+                onClick={() => setTaskFilter("all")}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition"
+              >
+                <X className="w-3 h-3" /> Clear
+              </button>
+            )}
+            <span className="text-xs text-slate-400">
+              {kpis.allTasks.filter((t:any) => {
+                if(taskFilter === "all") return true;
+                if(taskFilter === "delayed") return t.status !== "done" && t.deadline && new Date(t.deadline) < new Date();
+                return t.status === taskFilter;
+              }).length} tasks
+            </span>
+          </div>
         </div>
         <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
           <table className="min-w-full divide-y divide-gray-200 relative">
@@ -227,7 +273,10 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
                 return (
                  <tr key={t.id} className="hover:bg-slate-50/50">
                     <td className="px-6 py-4">
-                      <div className="font-bold text-slate-900 text-sm">{parentProject?.deal?.lead?.name || "Unknown"}</div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="font-bold text-slate-900 text-sm">{parentProject?.deal?.lead?.name || "Unknown"}</div>
+                        {parentProject?.lifecycleState && <LifecycleStateBadge state={parentProject.lifecycleState} />}
+                      </div>
                       <div className="text-xs text-slate-500">Project: {parentProject?.package || "N/A"}</div>
                     </td>
                     <td className="px-6 py-4 line-clamp-2 max-w-xs">

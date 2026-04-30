@@ -41,12 +41,36 @@ export default async function SalesWorkspacePage() {
     select: { status: true }
   });
 
+  // Fetch post-sale projects (closed deals linked to this sales agent)
+  const postSaleProjects = await prisma.project.findMany({
+    where: user.role === "sales_agent" ? { deal: { salesAgentId: user.id } } : {},
+    include: {
+      deal: {
+        include: { lead: true }
+      },
+      accountManager: { select: { name: true } },
+      tasks: {
+        orderBy: { createdAt: "asc" }
+      },
+      warnings: {
+        where: { status: "Active" }
+      }
+    },
+    orderBy: { createdAt: "desc" }
+  });
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Sales Workspace</h1>
       </div>
-      <SalesClient initialLeads={leads} userRole={user.role} userId={user.id} initialStatus={agentData?.status || "Active"} />
+      <SalesClient 
+        initialLeads={leads} 
+        userRole={user.role} 
+        userId={user.id} 
+        initialStatus={agentData?.status || "Active"} 
+        postSaleProjects={postSaleProjects} 
+      />
     </div>
   );
 }

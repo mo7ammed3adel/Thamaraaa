@@ -20,6 +20,8 @@ interface NotesPanelProps {
 }
 
 export default function NotesPanel({ projectId, currentUserRole }: NotesPanelProps) {
+  const [filterCategory, setFilterCategory] = useState("all");
+
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [newNote, setNewNote] = useState("");
@@ -34,8 +36,12 @@ export default function NotesPanel({ projectId, currentUserRole }: NotesPanelPro
   };
 
   const fetchNotes = async () => {
+    setLoading(true);
     try {
-      const res = await fetch(`/api/notes?projectId=${projectId}`);
+      const qs = new URLSearchParams({ projectId });
+      if (filterCategory !== "all") qs.append("category", filterCategory);
+      
+      const res = await fetch(`/api/notes?${qs.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setNotes(data.notes || []);
@@ -49,8 +55,7 @@ export default function NotesPanel({ projectId, currentUserRole }: NotesPanelPro
 
   useEffect(() => {
     fetchNotes();
-    // In a real app we would use Pusher here to listen for new notes
-  }, [projectId]);
+  }, [projectId, filterCategory]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,9 +97,27 @@ export default function NotesPanel({ projectId, currentUserRole }: NotesPanelPro
 
   return (
     <div className="bg-white border text-sm border-slate-200 rounded-xl overflow-hidden flex flex-col h-[500px]">
-      <div className="bg-slate-50 border-b border-slate-200 p-3 font-bold text-slate-700 flex items-center gap-2">
-        <MessageSquare size={16} className="text-slate-500" />
-        Global Project Notes
+      <div className="bg-slate-50 border-b border-slate-200 p-3 font-bold text-slate-700 flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+        <div className="flex items-center gap-2">
+          <MessageSquare size={16} className="text-slate-500" />
+          Global Project Notes
+        </div>
+        
+        <div className="flex items-center gap-2 text-xs font-normal">
+          <span className="text-slate-500">Filter:</span>
+          <select 
+            value={filterCategory} 
+            onChange={e => setFilterCategory(e.target.value)}
+            className="border rounded px-2 py-1 outline-none focus:ring-1 focus:ring-indigo-500"
+          >
+            <option value="all">All Departments</option>
+            <option value="sales">Sales</option>
+            <option value="account_manager">Account Management</option>
+            <option value="technical">Technical</option>
+            <option value="design">Design</option>
+            <option value="general">General</option>
+          </select>
+        </div>
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50">

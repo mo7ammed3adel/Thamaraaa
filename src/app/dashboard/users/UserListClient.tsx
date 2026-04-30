@@ -239,7 +239,7 @@ export default function UserListClient({ initialUsers, managers }: { initialUser
                         <option value="tele_sales_agent">Tele Sales Agent</option>
                       </optgroup>
                       <optgroup label="Sales">
-                        <option value="cheif_sales">Chief Sales</option>
+                        <option value="chief_sales">Chief Sales</option>
                         <option value="sales_manager">Sales Manager</option>
                         <option value="sales_agent">Sales Agent</option>
                       </optgroup>
@@ -263,8 +263,8 @@ export default function UserListClient({ initialUsers, managers }: { initialUser
                         <option value="agent_social_media">Agent Social Media</option>
                       </optgroup>
                       <optgroup label="Design & Media">
-                        <option value="leader_graphic_desginer">Leader Graphic Design</option>
-                        <option value="agent_graphic_desginer">Agent Graphic Design</option>
+                        <option value="leader_graphic_designer">Leader Graphic Design</option>
+                        <option value="agent_graphic_designer">Agent Graphic Design</option>
                         <option value="leader_motion_graphic">Leader Motion Graphic</option>
                         <option value="agent_motion_graphic">Agent Motion Graphic</option>
                         <option value="leader_ui">Leader UI/UX</option>
@@ -333,7 +333,7 @@ export default function UserListClient({ initialUsers, managers }: { initialUser
                         <option value="tele_sales_agent">Tele Sales Agent</option>
                       </optgroup>
                       <optgroup label="Sales">
-                        <option value="cheif_sales">Chief Sales</option>
+                        <option value="chief_sales">Chief Sales</option>
                         <option value="sales_manager">Sales Manager</option>
                         <option value="sales_agent">Sales Agent</option>
                       </optgroup>
@@ -357,8 +357,8 @@ export default function UserListClient({ initialUsers, managers }: { initialUser
                         <option value="agent_social_media">Agent Social Media</option>
                       </optgroup>
                       <optgroup label="Design & Media">
-                        <option value="leader_graphic_desginer">Leader Graphic Design</option>
-                        <option value="agent_graphic_desginer">Agent Graphic Design</option>
+                        <option value="leader_graphic_designer">Leader Graphic Design</option>
+                        <option value="agent_graphic_designer">Agent Graphic Design</option>
                         <option value="leader_motion_graphic">Leader Motion Graphic</option>
                         <option value="agent_motion_graphic">Agent Motion Graphic</option>
                         <option value="leader_ui">Leader UI/UX</option>

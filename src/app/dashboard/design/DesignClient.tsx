@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import ClientJourney from "@/components/ClientJourney";
 import Link from "next/link";
 import {
-  Inbox, Clock, CheckCircle, AlertTriangle, Users, ArrowRight
+  Inbox, Clock, CheckCircle, AlertTriangle, Users, ExternalLink
 } from "lucide-react";
+import TaskFlagModal from "@/components/TaskFlagModal";
+import TaskReassignModal from "@/components/TaskReassignModal";
 
 /**
  * Design & Creative department client component (Graphic, Motion, UI/UX).
@@ -16,9 +17,10 @@ import {
 export default function DesignClient({ tasks, agents, userRole, userId, teamLabel }: any) {
   const router = useRouter();
   const isLeader = userRole.startsWith("leader_") || userRole === "super_admin";
-  const [viewClient, setViewClient] = useState<any>(null);
   const [activeTab, setActiveTab] = useState(isLeader ? "incoming" : "tasks");
   const [activeKpi, setActiveKpi] = useState("all");
+  const [flagTask, setFlagTask] = useState<any>(null);
+  const [reassignTask, setReassignTask] = useState<any>(null);
 
   // ── Advanced Filters ──
   const [searchQuery, setSearchQuery] = useState("");
@@ -85,6 +87,15 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status, ...(status === "done" ? { completedAt: new Date().toISOString() } : {}) }),
+    });
+    router.refresh();
+  }
+
+  async function handleUpdateFiles(taskId: string, filesString: string) {
+    await fetch(`/api/tasks/${taskId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ files: filesString }),
     });
     router.refresh();
   }
@@ -165,7 +176,21 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
             )}
 
             {/* Status Actions */}
-            <div className="grid grid-cols-1 gap-2">
+            <div className="grid grid-cols-1 gap-2 border-t pt-2 border-gray-100">
+              <p className="text-xs font-bold text-gray-700 mb-1">Deliverables</p>
+              <textarea 
+                placeholder="Links to final files (Drive, Figma, etc)"
+                className="w-full border rounded-lg px-2 py-1 text-xs outline-none focus:border-violet-500 bg-gray-50 h-16"
+                defaultValue={t.files || ""}
+                onBlur={(e) => {
+                  if (e.target.value !== t.files) {
+                    handleUpdateFiles(t.id, e.target.value);
+                  }
+                }}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-2 pt-2">
               {t.status !== "in_progress" && t.status !== "done" && t.status !== "review" && (
                 <button onClick={() => handleUpdateStatus(t.id, "in_progress")} className="w-full py-2 bg-gray-800 text-white rounded-xl text-sm font-bold hover:bg-gray-900 shadow-sm transition">Start Task</button>
               )}
@@ -177,10 +202,33 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
               )}
             </div>
 
-            {/* View Client Journey */}
-            <button onClick={() => setViewClient(t)} className="w-full py-2 bg-gray-50 text-gray-700 border border-gray-200 rounded-xl text-sm font-bold hover:bg-gray-100 shadow-sm transition flex items-center justify-center gap-2">
-              Client Info <ArrowRight className="w-4 h-4" />
-            </button>
+            {/* View Client Full Journey */}
+            <Link
+              href={`/dashboard/clients/${t.projectId}`}
+              className="w-full py-2 bg-slate-800 text-white rounded-xl text-sm font-bold hover:bg-slate-900 shadow-sm transition flex items-center justify-center gap-2"
+            >
+              <ExternalLink className="w-4 h-4" /> Client Full Journey
+            </Link>
+
+            {/* Leader Reassign Button */}
+            {isLeader && t.agentId && t.status !== "done" && (
+              <button
+                onClick={() => setReassignTask(t)}
+                className="w-full py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-sm font-bold hover:bg-blue-100 shadow-sm transition"
+              >
+                ⇄ Reassign Agent
+              </button>
+            )}
+
+            {/* Agent Flag Button */}
+            {!isLeader && t.agentId === userId && t.status !== "done" && (
+              <button
+                onClick={() => setFlagTask(t)}
+                className="w-full py-2 bg-orange-50 text-orange-700 border border-orange-200 rounded-xl text-sm font-bold hover:bg-orange-100 shadow-sm transition"
+              >
+                ⚑ Flag / Return Task
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -316,24 +364,27 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
         </div>
       )}
 
-      {/* Client Notes Drawer */}
-      {viewClient && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-gray-900/50 backdrop-blur-sm">
-          <div className="w-full max-w-xl bg-white h-full shadow-2xl overflow-y-auto p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-800">Client Journey & Notes</h2>
-              <button onClick={() => setViewClient(null)} className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 text-sm font-bold">Close ✕</button>
-            </div>
-            <ClientJourney
-              leadName={viewClient.project?.deal?.lead?.name || "Client"}
-              phone={viewClient.project?.deal?.lead?.phone}
-              callLogs={viewClient.project?.deal?.lead?.callLogs}
-              meetings={viewClient.project?.deal?.lead?.meetings}
-              deals={[viewClient.project?.deal]}
-              tasks={[viewClient]}
-            />
-          </div>
-        </div>
+
+      {flagTask && (
+        <TaskFlagModal
+          taskId={flagTask.id}
+          taskName={flagTask.taskType?.replace(/_/g, " ") || "Design Task"}
+          isOpen={!!flagTask}
+          onClose={() => setFlagTask(null)}
+          onSuccess={() => { setFlagTask(null); router.refresh(); }}
+        />
+      )}
+
+      {reassignTask && (
+        <TaskReassignModal
+          taskId={reassignTask.id}
+          taskName={reassignTask.taskType?.replace(/_/g, " ") || "Design Task"}
+          leaderRole={userRole}
+          currentAgentId={reassignTask.agentId}
+          isOpen={!!reassignTask}
+          onClose={() => setReassignTask(null)}
+          onSuccess={() => { setReassignTask(null); router.refresh(); }}
+        />
       )}
     </div>
   );
