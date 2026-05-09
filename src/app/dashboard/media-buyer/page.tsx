@@ -27,7 +27,12 @@ export default async function MediaBuyerPage() {
           where: { status: "active" },
           include: { user: { select: { id: true, name: true, role: true } } },
         },
-        tasks: { select: { id: true, status: true, taskType: true, agentId: true } },
+        tasks: {
+          include: {
+            leader: { select: { id: true, name: true, role: true } },
+            agent: { select: { id: true, name: true, role: true } },
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
     });

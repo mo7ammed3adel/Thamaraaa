@@ -325,47 +325,119 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
                 </div>
               )}
 
-              {/* TL View: Show Agents & Tasks */}
-              {isTL && assignedAgents.length > 0 && (
+              {/* Head/TL View: Show Agents & Tasks + Self-Task */}
+              {(isHead || isTL) && (
                 <div className="p-4 bg-white space-y-4">
-                  <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Assigned Agents</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {assignedAgents.map((ta: any) => {
-                      const agentTasks = projectTasks.filter((t: any) => t.agentId === ta.userId);
-                      return (
-                        <div key={ta.id} className="border rounded-lg p-3">
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <p className="font-bold text-sm">{ta.user.name}</p>
-                              <p className="text-xs text-slate-500">{ta.user.role.replace(/_/g, " ")}</p>
-                            </div>
-                            <span className="bg-indigo-100 text-indigo-800 text-[10px] font-bold px-2 py-0.5 rounded">
-                              {agentTasks.length} TASKS
-                            </span>
-                          </div>
-                          
-                          <div className="space-y-2 mt-3">
-                            {agentTasks.map((task: any) => (
-                              <div key={task.id} className="text-xs bg-slate-50 p-2 rounded flex justify-between items-center border">
-                                <span className="font-medium truncate max-w-[150px]">{task.taskType.replace(/_/g, " ")}</span>
-                                <span className={`px-2 py-0.5 rounded font-bold uppercase ${
-                                  task.status === "done" ? "bg-emerald-100 text-emerald-700" : 
-                                  task.status === "in_progress" ? "bg-amber-100 text-amber-700" : 
-                                  "bg-slate-200 text-slate-700"
-                                }`}>{task.status.replace(/_/g, " ")}</span>
-                                <button
-                                  onClick={() => setReassignTask(task)}
-                                  className="ml-2 text-blue-600 hover:text-blue-800 text-[10px] font-bold underline"
-                                >
-                                  Reassign
-                                </button>
+                  {/* Agents List */}
+                  {assignedAgents.length > 0 && (
+                    <>
+                      <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Assigned Agents</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {assignedAgents.map((ta: any) => {
+                          const agentTasks = projectTasks.filter((t: any) => t.agentId === ta.userId);
+                          return (
+                            <div key={ta.id} className="border rounded-lg p-3">
+                              <div className="flex justify-between items-start mb-2">
+                                <div>
+                                  <p className="font-bold text-sm">{ta.user.name}</p>
+                                  <p className="text-xs text-slate-500">{ta.user.role.replace(/_/g, " ")}</p>
+                                </div>
+                                <span className="bg-indigo-100 text-indigo-800 text-[10px] font-bold px-2 py-0.5 rounded">
+                                  {agentTasks.length} TASKS
+                                </span>
                               </div>
-                            ))}
-                            {agentTasks.length === 0 && <p className="text-xs text-slate-400 italic">No tasks created yet</p>}
+                              
+                              <div className="space-y-2 mt-3">
+                                {agentTasks.map((task: any) => (
+                                  <div key={task.id} className="text-xs bg-slate-50 p-2 rounded flex justify-between items-center border">
+                                    <span className="font-medium truncate max-w-[150px]">{task.taskType.replace(/_/g, " ")}</span>
+                                    <span className={`px-2 py-0.5 rounded font-bold uppercase ${
+                                      task.status === "done" ? "bg-emerald-100 text-emerald-700" : 
+                                      task.status === "in_progress" ? "bg-amber-100 text-amber-700" : 
+                                      "bg-slate-200 text-slate-700"
+                                    }`}>{task.status.replace(/_/g, " ")}</span>
+                                    <button
+                                      onClick={() => setReassignTask(task)}
+                                      className="ml-2 text-blue-600 hover:text-blue-800 text-[10px] font-bold underline"
+                                    >
+                                      Reassign
+                                    </button>
+                                  </div>
+                                ))}
+                                {agentTasks.length === 0 && <p className="text-xs text-slate-400 italic">No tasks created yet</p>}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </>
+                  )}
+
+                  {/* Self-Task Section for Head/TL */}
+                  <div className="border-t pt-4 mt-4 space-y-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">My Tasks</h4>
+                      <button
+                        onClick={() => setSelfTaskProject(project.id)}
+                        className="inline-flex items-center gap-1.5 bg-emerald-600 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-emerald-700 transition shadow-sm"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Add My Task
+                      </button>
+                    </div>
+                    {projectTasks.length === 0 ? (
+                      <div className="bg-slate-50 border rounded-lg p-6 text-center text-slate-500 italic">
+                        No tasks yet. Click &quot;Add My Task&quot; to organize your work.
+                      </div>
+                    ) : (
+                      projectTasks.map((task: any) => {
+                        const isSelfManaged = task.leaderId && task.agentId && task.leaderId === task.agentId;
+                        return (
+                          <div key={task.id} className={`border rounded-lg p-4 flex flex-col md:flex-row justify-between items-center ${isSelfManaged ? "bg-emerald-50/50 border-emerald-200" : "bg-slate-50"}`}>
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="font-bold text-sm uppercase text-indigo-800">{task.taskType.replace(/_/g, " ")}</p>
+                                {isSelfManaged && (
+                                  <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-bold rounded uppercase border border-emerald-200">🔓 Self-Managed</span>
+                                )}
+                              </div>
+                              {task.brief && <p className="text-xs text-slate-600 mb-1">{task.brief}</p>}
+                              {task.agent && !isSelfManaged && (
+                                <p className="text-xs text-slate-500">Assigned to: {task.agent.name} ({task.agent.role.replace(/_/g, " ")})</p>
+                              )}
+                              {task.deadline && (
+                                <p className={`text-xs mt-1 font-medium ${new Date(task.deadline) < now ? "text-red-600" : "text-slate-500"}`}>
+                                  Deadline: {new Date(task.deadline).toLocaleDateString()}
+                                  {new Date(task.deadline) < now && task.status !== "done" && " ⚠️ OVERDUE"}
+                                </p>
+                              )}
+                            </div>
+                            <div className="mt-3 md:mt-0 flex items-center gap-3">
+                              <select 
+                                value={task.status}
+                                onChange={(e) => handleUpdateTaskStatus(task.id, e.target.value)}
+                                className="border-2 border-slate-200 rounded-lg text-sm font-bold px-3 py-1.5 focus:border-indigo-500 outline-none bg-white"
+                              >
+                                <option value="pending">Pending / On Hold</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="done">Done</option>
+                              </select>
+                              <button 
+                                onClick={() => setCrossTeamProject(project.id)}
+                                className="bg-slate-800 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-slate-900 transition"
+                              >
+                                + Cross-Team Task
+                              </button>
+                              <button
+                                onClick={() => setFlagTask(task)}
+                                className="bg-orange-50 text-orange-700 border border-orange-200 text-xs font-bold px-3 py-2 rounded-lg hover:bg-orange-100 transition"
+                              >
+                                ⚑ Flag
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      )
-                    })}
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               )}
