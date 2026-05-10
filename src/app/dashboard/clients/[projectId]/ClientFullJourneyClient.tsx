@@ -31,6 +31,7 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
   const [newTaskBrief, setNewTaskBrief] = useState("");
   const [newTaskPriority, setNewTaskPriority] = useState("Medium");
   const [newTaskDeadline, setNewTaskDeadline] = useState("");
+  const [newTaskLink, setNewTaskLink] = useState("");
   const [creatingTask, setCreatingTask] = useState(false);
 
   // ── Task Filters ──
@@ -54,9 +55,11 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
         brief: newTaskBrief,
         priority: newTaskPriority,
         deadline: newTaskDeadline || undefined,
+        taskLink: newTaskLink.trim() || undefined,
       })
     });
     setNewTaskBrief("");
+    setNewTaskLink("");
     setCreatingTask(false);
     router.refresh();
   }
@@ -614,11 +617,23 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
               </select>
               <input type="date" value={newTaskDeadline} onChange={(e) => setNewTaskDeadline(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white" />
             </div>
-            <div className="flex gap-3">
-              <textarea value={newTaskBrief} onChange={(e) => setNewTaskBrief(e.target.value)} placeholder="Task details and instructions..." className="flex-1 border rounded-lg px-3 py-2 text-sm resize-none h-20" />
-              <button onClick={handleCreateTask} disabled={!newTaskBrief.trim() || creatingTask} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium self-end hover:bg-indigo-700 disabled:opacity-50 transition">
-                {creatingTask ? "Sending..." : "Create Task"}
-              </button>
+            <div className="space-y-3">
+              <textarea value={newTaskBrief} onChange={(e) => setNewTaskBrief(e.target.value)} placeholder="Task details and instructions..." className="w-full border rounded-lg px-3 py-2 text-sm resize-none h-20" />
+              <div className="flex gap-3">
+                <div className="flex-1 relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔗</div>
+                  <input
+                    type="url"
+                    value={newTaskLink}
+                    onChange={(e) => setNewTaskLink(e.target.value)}
+                    placeholder="Paste link here (Google Drive, Sheets, etc.)..."
+                    className="w-full border rounded-lg pl-8 pr-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition"
+                  />
+                </div>
+                <button onClick={handleCreateTask} disabled={!newTaskBrief.trim() || creatingTask} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition whitespace-nowrap">
+                  {creatingTask ? "Sending..." : "Create Task"}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -810,6 +825,11 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
                       )}
                     </span>
                     {t.brief && <span>Brief: {t.brief}</span>}
+                    {t.taskLink && (
+                      <a href={t.taskLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 hover:underline font-medium">
+                        🔗 Link
+                      </a>
+                    )}
                   </div>
 
                   {/* ── Progress Slider ── */}
@@ -963,33 +983,119 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
 
       {/* ═══ SECTION 8: Files ═══ */}
       {activeTab === "files" && (
-        <div className="bg-white rounded-xl border shadow-sm p-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">Project Files</h2>
-          {project.files?.length === 0 ? (
-            <p className="text-sm text-slate-400 italic py-4">No files uploaded yet.</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {project.files.map((f: any) => (
-                <a key={f.id} href={f.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 border rounded-lg p-4 hover:bg-slate-50 hover:shadow-sm transition">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white text-lg ${f.fileType === "contract" ? "bg-red-500" : f.fileType === "screenshot" ? "bg-blue-500" : "bg-slate-500"}`}>
-                    {f.fileType === "contract" ? "📄" : f.fileType === "screenshot" ? "📸" : "📎"}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800 capitalize">{f.fileType}</p>
-                    <p className="text-xs text-slate-400">{new Date(f.createdAt).toLocaleDateString()}</p>
-                  </div>
-                </a>
-              ))}
+        <div className="space-y-4">
+          {/* ── Task-Linked Files (Auto-synced from Tasks) ── */}
+          {(() => {
+            const taskLinks = (project.tasks || []).filter((t: any) => t.taskLink);
+            if (taskLinks.length > 0) return (
+              <div className="bg-white rounded-xl border shadow-sm p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <h2 className="text-lg font-bold text-slate-800">📎 Task Links</h2>
+                  <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-full">{taskLinks.length}</span>
+                  <span className="text-xs text-slate-400 ml-auto">Auto-synced from Tasks</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Type</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Link</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Sent By</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Role</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Sent Date</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Deadline</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {taskLinks.map((t: any) => {
+                        // Detect link type for icon
+                        const url = (t.taskLink || "").toLowerCase();
+                        let icon = "🔗";
+                        let label = "Link";
+                        if (url.includes("drive.google")) { icon = "📁"; label = "Google Drive"; }
+                        else if (url.includes("docs.google.com/spreadsheets") || url.includes("sheets.google")) { icon = "📊"; label = "Google Sheet"; }
+                        else if (url.includes("docs.google.com/document")) { icon = "📝"; label = "Google Doc"; }
+                        else if (url.includes("docs.google.com/presentation")) { icon = "📽️"; label = "Google Slides"; }
+                        else if (url.includes("figma.com")) { icon = "🎨"; label = "Figma"; }
+                        else if (url.includes("canva.com")) { icon = "🖼️"; label = "Canva"; }
+                        else if (url.includes("notion.")) { icon = "📓"; label = "Notion"; }
+                        else if (url.includes("trello.")) { icon = "📋"; label = "Trello"; }
+
+                        const isOverdue = t.deadline && new Date(t.deadline) < new Date() && t.status !== "done";
+
+                        return (
+                          <tr key={t.id} className="hover:bg-slate-50/50">
+                            <td className="px-4 py-3">
+                              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-700 capitalize">
+                                {icon} {t.taskType.replace(/_/g, " ")}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <a href={t.taskLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition max-w-[200px] truncate">
+                                {label} ↗
+                              </a>
+                            </td>
+                            <td className="px-4 py-3 text-sm font-medium text-slate-700">{t.leader?.name || "—"}</td>
+                            <td className="px-4 py-3">
+                              <span className="text-xs text-slate-500 capitalize">{(t.requesterRole || t.leader?.role || "—").replace(/_/g, " ")}</span>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-slate-500">{new Date(t.createdAt).toLocaleDateString("en-GB")}</td>
+                            <td className="px-4 py-3">
+                              {t.deadline ? (
+                                <span className={`text-xs font-semibold ${isOverdue ? "text-red-600" : "text-slate-600"}`}>
+                                  {new Date(t.deadline).toLocaleDateString("en-GB")}
+                                  {isOverdue && " ⚠️"}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-slate-400">—</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`px-2 py-0.5 rounded text-xs font-bold capitalize ${t.status === "done" ? "bg-emerald-100 text-emerald-700" : t.status === "in_progress" ? "bg-amber-100 text-amber-700" : t.status === "review" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"}`}>
+                                {t.status.replace(/_/g, " ")}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+            return null;
+          })()}
+
+          {/* ── Uploaded Project Files ── */}
+          <div className="bg-white rounded-xl border shadow-sm p-6">
+            <h2 className="text-lg font-bold text-slate-800 mb-4">Project Files</h2>
+            {project.files?.length === 0 ? (
+              <p className="text-sm text-slate-400 italic py-4">No files uploaded yet.</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {project.files.map((f: any) => (
+                  <a key={f.id} href={f.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 border rounded-lg p-4 hover:bg-slate-50 hover:shadow-sm transition">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white text-lg ${f.fileType === "contract" ? "bg-red-500" : f.fileType === "screenshot" ? "bg-blue-500" : "bg-slate-500"}`}>
+                      {f.fileType === "contract" ? "📄" : f.fileType === "screenshot" ? "📸" : "📎"}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800 capitalize">{f.fileType}</p>
+                      <p className="text-xs text-slate-400">{new Date(f.createdAt).toLocaleDateString()}</p>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )}
+            {/* Drive/Store Links */}
+            <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4">
+              {project.driveLink && (
+                <a href={project.driveLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-indigo-600 hover:underline">📁 Google Drive Folder</a>
+              )}
+              {project.storeUrl && (
+                <a href={project.storeUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-indigo-600 hover:underline">🛒 Store Link</a>
+              )}
             </div>
-          )}
-          {/* Drive/Store Links */}
-          <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4">
-            {project.driveLink && (
-              <a href={project.driveLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-indigo-600 hover:underline">📁 Google Drive Folder</a>
-            )}
-            {project.storeUrl && (
-              <a href={project.storeUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-indigo-600 hover:underline">🛒 Store Link</a>
-            )}
           </div>
         </div>
       )}
