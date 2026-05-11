@@ -119,12 +119,16 @@ export default function ProfileClient({ profile }: { profile: any }) {
           </div>
         </div>
 
-        {/* Sales Stats Module */}
+        {/* Sales / Telesales Stats Module */}
         {profile.role.includes("sales") && (
           <div className="bg-green-50 rounded-xl shadow-sm border border-green-100 p-6">
-            <h3 className="text-lg font-bold text-green-900 mb-4 border-b border-green-200 pb-2">My Sales Performance</h3>
-            <p className="text-3xl font-bold text-green-600 mb-2">{profile.salesDeals.length} Deals</p>
-            <p className="text-sm text-green-700 font-medium">Total Volume: SAR {profile.salesDeals.reduce((sum: number, d: any) => sum + d.netTarget, 0).toFixed(2)}</p>
+            <h3 className="text-lg font-bold text-green-900 mb-4 border-b border-green-200 pb-2">
+              {profile.role.startsWith("tele_") ? "My Telesales Performance" : "My Sales Performance"}
+            </h3>
+            <p className="text-3xl font-bold text-green-600 mb-2">{profile.salesStats?.dealCount ?? 0} Deals</p>
+            <p className="text-sm text-green-700 font-medium">
+              Total Revenue: SAR {(profile.salesStats?.revenue ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            </p>
           </div>
         )}
       </div>

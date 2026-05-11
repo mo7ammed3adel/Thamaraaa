@@ -27,10 +27,12 @@ export default async function MyTeamPage({ searchParams }: { searchParams: any }
   // Get current month for targets
   const currentMonth = new Date().toISOString().slice(0, 7); // "YYYY-MM"
 
-  // Get agents under this manager (or all tele agents for super_admin)
+  // Get agents under this manager (or all tele agents for super_admin).
+  // A telesales manager also sees orphan agents (no directManager yet) so newly created
+  // agents who haven't been routed by the load-balancer are still visible and can be claimed.
   const whereClause: any = { role: "tele_sales_agent" };
   if (user.role === "tele_sales_manager") {
-    whereClause.directManagerId = user.id;
+    whereClause.OR = [{ directManagerId: user.id }, { directManagerId: null }];
   }
 
   const agents = await prisma.user.findMany({

@@ -66,6 +66,37 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [activeLead, taskStartTime]);
 
+  // Restore active task on mount: if the agent's saved status is In_Call, find the
+  // lead they were working on (meetingStartedAt set, meetingEndedAt null) and rehydrate
+  // local state so the End Task button — not Start Task — appears.
+  // If no truly-in-progress lead exists (orphan In_Call state from an abandoned feedback
+  // form or pre-fix data), self-heal by resetting the agent status to Active so the
+  // workspace isn't permanently locked.
+  useEffect(() => {
+    if (activeLead || initialStatus !== "In_Call") return;
+    const inProgress = initialLeads.find(
+      (l: any) => l.meetingStartedAt && !l.meetingEndedAt
+    );
+    if (inProgress) {
+      setActiveLead(inProgress);
+      setTaskStartTime(new Date(inProgress.meetingStartedAt));
+      setFeedback(prev => ({
+        ...prev,
+        hasStore: inProgress.hasStore ? "Yes" : "No",
+        storeLink: inProgress.storeLink || "",
+        customerType: inProgress.customerType || "Launch",
+      }));
+    } else {
+      setStatus("Active");
+      fetch(`/api/users/${userId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "Active" }),
+      }).catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const formatTimer = (secs: number) => {
     const m = Math.floor(secs / 60).toString().padStart(2, '0');
     const s = (secs % 60).toString().padStart(2, '0');
@@ -148,10 +179,11 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
   };
 
   const startTask = async (lead: any) => {
+    const startedAt = new Date();
     setStatus("In_Call");
-    setActiveLead(lead);
-    setTaskStartTime(new Date());
-    
+    setActiveLead({ ...lead, meetingStartedAt: startedAt, meetingEndedAt: null });
+    setTaskStartTime(startedAt);
+
     // Pre-fill existing profile data (Store, Client Type) so they don't disappear on subsequent follow-ups
     setFeedback(prev => ({
       ...prev,
@@ -159,6 +191,17 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
       storeLink: lead.storeLink || "",
       customerType: lead.customerType || "Launch",
     }));
+
+    // Persist start time on the lead so the active task survives a page reload
+    // (the mount-effect uses meetingStartedAt/meetingEndedAt to rehydrate).
+    setLeads(prev => prev.map(l =>
+      l.id === lead.id ? { ...l, meetingStartedAt: startedAt, meetingEndedAt: null } : l
+    ));
+    await fetch(`/api/leads/${lead.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ meetingStartedAt: startedAt, meetingEndedAt: null }),
+    });
 
     await fetch(`/api/users/${userId}/status`, {
       method: "PATCH",
@@ -365,8 +408,9 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     return true;
   });
 
-  // KPI counts
-  const totalMeets = timeFilteredLeads.filter(l => !["Closed_Won", "Closed_Lost"].includes(l.status)).length;
+  // KPI counts — Total Meets is the universe (all meetings in the period),
+  // not just active leads, so Total Meets >= Win Deal + Closed Lost.
+  const totalMeets = timeFilteredLeads.length;
   const closedWon = timeFilteredLeads.filter(l => l.status === "Closed_Won" || l._count?.deals > 0).length;
   const followUp = timeFilteredLeads.filter(l => l.status === "Follow_Up").length;
   const rescheduled = timeFilteredLeads.filter(l => l.status === "Rescheduled").length;

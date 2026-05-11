@@ -8,23 +8,25 @@ export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if ((session?.user as any)?.role !== "super_admin" && (session?.user as any)?.role !== "hr_manager") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      return NextResponse.json({ error: "Unauthorized — only Super Admin or HR Manager can create users" }, { status: 403 });
     }
 
     const data = await req.json();
-    
-    // Check if user already exists
-    const existing = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: data.email },
-          data.phone ? { phone: data.phone } : {}
-        ]
-      }
-    });
+
+    if (!data.name || !data.email || !data.password || !data.role) {
+      return NextResponse.json({ error: "Name, email, password and role are required" }, { status: 400 });
+    }
+
+    // Check if user already exists. Build the OR clauses dynamically so we never include an
+    // empty `{}` (which would match every row in Prisma OR semantics and break creation).
+    const orClauses: Array<Record<string, string>> = [{ email: data.email }];
+    if (data.phone) orClauses.push({ phone: data.phone });
+
+    const existing = await prisma.user.findFirst({ where: { OR: orClauses } });
 
     if (existing) {
-      return NextResponse.json({ error: "User already exists with this email or phone" }, { status: 400 });
+      const conflict = existing.email === data.email ? "email" : "phone";
+      return NextResponse.json({ error: `A user with this ${conflict} already exists` }, { status: 400 });
     }
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
@@ -76,8 +78,12 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(user, { status: 201 });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  } catch (error: any) {
+    console.error("Error creating user:", error);
+    const msg =
+      error?.code === "P2002"
+        ? "A user with this email or phone already exists"
+        : error?.message || "Internal Server Error";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

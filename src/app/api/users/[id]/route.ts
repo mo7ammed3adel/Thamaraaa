@@ -67,18 +67,77 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
 
     const { id } = params;
 
-    // Prevent deleting yourself
     if (id === user.id) {
       return NextResponse.json({ error: "Cannot delete your own account" }, { status: 400 });
     }
 
-    await prisma.user.delete({
-      where: { id },
+    const target = await prisma.user.findUnique({ where: { id } });
+    if (!target) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Check for hard business references that must be preserved (deals, meetings, callLogs etc.).
+    // If any exist we soft-delete (deactivate + free up email/phone) instead of throwing FK errors.
+    const [dealCount, meetingCount, callLogCount, projectCount, warningCount, noteCount] = await Promise.all([
+      prisma.deal.count({ where: { salesAgentId: id } }),
+      prisma.meeting.count({ where: { OR: [{ teleAgentId: id }, { salesAgentId: id }] } }),
+      prisma.callLog.count({ where: { agentId: id } }),
+      prisma.project.count({ where: { OR: [{ accountManagerId: id }, { headTechnicalId: id }, { headSeoId: id }] } }),
+      prisma.warning.count({ where: { senderUserId: id } }),
+      prisma.note.count({ where: { userId: id } }),
+    ]);
+
+    const hasBusinessHistory =
+      dealCount + meetingCount + callLogCount + projectCount + warningCount + noteCount > 0;
+
+    if (hasBusinessHistory) {
+      // Soft delete: deactivate and free unique email/phone so they can be reused.
+      const stamp = Date.now();
+      await prisma.user.update({
+        where: { id },
+        data: {
+          status: "Inactive",
+          email: `deleted_${stamp}_${target.email}`.slice(0, 190),
+          phone: target.phone ? `deleted_${stamp}_${target.phone}`.slice(0, 190) : null,
+          directManagerId: null,
+        },
+      });
+      return NextResponse.json({
+        message: "User deactivated (has business history). Records preserved.",
+        softDeleted: true,
+      });
+    }
+
+    // No business history — safe to hard delete. Clean up dependent records first.
+    await prisma.$transaction(async (tx) => {
+      // Detach from optional FKs (leads created/assigned, subordinates already cascades to SetNull).
+      await tx.lead.updateMany({ where: { assignedTeleAgentId: id }, data: { assignedTeleAgentId: null } });
+      await tx.lead.updateMany({ where: { assignedSalesAgentId: id }, data: { assignedSalesAgentId: null } });
+      await tx.lead.updateMany({ where: { createdById: id }, data: { createdById: null } });
+
+      // Delete dependent records that are safe to remove with the user.
+      await tx.notification.deleteMany({ where: { userId: id } });
+      await tx.leaveRequest.deleteMany({ where: { userId: id } });
+      await tx.attendance.deleteMany({ where: { userId: id } });
+      await tx.employeeDocument.deleteMany({ where: { userId: id } });
+      await tx.commission.deleteMany({ where: { userId: id } });
+      await tx.agentTarget.deleteMany({ where: { agentId: id } });
+      await tx.warningReceipt.deleteMany({ where: { userId: id } });
+      await tx.teamAssignment.deleteMany({ where: { OR: [{ userId: id }, { assignedByUserId: id }] } });
+      await tx.task.updateMany({ where: { agentId: id }, data: { agentId: null } });
+      await tx.task.deleteMany({ where: { leaderId: id } });
+      await tx.hrRecord.deleteMany({ where: { userId: id } });
+
+      await tx.user.delete({ where: { id } });
     });
 
     return NextResponse.json({ message: "User deleted successfully" });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error deleting user:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    const msg =
+      error?.code === "P2003"
+        ? "Cannot delete: user is still referenced by other records. Try deactivating instead."
+        : error?.message || "Internal Server Error";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

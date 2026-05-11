@@ -145,16 +145,20 @@ export default function ColdLeadsClient({ initialLeads, agentId }: { initialLead
     }
   };
 
-  // Filter leads based on Date Range
+  // Filter leads based on Date Range — parse YYYY-MM-DD as LOCAL day boundaries
+  // (not UTC midnight) so a lead created today in the user's timezone is always included.
+  const parseLocalStartOfDay = (s: string) => {
+    const [y, m, d] = s.split("-").map(Number);
+    return new Date(y, (m || 1) - 1, d || 1, 0, 0, 0, 0);
+  };
+  const parseLocalEndOfDay = (s: string) => {
+    const [y, m, d] = s.split("-").map(Number);
+    return new Date(y, (m || 1) - 1, d || 1, 23, 59, 59, 999);
+  };
   const filteredLeads = leads.filter(l => {
-    if (fromDate) {
-      if (new Date(l.createdAt) < new Date(fromDate)) return false;
-    }
-    if (toDate) {
-      const end = new Date(toDate);
-      end.setHours(23, 59, 59, 999);
-      if (new Date(l.createdAt) > end) return false;
-    }
+    const created = new Date(l.createdAt);
+    if (fromDate && created < parseLocalStartOfDay(fromDate)) return false;
+    if (toDate && created > parseLocalEndOfDay(toDate)) return false;
     return true;
   });
 

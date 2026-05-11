@@ -50,13 +50,14 @@ export default function UserListClient({ initialUsers, managers }: { initialUser
     });
 
     if (res.ok) {
+      const newUser = await res.json();
       setShowModal(false);
       setFormData({ name: "", email: "", phone: "", password: "", role: "sales_agent", level: "Junior", status: "Active" });
-      router.refresh(); 
-      const newUser = await res.json();
       setUsers([newUser, ...users]);
+      router.refresh();
     } else {
-      alert("Error creating user");
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || "Error creating user");
     }
     setLoading(false);
   };
@@ -97,12 +98,13 @@ export default function UserListClient({ initialUsers, managers }: { initialUser
     });
 
     if (res.ok) {
-      setEditingUser(null);
-      router.refresh(); 
       const updatedUser = await res.json();
+      setEditingUser(null);
       setUsers(users.map(u => u.id === updatedUser.id ? { ...u, ...updatedUser } : u));
+      router.refresh();
     } else {
-      alert("Error updating user");
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || "Error updating user");
     }
     setLoading(false);
   };

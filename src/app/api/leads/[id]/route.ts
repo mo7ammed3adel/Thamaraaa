@@ -42,9 +42,14 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     if (meetingDate !== undefined) updateData.meetingDate = new Date(meetingDate + "T00:00:00Z");
     if (meetingTime !== undefined) updateData.meetingTime = meetingTime;
     
-    // New Sales Fields
-    if (meetingStartedAt !== undefined && meetingStartedAt !== null) updateData.meetingStartedAt = new Date(meetingStartedAt);
-    if (meetingEndedAt !== undefined && meetingEndedAt !== null) updateData.meetingEndedAt = new Date(meetingEndedAt);
+    // New Sales Fields — allow explicit null to clear the timestamp (used when Start Task
+    // begins a fresh task and we need to reset a previously-completed meeting window).
+    if (meetingStartedAt !== undefined) {
+      updateData.meetingStartedAt = meetingStartedAt === null ? null : new Date(meetingStartedAt);
+    }
+    if (meetingEndedAt !== undefined) {
+      updateData.meetingEndedAt = meetingEndedAt === null ? null : new Date(meetingEndedAt);
+    }
     if (hasStore !== undefined) updateData.hasStore = hasStore;
     if (storeLink !== undefined) updateData.storeLink = storeLink;
     if (customerType !== undefined) updateData.customerType = customerType;

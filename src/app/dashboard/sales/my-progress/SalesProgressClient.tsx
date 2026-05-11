@@ -104,7 +104,12 @@ export default function SalesProgressClient() {
 
   const wonDeals = data.deals.filter(d => d.status === "Closed_Won" || d.status === "Pending");
   const lostDeals = data.deals.filter(d => d.status === "Closed_Lost");
-  const totalMeetings = Math.max(data.meetings.length, data.dealsWon + data.dealsLost);
+  // Count UNIQUE leads with a meeting, not raw meeting records — reschedules create
+  // additional Meeting rows for the same lead, which used to make Meetings > Total Leads.
+  const uniqueLeadsWithMeeting = new Set(
+    data.meetings.map((m: any) => m.lead?.id ?? m.leadId).filter(Boolean)
+  ).size;
+  const totalMeetings = Math.min(uniqueLeadsWithMeeting, data.totalLeads || uniqueLeadsWithMeeting);
   const conversionRate = totalMeetings > 0 ? ((data.dealsWon / totalMeetings) * 100).toFixed(1) : "0.0";
 
   return (

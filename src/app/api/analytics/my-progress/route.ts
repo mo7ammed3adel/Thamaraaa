@@ -113,11 +113,12 @@ export async function GET(req: Request) {
         },
         select: {
           id: true,
+          leadId: true,
           status: true,
           meetingDate: true,
           meetingTime: true,
           createdAt: true,
-          lead: { select: { name: true, phone: true } },
+          lead: { select: { id: true, name: true, phone: true } },
         },
         orderBy: { createdAt: "desc" },
       });

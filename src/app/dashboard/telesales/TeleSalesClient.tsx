@@ -231,8 +231,15 @@ export default function TeleSalesClient({
     }
 
     if (logFilter !== "All") {
-      const lastLog = l.callLogs?.[0]?.callStatus;
-      if (lastLog !== logFilter) return false;
+      if (logFilter === "Accept and book meeting") {
+        // Meeting-booked leads should remain in this bucket even after follow-up call logs.
+        const hasBookedMeeting = !!l.meetingDate ||
+          ["Transferred", "In_Sales", "Closed_Won"].includes(l.status);
+        if (!hasBookedMeeting) return false;
+      } else {
+        const lastLog = l.callLogs?.[0]?.callStatus;
+        if (lastLog !== logFilter) return false;
+      }
     }
 
     if (searchQuery.trim()) {
@@ -249,7 +256,10 @@ export default function TeleSalesClient({
 
   const totalCount = leads.length;
   const acceptLostCount = leads.filter(l => l.callLogs?.[0]?.callStatus === "Accept but lost").length;
-  const acceptBookCount = leads.filter(l => l.callLogs?.[0]?.callStatus === "Accept and book meeting").length;
+  // A booked meeting stays counted even after follow-up call logs change the latest status.
+  const acceptBookCount = leads.filter(l =>
+    !!l.meetingDate || ["Transferred", "In_Sales", "Closed_Won"].includes(l.status)
+  ).length;
   const busyCount = leads.filter(l => l.callLogs?.[0]?.callStatus === "Busy").length;
   const wrongNumberCount = leads.filter(l => l.callLogs?.[0]?.callStatus === "Wrong Number").length;
 
