@@ -27,10 +27,12 @@ export async function GET(req: Request) {
 
     const createdAtFilter = (from || to) ? { createdAt: dateFilter } : {};
 
-    // Get all sales_agents under this manager (or all if super_admin)
+    // Get all sales_agents under this manager (or all if super_admin).
+    // Include orphan agents (no directManager) so the manager sees the
+    // same team they see on the dashboard.
     const agentFilter: any = { role: "sales_agent" };
     if (user.role === "sales_manager") {
-      agentFilter.directManagerId = user.id;
+      agentFilter.OR = [{ directManagerId: user.id }, { directManagerId: null }];
     }
 
     const agents = await prisma.user.findMany({

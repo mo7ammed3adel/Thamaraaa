@@ -8,16 +8,18 @@ export default async function ColdLeadsPage() {
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
 
-  if (user?.role !== "tele_sales_agent") {
+  if (!["tele_sales_agent", "tele_sales_manager", "super_admin"].includes(user?.role)) {
     redirect("/dashboard");
   }
 
-  // Get leads created by this agent that are "Draft" (Cold Pool)
+  // Agents see their own Draft pool; managers/admin see the whole pool
+  // they (or their team) created so they can monitor and bulk-promote.
+  const where: any = { status: "Draft" };
+  if (user.role === "tele_sales_agent") {
+    where.createdById = user.id;
+  }
   const coldLeads = await prisma.lead.findMany({
-    where: {
-      createdById: user.id,
-      status: "Draft",
-    },
+    where,
     orderBy: { createdAt: "desc" },
     select: {
       id: true,

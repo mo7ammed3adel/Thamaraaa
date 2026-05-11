@@ -12,10 +12,12 @@ export default async function SalesMyTeamPage() {
     redirect("/dashboard");
   }
 
-  // Get agents under this manager (or all sales agents for super_admin/chief_sales)
+  // Get agents under this manager (or all sales agents for super_admin/chief_sales).
+  // Sales manager also sees orphan agents (no directManager yet) so newly-created
+  // sales agents are visible — matches the dashboard's listing behavior.
   const whereClause: any = { role: "sales_agent" };
   if (user.role === "sales_manager") {
-    whereClause.directManagerId = user.id;
+    whereClause.OR = [{ directManagerId: user.id }, { directManagerId: null }];
   }
 
   const startOfDay = new Date();

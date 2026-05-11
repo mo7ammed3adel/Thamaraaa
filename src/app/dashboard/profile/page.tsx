@@ -38,8 +38,16 @@ export default async function ProfilePage() {
     dealCount = agg._count._all;
     revenue = agg._sum.totalAmount || 0;
   } else if (role === "sales_manager") {
-    const teamIds = (await prisma.user.findMany({ where: { directManagerId: profile.id }, select: { id: true } })).map(u => u.id);
-    const ids = [profile.id, ...teamIds];
+    // Include orphan agents (no directManager yet) so the manager's stats
+    // mirror what they see on the dashboard.
+    const team = await prisma.user.findMany({
+      where: {
+        role: "sales_agent",
+        OR: [{ directManagerId: profile.id }, { directManagerId: null }],
+      },
+      select: { id: true },
+    });
+    const ids = [profile.id, ...team.map(u => u.id)];
     const agg = await prisma.deal.aggregate({
       where: { salesAgentId: { in: ids } },
       _count: { _all: true },
@@ -56,8 +64,14 @@ export default async function ProfilePage() {
     dealCount = agg._count._all;
     revenue = agg._sum.totalAmount || 0;
   } else if (role === "tele_sales_manager") {
-    const teamIds = (await prisma.user.findMany({ where: { directManagerId: profile.id }, select: { id: true } })).map(u => u.id);
-    const ids = [profile.id, ...teamIds];
+    const team = await prisma.user.findMany({
+      where: {
+        role: "tele_sales_agent",
+        OR: [{ directManagerId: profile.id }, { directManagerId: null }],
+      },
+      select: { id: true },
+    });
+    const ids = [profile.id, ...team.map(u => u.id)];
     const agg = await prisma.deal.aggregate({
       where: { lead: { assignedTeleAgentId: { in: ids } } },
       _count: { _all: true },

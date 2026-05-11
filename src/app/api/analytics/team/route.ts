@@ -28,10 +28,12 @@ export async function GET(req: Request) {
     const createdAtFilter = (from || to) ? { createdAt: dateFilter } : {};
     const meetingDateFilter = (from || to) ? { meetingDate: dateFilter } : {};
 
-    // Get all tele_sales_agents under this manager (or all if super_admin)
+    // Get all tele_sales_agents under this manager (or all if super_admin).
+    // Include agents with no directManager assigned yet so newly-created or
+    // unassigned agents are visible — matches the My Team page behavior.
     const agentFilter: any = { role: "tele_sales_agent" };
     if (user.role === "tele_sales_manager") {
-      agentFilter.directManagerId = user.id;
+      agentFilter.OR = [{ directManagerId: user.id }, { directManagerId: null }];
     }
 
     const agents = await prisma.user.findMany({
