@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Users, Briefcase, Calendar, CheckSquare, Plus, X, Search, Edit2, UserX, UserCheck } from "lucide-react";
+import { Users, Briefcase, Calendar, CheckSquare, Plus, X, Search, Edit2, UserX, UserCheck, TrendingUp, FileText, Trash2, AlertTriangle, Award } from "lucide-react";
 
 const ALL_ROLES = [
   { value: "super_admin", label: "Super Admin", dept: "Administration" },
@@ -75,10 +75,27 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
         password: form.get("password"),
         role: form.get("role"),
         phone: form.get("phone") || null,
+        level: form.get("level") || "Junior",
+        directManagerId: form.get("directManagerId") || null,
+        company: form.get("company") || null,
+        baseSalary: form.get("baseSalary") || 0,
+        monthlyTarget: form.get("monthlyTarget") || 0,
+        status: form.get("status") || "Active",
       })
     });
     setLoading(false);
     setShowAddForm(false);
+    router.refresh();
+  };
+
+  const handleDeduction = async (attendanceId: string, action: "approve" | "reject") => {
+    setLoading(true);
+    await fetch("/api/attendance", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: attendanceId, action }),
+    });
+    setLoading(false);
     router.refresh();
   };
 
@@ -107,6 +124,11 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
         name: form.get("name"),
         role: form.get("role"),
         phone: form.get("phone") || null,
+        level: form.get("level") || undefined,
+        directManagerId: form.get("directManagerId") || null,
+        company: form.get("company") || null,
+        baseSalary: form.get("baseSalary") ?? undefined,
+        monthlyTarget: form.get("monthlyTarget") ?? undefined,
       })
     });
     setLoading(false);
@@ -164,8 +186,20 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
           <button onClick={() => setActiveTab("departments")} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "departments" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500"}`}>
             🏢 Departments
           </button>
+          <button onClick={() => setActiveTab("promotion")} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "promotion" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500"}`}>
+            🏆 Promotion Engine
+          </button>
+          <button onClick={() => setActiveTab("documents")} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "documents" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500"}`}>
+            📄 Employee Documents
+          </button>
         </div>
       )}
+
+      {/* PROMOTION ENGINE TAB */}
+      {isManager && activeTab === "promotion" && <PromotionEngineTab />}
+
+      {/* DOCUMENTS TAB */}
+      {isManager && activeTab === "documents" && <DocumentsTab employees={employees || []} />}
 
       {/* ATTENDANCE TAB */}
       {activeTab === "attendance" && (
@@ -209,6 +243,7 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Check In</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Check Out</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Delay (Mins)</th>
+                  {isManager && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Deduction (SAR)</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -219,10 +254,25 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(h.checkIn).toLocaleTimeString()}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{h.checkOut ? new Date(h.checkOut).toLocaleTimeString() : <span className="text-yellow-600">Active</span>}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600">{h.lateMinutes > 0 ? h.lateMinutes : <span className="text-green-600">On Time</span>}</td>
+                    {isManager && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {h.deductionDraft == null ? (
+                          <span className="text-gray-400">—</span>
+                        ) : h.deductionApproved ? (
+                          <span className="inline-flex items-center gap-1 text-emerald-700 font-bold">✓ {h.deductionDraft} SAR</span>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-amber-700">{h.deductionDraft} SAR</span>
+                            <button onClick={() => handleDeduction(h.id, "approve")} disabled={loading} className="px-2 py-1 text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded hover:bg-emerald-100 disabled:opacity-50">Approve</button>
+                            <button onClick={() => handleDeduction(h.id, "reject")} disabled={loading} className="px-2 py-1 text-[11px] font-bold bg-red-50 text-red-700 border border-red-200 rounded hover:bg-red-100 disabled:opacity-50">Reject</button>
+                          </div>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
                 {history.length === 0 && (
-                  <tr><td colSpan={isManager ? 5 : 4} className="px-6 py-8 text-center text-sm text-gray-500">No attendance records found.</td></tr>
+                  <tr><td colSpan={isManager ? 6 : 4} className="px-6 py-8 text-center text-sm text-gray-500">No attendance records found.</td></tr>
                 )}
               </tbody>
             </table>
@@ -370,6 +420,46 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Phone</label>
                 <input name="phone" className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Optional" />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Level</label>
+                  <select name="level" defaultValue="Junior" className="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                    <option value="Junior">Junior</option>
+                    <option value="Mid">Mid</option>
+                    <option value="Senior">Senior</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Status</label>
+                  <select name="status" defaultValue="Active" className="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Direct Manager</label>
+                <select name="directManagerId" defaultValue="" className="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                  <option value="">— None —</option>
+                  {(employees || []).filter((m: any) => m.status === "Active").map((m: any) => (
+                    <option key={m.id} value={m.id}>{m.name} ({m.role.replace(/_/g, " ")})</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Base Salary (SAR)</label>
+                  <input name="baseSalary" type="number" min="0" step="0.01" defaultValue="0" className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Monthly Target (SAR)</label>
+                  <input name="monthlyTarget" type="number" min="0" step="0.01" defaultValue="0" className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Company</label>
+                <input name="company" className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Optional" />
+              </div>
               <div className="pt-4 border-t flex gap-3">
                 <button type="button" onClick={() => setShowAddForm(false)} className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">Cancel</button>
                 <button type="submit" disabled={loading} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-50 transition">
@@ -380,6 +470,9 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
           </div>
         </div>
       )}
+
+      {/* ═══ Promotion Engine Sub-component ═══ */}
+      {/* (component definitions are below the JSX return) */}
 
       {/* ═══ Edit Employee Modal ═══ */}
       {editEmployee && (
@@ -408,10 +501,308 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Phone</label>
                 <input name="phone" defaultValue={editEmployee.phone || ""} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Level</label>
+                  <select name="level" defaultValue={editEmployee.level || "Junior"} className="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                    <option value="Junior">Junior</option>
+                    <option value="Mid">Mid</option>
+                    <option value="Senior">Senior</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Direct Manager</label>
+                  <select name="directManagerId" defaultValue={editEmployee.directManagerId || ""} className="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                    <option value="">— None —</option>
+                    {(employees || []).filter((m: any) => m.status === "Active" && m.id !== editEmployee.id).map((m: any) => (
+                      <option key={m.id} value={m.id}>{m.name} ({m.role.replace(/_/g, " ")})</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Base Salary (SAR)</label>
+                  <input name="baseSalary" type="number" min="0" step="0.01" defaultValue={editEmployee.hrRecord?.baseSalary ?? 0} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Monthly Target (SAR)</label>
+                  <input name="monthlyTarget" type="number" min="0" step="0.01" defaultValue={editEmployee.hrRecord?.monthlyTarget ?? 0} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Company</label>
+                <input name="company" defaultValue={editEmployee.company || ""} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Optional" />
+              </div>
               <div className="pt-4 border-t flex gap-3">
                 <button type="button" onClick={() => setEditEmployee(null)} className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">Cancel</button>
                 <button type="submit" disabled={loading} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-50 transition">
                   {loading ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Promotion Engine Tab — surfaces per-employee performance evaluations
+// and the spec actions: promote / warn / terminate / clear flags.
+// ─────────────────────────────────────────────────────────────────────
+function PromotionEngineTab() {
+  const router = useRouter();
+  const [evaluations, setEvaluations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [filter, setFilter] = useState<"all" | "promote" | "warn" | "terminate">("all");
+
+  const load = useCallback(() => {
+    setLoading(true);
+    fetch("/api/hr/promotion-engine")
+      .then((r) => r.json())
+      .then((d) => setEvaluations(d.evaluations || []))
+      .catch(() => setEvaluations([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const runAction = async (e: any, action: string) => {
+    if (action === "terminate" && !confirm(`Terminate ${e.userName}? This will mark the account inactive.`)) return;
+    if (action === "promote" && !confirm(`Promote ${e.userName} to ${e.nextLevel || ""} ${e.nextRole ? `(${e.nextRole.replace(/_/g, " ")})` : ""}?`)) return;
+    setBusy(e.userId);
+    const res = await fetch("/api/hr/promotion-engine", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: e.userId, action, nextLevel: e.nextLevel, nextRole: e.nextRole }),
+    });
+    setBusy(null);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || "Action failed");
+      return;
+    }
+    load();
+    router.refresh();
+  };
+
+  const runAutoEval = async () => {
+    if (!confirm("Run the auto-evaluation against all HrRecords? This updates promotionEligible / warningCount / terminationFlag.")) return;
+    await fetch("/api/hr/evaluations", { method: "POST" });
+    load();
+  };
+
+  const filtered = evaluations.filter((e) => filter === "all" || e.recommendation === filter);
+  const counts = {
+    promote: evaluations.filter((e) => e.recommendation === "promote").length,
+    warn: evaluations.filter((e) => e.recommendation === "warn").length,
+    terminate: evaluations.filter((e) => e.recommendation === "terminate").length,
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl">
+          <p className="text-xs font-bold text-emerald-700 uppercase tracking-widest mb-2 flex items-center gap-2"><Award className="w-4 h-4"/> Eligible to Promote</p>
+          <p className="text-3xl font-black text-emerald-700">{counts.promote}</p>
+        </div>
+        <div className="bg-amber-50 border border-amber-200 p-5 rounded-2xl">
+          <p className="text-xs font-bold text-amber-700 uppercase tracking-widest mb-2 flex items-center gap-2"><AlertTriangle className="w-4 h-4"/> Warning (50–70%)</p>
+          <p className="text-3xl font-black text-amber-700">{counts.warn}</p>
+        </div>
+        <div className="bg-red-50 border border-red-200 p-5 rounded-2xl">
+          <p className="text-xs font-bold text-red-700 uppercase tracking-widest mb-2 flex items-center gap-2"><UserX className="w-4 h-4"/> At Risk (&lt;50%)</p>
+          <p className="text-3xl font-black text-red-700">{counts.terminate}</p>
+        </div>
+        <div className="bg-blue-50 border border-blue-200 p-5 rounded-2xl flex flex-col justify-between">
+          <p className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-2">Auto-Evaluate</p>
+          <button onClick={runAutoEval} className="text-xs px-3 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700 transition">
+            Run 3-Month Eval
+          </button>
+        </div>
+      </div>
+
+      <div className="flex gap-2 text-xs">
+        {(["all", "promote", "warn", "terminate"] as const).map((f) => (
+          <button key={f} onClick={() => setFilter(f)}
+            className={`px-3 py-1.5 rounded-full font-semibold transition ${filter === f ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
+            {f === "all" ? "All" : f === "promote" ? "Promotable" : f === "warn" ? "Warnings" : "At Risk"}
+          </button>
+        ))}
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
+            <tr>
+              <th className="px-4 py-3 text-left">Employee</th>
+              <th className="px-4 py-3 text-left">Role / Level</th>
+              <th className="px-4 py-3 text-center">Avg %</th>
+              <th className="px-4 py-3 text-center">Months</th>
+              <th className="px-4 py-3 text-center">Warnings</th>
+              <th className="px-4 py-3 text-left">Recommendation</th>
+              <th className="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200 text-sm">
+            {loading && (<tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">Loading evaluations…</td></tr>)}
+            {!loading && filtered.length === 0 && (<tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400 italic">No employees in this band.</td></tr>)}
+            {!loading && filtered.map((e) => (
+              <tr key={e.userId} className="hover:bg-gray-50">
+                <td className="px-4 py-3"><div className="font-bold text-gray-900">{e.userName}</div><div className="text-xs text-gray-500">{e.userEmail}</div></td>
+                <td className="px-4 py-3 capitalize"><div>{e.role.replace(/_/g, " ")}</div><div className="text-xs text-gray-500">{e.level || "—"}</div></td>
+                <td className="px-4 py-3 text-center font-bold">{e.monthsEvaluated > 0 ? `${e.avgAchievementPct.toFixed(0)}%` : "—"}</td>
+                <td className="px-4 py-3 text-center">{e.monthsEvaluated}</td>
+                <td className="px-4 py-3 text-center">{e.warningCount}{e.terminationFlag && <span className="ml-1 text-red-500">⚑</span>}</td>
+                <td className="px-4 py-3">
+                  {e.recommendation === "promote" && <span className="text-emerald-700 font-bold">Promote{e.nextLevel ? ` → ${e.nextLevel}` : ""}{e.nextRole ? ` (${e.nextRole.replace(/_/g, " ")})` : ""}</span>}
+                  {e.recommendation === "warn" && <span className="text-amber-700 font-bold">Issue Warning</span>}
+                  {e.recommendation === "terminate" && <span className="text-red-700 font-bold">Terminate</span>}
+                  {e.recommendation === "none" && <span className="text-gray-400">No action</span>}
+                  {e.recommendationReason && <div className="text-xs text-gray-500 mt-0.5">{e.recommendationReason}</div>}
+                </td>
+                <td className="px-4 py-3 text-right space-x-1 whitespace-nowrap">
+                  {e.recommendation === "promote" && (
+                    <button disabled={busy === e.userId} onClick={() => runAction(e, "promote")} className="px-2 py-1 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700 disabled:opacity-50">Promote</button>
+                  )}
+                  <button disabled={busy === e.userId} onClick={() => runAction(e, "warn")} className="px-2 py-1 bg-amber-500 text-white rounded text-xs font-bold hover:bg-amber-600 disabled:opacity-50">Warn</button>
+                  <button disabled={busy === e.userId} onClick={() => runAction(e, "terminate")} className="px-2 py-1 bg-red-600 text-white rounded text-xs font-bold hover:bg-red-700 disabled:opacity-50">Terminate</button>
+                  {(e.warningCount > 0 || e.terminationFlag) && (
+                    <button disabled={busy === e.userId} onClick={() => runAction(e, "clear")} className="px-2 py-1 bg-slate-200 text-slate-700 rounded text-xs font-bold hover:bg-slate-300 disabled:opacity-50">Clear</button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Documents Tab — HR can view, upload, and delete employee documents.
+// ─────────────────────────────────────────────────────────────────────
+function DocumentsTab({ employees }: { employees: any[] }) {
+  const [docs, setDocs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState<string>("all");
+  const [showUpload, setShowUpload] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    const url = selectedUser === "all" ? "/api/hr/documents" : `/api/hr/documents?userId=${selectedUser}`;
+    fetch(url)
+      .then((r) => r.json())
+      .then((d) => setDocs(d.documents || []))
+      .catch(() => setDocs([]))
+      .finally(() => setLoading(false));
+  }, [selectedUser]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = new FormData(e.target as HTMLFormElement);
+    setUploading(true);
+    const res = await fetch("/api/hr/documents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: form.get("userId"), name: form.get("name"), fileUrl: form.get("fileUrl") }),
+    });
+    setUploading(false);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || "Upload failed");
+      return;
+    }
+    setShowUpload(false);
+    load();
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Delete document "${name}"?`)) return;
+    await fetch(`/api/hr/documents?id=${id}`, { method: "DELETE" });
+    load();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl border p-4 shadow-sm">
+        <FileText className="w-5 h-5 text-slate-500" />
+        <select value={selectedUser} onChange={(e) => setSelectedUser(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none">
+          <option value="all">All employees</option>
+          {employees.map((emp: any) => (
+            <option key={emp.id} value={emp.id}>{emp.name}</option>
+          ))}
+        </select>
+        <button onClick={() => setShowUpload(true)} className="ml-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg flex items-center gap-2 shadow-sm">
+          <Plus className="w-4 h-4" /> Upload Document
+        </button>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
+            <tr>
+              <th className="px-4 py-3 text-left">Document</th>
+              <th className="px-4 py-3 text-left">Employee</th>
+              <th className="px-4 py-3 text-left">Uploaded</th>
+              <th className="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200 text-sm">
+            {loading && (<tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">Loading…</td></tr>)}
+            {!loading && docs.length === 0 && (<tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400 italic">No documents found.</td></tr>)}
+            {!loading && docs.map((d) => (
+              <tr key={d.id} className="hover:bg-gray-50">
+                <td className="px-4 py-3 font-bold text-gray-900">{d.name}</td>
+                <td className="px-4 py-3"><div>{d.user?.name}</div><div className="text-xs text-gray-500 capitalize">{(d.user?.role || "").replace(/_/g, " ")}</div></td>
+                <td className="px-4 py-3 text-gray-500">{new Date(d.createdAt).toLocaleDateString()}</td>
+                <td className="px-4 py-3 text-right space-x-2">
+                  <a href={d.fileUrl} target="_blank" rel="noopener noreferrer" className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-bold hover:bg-blue-100">View</a>
+                  <button onClick={() => handleDelete(d.id, d.name)} className="p-1.5 bg-red-50 hover:bg-red-100 rounded transition" title="Delete">
+                    <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {showUpload && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-bold text-gray-900">Upload Document</h3>
+              <button onClick={() => setShowUpload(false)} className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200"><X className="w-4 h-4" /></button>
+            </div>
+            <form onSubmit={handleUpload} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Employee *</label>
+                <select name="userId" required className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                  <option value="">Select employee</option>
+                  {employees.map((emp: any) => (<option key={emp.id} value={emp.id}>{emp.name}</option>))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Document Name *</label>
+                <input name="name" required placeholder="Contract / CV / ID" className="w-full border rounded-lg px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">File URL *</label>
+                <input name="fileUrl" required type="url" placeholder="https://drive.google.com/..." className="w-full border rounded-lg px-3 py-2 text-sm" />
+                <p className="text-xs text-gray-500 mt-1">Paste a shared cloud-storage link (Drive, Dropbox, S3 signed URL, etc.).</p>
+              </div>
+              <div className="pt-4 border-t flex gap-3">
+                <button type="button" onClick={() => setShowUpload(false)} className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">Cancel</button>
+                <button type="submit" disabled={uploading} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-50 transition">
+                  {uploading ? "Uploading…" : "Upload"}
                 </button>
               </div>
             </form>
