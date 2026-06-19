@@ -2,7 +2,21 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { checkProjectBlockers } from "@/lib/distribution";
+import { checkProjectBlockers, backfillReceiptsForNewMember } from "@/lib/distribution";
+
+const TASK_AGENT_ROLE_MAP: Record<string, string[]> = {
+  SEO: ["agent_seo"],
+  seo: ["agent_seo"],
+  content_seo: ["agent_content_seo"],
+  Social_Media: ["agent_social_media"],
+  social_media: ["agent_social_media"],
+  Media_Buyer: ["agent_media_buyer"],
+  media_buyer: ["agent_media_buyer"],
+  media_buying: ["agent_media_buyer"],
+  graphic_design: ["agent_graphic_designer"],
+  motion_graphic: ["agent_motion_graphic"],
+  ui_design: ["agent_ui"],
+};
 
 /**
  * PATCH /api/tasks/[id]
@@ -24,7 +38,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     // ── Ownership / Role Check ──
     const existingTask = await prisma.task.findUnique({
       where: { id: taskId },
-      select: { id: true, leaderId: true, agentId: true, projectId: true, project: { select: { accountManagerId: true } } },
+      select: { id: true, leaderId: true, agentId: true, projectId: true, taskType: true, startedAt: true, project: { select: { accountManagerId: true } } },
     });
 
     if (!existingTask) {
@@ -52,8 +66,20 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       updateData.agentId = body.agentId;
 
       if (body.agentId !== null) {
-        const agent = await prisma.user.findUnique({ where: { id: body.agentId }, select: { role: true } });
+        const agent = await prisma.user.findUnique({ where: { id: body.agentId }, select: { role: true, status: true } });
         if (agent) {
+          if (agent.status !== "Active") {
+            return NextResponse.json({ error: "Selected agent is inactive." }, { status: 400 });
+          }
+
+          const allowedRoles = TASK_AGENT_ROLE_MAP[existingTask.taskType] || [];
+          if (allowedRoles.length > 0 && !allowedRoles.includes(agent.role)) {
+            return NextResponse.json(
+              { error: `${agent.role} cannot receive ${existingTask.taskType.replace(/_/g, " ")} tasks.` },
+              { status: 400 }
+            );
+          }
+
           const deptMap: Record<string, string> = {
             agent_seo: "seo", agent_content_seo: "content_seo",
             agent_social_media: "social_media", agent_media_buyer: "media_buyer",
@@ -73,6 +99,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
                 department: dept,
               },
             });
+            // Backfill any unresolved warnings so the new agent sees the blocking popup
+            await backfillReceiptsForNewMember(existingTask.projectId, body.agentId);
           }
         }
       }
@@ -101,6 +129,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         return NextResponse.json({ error: `Invalid status: ${body.status}` }, { status: 400 });
       }
 
+      if (body.status === "done" && isAssignedAgent && !isTeamLeader && !isAdmin && !isProjectAM) {
+        return NextResponse.json({ error: "Submit the task for review before it can be marked done." }, { status: 403 });
+      }
+
       if (["in_progress", "review", "done"].includes(body.status)) {
         const blockers = await checkProjectBlockers(existingTask.projectId);
         if (blockers.isBlocked) {
@@ -112,6 +144,13 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       }
 
       updateData.status = body.status;
+      // Record when the agent actually started working
+      if (body.status === "in_progress" && !existingTask.startedAt) {
+        updateData.startedAt = new Date();
+      }
+      if (body.status === "done" && body.completedAt === undefined) {
+        updateData.completedAt = new Date();
+      }
     }
     if (body.priority !== undefined) updateData.priority = body.priority;
     if (body.brief !== undefined) updateData.brief = body.brief;
@@ -202,6 +241,29 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         if (notificationTargets.length > 0) {
           await prisma.notification.createMany({ data: notificationTargets as any });
         }
+      }
+    }
+
+    // ── Notify the team leader (and AM) when a task is submitted for review ──
+    if (body.status === "review") {
+      const reviewTargets = [
+        updatedTask.leaderId && updatedTask.leaderId !== user.id && {
+          userId: updatedTask.leaderId,
+          title: "Task Ready for Review",
+          message: `Task "${updatedTask.taskType.replace(/_/g, " ")}" was submitted for your review.`,
+          type: "task_review",
+          link: "/dashboard/operations",
+        },
+        updatedTask.project?.accountManagerId && updatedTask.project.accountManagerId !== user.id && {
+          userId: updatedTask.project.accountManagerId,
+          title: "Task Ready for Review",
+          message: `Task "${updatedTask.taskType.replace(/_/g, " ")}" was submitted for review.`,
+          type: "task_review",
+          link: "/dashboard/operations",
+        },
+      ].filter(Boolean);
+      if (reviewTargets.length > 0) {
+        await prisma.notification.createMany({ data: reviewTargets as any });
       }
     }
 

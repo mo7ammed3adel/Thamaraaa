@@ -22,9 +22,20 @@ export default async function SeoPage() {
       include: {
         deal: { include: { lead: true } },
         accountManager: { select: { id: true, name: true } },
+        headSeo: { select: { id: true, name: true } },
         teamAssignments: {
           where: { status: "active" },
           include: { user: { select: { id: true, name: true, role: true } } },
+        },
+        globalNotes: {
+          where: { category: { in: ["telesales", "sales", "account_manager", "technical", "seo", "content_seo", "general"] } },
+          orderBy: { createdAt: "desc" },
+          take: 5,
+        },
+        warnings: {
+          where: { status: { not: "Resolved" } },
+          include: { sender: { select: { id: true, name: true, role: true } } },
+          orderBy: { createdAt: "desc" },
         },
         tasks: {
           include: {
@@ -45,9 +56,20 @@ export default async function SeoPage() {
       include: {
         deal: { include: { lead: true } },
         accountManager: { select: { id: true, name: true } },
+        headSeo: { select: { id: true, name: true } },
         teamAssignments: {
           where: { status: "active" },
           include: { user: { select: { id: true, name: true, role: true } } },
+        },
+        globalNotes: {
+          where: { category: { in: ["telesales", "sales", "account_manager", "technical", "seo", "content_seo", "general"] } },
+          orderBy: { createdAt: "desc" },
+          take: 5,
+        },
+        warnings: {
+          where: { status: { not: "Resolved" } },
+          include: { sender: { select: { id: true, name: true, role: true } } },
+          orderBy: { createdAt: "desc" },
         },
         tasks: {
           include: {
@@ -74,8 +96,27 @@ export default async function SeoPage() {
         include: {
           deal: { include: { lead: true } },
           accountManager: { select: { id: true, name: true } },
+          headSeo: { select: { id: true, name: true } },
+          teamAssignments: {
+            where: { status: "active" },
+            include: { user: { select: { id: true, name: true, role: true } } },
+          },
+          globalNotes: {
+            where: { category: { in: ["telesales", "sales", "account_manager", "technical", "seo", "content_seo", "general"] } },
+            orderBy: { createdAt: "desc" },
+            take: 5,
+          },
+          warnings: {
+            where: { status: { not: "Resolved" } },
+            include: { sender: { select: { id: true, name: true, role: true } } },
+            orderBy: { createdAt: "desc" },
+          },
           tasks: {
             where: { agentId: user.id },
+            include: {
+              leader: { select: { id: true, name: true, role: true } },
+              agent: { select: { id: true, name: true, role: true } },
+            },
           },
         },
         orderBy: { createdAt: "desc" },
