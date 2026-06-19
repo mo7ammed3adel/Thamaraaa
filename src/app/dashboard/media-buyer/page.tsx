@@ -27,6 +27,16 @@ export default async function MediaBuyerPage() {
           where: { status: "active" },
           include: { user: { select: { id: true, name: true, role: true } } },
         },
+        globalNotes: {
+          where: { category: { in: ["telesales", "sales", "account_manager", "technical", "media_buyer", "general"] } },
+          orderBy: { createdAt: "desc" },
+          take: 5,
+        },
+        warnings: {
+          where: { status: { not: "Resolved" } },
+          include: { sender: { select: { id: true, name: true, role: true } } },
+          orderBy: { createdAt: "desc" },
+        },
         tasks: {
           include: {
             leader: { select: { id: true, name: true, role: true } },
@@ -51,6 +61,16 @@ export default async function MediaBuyerPage() {
       include: {
         deal: { include: { lead: true } },
         accountManager: { select: { id: true, name: true } },
+        globalNotes: {
+          where: { category: { in: ["telesales", "sales", "account_manager", "technical", "media_buyer", "general"] } },
+          orderBy: { createdAt: "desc" },
+          take: 5,
+        },
+        warnings: {
+          where: { status: { not: "Resolved" } },
+          include: { sender: { select: { id: true, name: true, role: true } } },
+          orderBy: { createdAt: "desc" },
+        },
         tasks: {
           where: { agentId: user.id },
         },
