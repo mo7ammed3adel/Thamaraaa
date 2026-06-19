@@ -35,7 +35,22 @@ export default async function DesignPage({ searchParams }: { searchParams: { tea
       ? { leaderId: user.id }
       : { agentId: user.id },
     include: {
-      project: { include: { deal: { include: { lead: true } }, accountManager: true } },
+      project: {
+        include: {
+          deal: { include: { lead: true } },
+          accountManager: true,
+          globalNotes: {
+            where: { category: { in: ["telesales", "sales", "account_manager", "technical", "social_media", "media_buyer", "seo", "general"] } },
+            orderBy: { createdAt: "desc" },
+            take: 5,
+          },
+          warnings: {
+            where: { status: { not: "Resolved" } },
+            include: { sender: { select: { id: true, name: true, role: true } } },
+            orderBy: { createdAt: "desc" },
+          },
+        },
+      },
       leader: true,
       agent: true,
       parentTask: true,
@@ -55,7 +70,7 @@ export default async function DesignPage({ searchParams }: { searchParams: { tea
   // Fetch cross-team tasks for Design agents
   let crossTeamTasks: any[] = [];
   if (!isLeader) {
-    const projectIds = [...new Set(tasks.map((t: any) => t.projectId).filter(Boolean))];
+    const projectIds = Array.from(new Set(tasks.map((t: any) => t.projectId).filter(Boolean)));
     if (projectIds.length > 0) {
       crossTeamTasks = await prisma.task.findMany({
         where: {

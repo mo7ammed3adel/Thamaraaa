@@ -9,6 +9,7 @@ import {
 import TaskFlagModal from "@/components/TaskFlagModal";
 import TaskReassignModal from "@/components/TaskReassignModal";
 import SelfTaskForm from "@/components/SelfTaskForm";
+import TaskWorkspaceModal from "@/components/TaskWorkspaceModal";
 
 /**
  * Design & Creative department client component (Graphic, Motion, UI/UX).
@@ -22,6 +23,7 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
   const [activeKpi, setActiveKpi] = useState("all");
   const [flagTask, setFlagTask] = useState<any>(null);
   const [reassignTask, setReassignTask] = useState<any>(null);
+  const [workspaceTask, setWorkspaceTask] = useState<any>(null);
   const [selfTaskProject, setSelfTaskProject] = useState<string | null>(null);
   const [expandedCrossTeam, setExpandedCrossTeam] = useState(false);
 
@@ -94,15 +96,6 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
     router.refresh();
   }
 
-  async function handleUpdateFiles(taskId: string, filesString: string) {
-    await fetch(`/api/tasks/${taskId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ files: filesString }),
-    });
-    router.refresh();
-  }
-
   // ── Task Card (reusable) ──
   function TaskCard({ t, showAssign }: { t: any; showAssign: boolean }) {
     const lead = t.project?.deal?.lead;
@@ -125,6 +118,11 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
               {t.parentTask && (
                 <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                   From: {t.parentTask.taskType.replace(/_/g, " ")}
+                </span>
+              )}
+              {(t.project?.warnings?.length || 0) > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-red-100 text-red-700 border border-red-200">
+                  <AlertTriangle className="w-3 h-3" /> {t.project.warnings.length} Warning
                 </span>
               )}
             </div>
@@ -181,20 +179,15 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
               </div>
             )}
 
-            {/* Status Actions */}
-            <div className="grid grid-cols-1 gap-2 border-t pt-2 border-gray-100">
-              <p className="text-xs font-bold text-gray-700 mb-1">Deliverables</p>
-              <textarea 
-                placeholder="Links to final files (Drive, Figma, etc)"
-                className="w-full border rounded-lg px-2 py-1 text-xs outline-none focus:border-violet-500 bg-gray-50 h-16"
-                defaultValue={t.files || ""}
-                onBlur={(e) => {
-                  if (e.target.value !== t.files) {
-                    handleUpdateFiles(t.id, e.target.value);
-                  }
-                }}
-              />
-            </div>
+            {/* Workspace: progress, deliverables, checklist, notes */}
+            {((!isLeader && t.agentId === userId) || isLeader) && (
+              <button
+                onClick={() => setWorkspaceTask(t)}
+                className="w-full py-2 bg-violet-600 text-white rounded-xl text-sm font-bold hover:bg-violet-700 shadow-sm transition"
+              >
+                🎨 Open Workspace
+              </button>
+            )}
 
             <div className="grid grid-cols-1 gap-2 pt-2">
               {t.status !== "in_progress" && t.status !== "done" && t.status !== "review" && (
@@ -503,11 +496,25 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
         <TaskReassignModal
           taskId={reassignTask.id}
           taskName={reassignTask.taskType?.replace(/_/g, " ") || "Design Task"}
+          taskType={reassignTask.taskType}
           leaderRole={userRole}
           currentAgentId={reassignTask.agentId}
           isOpen={!!reassignTask}
           onClose={() => setReassignTask(null)}
           onSuccess={() => { setReassignTask(null); router.refresh(); }}
+        />
+      )}
+
+      {workspaceTask && (
+        <TaskWorkspaceModal
+          task={workspaceTask}
+          projectId={workspaceTask.projectId}
+          clientName={workspaceTask.project?.deal?.lead?.name}
+          contextNotes={workspaceTask.project?.globalNotes || []}
+          userRole={userRole}
+          onClose={() => setWorkspaceTask(null)}
+          onSuccess={() => router.refresh()}
+          onFlag={!isLeader && workspaceTask.agentId === userId ? () => { setFlagTask(workspaceTask); setWorkspaceTask(null); } : undefined}
         />
       )}
 

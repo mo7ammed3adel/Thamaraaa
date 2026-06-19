@@ -164,14 +164,22 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       include: { project: true },
     });
 
-    // ── Notify agent on assignment ──
-    if (body.agentId !== undefined) {
+    // ── Notify agent + log the assignment ──
+    if (body.agentId !== undefined && body.agentId !== null) {
       await prisma.notification.create({
         data: {
           userId: body.agentId,
           title: "New Task Assigned",
           message: `A team leader assigned a new project task to your queue.`,
           link: "/dashboard/operations",
+        },
+      });
+      await prisma.projectLog.create({
+        data: {
+          projectId: existingTask.projectId,
+          action: "task_assigned",
+          details: `${existingTask.taskType.replace(/_/g, " ")} task assigned to an agent.`,
+          userId: user.id,
         },
       });
     }
