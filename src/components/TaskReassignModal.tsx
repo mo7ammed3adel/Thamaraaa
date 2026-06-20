@@ -15,6 +15,7 @@ import { useState, useEffect } from "react";
 interface TaskReassignModalProps {
   taskId: string;
   taskName: string;
+  taskType?: string;
   leaderRole: string;
   currentAgentId: string | null;
   isOpen: boolean;
@@ -35,6 +36,7 @@ interface AgentOption {
 export default function TaskReassignModal({
   taskId,
   taskName,
+  taskType,
   leaderRole,
   currentAgentId,
   isOpen,
@@ -50,7 +52,7 @@ export default function TaskReassignModal({
   useEffect(() => {
     if (!isOpen) return;
     loadAgents();
-  }, [isOpen, leaderRole]);
+  }, [isOpen, leaderRole, taskType]);
 
   /**
    * Fetches available agents for the Team Leader's team from the users API.
@@ -71,7 +73,23 @@ export default function TaskReassignModal({
         leader_ui: ["agent_ui"],
       };
 
-      const allowedRoles = roleMap[leaderRole] || [];
+      const taskRoleMap: Record<string, string[]> = {
+        SEO: ["agent_seo"],
+        seo: ["agent_seo"],
+        content_seo: ["agent_content_seo"],
+        Social_Media: ["agent_social_media"],
+        social_media: ["agent_social_media"],
+        Media_Buyer: ["agent_media_buyer"],
+        media_buyer: ["agent_media_buyer"],
+        media_buying: ["agent_media_buyer"],
+        graphic_design: ["agent_graphic_designer"],
+        motion_graphic: ["agent_motion_graphic"],
+        ui_design: ["agent_ui"],
+      };
+
+      const allowedRolesForLeader = roleMap[leaderRole] || [];
+      const allowedRolesForTask = taskType ? taskRoleMap[taskType] || allowedRolesForLeader : allowedRolesForLeader;
+      const allowedRoles = allowedRolesForLeader.filter((role) => allowedRolesForTask.includes(role));
       const filtered = (data.users || data || [])
         .filter(
           (user: AgentOption) =>

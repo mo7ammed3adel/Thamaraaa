@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { backfillReceiptsForNewMember } from "@/lib/distribution";
 
 /** Roles allowed to reassign a client between Account Managers */
 const ALLOWED_ROLES = ["head_account_manager", "super_admin"];
@@ -75,9 +76,9 @@ export async function POST(
       );
     }
 
-    if (newAM.role !== "account_manager") {
+    if (newAM.role !== "account_manager" || newAM.status !== "Active") {
       return NextResponse.json(
-        { error: "Selected user is not an Account Manager" },
+        { error: "Selected user is not an active Account Manager" },
         { status: 400 }
       );
     }
@@ -123,6 +124,8 @@ export async function POST(
 
       return updated;
     });
+
+    await backfillReceiptsForNewMember(params.id, newAccountManagerId);
 
     return NextResponse.json({ success: true, project: updatedProject });
   } catch (error: unknown) {

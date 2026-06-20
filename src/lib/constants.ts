@@ -157,6 +157,31 @@ export const TASK_TYPE_TO_LEADER_ROLE: Record<string, string> = {
   content_seo: "team_leader_seo",
 };
 
+const DEFAULT_TASK_CHECKLISTS: Record<string, Array<{ id: string; title: string; completed: boolean }>> = {
+  SEO: [
+    { id: "seo-keywords", title: "Keyword research and intent map", completed: false },
+    { id: "seo-audit", title: "Technical and on-page audit", completed: false },
+    { id: "seo-optimization", title: "On-page optimization updates", completed: false },
+    { id: "seo-report", title: "Progress report and next actions", completed: false },
+  ],
+  seo: [
+    { id: "seo-keywords", title: "Keyword research and intent map", completed: false },
+    { id: "seo-audit", title: "Technical and on-page audit", completed: false },
+    { id: "seo-optimization", title: "On-page optimization updates", completed: false },
+    { id: "seo-report", title: "Progress report and next actions", completed: false },
+  ],
+  content_seo: [
+    { id: "content-brief", title: "Review keyword brief and client context", completed: false },
+    { id: "content-outline", title: "Prepare SEO content outline", completed: false },
+    { id: "content-draft", title: "Write and optimize content draft", completed: false },
+    { id: "content-link", title: "Attach final document link", completed: false },
+  ],
+};
+
+export function getDefaultChecklistForTaskType(taskType: string): string {
+  return JSON.stringify(DEFAULT_TASK_CHECKLISTS[taskType] || []);
+}
+
 // ── Team Leader roles (used for filtering) ──
 export const TEAM_LEADER_ROLES = [
   "team_leader_social_media",

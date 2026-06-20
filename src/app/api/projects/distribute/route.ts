@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { canDistributeTo } from "@/lib/distribution";
+import { canDistributeTo, backfillReceiptsForNewMember } from "@/lib/distribution";
 
 /**
  * POST /api/projects/distribute
@@ -119,6 +119,9 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      // Ensure the new member receives any unresolved warnings on this project
+      await backfillReceiptsForNewMember(projectId, targetUser.id);
+
       // Also create audit log
       await prisma.projectLog.create({
         data: {
@@ -210,6 +213,9 @@ export async function POST(req: NextRequest) {
           },
         }),
       ]);
+
+      // Make sure the newly-assigned manager sees any unresolved warnings on this project
+      await backfillReceiptsForNewMember(projectId, targetUser.id);
 
       // Send notification to the assigned user
       await prisma.notification.create({

@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Briefcase, AlertTriangle, ListTodo, Clock, CheckCircle, Search, FileEdit } from "lucide-react";
+import { Briefcase, AlertTriangle, ListTodo, Clock, CheckCircle, FileEdit, Send } from "lucide-react";
 import ClientDetailModal from "@/components/ClientDetailModal";
 import CreateWarningModal from "@/components/CreateWarningModal";
 import LifecycleStateBadge from "@/components/LifecycleStateBadge";
@@ -10,9 +10,11 @@ import LifecycleChangeModal from "@/components/LifecycleChangeModal";
 import DistributeModal from "@/components/DistributeModal";
 import TeamOverview from "@/components/TeamOverview";
 
-export default function AccountManagerClient({ userId, projects, kpis, headSeoUsers }: any) {
+export default function AccountManagerClient({ userId, projects, kpis, headSeoUsers, teamLeaders }: any) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Task Panel States
   const [taskFilterClient, setTaskFilterClient] = useState("");
@@ -30,6 +32,7 @@ export default function AccountManagerClient({ userId, projects, kpis, headSeoUs
   // Distribute & Lifecycle Modals
   const [distributeModalProject, setDistributeModalProject] = useState<any>(null);
   const [lifecycleModalProject, setLifecycleModalProject] = useState<any>(null);
+  const [setupModalProject, setSetupModalProject] = useState<any>(null);
 
   const filteredProjects = useMemo(() => {
     return projects.filter((p: any) => {
@@ -79,6 +82,82 @@ export default function AccountManagerClient({ userId, projects, kpis, headSeoUs
     });
   }, [projects, taskFilterClient, taskFilterStatus, taskFilterTeam, activeKpi]);
 
+  async function handleSaveSetup(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!setupModalProject) return;
+
+    setLoadingAction("setup");
+    setErrorMsg(null);
+
+    const formData = new FormData(e.currentTarget);
+
+    try {
+      const res = await fetch(`/api/projects/${setupModalProject.id}/setup`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          niche: formData.get("niche"),
+          storeUrl: formData.get("storeUrl"),
+          driveLink: formData.get("driveLink"),
+          technicalDeadline: formData.get("technicalDeadline")
+            ? new Date(formData.get("technicalDeadline") as string).toISOString()
+            : null,
+          finalDeadline: formData.get("finalDeadline")
+            ? new Date(formData.get("finalDeadline") as string).toISOString()
+            : null,
+          notes: formData.get("notes"),
+          projectStatus: "setup",
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to save project setup");
+      }
+
+      setSetupModalProject(null);
+      router.refresh();
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to save project setup.");
+    } finally {
+      setLoadingAction(null);
+    }
+  }
+
+  async function handlePushToTeams(projectId: string, packageType: string) {
+    setLoadingAction(`push-${projectId}`);
+    setErrorMsg(null);
+
+    const seoLeader = teamLeaders?.find((l: any) => l.role === "team_leader_seo") || teamLeaders?.find((l: any) => l.role === "head_seo");
+    const socialLeader = teamLeaders?.find((l: any) => l.role === "team_leader_social_media");
+    const mediaLeader = teamLeaders?.find((l: any) => l.role === "team_leader_media_buyer");
+
+    try {
+      const res = await fetch("/api/tasks/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId,
+          packageType,
+          seoLeaderId: seoLeader?.id,
+          socialLeaderId: socialLeader?.id,
+          mediaLeaderId: mediaLeader?.id,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to push tasks to teams");
+      }
+
+      router.refresh();
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to push tasks to teams.");
+    } finally {
+      setLoadingAction(null);
+    }
+  }
+
   const getProgressColor = (val: number) => val < 30 ? "bg-red-500" : val < 70 ? "bg-amber-400" : "bg-emerald-500";
 
   return (
@@ -87,6 +166,13 @@ export default function AccountManagerClient({ userId, projects, kpis, headSeoUs
         <h1 className="text-2xl font-bold text-slate-800">My Clients Dashboard</h1>
         <p className="text-sm text-slate-500">Welcome back. Here is the overview of your assigned projects.</p>
       </div>
+
+      {errorMsg && (
+        <div className="flex items-center justify-between bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl text-sm">
+          <span>{errorMsg}</span>
+          <button onClick={() => setErrorMsg(null)} className="text-red-600 font-bold hover:text-red-800">Close</button>
+        </div>
+      )}
 
       {/* ── KPI Grid ── */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
@@ -173,6 +259,7 @@ export default function AccountManagerClient({ userId, projects, kpis, headSeoUs
                         {hasWarnings && <span title="Active Warnings"><AlertTriangle className="w-4 h-4 text-red-500" /></span>}
                       </div>
                       <div className="text-xs text-slate-500 mt-1 uppercase font-medium bg-slate-100 w-fit px-2 py-0.5 rounded">{p.package}</div>
+                      <div className="text-[10px] text-slate-500 mt-2 font-bold uppercase">{p.projectStatus.replace(/_/g, " ")}</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-slate-700">
@@ -212,6 +299,23 @@ export default function AccountManagerClient({ userId, projects, kpis, headSeoUs
                     </td>
                     <td className="px-6 py-4 text-right space-y-2">
                       <div className="flex flex-col gap-2 relative">
+                        {p.projectStatus === "new" && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setSetupModalProject(p); }}
+                            className="px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-medium hover:bg-slate-900 shadow-sm transition inline-flex items-center justify-center gap-2"
+                          >
+                            <FileEdit className="w-3 h-3" /> Setup Project
+                          </button>
+                        )}
+                        {p.projectStatus === "setup" && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handlePushToTeams(p.id, p.package); }}
+                            disabled={loadingAction === `push-${p.id}`}
+                            className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-medium hover:bg-emerald-700 shadow-sm transition disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                          >
+                            <Send className="w-3 h-3" /> {loadingAction === `push-${p.id}` ? "Pushing..." : "Push to Teams"}
+                          </button>
+                        )}
                         <button
                           onClick={(e) => { e.stopPropagation(); setSelectedClient(p); }}
                           className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 shadow-sm transition inline-flex items-center justify-center gap-2"
@@ -277,12 +381,12 @@ export default function AccountManagerClient({ userId, projects, kpis, headSeoUs
                             
                             <div className="bg-white p-4 rounded-lg border shadow-sm">
                               <h3 className="text-sm font-bold text-slate-800 mb-3 border-b pb-2">Recent Notes</h3>
-                              {p.notes && p.notes.length > 0 ? (
+                              {p.globalNotes && p.globalNotes.length > 0 ? (
                                 <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
-                                  {p.notes.slice(0, 3).map((note: any) => (
+                                  {p.globalNotes.slice(0, 3).map((note: any) => (
                                     <div key={note.id} className="text-xs">
                                       <div className="flex justify-between text-slate-500 mb-1">
-                                        <span className="font-semibold text-slate-700">{note.user?.name}</span>
+                                        <span className="font-semibold text-slate-700">{note.userName || note.user?.name || note.userRole}</span>
                                         <span>{new Date(note.createdAt).toLocaleDateString()}</span>
                                       </div>
                                       <p className="text-slate-600 line-clamp-2">{note.content}</p>
@@ -461,6 +565,103 @@ export default function AccountManagerClient({ userId, projects, kpis, headSeoUs
           </table>
         </div>
       </div>
+
+      {setupModalProject && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/50 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col">
+            <div className="flex justify-between items-center p-6 border-b">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">Setup Project</h2>
+                <p className="text-sm text-slate-500">{setupModalProject.deal?.lead?.name}</p>
+              </div>
+              <button onClick={() => setSetupModalProject(null)} className="px-3 py-2 bg-slate-100 rounded-lg hover:bg-slate-200 text-sm font-bold">Close</button>
+            </div>
+
+            <form onSubmit={handleSaveSetup} className="p-6 flex-1 overflow-y-auto space-y-4">
+              <div className="rounded-lg bg-slate-50 border p-3">
+                <p className="text-xs font-bold text-slate-500 uppercase">Package</p>
+                <p className="text-sm font-bold text-slate-900">{setupModalProject.package}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Client Niche / Industry</label>
+                <input
+                  name="niche"
+                  defaultValue={setupModalProject.niche || setupModalProject.deal?.lead?.niche || ""}
+                  required
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  placeholder="E-commerce, Real Estate, Clinic..."
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Technical Deadline</label>
+                  <input
+                    type="date"
+                    name="technicalDeadline"
+                    defaultValue={setupModalProject.technicalDeadline ? new Date(setupModalProject.technicalDeadline).toISOString().split("T")[0] : ""}
+                    required
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Final Deadline</label>
+                  <input
+                    type="date"
+                    name="finalDeadline"
+                    defaultValue={setupModalProject.finalDeadline ? new Date(setupModalProject.finalDeadline).toISOString().split("T")[0] : ""}
+                    required
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Store / Website URL</label>
+                <input
+                  type="url"
+                  name="storeUrl"
+                  defaultValue={setupModalProject.storeUrl || setupModalProject.deal?.lead?.storeLink || ""}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  placeholder="https://"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Google Drive Link</label>
+                <input
+                  type="url"
+                  name="driveLink"
+                  defaultValue={setupModalProject.driveLink || ""}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  placeholder="https://drive.google.com/..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Account Manager Notes</label>
+                <textarea
+                  name="notes"
+                  defaultValue={setupModalProject.notes || ""}
+                  className="w-full border rounded-lg px-3 py-2 text-sm h-32 resize-none focus:ring-2 focus:ring-indigo-500 outline-none"
+                  placeholder="Brief, client constraints, priority notes, access notes..."
+                />
+              </div>
+
+              <div className="pt-4 border-t mt-6">
+                <button
+                  type="submit"
+                  disabled={loadingAction === "setup"}
+                  className="w-full py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 disabled:opacity-50 transition shadow-lg shadow-indigo-200"
+                >
+                  {loadingAction === "setup" ? "Saving..." : "Save Setup"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {selectedClient && (
         <ClientDetailModal

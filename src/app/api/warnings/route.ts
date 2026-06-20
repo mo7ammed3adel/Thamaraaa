@@ -88,20 +88,25 @@ export async function POST(req: NextRequest) {
         where: { id: { in: affectedUserIdsArray } }
       });
 
-      const emailPromises = usersToNotify.map(async (u) => {
-        // Pusher Event
+      const deliveryPromises = usersToNotify.map(async (u) => {
+        // Pusher event on the user's own channel (matches existing convention used in deals/projects routes)
         if (pusherServer) {
           try {
-            await pusherServer.trigger(`private-user-${u.id}`, "warning-issued", {
+            await pusherServer.trigger(`user-${u.id}`, "new-warning", {
+              id: w.id,
               warningId: w.id,
-              severity: w.severity
+              subject: w.subject,
+              message: w.message,
+              severity: w.severity,
+              senderRole: w.senderRole,
+              senderUserId: w.senderUserId,
+              createdAt: w.createdAt,
             });
           } catch (e) {
             console.error("Pusher broadcast error", e);
           }
         }
 
-        // Email Send
         if (u.email) {
           const res = await sendWarningEmail(u.email, `Warning: ${w.subject}`, w.message, user.name);
           if (res.success) {
@@ -113,7 +118,8 @@ export async function POST(req: NextRequest) {
         }
       });
 
-      Promise.allSettled(emailPromises);
+      // HIGH-04: actually await delivery so failures are observable and warning creation completes consistently
+      await Promise.allSettled(deliveryPromises);
     }
 
     return NextResponse.json({ success: true, warning: { id: w.id, receiptsCreated: affectedUserIdsArray.length } });
@@ -123,8 +129,41 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest) {
-  // Legacy GET required by existing components maybe?
-  // I will just return an empty array if not immediately needed since the unread is fetched now.
-  return NextResponse.json([]);
+// GET /api/warnings — returns the current user's unread warnings (with sender info).
+// Shape matches what WarningPopup / GlobalWarningAlert consume so they can mount-load existing warnings.
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const user = session.user as { id: string };
+
+    const receipts = await prisma.warningReceipt.findMany({
+      where: { userId: user.id, isRead: false, warning: { status: { not: "Resolved" } } },
+      include: {
+        warning: {
+          include: { sender: { select: { id: true, name: true, role: true } } },
+        },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    const warnings = receipts.map((r) => ({
+      id: r.warning.id,
+      subject: r.warning.subject,
+      message: r.warning.message,
+      severity: r.warning.severity,
+      senderRole: r.warning.senderRole,
+      senderUserId: r.warning.senderUserId,
+      senderName: r.warning.sender?.name ?? "System",
+      createdAt: r.warning.createdAt,
+      userAcknowledged: false,
+      receiptId: r.id,
+    }));
+
+    return NextResponse.json(warnings);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("Fetch Warnings Error:", message);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, X, CheckCircle, Clock } from "lucide-react";
 import PusherClient from "pusher-js";
 
-export default function GlobalWarningAlert() {
+export default function GlobalWarningAlert({ userId }: { userId?: string }) {
   const [warnings, setWarnings] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loadingAcks, setLoadingAcks] = useState<Record<string, boolean>>({});
@@ -12,21 +12,24 @@ export default function GlobalWarningAlert() {
   useEffect(() => {
     fetchWarnings();
 
-    // Setup Pusher for real-time warnings
-    const pusher = new PusherClient(process.env.NEXT_PUBLIC_PUSHER_KEY || "key", {
+    const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
+    if (!key || !userId) return;
+
+    // Subscribe to the user's own channel; the server emits `new-warning` here when receipts are created.
+    const pusher = new PusherClient(key, {
       cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "eu",
     });
 
-    const channel = pusher.subscribe("warnings-channel");
-    channel.bind("new-warning", (data: any) => {
-      // Re-fetch to ensure we get the correct state and role filtering logic applied server-side
+    const channelName = `user-${userId}`;
+    const channel = pusher.subscribe(channelName);
+    channel.bind("new-warning", () => {
       fetchWarnings();
     });
 
     return () => {
-      pusher.unsubscribe("warnings-channel");
+      pusher.unsubscribe(channelName);
     };
-  }, []);
+  }, [userId]);
 
   const fetchWarnings = async () => {
     try {

@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { LIFECYCLE_STATE } from "@/lib/constants";
 import HeadAccountManagerClient from "./HeadAccountManagerClient";
 
 export default async function HeadAccountManagerPage() {
@@ -19,13 +20,24 @@ export default async function HeadAccountManagerPage() {
           lead: { 
             include: { 
               callLogs: { include: { agent: true }, orderBy: { createdAt: "asc" } },
-              meetings: { include: { teleAgent: true, salesAgent: true }, orderBy: { createdAt: "asc" } }
+              meetings: { include: { teleAgent: true, salesAgent: true }, orderBy: { createdAt: "asc" } },
+              deals: { include: { salesAgent: true }, orderBy: { createdAt: "asc" } }
             } 
-          } 
+          },
+          salesAgent: true,
+          installments: { orderBy: { dueDate: "asc" } },
         } 
       },
       tasks: { include: { leader: true, agent: true } },
       accountManager: true,
+      headTechnical: true,
+      headSeo: true,
+      teamAssignments: {
+        where: { status: "active" },
+        include: { user: { select: { id: true, name: true, role: true } } },
+      },
+      files: { orderBy: { createdAt: "desc" } },
+      globalNotes: { orderBy: { createdAt: "desc" } },
       logs: { orderBy: { createdAt: "desc" } },
     },
     orderBy: { createdAt: "desc" },
@@ -82,9 +94,9 @@ export default async function HeadAccountManagerPage() {
   const completedCount = projectsWithData.filter((p) => p.projectStatus === "completed").length;
   const unassignedCount = projectsWithData.filter((p) => !p.accountManagerId).length;
   const clientsWithWarningsCount = projectsWithData.filter(p => p.warnings.length > 0).length;
-  const onboardingCount = projectsWithData.filter(p => p.lifecycleState === "onboarding").length;
-  const activeLifecycleCount = projectsWithData.filter(p => p.lifecycleState === "active").length;
-  const churnRiskCount = projectsWithData.filter(p => p.lifecycleState === "churn_risk").length;
+  const onboardingCount = projectsWithData.filter(p => p.lifecycleState === LIFECYCLE_STATE.ONBOARDING).length;
+  const activeLifecycleCount = projectsWithData.filter(p => p.lifecycleState === LIFECYCLE_STATE.ACTIVE).length;
+  const churnRiskCount = projectsWithData.filter(p => p.lifecycleState === LIFECYCLE_STATE.ON_HOLD || p.lifecycleState === LIFECYCLE_STATE.CHURNED).length;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);

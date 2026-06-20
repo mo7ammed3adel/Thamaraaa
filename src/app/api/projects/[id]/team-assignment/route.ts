@@ -2,20 +2,32 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { backfillReceiptsForNewMember } from "@/lib/distribution";
 
 /**
  * Department display name to internal keys mapping.
  * Maps UI department names to the database department codes and task types.
  */
-const DEPT_CONFIG: Record<string, { dbDepartments: string[]; taskTypes: string[] }> = {
-  "SEO":             { dbDepartments: ["seo", "content_seo"],    taskTypes: ["SEO", "seo", "content_seo"] },
-  "Social Media":    { dbDepartments: ["social_media"],          taskTypes: ["Social_Media", "social_media"] },
-  "Media Buyer":     { dbDepartments: ["media_buyer"],           taskTypes: ["Media_Buyer", "media_buyer", "media_buying"] },
-  "Graphic Design":  { dbDepartments: ["graphic_design"],        taskTypes: ["graphic_design"] },
-  "Motion Graphics": { dbDepartments: ["motion_graphic"],        taskTypes: ["motion_graphic"] },
-  "UI/UX Design":    { dbDepartments: ["ui_design"],             taskTypes: ["ui_design"] },
-  "Technical":       { dbDepartments: ["technical"],             taskTypes: ["technical"] },
+const DEPT_CONFIG: Record<string, { dbDepartments: string[]; taskTypes: string[]; leaderRoles: string[]; agentRoles: string[] }> = {
+  "SEO":             { dbDepartments: ["seo", "content_seo"],    taskTypes: ["SEO", "seo", "content_seo"], leaderRoles: ["team_leader_seo"], agentRoles: ["agent_seo", "agent_content_seo"] },
+  "Social Media":    { dbDepartments: ["social_media"],          taskTypes: ["Social_Media", "social_media"], leaderRoles: ["team_leader_social_media"], agentRoles: ["agent_social_media"] },
+  "Media Buyer":     { dbDepartments: ["media_buyer"],           taskTypes: ["Media_Buyer", "media_buyer", "media_buying"], leaderRoles: ["team_leader_media_buyer"], agentRoles: ["agent_media_buyer"] },
+  "Graphic Design":  { dbDepartments: ["graphic_design"],        taskTypes: ["graphic_design"], leaderRoles: ["leader_graphic_designer"], agentRoles: ["agent_graphic_designer"] },
+  "Motion Graphics": { dbDepartments: ["motion_graphic"],        taskTypes: ["motion_graphic"], leaderRoles: ["leader_motion_graphic"], agentRoles: ["agent_motion_graphic"] },
+  "UI/UX Design":    { dbDepartments: ["ui_design"],             taskTypes: ["ui_design"], leaderRoles: ["leader_ui"], agentRoles: ["agent_ui"] },
+  "Technical":       { dbDepartments: ["technical"],             taskTypes: ["technical"], leaderRoles: ["head_technical"], agentRoles: [] },
 };
+
+function canAssignDepartment(userRole: string, department: string, assignedRoleType: string) {
+  if (["super_admin", "head_account_manager"].includes(userRole)) return true;
+  if (userRole === "head_technical") {
+    return assignedRoleType === "leader" && ["Social Media", "Media Buyer"].includes(department);
+  }
+  if (userRole === "head_seo") {
+    return assignedRoleType === "leader" && department === "SEO";
+  }
+  return false;
+}
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
@@ -40,22 +52,43 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       return NextResponse.json({ error: "Missing required fields: department, assignedRoleType, newUserId" }, { status: 400 });
     }
 
+    if (!["leader", "agent"].includes(assignedRoleType)) {
+      return NextResponse.json({ error: "assignedRoleType must be leader or agent" }, { status: 400 });
+    }
+
     // Validate department
     const deptConfig = DEPT_CONFIG[department];
     if (!deptConfig) {
       return NextResponse.json({ error: `Unknown department: ${department}` }, { status: 400 });
     }
 
+    if (!canAssignDepartment(user.role, department, assignedRoleType)) {
+      return NextResponse.json({ error: `Your role cannot assign ${assignedRoleType}s for ${department}` }, { status: 403 });
+    }
+
     // Validate target user exists
     const targetUser = await prisma.user.findUnique({ where: { id: newUserId } });
-    if (!targetUser) {
+    if (!targetUser || targetUser.status !== "Active") {
       return NextResponse.json({ error: "Target user not found" }, { status: 404 });
+    }
+
+    const expectedRoles = assignedRoleType === "leader" ? deptConfig.leaderRoles : deptConfig.agentRoles;
+    if (!expectedRoles.includes(targetUser.role)) {
+      return NextResponse.json({ error: `${targetUser.role} cannot be assigned as ${assignedRoleType} for ${department}` }, { status: 400 });
     }
 
     // Validate project exists
     const project = await prisma.project.findUnique({ where: { id: projectId } });
     if (!project) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+
+    if (user.role === "head_technical" && project.headTechnicalId !== user.id) {
+      return NextResponse.json({ error: "Forbidden: project is not assigned to this Head Technical" }, { status: 403 });
+    }
+
+    if (user.role === "head_seo" && project.headSeoId !== user.id) {
+      return NextResponse.json({ error: "Forbidden: project is not assigned to this Head SEO" }, { status: 403 });
     }
 
     // ── Step 1: Clean up old team assignments for this slot ──
@@ -109,6 +142,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         },
       });
     }
+
+    // Newly-added member should also be subject to existing unresolved warnings
+    await backfillReceiptsForNewMember(projectId, newUserId);
 
     // ── Step 3: Update all tasks for this department ──
     const updateField = assignedRoleType === "leader" ? { leaderId: newUserId } : { agentId: newUserId };

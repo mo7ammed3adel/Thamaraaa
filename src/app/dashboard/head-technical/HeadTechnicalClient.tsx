@@ -1,36 +1,87 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, X } from "lucide-react";
+import { AlertTriangle, Search, X } from "lucide-react";
 
-import DistributeModal from "@/components/DistributeModal";
 import TeamWorkloadBadge from "@/components/TeamWorkloadBadge";
 import LifecycleStateBadge from "@/components/LifecycleStateBadge";
 
 export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userId }: any) {
   const router = useRouter();
-  const [distributeModalProject, setDistributeModalProject] = useState<any>(null);
   const [taskFilter, setTaskFilter] = useState("all");
   const [activeKpi, setActiveKpi] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredProjects = useMemo(() => {
-    return projects.filter((p: any) => {
-      const matchSearch = !searchQuery ||
-        p.deal?.lead?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.deal?.lead?.phone?.includes(searchQuery) ||
-        p.package?.toLowerCase().includes(searchQuery.toLowerCase());
+  const technicalTaskToDepartment: Record<string, string> = {
+    Social_Media: "social_media",
+    social_media: "social_media",
+    Media_Buyer: "media_buyer",
+    media_buyer: "media_buyer",
+    media_buying: "media_buyer",
+  };
 
-      let matchKpi = true;
-      if (activeKpi === "assigned") matchKpi = p.accountManagerId || p.tasks?.some((t: any) => ["social_media", "media_buying", "seo", "content_seo"].includes(t.taskType) && t.leaderId);
-      else if (activeKpi === "active") matchKpi = ["in_progress", "setup", "assigned"].includes(p.projectStatus);
-      else if (activeKpi === "delayed") matchKpi = p.projectStatus === "delayed";
-      else if (activeKpi === "in_progress") matchKpi = p.tasks?.some((t: any) => t.status === "in_progress");
+  const isTechnicalTask = (task: any) => Boolean(technicalTaskToDepartment[task.taskType]);
 
-      return matchSearch && matchKpi;
-    });
-  }, [projects, activeKpi, searchQuery]);
+  const hasDepartmentLeader = (project: any, department: string) => {
+    const hasAssignmentLeader = (project.teamAssignments || []).some((assignment: any) =>
+      assignment.department === department &&
+      assignment.role.includes("leader")
+    );
+    const hasTaskLeader = (project.tasks || []).some((task: any) =>
+      technicalTaskToDepartment[task.taskType] === department &&
+      Boolean(task.leaderId)
+    );
+    return hasAssignmentLeader || hasTaskLeader;
+  };
+
+  const missingTechnicalDepartments = (project: any) =>
+    (project.requiredTechnicalDepartments || []).filter((department: string) => !hasDepartmentLeader(project, department));
+
+  const delayedTechnicalTasks = (project: any) =>
+    (project.tasks || []).filter((task: any) =>
+      isTechnicalTask(task) &&
+      task.status !== "done" &&
+      task.deadline &&
+      new Date(task.deadline) < new Date()
+    );
+
+  const departmentSummary = (project: any, department: string) => {
+    const assignments = (project.teamAssignments || []).filter((assignment: any) => assignment.department === department);
+    const tasks = (project.tasks || []).filter((task: any) => technicalTaskToDepartment[task.taskType] === department);
+    const leader = assignments.find((assignment: any) => assignment.role.includes("leader"))?.user || tasks.find((task: any) => task.leader)?.leader || null;
+    const agentIds = new Set<string>();
+
+    assignments
+      .filter((assignment: any) => assignment.role.includes("agent"))
+      .forEach((assignment: any) => agentIds.add(assignment.userId));
+    tasks
+      .filter((task: any) => task.agentId)
+      .forEach((task: any) => agentIds.add(task.agentId));
+
+    return {
+      department,
+      leader,
+      agentCount: agentIds.size,
+      hasDelayedTasks: tasks.some((task: any) => task.status !== "done" && task.deadline && new Date(task.deadline) < new Date()),
+    };
+  };
+
+  const filteredProjects = projects.filter((p: any) => {
+    const matchSearch = !searchQuery ||
+      p.deal?.lead?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.deal?.lead?.phone?.includes(searchQuery) ||
+      p.package?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    let matchKpi = true;
+    if (activeKpi === "unassigned") matchKpi = missingTechnicalDepartments(p).length > 0;
+    else if (activeKpi === "active") matchKpi = ["in_progress", "setup", "assigned"].includes(p.projectStatus);
+    else if (activeKpi === "delayed") matchKpi = p.projectStatus === "delayed" || delayedTechnicalTasks(p).length > 0;
+    else if (activeKpi === "in_progress") matchKpi = p.tasks?.some((t: any) => isTechnicalTask(t) && ["pending", "in_progress"].includes(t.status));
+    else if (activeKpi === "warnings") matchKpi = (p.warnings || []).length > 0;
+
+    return matchSearch && matchKpi;
+  });
 
   const hasActiveFilters = searchQuery || activeKpi !== "all";
 
@@ -44,12 +95,13 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         {[
-          { id: "all", label: "My Total Projects", val: kpis.assignedClients + kpis.activeClients + kpis.delayedClients, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-slate-500 bg-slate-50", icnColor: "text-slate-500" },
-          { id: "assigned", label: "Assigned Clients", val: kpis.assignedClients, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-blue-500 bg-blue-50", icnColor: "text-blue-500" },
+          { id: "all", label: "My Total Projects", val: kpis.totalProjects, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-slate-500 bg-slate-50", icnColor: "text-slate-500" },
+          { id: "unassigned", label: "Needs TL", val: kpis.unassignedTechnicalLeaders, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-purple-500 bg-purple-50", icnColor: "text-purple-500" },
           { id: "active", label: "Active Clients", val: kpis.activeClients, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-indigo-500 bg-indigo-50", icnColor: "text-indigo-500" },
           { id: "delayed", label: "Delayed Clients", val: kpis.delayedClients, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-red-500 bg-red-50", icnColor: "text-red-500" },
+          { id: "warnings", label: "Warnings", val: kpis.warningsCount, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-orange-500 bg-orange-50", icnColor: "text-orange-500" },
           { id: "in_progress", label: "Tasks In Progress", val: kpis.tasksInProgress, colors: "border-transparent bg-white hover:bg-gray-50", activeColors: "border-amber-500 bg-amber-50", icnColor: "text-amber-500" }
         ].map(k => (
           <button 
@@ -63,6 +115,26 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
             <p className="text-2xl font-black mt-1 text-slate-900">{k.val}</p>
           </button>
         ))}
+      </div>
+
+      {/* Team Leaders Workload */}
+      <div className="bg-white rounded-xl shadow border p-5">
+        <h2 className="text-lg font-bold text-slate-800 mb-4">Technical Team Leaders Workload</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          {teamLeaders.map((leader: any) => (
+            <div key={leader.id} className="border rounded-lg p-4 bg-slate-50">
+              <p className="text-sm font-bold text-slate-800 truncate" title={leader.name}>{leader.name}</p>
+              <p className="text-xs text-slate-500 capitalize mt-0.5">{leader.role.replace(/_/g, " ")}</p>
+              <div className="mt-3 flex items-end justify-between">
+                <span className="text-[10px] uppercase font-bold text-slate-400">Active Assignments</span>
+                <span className="text-2xl font-black text-indigo-700">{leader._count?.teamAssignments || 0}</span>
+              </div>
+            </div>
+          ))}
+          {teamLeaders.length === 0 && (
+            <p className="text-sm text-slate-400 italic">No active Social Media or Media Buyer team leaders found.</p>
+          )}
+        </div>
       </div>
 
       {/* Projects Table */}
@@ -108,8 +180,19 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filteredProjects.map((p: any) => {
-                const delayedTasks = p.tasks?.filter((t:any) => t.status !== "done" && t.deadline && new Date(t.deadline) < new Date()).length || 0;
-                const activeTasks = p.tasks?.filter((t: any) => t.status !== "done").length || 0;
+                const delayedTasks = delayedTechnicalTasks(p).length;
+                const activeTasks = p.tasks?.filter((t: any) => isTechnicalTask(t) && t.status !== "done").length || 0;
+                const warningCount = p.warnings?.length || 0;
+                const missingDepartments = missingTechnicalDepartments(p);
+                const departmentsToShow = Array.from(new Set([
+                  ...(p.requiredTechnicalDepartments || []),
+                  ...(p.teamAssignments || [])
+                    .filter((assignment: any) => ["social_media", "media_buyer"].includes(assignment.department))
+                    .map((assignment: any) => assignment.department),
+                  ...(p.tasks || [])
+                    .map((task: any) => technicalTaskToDepartment[task.taskType])
+                    .filter(Boolean),
+                ]));
                 
                 return (
                   <tr key={p.id} className="hover:bg-slate-50/50 transition">
@@ -123,43 +206,40 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
                             {activeTasks} Active
                           </span>
                         )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-2">
-                        {p.teamAssignments?.filter((ta: any) => ta.status === 'active').reduce((acc: any[], ta: any) => {
-                          const existingDept = acc.find(a => a.department === ta.department);
-                          if (existingDept) {
-                            if (ta.role.includes("leader")) existingDept.leader = ta.user;
-                            else existingDept.agentCount++;
-                          } else {
-                            acc.push({
-                              department: ta.department,
-                              leader: ta.role.includes("leader") ? ta.user : null,
-                              agentCount: ta.role.includes("leader") ? 0 : 1,
-                            });
-                          }
-                          return acc;
-                        }, []).map((dept: any, i: number) => {
-                          const hasDelayed = p.tasks?.some((t: any) => t.taskType === dept.department && t.status !== "done" && t.deadline && new Date(t.deadline) < new Date());
-                          return (
-                            <TeamWorkloadBadge 
-                              key={i} 
-                              department={dept.department}
-                              leader={dept.leader}
-                              agentCount={dept.agentCount}
-                              hasDelayedTasks={hasDelayed || false}
-                            />
-                          );
-                        })}
-                        {(!p.teamAssignments || p.teamAssignments.length === 0) && (
-                          <span className="text-slate-400 italic text-xs">No operational teams assigned</span>
+                        {warningCount > 0 && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 text-[10px] font-bold rounded-full">
+                            <AlertTriangle className="w-3 h-3" /> {warningCount}
+                          </span>
                         )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-2">
+                        {departmentsToShow.map((department: string) => {
+                          const dept = departmentSummary(p, department);
+                          return (
+                            <TeamWorkloadBadge
+                              key={department}
+                              department={dept.department}
+                              leader={dept.leader}
+                              agentCount={dept.agentCount}
+                              hasDelayedTasks={dept.hasDelayedTasks}
+                            />
+                          );
+                        })}
+                        {departmentsToShow.length === 0 && (
+                          <span className="text-slate-400 italic text-xs">No social/media scope detected</span>
+                        )}
+                      </div>
+                      {missingDepartments.length > 0 && (
+                        <p className="text-[10px] font-bold text-purple-700 mt-2">
+                          Missing TL: {missingDepartments.map((department: string) => department.replace(/_/g, " ")).join(", ")}
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
                       <div className="w-full space-y-1 max-w-xs">
-                        {[{ label: "SEO", val: p.seoProgress }, { label: "SMM", val: p.socialMediaProgress }, { label: "Media", val: p.mediaBuyerProgress }].map((b) => (
+                        {[{ label: "SMM", val: p.socialMediaProgress }, { label: "Media", val: p.mediaBuyerProgress }].map((b) => (
                           <div key={b.label} className="flex items-center text-[10px]">
                             <span className="w-8 font-bold text-slate-400">{b.label}</span>
                             <div className="flex-1 bg-slate-100 h-1 mx-2 rounded-full overflow-hidden">
@@ -202,22 +282,6 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
           </table>
         </div>
       </div>
-
-      {/* Assign Modal */}
-      {distributeModalProject && (
-        <DistributeModal
-          isOpen={!!distributeModalProject}
-          onClose={() => setDistributeModalProject(null)}
-          projectId={distributeModalProject.id}
-          projectName={distributeModalProject.deal?.lead?.name || "Client"}
-          availableUsers={teamLeaders as any[]}
-          actionLabel="Assign Team Leader"
-          onDistributed={() => {
-            setDistributeModalProject(null);
-            router.refresh();
-          }}
-        />
-      )}
 
       {/* Tasks Overview (Global) */}
       <div className="bg-white rounded-xl shadow border overflow-hidden">

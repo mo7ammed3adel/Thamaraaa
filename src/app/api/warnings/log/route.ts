@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     const from = searchParams.get("from");
     const to = searchParams.get("to");
 
-    let where: any = {};
+    const where: any = {};
     if (projectId) where.projectId = projectId;
     if (severity && severity !== "All") where.severity = severity;
     if (from || to) {

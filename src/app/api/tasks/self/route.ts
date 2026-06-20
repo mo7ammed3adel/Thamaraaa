@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getDefaultChecklistForTaskType } from "@/lib/constants";
 
 /** Roles allowed to create self-assigned tasks */
 const SELF_TASK_ALLOWED_ROLES = [
@@ -101,7 +102,7 @@ export async function POST(req: Request) {
         brief: brief.trim(),
         priority: priority || "Medium",
         deadline: deadline ? new Date(deadline) : null,
-        checklistItems: "[]",
+        checklistItems: getDefaultChecklistForTaskType(taskType),
         requesterRole: user.role,
         assignedRole: user.role,
         status: "pending",

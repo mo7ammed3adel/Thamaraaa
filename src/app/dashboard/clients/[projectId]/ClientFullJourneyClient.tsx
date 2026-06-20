@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import ProjectLogsPanel from "@/components/ProjectLogsPanel";
 
@@ -26,6 +26,9 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
   const [noteContent, setNoteContent] = useState("");
   const [noteCategory, setNoteCategory] = useState("general");
   const [saving, setSaving] = useState(false);
+  const [fileUrl, setFileUrl] = useState("");
+  const [fileType, setFileType] = useState("other");
+  const [uploadingFile, setUploadingFile] = useState(false);
 
   const [newTaskType, setNewTaskType] = useState("seo");
   const [newTaskBrief, setNewTaskBrief] = useState("");
@@ -76,6 +79,34 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
     setNoteContent("");
     setSaving(false);
     router.refresh();
+  }
+
+  // ── Project file handler ──
+  async function handleUploadProjectFile(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!fileUrl.trim()) return;
+
+    setUploadingFile(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/files`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileUrl: fileUrl.trim(), fileType }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || "Failed to upload project file");
+        return;
+      }
+
+      setFileUrl("");
+      setFileType("other");
+      router.refresh();
+    } catch (err) {
+      alert("Network error — could not reach server.");
+    } finally {
+      setUploadingFile(false);
+    }
   }
 
   // ── Warning handler ──
@@ -182,7 +213,19 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
   }
 
   const safeUserRole = userRole || "";
-  const isAdmin = ["super_admin", "head_account_manager", "head_technical", "head_seo"].includes(safeUserRole);
+  const isAdmin = ["super_admin", "head_account_manager"].includes(safeUserRole);
+  const canUploadProjectFiles = ["super_admin", "head_account_manager", "account_manager", "head_technical", "head_seo"].includes(safeUserRole);
+
+  function canManageTeamSlot(department: string, roleType: "leader" | "agent") {
+    if (isAdmin) return true;
+    if (safeUserRole === "head_technical") {
+      return roleType === "leader" && ["Social Media", "Media Buyer"].includes(department);
+    }
+    if (safeUserRole === "head_seo") {
+      return roleType === "leader" && department === "SEO";
+    }
+    return false;
+  }
 
   // ── Build Timeline Entries ──
   function buildTimeline() {
@@ -220,7 +263,7 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
       entries.push({
         stage: "deal", color: "bg-emerald-500", label: "Deal Closed",
         date: deal.createdAt, agent: deal.salesAgent?.name || "Sales",
-        role: "Sales", detail: `Package: ${deal.package} | Total: ${deal.totalAmount?.toLocaleString()} EGP | Method: ${deal.paymentMethod}`,
+        role: "Sales", detail: `Package: ${deal.package} | Total: ${deal.totalAmount?.toLocaleString()} SAR | Method: ${deal.paymentMethod}`,
       });
     }
 
@@ -229,7 +272,7 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
       entries.push({
         stage: "payment", color: "bg-green-600", label: "First Payment",
         date: deal.createdAt, agent: "System", role: "Finance",
-        detail: `Amount: ${deal.firstAmount.toLocaleString()} EGP`,
+        detail: `Amount: ${deal.firstAmount.toLocaleString()} SAR`,
       });
     }
 
@@ -239,7 +282,7 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
         stage: "payment", color: inst.isPaid ? "bg-green-500" : "bg-orange-500",
         label: `Installment ${i + 1} ${inst.isPaid ? "(Paid)" : "(Pending)"}`,
         date: inst.dueDate, agent: "System", role: "Finance",
-        detail: `Amount: ${inst.amount?.toLocaleString()} EGP | Due: ${new Date(inst.dueDate).toLocaleDateString()}`,
+        detail: `Amount: ${inst.amount?.toLocaleString()} SAR | Due: ${new Date(inst.dueDate).toLocaleDateString()}`,
       });
     });
 
@@ -284,6 +327,15 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
       });
     });
 
+    project.warnings?.forEach((warning: any) => {
+      entries.push({
+        stage: "warning", color: "bg-red-500", label: `Warning (${warning.severity})`,
+        date: warning.createdAt, agent: warning.sender?.name || "System",
+        role: warning.senderRole?.replace(/_/g, " ") || "Warning",
+        detail: `${warning.subject}: ${warning.message}`,
+      });
+    });
+
     entries.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
     return entries;
   }
@@ -291,7 +343,7 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
   // ── Build Team Assignment Grid ──
   function buildTeamGrid() {
     const departments = [
-      { name: "SEO", types: ["SEO", "seo", "content_seo"], deptCodes: ["seo", "content_seo"], leaderRoles: ["team_leader_seo", "head_seo"], agentRoles: ["agent_seo", "agent_content_seo"] },
+      { name: "SEO", types: ["SEO", "seo", "content_seo"], deptCodes: ["seo", "content_seo"], leaderRoles: ["team_leader_seo"], agentRoles: ["agent_seo", "agent_content_seo"] },
       { name: "Social Media", types: ["Social_Media", "social_media"], deptCodes: ["social_media"], leaderRoles: ["team_leader_social_media"], agentRoles: ["agent_social_media"] },
       { name: "Media Buyer", types: ["Media_Buyer", "media_buyer", "media_buying"], deptCodes: ["media_buyer"], leaderRoles: ["team_leader_media_buyer"], agentRoles: ["agent_media_buyer"] },
       { name: "Graphic Design", types: ["graphic_design"], deptCodes: ["graphic_design"], leaderRoles: ["leader_graphic_designer"], agentRoles: ["agent_graphic_designer"] },
@@ -440,9 +492,9 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
             <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
               {[
                 { label: "Package", value: deal?.package, cls: "bg-purple-50 text-purple-800" },
-                { label: "Total Amount", value: `${deal?.totalAmount?.toLocaleString()} EGP`, cls: "bg-emerald-50 text-emerald-800" },
-                { label: "First Payment", value: `${deal?.firstAmount?.toLocaleString() || 0} EGP`, cls: "bg-blue-50 text-blue-800" },
-                { label: "Remaining", value: `${((deal?.totalAmount || 0) - (deal?.firstAmount || 0)).toLocaleString()} EGP`, cls: "bg-amber-50 text-amber-800" },
+                { label: "Total Amount", value: `${deal?.totalAmount?.toLocaleString()} SAR`, cls: "bg-emerald-50 text-emerald-800" },
+                { label: "First Payment", value: `${deal?.firstAmount?.toLocaleString() || 0} SAR`, cls: "bg-blue-50 text-blue-800" },
+                { label: "Remaining", value: `${((deal?.totalAmount || 0) - (deal?.firstAmount || 0)).toLocaleString()} SAR`, cls: "bg-amber-50 text-amber-800" },
               ].map((kpi) => (
                 <div key={kpi.label} className={`${kpi.cls} rounded-xl p-4 text-center border`}>
                   <p className="text-xs font-medium opacity-70">{kpi.label}</p>
@@ -474,7 +526,7 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
                   <div key={inst.id} className={`flex items-center justify-between p-3 rounded-lg border ${inst.isPaid ? "bg-emerald-50 border-emerald-200" : "bg-orange-50 border-orange-200"}`}>
                     <div className="flex items-center gap-3">
                       <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${inst.isPaid ? "bg-emerald-500" : "bg-orange-500"}`}>{i + 1}</span>
-                      <span className="text-sm font-medium text-slate-700">{inst.amount?.toLocaleString()} EGP</span>
+                      <span className="text-sm font-medium text-slate-700">{inst.amount?.toLocaleString()} SAR</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-xs text-slate-500">Due: {new Date(inst.dueDate).toLocaleDateString()}</span>
@@ -505,14 +557,13 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {teamGrid.map((row) => {
-                  const isLeader = row.leaderId === userId;
-                  const canAssignLeader = isAdmin;
-                  const canAssignAgent = isAdmin || isLeader;
+                  const canAssignLeader = canManageTeamSlot(row.department, "leader");
+                  const canAssignAgent = canManageTeamSlot(row.department, "agent");
 
                   // ── Department-specific role mapping ──
                   const deptRoleMap: Record<string, { leaders: string[]; agents: string[] }> = {
                     "SEO": {
-                      leaders: ["team_leader_seo", "head_seo"],
+                      leaders: ["team_leader_seo"],
                       agents: ["agent_seo", "agent_content_seo"],
                     },
                     "Social Media": {
@@ -742,9 +793,9 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
 
                 // ── Task-type to department role mapping ──
                 const taskTypeRoleMap: Record<string, { leaders: string[]; agents: string[] }> = {
-                  "SEO": { leaders: ["team_leader_seo", "head_seo"], agents: ["agent_seo", "agent_content_seo"] },
-                  "seo": { leaders: ["team_leader_seo", "head_seo"], agents: ["agent_seo", "agent_content_seo"] },
-                  "content_seo": { leaders: ["team_leader_seo", "head_seo"], agents: ["agent_seo", "agent_content_seo"] },
+                  "SEO": { leaders: ["team_leader_seo"], agents: ["agent_seo", "agent_content_seo"] },
+                  "seo": { leaders: ["team_leader_seo"], agents: ["agent_seo", "agent_content_seo"] },
+                  "content_seo": { leaders: ["team_leader_seo"], agents: ["agent_seo", "agent_content_seo"] },
                   "Social_Media": { leaders: ["team_leader_social_media"], agents: ["agent_social_media"] },
                   "social_media": { leaders: ["team_leader_social_media"], agents: ["agent_social_media"] },
                   "Media_Buyer": { leaders: ["team_leader_media_buyer"], agents: ["agent_media_buyer"] },
@@ -924,6 +975,28 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
       {/* ═══ SECTION 7: Notes ═══ */}
       {activeTab === "notes" && (
         <div className="space-y-4">
+          {project.warnings?.length > 0 && (
+            <div className="bg-white rounded-xl border shadow-sm p-6">
+              <h2 className="text-lg font-bold text-slate-800 mb-3">Active Warnings ({project.warnings.length})</h2>
+              <div className="space-y-3">
+                {project.warnings.map((warning: any) => (
+                  <div key={warning.id} className="border border-orange-200 bg-orange-50 text-orange-800 rounded-lg p-4">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold uppercase">{warning.severity}</span>
+                        <span className="text-xs opacity-60">•</span>
+                        <span className="text-sm font-bold">{warning.subject}</span>
+                      </div>
+                      <span className="text-xs opacity-60">{new Date(warning.createdAt).toLocaleString()}</span>
+                    </div>
+                    <p className="text-sm">{warning.message}</p>
+                    <p className="text-xs opacity-70 mt-2">From: {warning.sender?.name || warning.senderRole}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Add Note */}
           <div className="bg-white rounded-xl border shadow-sm p-6">
             <h2 className="text-lg font-bold text-slate-800 mb-3">Add Note</h2>
@@ -1070,6 +1143,36 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
           {/* ── Uploaded Project Files ── */}
           <div className="bg-white rounded-xl border shadow-sm p-6">
             <h2 className="text-lg font-bold text-slate-800 mb-4">Project Files</h2>
+            {canUploadProjectFiles && (
+              <form onSubmit={handleUploadProjectFile} className="grid grid-cols-1 md:grid-cols-[160px_1fr_auto] gap-3 mb-5 p-4 bg-slate-50 border rounded-xl">
+                <select
+                  value={fileType}
+                  onChange={(e) => setFileType(e.target.value)}
+                  className="border rounded-lg px-3 py-2 text-sm bg-white outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="contract">Contract</option>
+                  <option value="screenshot">Screenshot</option>
+                  <option value="report">Report</option>
+                  <option value="brief">Brief</option>
+                  <option value="other">Other</option>
+                </select>
+                <input
+                  type="url"
+                  value={fileUrl}
+                  onChange={(e) => setFileUrl(e.target.value)}
+                  placeholder="https://drive.google.com/..."
+                  className="border rounded-lg px-3 py-2 text-sm bg-white outline-none focus:ring-2 focus:ring-indigo-500"
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={uploadingFile || !fileUrl.trim()}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  {uploadingFile ? "Adding..." : "Add File"}
+                </button>
+              </form>
+            )}
             {project.files?.length === 0 ? (
               <p className="text-sm text-slate-400 italic py-4">No files uploaded yet.</p>
             ) : (

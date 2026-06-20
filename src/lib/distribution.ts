@@ -126,3 +126,72 @@ export function canResolveWarning(
 ): boolean {
   return userId === warningSenderUserId;
 }
+
+/**
+ * Determines whether a user is a stakeholder of a given project — i.e. the user
+ * either supervises (super_admin / head_account_manager / chief_sales / head_technical /
+ * head_seo) or is directly attached to it (account manager / head technical / head SEO /
+ * team assignment / closed the underlying deal).
+ *
+ * Used by GET /api/projects/[id], notes, team-assignments, and similar reads
+ * to prevent IDOR where any authenticated user could read any project's data.
+ *
+ * @returns true if the user may read the project, false otherwise.
+ */
+export async function userCanAccessProject(
+  userId: string,
+  userRole: string,
+  projectId: string
+): Promise<boolean> {
+  // Org-wide visibility roles bypass per-project membership checks.
+  if (userRole === "super_admin" || userRole === "head_account_manager" || userRole === "chief_sales") {
+    return true;
+  }
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: {
+      accountManagerId: true,
+      headTechnicalId: true,
+      headSeoId: true,
+      deal: { select: { salesAgentId: true } },
+      teamAssignments: {
+        where: { userId, status: "active" },
+        select: { id: true },
+      },
+    },
+  });
+
+  if (!project) return false;
+
+  if (project.accountManagerId === userId) return true;
+  if (project.headTechnicalId === userId) return true;
+  if (project.headSeoId === userId) return true;
+  if (project.deal?.salesAgentId === userId) return true;
+  if (project.teamAssignments.length > 0) return true;
+
+  return false;
+}
+
+/**
+ * When a user is newly added to a project, create WarningReceipt rows for any
+ * unresolved warnings on that project so the blocking popup applies to them too.
+ * The Warning model uses a unique (warningId,userId) constraint — using createMany
+ * with skipDuplicates avoids races when called from multiple paths.
+ *
+ * @param projectId The project the user was just added to
+ * @param userId    The user who was added
+ */
+export async function backfillReceiptsForNewMember(projectId: string, userId: string): Promise<void> {
+  const unresolved = await prisma.warning.findMany({
+    where: { projectId, status: { not: "Resolved" } },
+    select: { id: true, senderUserId: true },
+  });
+
+  const data = unresolved
+    .filter((w) => w.senderUserId !== userId)
+    .map((w) => ({ warningId: w.id, userId, isRead: false }));
+
+  if (data.length === 0) return;
+  await prisma.warningReceipt.createMany({ data, skipDuplicates: true });
+}

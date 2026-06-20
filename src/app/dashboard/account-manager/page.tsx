@@ -31,9 +31,12 @@ export default async function AccountManagerPage() {
           lead: { 
             include: { 
               callLogs: { include: { agent: true }, orderBy: { createdAt: "asc" } },
-              meetings: { include: { teleAgent: true, salesAgent: true }, orderBy: { createdAt: "asc" } }
+              meetings: { include: { teleAgent: true, salesAgent: true }, orderBy: { createdAt: "asc" } },
+              deals: { include: { salesAgent: true }, orderBy: { createdAt: "asc" } }
             } 
-          } 
+          },
+          salesAgent: true,
+          installments: { orderBy: { dueDate: "asc" } },
         }
       },
       tasks: {
@@ -46,7 +49,8 @@ export default async function AccountManagerPage() {
         where: { status: "active" },
         include: { user: { select: { id: true, name: true, role: true } } },
       },
-      globalNotes: true,
+      files: { orderBy: { createdAt: "desc" } },
+      globalNotes: { orderBy: { createdAt: "desc" } },
       logs: { orderBy: { createdAt: "desc" } },
     },
     orderBy: { createdAt: "desc" },
@@ -60,6 +64,14 @@ export default async function AccountManagerPage() {
         where: { projectStatus: { in: ["new", "setup", "in_progress", "assigned", "delayed"] } }
       }
     }
+  });
+
+  const teamLeaders = await prisma.user.findMany({
+    where: {
+      role: { in: ["team_leader_seo", "team_leader_social_media", "team_leader_media_buyer", "head_seo"] },
+      status: "Active",
+    },
+    select: { id: true, name: true, role: true },
   });
 
   // Fetch warnings for these projects
@@ -110,6 +122,7 @@ export default async function AccountManagerPage() {
       userId={user.id} 
       projects={projectsWithWarnings}
       headSeoUsers={headSeoForModal}
+      teamLeaders={teamLeaders}
       kpis={{
         activeClients,
         clientsWithWarnings,

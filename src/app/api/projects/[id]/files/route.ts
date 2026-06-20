@@ -2,11 +2,16 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { userCanAccessProject } from "@/lib/distribution";
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    const user = session?.user as { id?: string; role?: string } | undefined;
+    if (!user?.id || !user.role) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const allowed = await userCanAccessProject(user.id, user.role, params.id);
+    if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const files = await prisma.projectFile.findMany({
       where: { projectId: params.id },
@@ -23,9 +28,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
-    const userName = (session?.user as any)?.name;
-    const userId = (session?.user as any)?.id;
-    if (!userName) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    const sessionUser = session?.user as { id?: string; role?: string; name?: string } | undefined;
+    const userName = sessionUser?.name;
+    const userId = sessionUser?.id;
+    const userRole = sessionUser?.role;
+    if (!userId || !userRole || !userName) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const allowed = await userCanAccessProject(userId, userRole, params.id);
+    if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const { fileUrl, fileType } = await request.json();
     if (!fileUrl || !fileType) {

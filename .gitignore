@@ -45,6 +45,9 @@ next-env.d.ts
 check_db.js
 check_db2.js
 debug-user.js
+
+# local agent config
+.claude/
 test_live.js
 generate_pdf.js
 ts_errors.txt

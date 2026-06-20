@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { backfillReceiptsForNewMember } from "@/lib/distribution";
 
 /**
  * PATCH /api/projects/[id]/status
@@ -43,6 +44,23 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       return NextResponse.json({ error: `Invalid status: ${projectStatus}` }, { status: 400 });
     }
 
+    if (accountManagerId !== undefined) {
+      if (!["super_admin", "head_account_manager"].includes(user.role)) {
+        return NextResponse.json({ error: "Only Head Account Manager can change account manager assignment." }, { status: 403 });
+      }
+
+      if (accountManagerId) {
+        const targetAccountManager = await prisma.user.findUnique({
+          where: { id: accountManagerId },
+          select: { id: true, role: true, status: true },
+        });
+
+        if (!targetAccountManager || targetAccountManager.role !== "account_manager" || targetAccountManager.status !== "Active") {
+          return NextResponse.json({ error: "Target account manager not found or inactive." }, { status: 400 });
+        }
+      }
+    }
+
     const updateData: any = {};
     if (projectStatus) updateData.projectStatus = projectStatus;
     if (finalStatus) updateData.finalStatus = finalStatus;
@@ -64,6 +82,21 @@ export async function PATCH(request: Request, { params }: { params: { id: string
           userId: user.id,
         },
       });
+    }
+
+    if (accountManagerId !== undefined && project.accountManagerId !== (accountManagerId || null)) {
+      await prisma.projectLog.create({
+        data: {
+          projectId: params.id,
+          action: "account_manager_changed",
+          details: details || `Account Manager ${accountManagerId ? "assigned" : "unassigned"} by ${user.name || user.id}`,
+          userId: user.id,
+        },
+      });
+
+      if (accountManagerId) {
+        await backfillReceiptsForNewMember(params.id, accountManagerId);
+      }
     }
 
     return NextResponse.json(updatedProject);

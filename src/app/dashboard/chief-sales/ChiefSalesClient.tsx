@@ -54,14 +54,14 @@ export default function ChiefSalesClient() {
     { key: "client", label: "Client Name", render: (v: any, row: any) => row.lead?.name || "N/A" },
     { key: "agent", label: "Sales Agent", render: (v: any, row: any) => row.salesAgent?.name || "N/A" },
     { key: "package", label: "Package", render: (v: any, row: any) => row.package },
-    { key: "totalAmount", label: "Amount (EGP)", render: (v: any, row: any) => row.totalAmount.toLocaleString() },
+    { key: "totalAmount", label: "Amount (SAR)", render: (v: any, row: any) => row.totalAmount.toLocaleString() },
     { key: "status", label: "Status", render: (v: any, row: any) => row.status },
   ];
 
   const salesTeamCols = [
     { key: "name", label: "Agent Name" },
     { key: "dealsClosed", label: "Total Deals", render: (v: any) => <span className="font-bold text-emerald-600">{v}</span> },
-    { key: "revenueGenerated", label: "Revenue (EGP)", render: (v: any) => v.toLocaleString() },
+    { key: "revenueGenerated", label: "Revenue (SAR)", render: (v: any) => v.toLocaleString() },
     { key: "avgDealSize", label: "Avg Deal Vol", render: (v: any) => v.toLocaleString() },
   ];
 
@@ -98,8 +98,8 @@ export default function ChiefSalesClient() {
         >
           <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition text-emerald-500"><DollarSign size={80} /></div>
           <p className="text-sm font-medium text-slate-500">Total Revenue</p>
-          <h3 className="text-3xl font-bold text-slate-800">{overview.totalRevenue.toLocaleString()}<span className="text-lg text-slate-400 font-normal ml-1">EGP</span></h3>
-          <p className="text-xs text-slate-400">Target: {overview.totalNetTarget.toLocaleString()} EGP</p>
+          <h3 className="text-3xl font-bold text-slate-800">{overview.totalRevenue.toLocaleString()}<span className="text-lg text-slate-400 font-normal ml-1">SAR</span></h3>
+          <p className="text-xs text-slate-400">Target: {overview.totalNetTarget.toLocaleString()} SAR</p>
         </div>
 
         <div 
@@ -108,7 +108,7 @@ export default function ChiefSalesClient() {
         >
           <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition text-indigo-500"><CheckCircle2 size={80} /></div>
           <p className="text-sm font-medium text-slate-500">Collected Payments</p>
-          <h3 className="text-3xl font-bold text-indigo-600">{overview.totalCollected.toLocaleString()}<span className="text-lg text-slate-400 font-normal ml-1">EGP</span></h3>
+          <h3 className="text-3xl font-bold text-indigo-600">{overview.totalCollected.toLocaleString()}<span className="text-lg text-slate-400 font-normal ml-1">SAR</span></h3>
           <p className="text-xs text-slate-400">Actual money in bank</p>
         </div>
 
@@ -162,7 +162,7 @@ export default function ChiefSalesClient() {
                 <tr key={i} className="hover:bg-slate-50/50">
                   <td className="px-4 py-3 font-semibold text-slate-700">{agent.name}</td>
                   <td className="px-4 py-3 text-center font-bold text-emerald-600">{agent.dealsClosed}</td>
-                  <td className="px-4 py-3 text-right font-medium">{agent.revenueGenerated.toLocaleString()} EGP</td>
+                  <td className="px-4 py-3 text-right font-medium">{agent.revenueGenerated.toLocaleString()} SAR</td>
                 </tr>
               ))}
               {salesTeam.length === 0 && <tr><td colSpan={3} className="text-center py-4 text-slate-400 italic">No deals generated yet</td></tr>}

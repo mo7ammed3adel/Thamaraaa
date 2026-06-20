@@ -24,6 +24,7 @@ interface AccountManagerOption {
   id: string;
   name: string;
   email: string;
+  status?: string;
 }
 
 /**
@@ -62,6 +63,7 @@ export default function ClientReassignModal({
       const filtered = (data.users || data || []).filter(
         (user: AccountManagerOption & { role: string }) =>
           user.role === "account_manager" &&
+          user.status === "Active" &&
           user.id !== currentAccountManagerId
       );
 

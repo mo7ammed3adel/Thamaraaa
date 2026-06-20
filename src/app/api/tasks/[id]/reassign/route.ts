@@ -2,7 +2,31 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { canReassignTask } from "@/lib/distribution";
+import { backfillReceiptsForNewMember, canDistributeTo, canReassignTask } from "@/lib/distribution";
+
+const TASK_AGENT_ROLE_MAP: Record<string, string[]> = {
+  SEO: ["agent_seo"],
+  seo: ["agent_seo"],
+  content_seo: ["agent_content_seo"],
+  Social_Media: ["agent_social_media"],
+  social_media: ["agent_social_media"],
+  Media_Buyer: ["agent_media_buyer"],
+  media_buyer: ["agent_media_buyer"],
+  media_buying: ["agent_media_buyer"],
+  graphic_design: ["agent_graphic_designer"],
+  motion_graphic: ["agent_motion_graphic"],
+  ui_design: ["agent_ui"],
+};
+
+const AGENT_DEPARTMENT_MAP: Record<string, string> = {
+  agent_seo: "seo",
+  agent_content_seo: "content_seo",
+  agent_social_media: "social_media",
+  agent_media_buyer: "media_buyer",
+  agent_graphic_designer: "graphic_design",
+  agent_motion_graphic: "motion_graphic",
+  agent_ui: "ui_design",
+};
 
 /**
  * POST /api/tasks/[id]/reassign
@@ -49,6 +73,13 @@ export async function POST(
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
+    if (user.role !== "super_admin" && task.leaderId !== user.id) {
+      return NextResponse.json(
+        { error: "You can only reassign tasks you lead" },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const newAgentId =
       typeof body.newAgentId === "string" ? body.newAgentId.trim() : "";
@@ -62,16 +93,33 @@ export async function POST(
 
     const newAgent = await prisma.user.findUnique({
       where: { id: newAgentId },
+      select: { id: true, name: true, role: true, status: true },
     });
 
-    if (!newAgent) {
+    if (!newAgent || newAgent.status !== "Active") {
       return NextResponse.json(
-        { error: "Selected agent not found" },
+        { error: "Selected agent not found or inactive" },
+        { status: 400 }
+      );
+    }
+
+    if (!canDistributeTo(user.role, newAgent.role)) {
+      return NextResponse.json(
+        { error: `Your role cannot reassign tasks to ${newAgent.role}` },
+        { status: 403 }
+      );
+    }
+
+    const allowedAgentRoles = TASK_AGENT_ROLE_MAP[task.taskType] || [];
+    if (!allowedAgentRoles.includes(newAgent.role)) {
+      return NextResponse.json(
+        { error: `${newAgent.role} cannot receive ${task.taskType.replace(/_/g, " ")} tasks` },
         { status: 400 }
       );
     }
 
     const previousAgentId = task.agentId;
+    const agentDepartment = AGENT_DEPARTMENT_MAP[newAgent.role];
 
     const updatedTask = await prisma.$transaction(async (tx) => {
       const updated = await tx.task.update({
@@ -84,6 +132,26 @@ export async function POST(
           status: task.status === "done" ? "done" : "pending",
         },
       });
+
+      if (agentDepartment) {
+        await tx.teamAssignment.upsert({
+          where: { projectId_userId: { projectId: task.projectId, userId: newAgentId } },
+          update: {
+            role: newAgent.role,
+            department: agentDepartment,
+            status: "active",
+            removedAt: null,
+            assignedByUserId: user.id,
+          },
+          create: {
+            projectId: task.projectId,
+            userId: newAgentId,
+            assignedByUserId: user.id,
+            role: newAgent.role,
+            department: agentDepartment,
+          },
+        });
+      }
 
       await tx.notification.create({
         data: {
@@ -120,6 +188,8 @@ export async function POST(
 
       return updated;
     });
+
+    await backfillReceiptsForNewMember(task.projectId, newAgentId);
 
     return NextResponse.json({ success: true, task: updatedTask });
   } catch (error: unknown) {

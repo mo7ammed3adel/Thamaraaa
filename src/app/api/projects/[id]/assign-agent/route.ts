@@ -2,7 +2,45 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { canDistributeTo } from "@/lib/distribution";
+import { canDistributeTo, backfillReceiptsForNewMember } from "@/lib/distribution";
+
+const DEPARTMENT_AGENT_CONFIG: Record<string, { taskTypes: string[]; agentRoles: string[]; dashboardLink: string }> = {
+  seo: {
+    taskTypes: ["SEO", "seo"],
+    agentRoles: ["agent_seo"],
+    dashboardLink: "/dashboard/seo",
+  },
+  content_seo: {
+    taskTypes: ["content_seo"],
+    agentRoles: ["agent_content_seo"],
+    dashboardLink: "/dashboard/seo",
+  },
+  social_media: {
+    taskTypes: ["Social_Media", "social_media"],
+    agentRoles: ["agent_social_media"],
+    dashboardLink: "/dashboard/social-media",
+  },
+  media_buyer: {
+    taskTypes: ["Media_Buyer", "media_buyer", "media_buying"],
+    agentRoles: ["agent_media_buyer"],
+    dashboardLink: "/dashboard/media-buyer",
+  },
+  graphic_design: {
+    taskTypes: ["graphic_design"],
+    agentRoles: ["agent_graphic_designer"],
+    dashboardLink: "/dashboard/design",
+  },
+  motion_graphic: {
+    taskTypes: ["motion_graphic"],
+    agentRoles: ["agent_motion_graphic"],
+    dashboardLink: "/dashboard/design",
+  },
+  ui_design: {
+    taskTypes: ["ui_design"],
+    agentRoles: ["agent_ui"],
+    dashboardLink: "/dashboard/design",
+  },
+};
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -37,6 +75,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       );
     }
 
+    const deptConfig = DEPARTMENT_AGENT_CONFIG[department];
+    if (!deptConfig) {
+      return NextResponse.json(
+        { error: `Unknown department: ${department}` },
+        { status: 400 }
+      );
+    }
+
     const targetUser = await prisma.user.findUnique({
       where: { id: agentUserId },
       select: { id: true, role: true, name: true, status: true },
@@ -56,72 +102,122 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       );
     }
 
-    // Check project exists
-    const project = await prisma.project.findUnique({ where: { id: params.id } });
-    if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
-
-    const existingAssignment = await prisma.teamAssignment.findUnique({
-      where: { projectId_userId: { projectId: params.id, userId: agentUserId } },
-    });
-
-    if (existingAssignment) {
+    if (!deptConfig.agentRoles.includes(targetUser.role)) {
       return NextResponse.json(
-        { error: `${targetUser.name} is already assigned to this project` },
-        { status: 409 }
+        { error: `${targetUser.role} cannot receive ${department} tasks` },
+        { status: 400 }
       );
     }
 
-    const assignment = await prisma.teamAssignment.create({
-      data: {
-        projectId: params.id,
-        userId: agentUserId,
-        assignedByUserId: user.id,
-        role: targetUser.role,
-        department,
+    // Check project exists
+    const project = await prisma.project.findUnique({
+      where: { id: params.id },
+      select: {
+        id: true,
+        headTechnicalId: true,
+        headSeoId: true,
+        teamAssignments: {
+          where: { userId: user.id, status: "active" },
+          select: { id: true },
+        },
+        tasks: {
+          where: { leaderId: user.id },
+          select: { id: true },
+          take: 1,
+        },
       },
     });
+    if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
-    // Determine the task types for the given department
-    let taskTypes: string[] = [];
-    if (department === "seo" || department === "content_seo") taskTypes = ["SEO", "seo", "content_seo"];
-    else if (department === "social_media") taskTypes = ["Social_Media", "social_media"];
-    else if (department === "media_buyer") taskTypes = ["Media_Buyer", "media_buyer", "media_buying"];
-    else if (department === "graphic_design") taskTypes = ["graphic_design"];
-    else if (department === "motion_graphic") taskTypes = ["motion_graphic"];
-    else if (department === "ui_design") taskTypes = ["ui_design"];
+    const canManageThisProject =
+      user.role === "super_admin" ||
+      project.headTechnicalId === user.id ||
+      project.headSeoId === user.id ||
+      project.teamAssignments.length > 0 ||
+      project.tasks.length > 0;
 
-    // Assign existing tasks to this agent
-    await prisma.task.updateMany({
-      where: {
-        projectId: params.id,
-        taskType: { in: taskTypes },
-      },
-      data: { agentId: agentUserId },
-    });
+    if (!canManageThisProject) {
+      return NextResponse.json(
+        { error: "Forbidden: you are not assigned to manage this project" },
+        { status: 403 }
+      );
+    }
 
-    await prisma.projectLog.create({
-      data: {
-        projectId: params.id,
-        action: "team_assigned",
-        details: JSON.stringify({
-          assignedUser: targetUser.name,
-          assignedRole: targetUser.role,
+    const result = await prisma.$transaction(async (tx) => {
+      await tx.teamAssignment.deleteMany({
+        where: {
+          projectId: params.id,
           department,
-          assignedBy: user.name,
-        }),
-        userId: user.id,
-      },
+          status: "active",
+          role: { in: deptConfig.agentRoles },
+          userId: { not: agentUserId },
+        },
+      });
+
+      const existingAssignment = await tx.teamAssignment.findUnique({
+        where: { projectId_userId: { projectId: params.id, userId: agentUserId } },
+      });
+
+      const assignment = existingAssignment
+        ? await tx.teamAssignment.update({
+            where: { id: existingAssignment.id },
+            data: {
+              assignedByUserId: user.id,
+              role: targetUser.role,
+              department,
+              status: "active",
+              removedAt: null,
+            },
+          })
+        : await tx.teamAssignment.create({
+            data: {
+              projectId: params.id,
+              userId: agentUserId,
+              assignedByUserId: user.id,
+              role: targetUser.role,
+              department,
+            },
+          });
+
+      const updateResult = await tx.task.updateMany({
+        where: {
+          projectId: params.id,
+          taskType: { in: deptConfig.taskTypes },
+        },
+        data: { agentId: agentUserId },
+      });
+
+      await tx.projectLog.create({
+        data: {
+          projectId: params.id,
+          action: "team_assigned",
+          details: JSON.stringify({
+            assignedUser: targetUser.name,
+            assignedRole: targetUser.role,
+            department,
+            assignedBy: user.name,
+            taskTypes: deptConfig.taskTypes,
+            tasksUpdated: updateResult.count,
+          }),
+          userId: user.id,
+        },
+      });
+
+      await tx.notification.create({
+        data: {
+          userId: agentUserId,
+          type: "task_assigned",
+          message: `You have been assigned ${department.replace(/_/g, " ")} work by ${user.name}`,
+          title: "New Assignment",
+          link: deptConfig.dashboardLink,
+        },
+      });
+
+      return { assignment, tasksUpdated: updateResult.count };
     });
 
-    await prisma.notification.create({
-      data: {
-        userId: agentUserId,
-        type: "task_assigned",
-        message: `You have been assigned to a project by ${user.name}`,
-        title: "New Assignment",
-        link: "/dashboard/operations",
-      },
-    });
+    // Ensure newly-assigned agent receives any unresolved warnings on this project
+    await backfillReceiptsForNewMember(params.id, agentUserId);
 
     try {
       const { pusherServer } = await import("@/lib/pusher");
@@ -134,7 +230,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       console.error("Pusher team-distributed error:", pusherError);
     }
 
-    return NextResponse.json({ success: true, assignment });
+    return NextResponse.json({ success: true, assignment: result.assignment, tasksUpdated: result.tasksUpdated });
   } catch (error: any) {
     console.error("Assign agent error:", error);
     return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });

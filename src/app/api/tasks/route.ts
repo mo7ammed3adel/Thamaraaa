@@ -2,8 +2,22 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { findTeamLeaderRoleForTaskType } from "@/lib/distribution";
-import { CROSS_TEAM_TASK_TYPES } from "@/lib/constants";
+import { findTeamLeaderRoleForTaskType, userCanAccessProject } from "@/lib/distribution";
+import { CROSS_TEAM_TASK_TYPES, AGENT_ASSIGNER_ROLES, MANAGEMENT_ROLES, ACCOUNT_MANAGER_ROLES, hasRole, getDefaultChecklistForTaskType } from "@/lib/constants";
+
+// Roles that may create tasks. Includes:
+//  - Team leaders / heads who orchestrate the work (AGENT_ASSIGNER_ROLES, MANAGEMENT_ROLES)
+//  - Account managers who initiate cross-team requests
+//  - Cross-team requesting agents (social media, media buyer, SEO) per spec
+const TASK_CREATOR_ROLES = [
+  ...AGENT_ASSIGNER_ROLES,
+  ...MANAGEMENT_ROLES,
+  ...ACCOUNT_MANAGER_ROLES,
+  "agent_social_media",
+  "agent_media_buyer",
+  "agent_seo",
+  "agent_content_seo",
+] as const;
 
 export async function POST(req: Request) {
   try {
@@ -11,11 +25,24 @@ export async function POST(req: Request) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const user = session.user as { id: string; role: string; name?: string };
+
+    if (!hasRole(user.role, TASK_CREATOR_ROLES)) {
+      return NextResponse.json({ error: "Forbidden: your role cannot create tasks" }, { status: 403 });
+    }
 
     const body = await req.json();
     const { projectId, leaderId, assignedRole, taskType, priority, brief, taskLink, deadline, checklistItems } = body;
 
-    const user = session.user as any;
+    if (!projectId || !taskType) {
+      return NextResponse.json({ error: "projectId and taskType are required" }, { status: 400 });
+    }
+
+    // The user must already be a stakeholder of the project they're creating a task for.
+    const projectAllowed = await userCanAccessProject(user.id, user.role, projectId);
+    if (!projectAllowed) {
+      return NextResponse.json({ error: "Forbidden: you are not on this project" }, { status: 403 });
+    }
 
     let finalLeaderId = leaderId;
     let finalAssignedRole = assignedRole;
@@ -25,7 +52,18 @@ export async function POST(req: Request) {
     if (isCrossTeam && !finalLeaderId) {
       const leaderRole = findTeamLeaderRoleForTaskType(taskType);
       if (leaderRole) {
-        const leader = await prisma.user.findFirst({ where: { role: leaderRole, status: "Active" } });
+        const projectLeader = await prisma.teamAssignment.findFirst({
+          where: {
+            projectId,
+            role: leaderRole,
+            status: "active",
+            user: { status: "Active" },
+          },
+          select: { userId: true },
+        });
+        const leader = projectLeader
+          ? { id: projectLeader.userId }
+          : await prisma.user.findFirst({ where: { role: leaderRole, status: "Active" }, select: { id: true } });
         if (leader) {
           finalLeaderId = leader.id;
           finalAssignedRole = leaderRole;
@@ -83,7 +121,7 @@ export async function POST(req: Request) {
         taskLink: taskLink || null,
         priority: priority || "Medium",
         deadline: deadline ? new Date(deadline) : null,
-        checklistItems: checklistItems || "[]",
+        checklistItems: checklistItems || getDefaultChecklistForTaskType(taskType),
         requesterRole: user.role,
         status: "pending",
         progressPct: 0

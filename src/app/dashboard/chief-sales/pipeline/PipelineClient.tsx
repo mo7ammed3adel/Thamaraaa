@@ -93,7 +93,7 @@ export default function PipelineClient({ deals, projects }: any) {
             <div key={stage.key} className={`${stage.bgColor} p-4 rounded-xl border ${stage.borderColor} text-center`}>
               <p className="text-xs font-medium text-slate-600">{stage.label}</p>
               <p className="text-2xl font-bold text-slate-800">
-                {pipelineType === "deals" ? `${value.toLocaleString()} EGP` : value}
+                {pipelineType === "deals" ? `${value.toLocaleString()} SAR` : value}
               </p>
             </div>
           );
@@ -121,7 +121,7 @@ export default function PipelineClient({ deals, projects }: any) {
                         <>
                           <p className="text-sm font-semibold text-slate-800">{item.deal?.lead?.name || "Unknown"}</p>
                           <p className="text-xs text-slate-500 mt-0.5">
-                            {item.package} • {item.deal?.totalAmount?.toLocaleString()} EGP
+                            {item.package} • {item.deal?.totalAmount?.toLocaleString()} SAR
                           </p>
                           {item.accountManager && (
                             <p className="text-xs text-indigo-600 mt-1">AM: {item.accountManager.name}</p>
@@ -131,7 +131,7 @@ export default function PipelineClient({ deals, projects }: any) {
                         <>
                           <p className="text-sm font-semibold text-slate-800">{item.lead?.name || "Unknown"}</p>
                           <p className="text-xs text-slate-500 mt-0.5">
-                            {item.package} • {item.totalAmount?.toLocaleString()} EGP
+                            {item.package} • {item.totalAmount?.toLocaleString()} SAR
                           </p>
                           {item.salesAgent && (
                             <p className="text-xs text-purple-600 mt-1">Agent: {item.salesAgent.name}</p>
@@ -187,7 +187,7 @@ export default function PipelineClient({ deals, projects }: any) {
                       ? item.deal?.totalAmount
                       : item.totalAmount
                     )?.toLocaleString()}{" "}
-                    EGP
+                    SAR
                   </td>
                   <td className="px-6 py-4 text-center">
                     <span className="px-2 py-1 text-xs rounded-full font-semibold bg-slate-100 text-slate-700 capitalize">

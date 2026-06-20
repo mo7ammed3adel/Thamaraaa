@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { DollarSign, AlertCircle, FileText, CheckCircle2 } from "lucide-react";
+import { DollarSign, AlertCircle, FileText, CheckCircle2, Calculator, Download, Plus, X, Trash2, Lock } from "lucide-react";
 
 export default function FinanceClient() {
   const [data, setData] = useState<any>(null);
@@ -82,7 +82,12 @@ export default function FinanceClient() {
         <button onClick={() => { setActiveTab("installments"); setActiveFilter("all"); }} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "installments" ? "border-green-600 text-green-600" : "border-transparent text-gray-500"}`}>
           📆 Pending Installments
         </button>
+        <button onClick={() => { setActiveTab("commissions"); setActiveFilter("all"); }} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "commissions" ? "border-green-600 text-green-600" : "border-transparent text-gray-500"}`}>
+          🧮 Commissions
+        </button>
       </div>
+
+      {activeTab === "commissions" && <CommissionsTab />}
 
       {activeTab === "overview" && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -172,4 +177,265 @@ export default function FinanceClient() {
       )}
     </div>
   );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Commissions Tab — per-month breakdown of sales-agent payouts.
+// Implements the spec's Net Target formula, tier brackets, achievement
+// multipliers, bonuses/deductions editing, finalize, and Excel export.
+// ─────────────────────────────────────────────────────────────────────
+function CommissionsTab() {
+  const today = new Date();
+  const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+  const [month, setMonth] = useState<string>(defaultMonth);
+  const [commissions, setCommissions] = useState<any[]>([]);
+  const [config, setConfig] = useState<{ tiers: any[]; gatewayFeePct: number } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [editing, setEditing] = useState<any | null>(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    fetch(`/api/finance/commissions?month=${month}`)
+      .then((r) => r.json())
+      .then((d) => {
+        setCommissions(d.commissions || []);
+        setConfig(d.config || null);
+      })
+      .catch(() => setCommissions([]))
+      .finally(() => setLoading(false));
+  }, [month]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const recompute = async () => {
+    setBusy("recompute");
+    const res = await fetch("/api/finance/commissions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ month }),
+    });
+    setBusy(null);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || "Recompute failed");
+      return;
+    }
+    load();
+  };
+
+  const finalize = async (c: any) => {
+    if (!confirm(`Finalize ${c.user.name}'s ${month} commission? This payout becomes immutable.`)) return;
+    setBusy(c.id);
+    await fetch(`/api/finance/commissions/${c.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ finalized: true }),
+    });
+    setBusy(null);
+    load();
+  };
+
+  const exportXlsx = () => {
+    window.location.href = `/api/finance/commissions/export?month=${month}`;
+  };
+
+  const totalPayout = commissions.reduce((s, c) => s + c.netPayout, 0);
+  const totalNet = commissions.reduce((s, c) => s + c.netTarget, 0);
+  const finalizedCount = commissions.filter((c) => c.finalized).length;
+
+  return (
+    <div className="space-y-4">
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl border p-4 shadow-sm">
+        <Calculator className="w-5 h-5 text-slate-500" />
+        <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white" />
+        <button onClick={recompute} disabled={busy === "recompute"} className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg disabled:opacity-50">
+          {busy === "recompute" ? "Recomputing…" : "Recompute Month"}
+        </button>
+        <button onClick={exportXlsx} className="ml-auto px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg flex items-center gap-2">
+          <Download className="w-4 h-4" /> Export XLSX
+        </button>
+      </div>
+
+      {/* Formula reminder */}
+      {config && (
+        <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-xs text-slate-700 leading-relaxed">
+          <div className="font-bold text-slate-900 mb-1">Net Target Formula (per spec)</div>
+          <code className="block bg-white p-2 rounded border">Net = Cash × 1.0 + (Tabby/Tamara × {(1 - config.gatewayFeePct).toFixed(2)})</code>
+          <div className="mt-2">Tiers: {config.tiers.map((t, i) => (
+            <span key={i} className="inline-block bg-white border rounded px-2 py-0.5 mr-1.5 mb-1">{t.minNet.toLocaleString()}–{t.maxNet ? t.maxNet.toLocaleString() : "∞"}: {(t.pct * 100).toFixed(2)}%</span>
+          ))}</div>
+        </div>
+      )}
+
+      {/* Summary KPIs */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white p-5 rounded-2xl border shadow-sm">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Net Achieved (Total)</p>
+          <p className="text-3xl font-black text-gray-900">SAR {totalNet.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+        </div>
+        <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-200 shadow-sm">
+          <p className="text-xs font-bold text-emerald-700 uppercase tracking-widest mb-2">Total Payout</p>
+          <p className="text-3xl font-black text-emerald-700">SAR {totalPayout.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+        </div>
+        <div className="bg-blue-50 p-5 rounded-2xl border border-blue-200 shadow-sm">
+          <p className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-2">Finalized</p>
+          <p className="text-3xl font-black text-blue-700">{finalizedCount} / {commissions.length}</p>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
+            <tr>
+              <th className="px-4 py-3 text-left">Agent</th>
+              <th className="px-4 py-3 text-right">Monthly Target</th>
+              <th className="px-4 py-3 text-right">Net Achieved</th>
+              <th className="px-4 py-3 text-center">Achievement %</th>
+              <th className="px-4 py-3 text-right">Commission</th>
+              <th className="px-4 py-3 text-right">Bonus / Deduct</th>
+              <th className="px-4 py-3 text-right">Net Payout</th>
+              <th className="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200 text-sm">
+            {loading && (<tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">Loading…</td></tr>)}
+            {!loading && commissions.length === 0 && (
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400 italic">No commissions for {month}. Click "Recompute Month".</td></tr>
+            )}
+            {!loading && commissions.map((c) => {
+              const target = c.user.hrRecord?.monthlyTarget || 0;
+              const pct = target > 0 ? (c.netTarget / target) * 100 : 0;
+              const bonusesSum = sumJson(c.bonuses);
+              const deductionsSum = sumJson(c.deductions);
+              return (
+                <tr key={c.id} className={`hover:bg-gray-50 ${c.finalized ? "bg-emerald-50/40" : ""}`}>
+                  <td className="px-4 py-3"><div className="font-bold text-gray-900">{c.user.name}</div><div className="text-xs text-gray-500">{c.user.level || "—"}</div></td>
+                  <td className="px-4 py-3 text-right">SAR {target.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-right font-bold">SAR {c.netTarget.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                  <td className="px-4 py-3 text-center">
+                    <span className={`font-bold ${pct >= 100 ? "text-emerald-700" : pct >= 50 ? "text-amber-700" : "text-red-600"}`}>
+                      {pct.toFixed(0)}%
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right">SAR {c.commissionAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}<div className="text-xs text-gray-400">{(c.commissionPct * 100).toFixed(2)}%</div></td>
+                  <td className="px-4 py-3 text-right text-xs">
+                    {bonusesSum > 0 && <div className="text-emerald-600">+{bonusesSum.toLocaleString()}</div>}
+                    {deductionsSum > 0 && <div className="text-red-600">−{deductionsSum.toLocaleString()}</div>}
+                    {bonusesSum === 0 && deductionsSum === 0 && <span className="text-gray-300">—</span>}
+                  </td>
+                  <td className="px-4 py-3 text-right font-black">SAR {c.netPayout.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                  <td className="px-4 py-3 text-right space-x-1 whitespace-nowrap">
+                    {c.finalized ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-bold"><Lock className="w-3 h-3" /> Finalized</span>
+                    ) : (
+                      <>
+                        <button onClick={() => setEditing(c)} className="px-2 py-1 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded text-xs font-bold">Edit</button>
+                        <button disabled={busy === c.id} onClick={() => finalize(c)} className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold disabled:opacity-50">Finalize</button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {editing && <BonusDeductionModal commission={editing} onClose={() => setEditing(null)} onSaved={load} />}
+    </div>
+  );
+}
+
+function sumJson(json: string | null): number {
+  if (!json) return 0;
+  try {
+    const items = JSON.parse(json);
+    if (!Array.isArray(items)) return 0;
+    return items.reduce((s: number, it: any) => s + (Number(it.amount) || 0), 0);
+  } catch {
+    return 0;
+  }
+}
+
+function BonusDeductionModal({ commission, onClose, onSaved }: { commission: any; onClose: () => void; onSaved: () => void }) {
+  const [bonuses, setBonuses] = useState<{ reason: string; amount: number }[]>(safeParse(commission.bonuses));
+  const [deductions, setDeductions] = useState<{ reason: string; amount: number }[]>(safeParse(commission.deductions));
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    const res = await fetch(`/api/finance/commissions/${commission.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bonuses, deductions }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || "Save failed");
+      return;
+    }
+    onSaved();
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 p-6 max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-bold text-gray-900">Bonuses & Deductions — {commission.user.name}</h3>
+          <button onClick={onClose} className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200"><X className="w-4 h-4" /></button>
+        </div>
+
+        <LineItemEditor title="Bonuses" colorClass="emerald" items={bonuses} setItems={setBonuses} />
+        <LineItemEditor title="Deductions" colorClass="red" items={deductions} setItems={setDeductions} />
+
+        <div className="pt-4 border-t flex gap-3 mt-6">
+          <button onClick={onClose} className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium">Cancel</button>
+          <button onClick={save} disabled={saving} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-50">
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LineItemEditor({ title, colorClass, items, setItems }: { title: string; colorClass: "emerald" | "red"; items: { reason: string; amount: number }[]; setItems: (v: any) => void }) {
+  // Static class names so Tailwind's JIT doesn't purge them.
+  const addBtnClass = colorClass === "emerald" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700";
+  return (
+    <div className="my-4">
+      <div className="flex justify-between items-center mb-2">
+        <h4 className="font-semibold text-sm text-gray-700">{title}</h4>
+        <button onClick={() => setItems([...items, { reason: "", amount: 0 }])} className={`px-2 py-1 ${addBtnClass} rounded text-xs font-bold flex items-center gap-1`}>
+          <Plus className="w-3 h-3" /> Add
+        </button>
+      </div>
+      <div className="space-y-2">
+        {items.length === 0 && <p className="text-xs text-gray-400 italic">No {title.toLowerCase()} yet.</p>}
+        {items.map((it, i) => (
+          <div key={i} className="flex gap-2">
+            <input value={it.reason} onChange={(e) => setItems(items.map((x, j) => (j === i ? { ...x, reason: e.target.value } : x)))} placeholder="Reason" className="flex-1 border rounded px-2 py-1 text-sm" />
+            <input type="number" value={it.amount} onChange={(e) => setItems(items.map((x, j) => (j === i ? { ...x, amount: parseFloat(e.target.value) || 0 } : x)))} placeholder="Amount" className="w-32 border rounded px-2 py-1 text-sm text-right" />
+            <button onClick={() => setItems(items.filter((_, j) => j !== i))} className="p-1.5 bg-red-50 hover:bg-red-100 rounded">
+              <Trash2 className="w-3.5 h-3.5 text-red-600" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function safeParse(json: string | null): { reason: string; amount: number }[] {
+  if (!json) return [];
+  try {
+    const v = JSON.parse(json);
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
 }

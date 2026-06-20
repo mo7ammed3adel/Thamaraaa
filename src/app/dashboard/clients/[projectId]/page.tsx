@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { userCanAccessProject } from "@/lib/distribution";
 import ClientFullJourneyClient from "./ClientFullJourneyClient";
 
 /**
@@ -55,6 +56,11 @@ export default async function ClientJourneyPage({
       files: { orderBy: { createdAt: "desc" } },
       logs: { orderBy: { createdAt: "desc" } },
       globalNotes: { orderBy: { createdAt: "desc" } },
+      warnings: {
+        where: { status: { not: "Resolved" } },
+        include: { sender: { select: { id: true, name: true, role: true } } },
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
 
@@ -64,6 +70,9 @@ export default async function ClientJourneyPage({
   });
 
   if (!project) redirect("/dashboard");
+
+  const allowed = await userCanAccessProject(user.id, user.role, project.id);
+  if (!allowed) redirect("/dashboard");
 
   return (
     <ClientFullJourneyClient

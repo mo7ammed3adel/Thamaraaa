@@ -30,46 +30,51 @@ export default function WarningPopup({ userRole, userId }: { userRole: string; u
       .catch(console.error);
   }, [userId]);
 
-  // Listen for real-time warnings via Pusher
+  // Listen for real-time warnings via Pusher.
+  // The server creates a WarningReceipt for every affected user and fires `new-warning`
+  // on that user's own channel (`user-${userId}`), so we trust delivery without needing role filtering.
   useEffect(() => {
+    if (!userId) return;
+    const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
+    if (!key) return;
+
     let pusherClient: any = null;
     let channel: any = null;
+    const channelName = `user-${userId}`;
 
     const setupPusher = async () => {
       try {
         const PusherModule = await import("pusher-js");
         const Pusher = PusherModule.default;
-        pusherClient = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || "", {
+        pusherClient = new Pusher(key, {
           cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "eu",
         });
-        channel = pusherClient.subscribe("warnings-channel");
+        channel = pusherClient.subscribe(channelName);
         channel.bind("new-warning", (data: any) => {
-          try {
-            const roles = data.recipientRoles || [];
-            if (roles.includes(userRole) && data.senderUserId !== userId) {
-              const newWarning: WarningData = {
-                id: data.id,
-                message: data.message,
-                subject: data.subject,
-                severity: data.severity,
-                senderRole: data.senderRole,
-                senderUserId: data.senderUserId,
-                createdAt: data.createdAt,
-              };
-              setWarnings((prev) => [newWarning, ...prev]);
-              setActiveWarning((current) => current || newWarning);
-            }
-          } catch {}
+          if (!data || data.senderUserId === userId) return;
+          const newWarning: WarningData = {
+            id: data.id,
+            message: data.message,
+            subject: data.subject,
+            severity: data.severity,
+            senderRole: data.senderRole,
+            senderUserId: data.senderUserId,
+            createdAt: data.createdAt,
+          };
+          setWarnings((prev) => (prev.find((w) => w.id === newWarning.id) ? prev : [...prev, newWarning]));
+          setActiveWarning((current) => current || newWarning);
         });
-      } catch {}
+      } catch (e) {
+        console.error("WarningPopup pusher setup failed:", e);
+      }
     };
 
     setupPusher();
     return () => {
       if (channel) channel.unbind_all();
-      if (pusherClient) pusherClient.unsubscribe("warnings-channel");
+      if (pusherClient) pusherClient.unsubscribe(channelName);
     };
-  }, [userRole, userId]);
+  }, [userId]);
 
   const handleAcknowledge = useCallback(async () => {
     if (!activeWarning) return;

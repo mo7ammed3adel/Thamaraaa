@@ -66,11 +66,22 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
   }, [projects, filterAM, searchQuery, filterStatus, filterWarning, filterDelay, activeKpi, filterLifecycle]);
 
   const handleAssignAM = async (projectId: string, amId: string) => {
-    await fetch(`/api/projects/${projectId}/status`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ accountManagerId: amId || null }),
-    });
+    if (amId) {
+      await fetch("/api/projects/distribute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId, targetUserId: amId }),
+      });
+    } else {
+      await fetch(`/api/projects/${projectId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountManagerId: null,
+          details: "Account Manager unassigned by Head Account Manager",
+        }),
+      });
+    }
     router.refresh();
   };
 
@@ -210,7 +221,6 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
               const hasWarnings = p.warnings && p.warnings.length > 0;
               const activeTasks = p.tasks?.filter((t:any) => t.status !== "done").length || 0;
               const delayedTasks = p.tasks?.filter((t:any) => t.status !== "done" && t.deadline && new Date(t.deadline) < new Date()).length || 0;
-              const technicalTask = p.tasks?.find((t:any) => t.taskType === "technical");
               const lastActivity = p.logs && p.logs.length > 0 ? new Date(p.logs[0].createdAt).toLocaleDateString() : new Date(p.createdAt).toLocaleDateString();
 
               return (
@@ -255,7 +265,13 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
                       <div>
                         <p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Head Technical</p>
                         <div className="text-xs font-semibold px-2 py-1 bg-slate-50 border rounded w-full truncate text-slate-500 cursor-not-allowed" title="Assigned through Client Full Journey Page">
-                          {technicalTask ? technicalTask.leader?.name : "Pending Request"}
+                          {p.headTechnical?.name || "Pending Request"}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Head SEO</p>
+                        <div className="text-xs font-semibold px-2 py-1 bg-slate-50 border rounded w-full truncate text-slate-500 cursor-not-allowed" title="Assigned through Client Full Journey Page">
+                          {p.headSeo?.name || "Pending Request"}
                         </div>
                       </div>
                     </div>

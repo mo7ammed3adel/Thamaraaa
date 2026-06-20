@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { userCanAccessProject } from "@/lib/distribution";
 
 /**
  * GET /api/team-assignments?projectId=xxx
@@ -13,12 +14,18 @@ export async function GET(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const user = session.user as { id: string; role: string };
 
     const { searchParams } = new URL(req.url);
     const projectId = searchParams.get("projectId");
 
     if (!projectId) {
       return NextResponse.json({ error: "projectId required" }, { status: 400 });
+    }
+
+    const allowed = await userCanAccessProject(user.id, user.role, projectId);
+    if (!allowed) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const assignments = await prisma.teamAssignment.findMany({
