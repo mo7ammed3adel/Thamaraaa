@@ -12,15 +12,19 @@ export async function GET(req: Request) {
   try {
     const deals = await prisma.deal.findMany({
       where: { status: { in: ["Pending", "Closed_Won"] } },
-      include: { lead: true, salesAgent: { select: { name: true } } }
+      include: {
+        lead: true,
+        salesAgent: { select: { name: true } },
+        installments: { orderBy: { dueDate: "asc" } },
+      }
     });
 
     const totalRevenue = deals.reduce((sum, d) => sum + d.totalAmount, 0);
     const totalCollected = deals.reduce((sum, d) => {
-      let collected = d.firstAmount || 0;
-      if (d.installment1Collected) collected += d.installment1Amount || 0;
-      if (d.installment2Collected) collected += d.installment2Amount || 0;
-      if (d.installment3Collected) collected += d.installment3Amount || 0;
+      const collectedInstallments = d.installments
+        .filter((inst) => inst.isPaid)
+        .reduce((instSum, inst) => instSum + inst.amount, 0);
+      const collected = (d.firstAmount || 0) + collectedInstallments;
       return sum + collected;
     }, 0);
 

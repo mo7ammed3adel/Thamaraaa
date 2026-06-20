@@ -26,10 +26,10 @@ export async function GET(req: Request) {
     }
     const createdAtFilter = (from || to) ? { createdAt: dateFilter } : {};
 
-    // Get agent IDs under this manager (include orphan agents)
+    // Get agent IDs under this manager
     const agentFilter: any = { role: "sales_agent" };
     if (user.role === "sales_manager") {
-      agentFilter.OR = [{ directManagerId: user.id }, { directManagerId: null }];
+      agentFilter.directManagerId = user.id;
     }
     const agents = await prisma.user.findMany({ where: agentFilter, select: { id: true } });
     const agentIds = agents.map(a => a.id);

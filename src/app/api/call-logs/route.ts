@@ -26,7 +26,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "leadId, callStatus, and notes are required" }, { status: 400 });
     }
 
-    const existingLead = await prisma.lead.findUnique({ where: { id: leadId } });
+    const existingLead = await prisma.lead.findUnique({
+      where: { id: leadId },
+      include: {
+        teleAgent: { select: { directManagerId: true } },
+        salesAgent: { select: { directManagerId: true } },
+      },
+    });
     if (!existingLead) {
       return NextResponse.json({ error: "Lead not found" }, { status: 404 });
     }
@@ -34,7 +40,11 @@ export async function POST(req: Request) {
     const isAuthorized = 
       existingLead.assignedTeleAgentId === userId || 
       existingLead.assignedSalesAgentId === userId ||
-      ["super_admin", "tele_sales_manager", "sales_manager"].includes(userRole);
+      userRole === "super_admin" ||
+      (userRole === "tele_sales_manager" &&
+        (!existingLead.assignedTeleAgentId || existingLead.teleAgent?.directManagerId === userId)) ||
+      (userRole === "sales_manager" &&
+        (!existingLead.assignedSalesAgentId || existingLead.salesAgent?.directManagerId === userId));
 
     if (!isAuthorized) {
       return NextResponse.json({ error: "Forbidden: You are not assigned to this lead." }, { status: 403 });

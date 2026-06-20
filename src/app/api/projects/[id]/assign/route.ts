@@ -34,6 +34,23 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: "Invalid assignee for this role" }, { status: 400 });
     }
 
+    const existingProject = await prisma.project.findUnique({
+      where: { id: params.id },
+      select: { id: true, accountManagerId: true, headTechnicalId: true, headSeoId: true },
+    });
+    if (!existingProject) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+    if (user.role === "account_manager" && existingProject.accountManagerId !== user.id) {
+      return NextResponse.json({ error: "You can only assign your own projects" }, { status: 403 });
+    }
+    if (user.role === "head_technical" && existingProject.headTechnicalId !== user.id) {
+      return NextResponse.json({ error: "You can only assign projects assigned to you as Head Technical" }, { status: 403 });
+    }
+    if (user.role === "head_seo" && existingProject.headSeoId !== user.id) {
+      return NextResponse.json({ error: "You can only assign projects assigned to you as Head SEO" }, { status: 403 });
+    }
+
     const updateData: { accountManagerId?: string; headTechnicalId?: string; headSeoId?: string; projectStatus?: string; assignedAt?: Date } = {};
     let notificationMsg = "";
 

@@ -33,7 +33,8 @@ export async function GET(req: Request) {
       where: dateFilter ? { createdAt: dateFilter } : {},
       include: {
         salesAgent: { select: { name: true } },
-        lead: { select: { name: true, niche: true, source: true } }
+        lead: { select: { name: true, niche: true, source: true } },
+        installments: { orderBy: { dueDate: "asc" } }
       }
     });
 
@@ -42,10 +43,10 @@ export async function GET(req: Request) {
     const totalNetTarget = wonDeals.reduce((sum, d) => sum + d.netTarget, 0);
 
     const totalCollected = wonDeals.reduce((sum, d) => {
-      let collected = d.firstAmount || 0;
-      if (d.installment1Collected) collected += d.installment1Amount || 0;
-      if (d.installment2Collected) collected += d.installment2Amount || 0;
-      if (d.installment3Collected) collected += d.installment3Amount || 0;
+      const collectedInstallments = d.installments
+        .filter((inst) => inst.isPaid)
+        .reduce((instSum, inst) => instSum + inst.amount, 0);
+      const collected = (d.firstAmount || 0) + collectedInstallments;
       return sum + collected;
     }, 0);
 

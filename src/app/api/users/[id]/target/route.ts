@@ -6,7 +6,8 @@ import { authOptions } from "@/lib/auth";
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
-    const userRole = (session?.user as any)?.role;
+    const actor = session?.user as any;
+    const userRole = actor?.role;
 
     // Only allow managers or super admins
     if (!session || !["super_admin", "tele_sales_manager"].includes(userRole)) {
@@ -18,7 +19,21 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     if (typeof target !== "number") {
       return NextResponse.json({ error: "Invalid target value" }, { status: 400 });
     }
-    
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: params.id },
+      select: { id: true, role: true, directManagerId: true },
+    });
+    if (!targetUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+    if (
+      userRole === "tele_sales_manager" &&
+      (targetUser.role !== "tele_sales_agent" || targetUser.directManagerId !== actor.id)
+    ) {
+      return NextResponse.json({ error: "Forbidden: you can only set targets for your direct TeleSales agents" }, { status: 403 });
+    }
+     
     const targetMonth = month || new Date().toISOString().slice(0, 7);
 
     // Upsert the target

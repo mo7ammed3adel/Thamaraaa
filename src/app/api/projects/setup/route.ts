@@ -14,8 +14,12 @@ import { authOptions } from "@/lib/auth";
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
+    const user = session?.user as any;
+    const userId = user?.id;
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    if (!["sales_agent", "super_admin"].includes(user.role)) {
+      return NextResponse.json({ error: "Forbidden: only the closing Sales Agent can create a project from a deal" }, { status: 403 });
+    }
 
     const { dealId, niche, deadline } = await request.json();
     if (!dealId) {
@@ -35,6 +39,9 @@ export async function POST(request: Request) {
     });
     if (!dealData) {
       return NextResponse.json({ error: "Deal not found" }, { status: 404 });
+    }
+    if (user.role === "sales_agent" && dealData.salesAgentId !== user.id) {
+      return NextResponse.json({ error: "Forbidden: this deal is not assigned to you" }, { status: 403 });
     }
 
     const packageName = dealData.package;

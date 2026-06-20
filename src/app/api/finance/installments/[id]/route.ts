@@ -12,16 +12,41 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   try {
     const body = await req.json();
     const { isPaid } = body;
+    if (typeof isPaid !== "boolean") {
+      return NextResponse.json({ error: "isPaid must be boolean" }, { status: 400 });
+    }
 
-    const installment = await prisma.installment.update({
+    const existing = await prisma.installment.findUnique({
       where: { id: params.id },
-      data: { isPaid },
-      include: { deal: true }
+      include: { deal: { include: { projects: { select: { id: true } } } } },
     });
 
-    // Also update deal specific flags
-    // (A real robust logic would check which installment number this was, but we assume dynamic mapping)
-    
+    if (!existing) {
+      return NextResponse.json({ error: "Installment not found" }, { status: 404 });
+    }
+
+    const installment = await prisma.$transaction(async (tx) => {
+      const updated = await tx.installment.update({
+        where: { id: params.id },
+        data: { isPaid },
+        include: { deal: true }
+      });
+
+      const projectId = existing.deal.projects[0]?.id;
+      if (projectId) {
+        await tx.projectLog.create({
+          data: {
+            projectId,
+            userId: (session.user as any).id,
+            action: "installment_updated",
+            details: `Installment ${params.id} marked as ${isPaid ? "paid" : "unpaid"}. Amount: ${existing.amount} SAR`,
+          },
+        });
+      }
+
+      return updated;
+    });
+     
     return NextResponse.json({ success: true, installment });
   } catch (err) {
     return NextResponse.json({ error: "Server error" }, { status: 500 });

@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     const user = session.user as any;
 
     const receipts = await prisma.warningReceipt.findMany({
-      where: { userId: user.id, isRead: false },
+      where: { userId: user.id, isRead: false, warning: { status: { not: "Resolved" } } },
       include: {
         warning: {
           include: { sender: { select: { id: true, name: true, role: true } } }

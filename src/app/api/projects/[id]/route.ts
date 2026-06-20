@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { checkProjectBlockers, userCanAccessProject } from "@/lib/distribution";
+import { userCanAccessProject } from "@/lib/distribution";
+import { normalizeWebUrl } from "@/lib/safe-url";
 
 // Fields the project detail PATCH is allowed to mutate. Anything not in this list
 // is silently dropped to prevent mass-assignment attacks (e.g. overwriting accountManagerId,
@@ -14,18 +15,15 @@ const ALLOWED_PATCH_FIELDS = new Set([
   "screenshotUrl",
   "notes",
   "priority",
-  "projectStatus",
   "technicalDeadline",
   "finalDeadline",
   "addedDurationDays",
   "storeCreated",
   "userCreatedStore",
-  "seoProgress",
-  "socialMediaProgress",
-  "mediaBuyerProgress",
 ]);
 
 const DATE_FIELDS = new Set(["technicalDeadline", "finalDeadline"]);
+const URL_FIELDS = new Set(["storeUrl", "driveLink", "screenshotUrl"]);
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -94,6 +92,21 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   try {
+    const projectForEdit = await prisma.project.findUnique({
+      where: { id: params.id },
+      select: { accountManagerId: true },
+    });
+    if (!projectForEdit) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    const canEditProjectDetails =
+      user.role === "super_admin" ||
+      user.role === "head_account_manager" ||
+      projectForEdit.accountManagerId === user.id;
+
+    if (!canEditProjectDetails) {
+      return NextResponse.json({ error: "Forbidden: project details can only be edited by the assigned Account Manager or Head Account Manager" }, { status: 403 });
+    }
+
     const body = await req.json();
 
     // Build a sanitized data object containing only allow-listed fields.
@@ -102,6 +115,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       if (!ALLOWED_PATCH_FIELDS.has(key)) continue;
       if (DATE_FIELDS.has(key)) {
         data[key] = value ? new Date(value as string) : null;
+      } else if (URL_FIELDS.has(key)) {
+        if (value === null || value === "") {
+          data[key] = null;
+        } else {
+          const safeUrl = normalizeWebUrl(value);
+          if (!safeUrl) {
+            return NextResponse.json({ error: `${key} must be a valid http(s) URL` }, { status: 400 });
+          }
+          data[key] = safeUrl;
+        }
       } else {
         data[key] = value;
       }
@@ -109,16 +132,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     if (Object.keys(data).length === 0) {
       return NextResponse.json({ error: "No editable fields supplied" }, { status: 400 });
-    }
-
-    if (typeof data.projectStatus === "string" && ["in_progress", "completed", "review"].includes(data.projectStatus)) {
-      const blockers = await checkProjectBlockers(params.id);
-      if (blockers.isBlocked) {
-        return NextResponse.json({
-          error: "Action blocked by unresolved warnings.",
-          warnings: blockers.warnings,
-        }, { status: 403 });
-      }
     }
 
     const project = await prisma.project.update({

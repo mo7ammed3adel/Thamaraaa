@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { checkProjectBlockers, backfillReceiptsForNewMember } from "@/lib/distribution";
+import { normalizeWebUrl } from "@/lib/safe-url";
 
 const TASK_AGENT_ROLE_MAP: Record<string, string[]> = {
   SEO: ["agent_seo"],
@@ -17,6 +18,34 @@ const TASK_AGENT_ROLE_MAP: Record<string, string[]> = {
   motion_graphic: ["agent_motion_graphic"],
   ui_design: ["agent_ui"],
 };
+
+function normalizeDeliverableFiles(value: unknown) {
+  if (value === null || value === "") return { value: null };
+
+  let parsed: unknown = value;
+  if (typeof value === "string") {
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      return { error: "files must be valid JSON" };
+    }
+  }
+
+  if (!Array.isArray(parsed)) return { error: "files must be an array" };
+  if (parsed.length > 50) return { error: "files cannot contain more than 50 links" };
+
+  const normalized = [];
+  for (const item of parsed) {
+    if (!item || typeof item !== "object") return { error: "Invalid file entry" };
+    const entry = item as { label?: unknown; url?: unknown };
+    const safeUrl = normalizeWebUrl(entry.url);
+    if (!safeUrl) return { error: "Each deliverable URL must be a valid http(s) URL" };
+    const label = typeof entry.label === "string" && entry.label.trim() ? entry.label.trim().slice(0, 120) : "Deliverable";
+    normalized.push({ label, url: safeUrl });
+  }
+
+  return { value: JSON.stringify(normalized) };
+}
 
 /**
  * PATCH /api/tasks/[id]
@@ -38,14 +67,25 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     // ── Ownership / Role Check ──
     const existingTask = await prisma.task.findUnique({
       where: { id: taskId },
-      select: { id: true, leaderId: true, agentId: true, projectId: true, taskType: true, startedAt: true, project: { select: { accountManagerId: true } } },
+      select: {
+        id: true,
+        leaderId: true,
+        agentId: true,
+        projectId: true,
+        taskType: true,
+        startedAt: true,
+        project: { select: { accountManagerId: true, headTechnicalId: true, headSeoId: true } },
+      },
     });
 
     if (!existingTask) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    const isAdmin = ["super_admin", "head_account_manager", "head_technical", "head_seo"].includes(user.role);
+    const isAdmin =
+      ["super_admin", "head_account_manager"].includes(user.role) ||
+      (user.role === "head_technical" && existingTask.project?.headTechnicalId === user.id) ||
+      (user.role === "head_seo" && existingTask.project?.headSeoId === user.id);
     const isTeamLeader = existingTask.leaderId === user.id;
     const isAssignedAgent = existingTask.agentId === user.id;
     const isProjectAM = existingTask.project?.accountManagerId === user.id;
@@ -155,7 +195,13 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     if (body.priority !== undefined) updateData.priority = body.priority;
     if (body.brief !== undefined) updateData.brief = body.brief;
     if (body.deadline !== undefined) updateData.deadline = body.deadline ? new Date(body.deadline) : null;
-    if (body.files !== undefined) updateData.files = body.files;
+    if (body.files !== undefined) {
+      const normalizedFiles = normalizeDeliverableFiles(body.files);
+      if ("error" in normalizedFiles) {
+        return NextResponse.json({ error: normalizedFiles.error }, { status: 400 });
+      }
+      updateData.files = normalizedFiles.value;
+    }
     if (body.completedAt !== undefined) updateData.completedAt = body.completedAt ? new Date(body.completedAt) : null;
 
     const updatedTask = await prisma.task.update({

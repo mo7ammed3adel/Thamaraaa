@@ -5,6 +5,12 @@ import { authOptions } from "@/lib/auth";
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    const user = session?.user as any;
+    if (!user || !["super_admin", "tele_sales_manager", "tele_sales_agent"].includes(user.role)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const niches = await prisma.niche.findMany({
       orderBy: { name: "asc" }
     });
@@ -20,6 +26,10 @@ export async function POST(request: Request) {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const user = session.user as any;
+    if (!["super_admin", "tele_sales_manager", "tele_sales_agent"].includes(user.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { name } = await request.json();

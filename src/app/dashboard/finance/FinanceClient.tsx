@@ -102,10 +102,10 @@ export default function FinanceClient() {
             </thead>
             <tbody className="divide-y divide-gray-200 text-sm">
               {data.deals.map((d: any) => {
-                let collected = d.firstAmount || 0;
-                if (d.installment1Collected) collected += d.installment1Amount || 0;
-                if (d.installment2Collected) collected += d.installment2Amount || 0;
-                if (d.installment3Collected) collected += d.installment3Amount || 0;
+                const installmentsPaid = (d.installments || [])
+                  .filter((inst: any) => inst.isPaid)
+                  .reduce((sum: number, inst: any) => sum + inst.amount, 0);
+                const collected = (d.firstAmount || 0) + installmentsPaid;
 
                 const isFullyPaid = collected >= d.totalAmount;
                 if (activeFilter === "fully_paid" && !isFullyPaid) return null;

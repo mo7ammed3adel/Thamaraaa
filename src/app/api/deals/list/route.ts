@@ -11,14 +11,21 @@ export async function GET() {
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (!["super_admin", "chief_sales", "tele_sales_manager", "tele_sales_agent", "sales_manager", "sales_agent"].includes(user.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
-    // Agent sees own deals tracked via tele leads, Manager/Admin sees all
+    // Agents see their own deals; managers see only their direct teams.
     const whereClause: any = { status: "Closed_Won" };
 
     if (user.role === "tele_sales_agent") {
       whereClause.lead = { assignedTeleAgentId: user.id };
     } else if (user.role === "sales_agent") {
       whereClause.salesAgentId = user.id;
+    } else if (user.role === "tele_sales_manager") {
+      whereClause.lead = { teleAgent: { is: { directManagerId: user.id } } };
+    } else if (user.role === "sales_manager") {
+      whereClause.salesAgent = { is: { directManagerId: user.id } };
     }
 
     const deals = await prisma.deal.findMany({

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { normalizeWebUrl } from "@/lib/safe-url";
 
 const HR_ROLES = ["super_admin", "hr_manager"];
 
@@ -55,7 +56,9 @@ export async function POST(req: NextRequest) {
   }
 
   const { userId, name, fileUrl } = body || {};
-  if (!name || !fileUrl) {
+  const safeFileUrl = normalizeWebUrl(fileUrl);
+  const safeName = typeof name === "string" ? name.trim().slice(0, 120) : "";
+  if (!safeName || !safeFileUrl) {
     return NextResponse.json({ error: "name and fileUrl are required" }, { status: 400 });
   }
 
@@ -67,7 +70,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const document = await prisma.employeeDocument.create({
-      data: { userId: targetUserId, name, fileUrl },
+      data: { userId: targetUserId, name: safeName, fileUrl: safeFileUrl },
     });
     return NextResponse.json({ document }, { status: 201 });
   } catch (error: unknown) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { normalizeWebUrl } from "@/lib/safe-url";
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -34,15 +35,26 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const body = await request.json();
     const { niche, storeUrl, driveLink, technicalDeadline, finalDeadline, notes, projectStatus } = body;
 
+    const safeStoreUrl = storeUrl ? normalizeWebUrl(storeUrl) : null;
+    const safeDriveLink = driveLink ? normalizeWebUrl(driveLink) : null;
+    if ((storeUrl && !safeStoreUrl) || (driveLink && !safeDriveLink)) {
+      return NextResponse.json({ error: "Project setup links must be valid http(s) URLs" }, { status: 400 });
+    }
+
     // Build data object
     const updateData: any = {};
     if (niche !== undefined) updateData.niche = niche;
-    if (storeUrl !== undefined) updateData.storeUrl = storeUrl;
-    if (driveLink !== undefined) updateData.driveLink = driveLink;
+    if (storeUrl !== undefined) updateData.storeUrl = safeStoreUrl;
+    if (driveLink !== undefined) updateData.driveLink = safeDriveLink;
     if (technicalDeadline !== undefined) updateData.technicalDeadline = technicalDeadline ? new Date(technicalDeadline) : null;
     if (finalDeadline !== undefined) updateData.finalDeadline = finalDeadline ? new Date(finalDeadline) : null;
     if (notes !== undefined) updateData.notes = notes;
-    if (projectStatus !== undefined) updateData.projectStatus = projectStatus;
+    if (projectStatus !== undefined) {
+      if (projectStatus !== "setup") {
+        return NextResponse.json({ error: "Project setup can only set projectStatus to setup" }, { status: 400 });
+      }
+      updateData.projectStatus = "setup";
+    }
 
     const project = await prisma.project.update({
       where: { id },

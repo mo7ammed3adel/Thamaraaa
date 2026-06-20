@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import * as XLSX from "xlsx";
+import { normalizeWebUrl } from "@/lib/safe-url";
 
 /**
  * Column name mapping: maps common Arabic/English Excel header variations
@@ -197,6 +198,12 @@ export async function POST(req: Request) {
           }
         }
 
+        const safeStoreLink = mapped.storeLink ? normalizeWebUrl(mapped.storeLink) : null;
+        if (mapped.storeLink && !safeStoreLink) {
+          errors.push(`Row ${rowNum}: invalid store link`);
+          continue;
+        }
+
         await prisma.lead.create({
           data: {
             name,
@@ -205,8 +212,8 @@ export async function POST(req: Request) {
             nationality: mapped.nationality || null,
             gender: mapped.gender || null,
             customerType: mapped.customerType || null,
-            storeLink: mapped.storeLink || null,
-            hasStore: !!mapped.storeLink,
+            storeLink: safeStoreLink,
+            hasStore: !!safeStoreLink,
             classification,
             status: "New",
             assignedTeleAgentId: finalAgentId || null,

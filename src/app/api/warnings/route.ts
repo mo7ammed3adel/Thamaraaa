@@ -4,6 +4,31 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendWarningEmail } from "@/lib/email";
 import { pusherServer } from "@/lib/pusher";
+import { SEVERITY, WARNING_ISSUER_ROLES } from "@/lib/constants";
+
+const VALID_SEVERITIES = new Set(Object.values(SEVERITY));
+
+function normalizeSeverity(severity: unknown) {
+  return typeof severity === "string" && VALID_SEVERITIES.has(severity as any)
+    ? severity
+    : SEVERITY.MEDIUM;
+}
+
+function normalizeRecipientRoles(recipientRoles: unknown) {
+  if (!Array.isArray(recipientRoles)) return [];
+  return recipientRoles.filter((role): role is string => typeof role === "string");
+}
+
+function canIssueWarningForProject(user: { id: string; role: string }, project: any) {
+  if (!(WARNING_ISSUER_ROLES as readonly string[]).includes(user.role)) return false;
+  if (user.role === "super_admin" || user.role === "head_account_manager") return true;
+  if (user.role === "account_manager") return project.accountManagerId === user.id;
+  if (user.role === "sales_agent") return project.deal?.salesAgentId === user.id;
+  if (user.role === "sales_manager") {
+    return project.deal?.salesAgent?.directManagerId === user.id;
+  }
+  return false;
+}
 
 // POST /api/warnings - Create a new warning
 export async function POST(req: NextRequest) {
@@ -13,10 +38,35 @@ export async function POST(req: NextRequest) {
     const user = session.user as any;
 
     const body = await req.json();
-    const { subject, message, severity, projectId, recipientRoles } = body;
+    const { subject, message, severity, projectId, clientId } = body;
+    const recipientRoles = normalizeRecipientRoles(body.recipientRoles);
 
     if (!message || !projectId) {
       return NextResponse.json({ error: "message and projectId required" }, { status: 400 });
+    }
+
+    const projectForAuth = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        id: true,
+        accountManagerId: true,
+        headTechnicalId: true,
+        headSeoId: true,
+        deal: {
+          select: {
+            salesAgentId: true,
+            salesAgent: { select: { directManagerId: true } },
+          },
+        },
+      },
+    });
+
+    if (!projectForAuth) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+
+    if (!canIssueWarningForProject(user, projectForAuth)) {
+      return NextResponse.json({ error: "Forbidden: you cannot issue warnings for this project" }, { status: 403 });
     }
 
     // Prepare warning details
@@ -25,11 +75,12 @@ export async function POST(req: NextRequest) {
         data: {
           subject: subject || "Warning",
           message,
-          severity: severity || "Medium",
+          severity: normalizeSeverity(severity),
           projectId,
+          clientId: typeof clientId === "string" ? clientId : null,
           senderUserId: user.id,
           senderRole: user.role,
-          recipientRoles: JSON.stringify(recipientRoles || []),
+          recipientRoles: JSON.stringify(recipientRoles),
         },
       });
 

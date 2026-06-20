@@ -29,7 +29,7 @@ export async function GET(req: Request) {
 
     const agentFilter: any = { role: "tele_sales_agent" };
     if (user.role === "tele_sales_manager") {
-      agentFilter.OR = [{ directManagerId: user.id }, { directManagerId: null }];
+      agentFilter.directManagerId = user.id;
     }
     const agents = await prisma.user.findMany({ where: agentFilter, select: { id: true } });
     const agentIds = agents.map(a => a.id);

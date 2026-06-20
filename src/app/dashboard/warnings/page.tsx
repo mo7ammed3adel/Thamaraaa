@@ -4,6 +4,23 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import WarningsCenterClient from "./WarningsCenterClient";
 
+function projectScopeForUser(user: any) {
+  if (["super_admin", "head_account_manager", "chief_sales"].includes(user.role)) return {};
+  if (user.role === "account_manager") return { accountManagerId: user.id };
+  if (user.role === "head_technical") return { headTechnicalId: user.id };
+  if (user.role === "head_seo") return { headSeoId: user.id };
+  if (user.role === "sales_agent") return { deal: { is: { salesAgentId: user.id } } };
+  if (user.role === "sales_manager") {
+    return { deal: { is: { salesAgent: { is: { directManagerId: user.id } } } } };
+  }
+  return {
+    OR: [
+      { teamAssignments: { some: { userId: user.id, status: "active" } } },
+      { tasks: { some: { OR: [{ leaderId: user.id }, { agentId: user.id }] } } },
+    ],
+  };
+}
+
 export default async function WarningsPage() {
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
@@ -20,31 +37,55 @@ export default async function WarningsPage() {
     redirect("/dashboard");
   }
 
+  const canViewAllWarnings = ["super_admin", "head_account_manager", "chief_sales"].includes(user.role);
+  const projectWhere = projectScopeForUser(user);
+  const warningWhere = canViewAllWarnings
+    ? {}
+    : {
+        OR: [
+          { senderUserId: user.id },
+          { receipts: { some: { userId: user.id } } },
+          { project: { is: projectWhere } },
+        ],
+      };
+
   const warnings = await prisma.warning.findMany({
+    where: warningWhere,
     orderBy: { createdAt: "desc" },
     take: 100,
+    include: {
+      sender: { select: { id: true, name: true, role: true } },
+      receipts: {
+        where: { isRead: true },
+        include: { user: { select: { id: true, name: true, role: true } } },
+      },
+    },
   });
 
-  // Fetch clients for dropdown
-  const leads = await prisma.lead.findMany({
-    where: { status: { not: "Archived" } },
-    select: { id: true, name: true, phone: true },
-    orderBy: { name: "asc" },
+  // Fetch accessible projects for the warning target dropdown.
+  const projects = await prisma.project.findMany({
+    where: projectWhere,
+    select: {
+      id: true,
+      deal: { select: { lead: { select: { name: true, phone: true } } } },
+    },
+    orderBy: { createdAt: "desc" },
     take: 200,
   });
 
-  // Fetch sender names
-  const senderIds = warnings.map((w) => w.senderUserId).filter((v, i, a) => a.indexOf(v) === i);
-  const senders = await prisma.user.findMany({
-    where: { id: { in: senderIds } },
-    select: { id: true, name: true },
-  });
-  const senderMap = Object.fromEntries(senders.map((s) => [s.id, s.name]));
+  const leads = projects.map((project) => ({
+    id: project.id,
+    name: project.deal?.lead?.name || "Unknown Client",
+    phone: project.deal?.lead?.phone || "",
+  }));
 
   const enrichedWarnings = warnings.map((w) => ({
     ...w,
-    senderName: senderMap[w.senderUserId] || "Unknown",
-    ackList: (() => { try { return JSON.parse(w.acknowledgedBy); } catch { return []; } })(),
+    senderName: w.sender?.name || "Unknown",
+    ackList: w.receipts.map((receipt) => ({
+      userName: receipt.user.name,
+      role: receipt.user.role,
+    })),
     recipientList: (() => { try { return JSON.parse(w.recipientRoles); } catch { return []; } })(),
   }));
 

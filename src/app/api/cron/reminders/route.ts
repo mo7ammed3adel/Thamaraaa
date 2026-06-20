@@ -1,9 +1,42 @@
 export const dynamic = "force-dynamic";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+async function createNotificationOnce(data: {
+  userId: string;
+  title: string;
+  message: string;
+  type: string;
+  link: string;
+  relatedId: string;
+}, since: Date) {
+  const existing = await prisma.notification.findFirst({
+    where: {
+      userId: data.userId,
+      type: data.type,
+      relatedId: data.relatedId,
+      title: data.title,
+      createdAt: { gte: since },
+    },
+    select: { id: true },
+  });
+  if (existing) return false;
+  await prisma.notification.create({ data });
+  return true;
+}
+
+function isAuthorizedCronRequest(req: NextRequest) {
+  const secret = process.env.CRON_SECRET;
+  if (secret) return req.headers.get("authorization") === `Bearer ${secret}`;
+  return process.env.NODE_ENV !== "production";
+}
+
+export async function GET(req: NextRequest) {
   try {
+    if (!isAuthorizedCronRequest(req)) {
+      return NextResponse.json({ error: "Unauthorized cron request" }, { status: 401 });
+    }
+
     // Intended to be run daily via Vercel Cron or external ping
     const today = new Date();
     today.setHours(0,0,0,0);
@@ -25,55 +58,61 @@ export async function GET() {
 
       if (intervals.includes(diffDays) || diffDays === 0) {
         // Notify Sales Agent
-        await prisma.notification.create({
-          data: {
+        const createdSalesReminder = await createNotificationOnce({
             userId: inst.deal.salesAgentId,
             title: `Payment Reminder: ${diffDays === 0 ? 'DUE TODAY' : `${diffDays} days left`}`,
             message: `Installment of SAR ${inst.amount} is due ${diffDays === 0 ? 'TODAY' : `in ${diffDays} days`}.`,
+            type: "payment_reminder",
             link: "/dashboard/sales",
-          }
-        });
-        notificationsCreated++;
+            relatedId: inst.id,
+          },
+          today
+        );
+        if (createdSalesReminder) notificationsCreated++;
 
         // Notify Accountant
         const accountant = await prisma.user.findFirst({ where: { role: "accountant", status: "Active" } });
         if (accountant) {
-          await prisma.notification.create({
-            data: {
+          const createdAccountantReminder = await createNotificationOnce({
               userId: accountant.id,
               title: `Payment Follow-up: ${diffDays === 0 ? 'DUE TODAY' : `${diffDays} days left`}`,
               message: `An installment of SAR ${inst.amount} is set to be paid ${diffDays === 0 ? 'TODAY' : `in ${diffDays} days`}.`,
+              type: "payment_reminder",
               link: "/dashboard/finance",
-            }
-          });
-          notificationsCreated++;
+              relatedId: inst.id,
+            },
+            today
+          );
+          if (createdAccountantReminder) notificationsCreated++;
         }
       } else if (diffDays < 0 && overdueIntervals.includes(Math.abs(diffDays))) {
         // Overdue: installment past its due date — alert the agent + accountant.
         const daysOverdue = Math.abs(diffDays);
-        await prisma.notification.create({
-          data: {
+        const createdSalesOverdue = await createNotificationOnce({
             userId: inst.deal.salesAgentId,
             title: `Payment OVERDUE: ${daysOverdue} days`,
             message: `Installment of SAR ${inst.amount} is overdue by ${daysOverdue} day${daysOverdue === 1 ? "" : "s"}.`,
             type: "payment_overdue",
             link: "/dashboard/sales",
-          }
-        });
-        notificationsCreated++;
+            relatedId: inst.id,
+          },
+          today
+        );
+        if (createdSalesOverdue) notificationsCreated++;
 
         const overdueAccountant = await prisma.user.findFirst({ where: { role: "accountant", status: "Active" } });
         if (overdueAccountant) {
-          await prisma.notification.create({
-            data: {
+          const createdAccountantOverdue = await createNotificationOnce({
               userId: overdueAccountant.id,
               title: `Payment OVERDUE: ${daysOverdue} days`,
               message: `Installment of SAR ${inst.amount} is overdue by ${daysOverdue} day${daysOverdue === 1 ? "" : "s"}.`,
               type: "payment_overdue",
               link: "/dashboard/finance",
-            }
-          });
-          notificationsCreated++;
+              relatedId: inst.id,
+            },
+            today
+          );
+          if (createdAccountantOverdue) notificationsCreated++;
         }
       }
     }

@@ -17,11 +17,25 @@ export async function POST(req: Request) {
        return NextResponse.json({ error: "No leads selected" }, { status: 400 });
     }
 
+    const draftScope: any =
+      user.role === "tele_sales_agent"
+        ? { OR: [{ createdById: user.id }, { assignedTeleAgentId: user.id }] }
+        : user.role === "tele_sales_manager"
+          ? {
+              OR: [
+                { createdById: user.id },
+                { assignedTeleAgentId: null },
+                { teleAgent: { is: { directManagerId: user.id } } },
+              ],
+            }
+          : {};
+
     // Only allow deletion of Draft leads
     const result = await prisma.lead.deleteMany({
       where: {
         id: { in: leadIds },
         status: "Draft",
+        ...draftScope,
       }
     });
 

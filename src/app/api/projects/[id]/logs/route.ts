@@ -2,11 +2,16 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { userCanAccessProject } from "@/lib/distribution";
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    const user = session.user as { id: string; role: string };
+
+    const allowed = await userCanAccessProject(user.id, user.role, params.id);
+    if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const logs = await prisma.projectLog.findMany({
       where: { projectId: params.id },

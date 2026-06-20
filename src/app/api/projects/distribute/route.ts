@@ -63,6 +63,12 @@ export async function POST(req: NextRequest) {
     if (user.role === "account_manager" && project.accountManagerId !== user.id) {
       return NextResponse.json({ error: "You can only distribute your own projects" }, { status: 403 });
     }
+    if (user.role === "head_technical" && project.headTechnicalId !== user.id) {
+      return NextResponse.json({ error: "You can only distribute projects assigned to you as Head Technical" }, { status: 403 });
+    }
+    if (user.role === "head_seo" && project.headSeoId !== user.id) {
+      return NextResponse.json({ error: "You can only distribute projects assigned to you as Head SEO" }, { status: 403 });
+    }
 
     // Determine which field to update based on target role
     const updateData: Record<string, unknown> = {};

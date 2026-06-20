@@ -16,6 +16,18 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
     const { id } = params;
     const body = await req.json();
+    const targetUser = await prisma.user.findUnique({
+      where: { id },
+      select: { id: true, role: true },
+    });
+    if (!targetUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+    if (user.role === "hr_manager") {
+      if (targetUser.role === "super_admin" || body.role === "super_admin") {
+        return NextResponse.json({ error: "Only Super Admin can create or modify Super Admin accounts" }, { status: 403 });
+      }
+    }
 
     const updateData: any = {};
     if (body.directManagerId !== undefined) {

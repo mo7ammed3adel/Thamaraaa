@@ -23,6 +23,9 @@ export async function GET(req: NextRequest) {
 
     const where: any = {};
     if (projectId) where.projectId = projectId;
+    if (userRole === "head_technical") {
+      where.project = { headTechnicalId: (session.user as any).id };
+    }
     if (severity && severity !== "All") where.severity = severity;
     if (from || to) {
       where.createdAt = {};

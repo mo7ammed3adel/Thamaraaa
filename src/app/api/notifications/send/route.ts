@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { pusherServer } from "@/lib/pusher";
 import { hasRole, MANAGEMENT_ROLES } from "@/lib/constants";
+import { normalizeNotificationLink } from "@/lib/safe-url";
 
 // Only managerial / admin roles may push arbitrary notifications to other users.
 // Other server-side flows create notifications directly via prisma — they don't go through this endpoint.
@@ -34,12 +35,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    const safeLink = link ? normalizeNotificationLink(link) : null;
+    if (link && !safeLink) {
+      return NextResponse.json({ error: "Invalid notification link" }, { status: 400 });
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, status: true },
+    });
+    if (!targetUser || targetUser.status !== "Active") {
+      return NextResponse.json({ error: "Target user not found" }, { status: 404 });
+    }
+
     const notification = await prisma.notification.create({
       data: {
         userId,
         title,
         message,
-        link: link || null,
+        link: safeLink,
         read: false
       }
     });

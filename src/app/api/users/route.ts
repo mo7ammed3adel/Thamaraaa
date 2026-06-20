@@ -58,7 +58,8 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if ((session?.user as any)?.role !== "super_admin" && (session?.user as any)?.role !== "hr_manager") {
+    const actor = session?.user as any;
+    if (actor?.role !== "super_admin" && actor?.role !== "hr_manager") {
       return NextResponse.json({ error: "Unauthorized — only Super Admin or HR Manager can create users" }, { status: 403 });
     }
 
@@ -66,6 +67,10 @@ export async function POST(req: Request) {
 
     if (!data.name || !data.email || !data.password || !data.role) {
       return NextResponse.json({ error: "Name, email, password and role are required" }, { status: 400 });
+    }
+
+    if (actor.role === "hr_manager" && data.role === "super_admin") {
+      return NextResponse.json({ error: "Only Super Admin can create Super Admin accounts" }, { status: 403 });
     }
 
     // Check if user already exists. Build the OR clauses dynamically so we never include an

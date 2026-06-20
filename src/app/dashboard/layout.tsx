@@ -190,10 +190,12 @@ export default async function DashboardLayout({
                 <ListTodo className="mr-3 h-5 w-5 opacity-75" />
                 Projects & Tasks
               </Link>
-              <Link href="/dashboard/operations/packages" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
-                <Package className="mr-3 h-5 w-5 opacity-75" />
-                Packages & Settings
-              </Link>
+              {hasRole("head_account_manager") && (
+                <Link href="/dashboard/operations/packages" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
+                  <Package className="mr-3 h-5 w-5 opacity-75" />
+                  Packages & Settings
+                </Link>
+              )}
             </>
           )}
 
@@ -277,10 +279,6 @@ export default async function DashboardLayout({
               <Link href="/dashboard/operations" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
                 <ListTodo className="mr-3 h-5 w-5 opacity-75" />
                 Projects & Tasks
-              </Link>
-              <Link href="/dashboard/operations/packages" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
-                <Package className="mr-3 h-5 w-5 opacity-75" />
-                Packages & Settings
               </Link>
             </>
           )}

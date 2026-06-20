@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { pusherServer } from "@/lib/pusher";
+import { normalizeWebUrl } from "@/lib/safe-url";
 
 /**
  * POST /api/deals
@@ -33,6 +34,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Total amount cannot be negative" }, { status: 400 });
     }
 
+    const safeContractImageUrl = contractImageUrl ? normalizeWebUrl(contractImageUrl) : null;
+    const safeReceiptUrl = receiptUrl ? normalizeWebUrl(receiptUrl) : null;
+    if ((contractImageUrl && !safeContractImageUrl) || (receiptUrl && !safeReceiptUrl)) {
+      return NextResponse.json({ error: "Contract and receipt links must be valid http(s) URLs" }, { status: 400 });
+    }
+
     const lead = await prisma.lead.findUnique({ where: { id: leadId } });
     if (!lead) {
       return NextResponse.json({ error: "Lead not found" }, { status: 404 });
@@ -44,7 +51,7 @@ export async function POST(req: Request) {
 
     // Fetch system configs for payment gateway fee
     const gatewayFeeConfig = await prisma.systemConfig.findUnique({ where: { key: "gateway_fee_pct" } });
-    const gatewayFee = gatewayFeeConfig ? parseFloat(gatewayFeeConfig.value) : 0.08; // Default 8%
+    const gatewayFee = gatewayFeeConfig ? parseFloat(gatewayFeeConfig.value) : 0.07; // Default 7%
 
     let netTarget = parseFloat(totalAmount);
     if (paymentMethod === "Tabby" || paymentMethod === "Tamara") {
@@ -62,8 +69,8 @@ export async function POST(req: Request) {
         firstAmount: firstAmount ? parseFloat(firstAmount) : null,
         paymentMethod,
         netTarget,
-        contractImageUrl,
-        receiptUrl,
+        contractImageUrl: safeContractImageUrl,
+        receiptUrl: safeReceiptUrl,
         status: "Closed_Won",
         installments: installments && installments.length > 0 ? {
           create: installments.map((i: any) => ({

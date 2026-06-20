@@ -19,8 +19,21 @@ export async function POST(req: Request) {
     }
 
     // Protection against Duplicates
+    const draftScope: any =
+      user.role === "tele_sales_agent"
+        ? { OR: [{ createdById: user.id }, { assignedTeleAgentId: user.id }] }
+        : user.role === "tele_sales_manager"
+          ? {
+              OR: [
+                { createdById: user.id },
+                { assignedTeleAgentId: null },
+                { teleAgent: { is: { directManagerId: user.id } } },
+              ],
+            }
+          : {};
+
     const draftLeads = await prisma.lead.findMany({
-      where: { id: { in: leadIds }, status: "Draft" },
+      where: { id: { in: leadIds }, status: "Draft", ...draftScope },
       select: { id: true, phone: true }
     });
 

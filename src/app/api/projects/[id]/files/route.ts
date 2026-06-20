@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { userCanAccessProject } from "@/lib/distribution";
+import { normalizeWebUrl } from "@/lib/safe-url";
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -38,15 +39,17 @@ export async function POST(request: Request, { params }: { params: { id: string 
     if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const { fileUrl, fileType } = await request.json();
-    if (!fileUrl || !fileType) {
+    const safeFileUrl = normalizeWebUrl(fileUrl);
+    const safeFileType = typeof fileType === "string" ? fileType.trim().slice(0, 120) : "";
+    if (!safeFileUrl || !safeFileType) {
       return NextResponse.json({ error: "Missing file information" }, { status: 400 });
     }
 
     const newFile = await prisma.projectFile.create({
       data: {
         projectId: params.id,
-        fileUrl,
-        fileType,
+        fileUrl: safeFileUrl,
+        fileType: safeFileType,
         uploadedBy: userName
       }
     });
@@ -55,7 +58,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
       data: {
         projectId: params.id,
         action: "file_uploaded",
-        details: `Uploaded ${fileType} document.`,
+        details: `Uploaded ${safeFileType} document.`,
         userId: userId
       }
     });

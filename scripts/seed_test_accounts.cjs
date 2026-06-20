@@ -14,10 +14,10 @@ try { require("dotenv").config(); } catch (_) { /* dotenv optional */ }
 
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 
 const prisma = new PrismaClient();
 
-const PASSWORD = "Thamara@2026";
 const DOMAIN = "test.thamaraa.com";
 const COMPANY = "Thamara";
 
@@ -66,13 +66,33 @@ const ACCOUNTS = [
 
 const emailFor = (role) => `${role}@${DOMAIN}`;
 
+function getSeedPass() {
+  const configured = process.env.TEST_ACCOUNT_PASSWORD;
+
+  if (configured) {
+    if (configured.length < 12) {
+      console.error("TEST_ACCOUNT_PASSWORD must be at least 12 characters.");
+      process.exit(1);
+    }
+    return configured;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    console.error("TEST_ACCOUNT_PASSWORD is required when NODE_ENV=production.");
+    process.exit(1);
+  }
+
+  return crypto.randomBytes(18).toString("base64url");
+}
+
 async function main() {
   if (!process.env.DATABASE_URL) {
     console.error("DATABASE_URL is missing. Set it before running this script.");
     process.exit(1);
   }
 
-  const hash = await bcrypt.hash(PASSWORD, 10);
+  const sharedPass = getSeedPass();
+  const hash = await bcrypt.hash(sharedPass, 10);
 
   // ── Pass 1: upsert users + HrRecords ──
   for (const acc of ACCOUNTS) {
@@ -119,7 +139,7 @@ async function main() {
   }
 
   console.log("\n--- Test accounts ready ---");
-  console.log(`Shared password: ${PASSWORD}`);
+  console.log(`Shared password: ${sharedPass}`);
   console.log(`Login with email: <role>@${DOMAIN}  (e.g. agent_seo@${DOMAIN})`);
   console.log("Excluded (frozen): sales_agent, sales_manager, tele_sales_agent, tele_sales_manager");
 }

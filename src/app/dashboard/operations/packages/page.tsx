@@ -12,7 +12,7 @@ export default async function PackagesPage() {
   const user = session?.user as any;
 
   if (
-    !["super_admin", "account_manager", "head_account_manager"].includes(
+    !["super_admin", "head_account_manager"].includes(
       user?.role
     )
   ) {

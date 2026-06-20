@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { findTeamLeaderRoleForTaskType, userCanAccessProject } from "@/lib/distribution";
 import { CROSS_TEAM_TASK_TYPES, AGENT_ASSIGNER_ROLES, MANAGEMENT_ROLES, ACCOUNT_MANAGER_ROLES, hasRole, getDefaultChecklistForTaskType } from "@/lib/constants";
+import { normalizeWebUrl } from "@/lib/safe-url";
 
 // Roles that may create tasks. Includes:
 //  - Team leaders / heads who orchestrate the work (AGENT_ASSIGNER_ROLES, MANAGEMENT_ROLES)
@@ -36,6 +37,11 @@ export async function POST(req: Request) {
 
     if (!projectId || !taskType) {
       return NextResponse.json({ error: "projectId and taskType are required" }, { status: 400 });
+    }
+
+    const safeTaskLink = taskLink ? normalizeWebUrl(taskLink) : null;
+    if (taskLink && !safeTaskLink) {
+      return NextResponse.json({ error: "taskLink must be a valid http(s) URL" }, { status: 400 });
     }
 
     // The user must already be a stakeholder of the project they're creating a task for.
@@ -118,7 +124,7 @@ export async function POST(req: Request) {
         assignedRole: finalAssignedRole || null,
         taskType,
         brief: brief || "",
-        taskLink: taskLink || null,
+        taskLink: safeTaskLink,
         priority: priority || "Medium",
         deadline: deadline ? new Date(deadline) : null,
         checklistItems: checklistItems || getDefaultChecklistForTaskType(taskType),
@@ -180,12 +186,31 @@ export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const user = session.user as { id: string; role: string };
 
     const { searchParams } = new URL(req.url);
     const projectId = searchParams.get("projectId");
 
     const whereClause: any = {};
-    if (projectId) whereClause.projectId = projectId;
+    if (projectId) {
+      const allowed = await userCanAccessProject(user.id, user.role, projectId);
+      if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      whereClause.projectId = projectId;
+    } else if (["super_admin", "head_account_manager", "chief_sales"].includes(user.role)) {
+      // org-wide visibility
+    } else if (user.role === "account_manager") {
+      whereClause.project = { is: { accountManagerId: user.id } };
+    } else if (user.role === "head_technical") {
+      whereClause.project = { is: { headTechnicalId: user.id } };
+    } else if (user.role === "head_seo") {
+      whereClause.project = { is: { headSeoId: user.id } };
+    } else {
+      whereClause.OR = [
+        { leaderId: user.id },
+        { agentId: user.id },
+        { project: { is: { teamAssignments: { some: { userId: user.id, status: "active" } } } } },
+      ];
+    }
 
     const tasks = await prisma.task.findMany({
       where: whereClause,

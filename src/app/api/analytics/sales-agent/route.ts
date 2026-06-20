@@ -33,8 +33,15 @@ export async function GET(req: Request) {
     // Get agent info
     const agent = await prisma.user.findUnique({
       where: { id: agentId },
-      select: { id: true, name: true, email: true, specialization: true },
+      select: { id: true, name: true, email: true, specialization: true, role: true, directManagerId: true },
     });
+    if (!agent || agent.role !== "sales_agent") {
+      return NextResponse.json({ error: "Agent not found" }, { status: 404 });
+    }
+    if (user.role === "sales_manager" && agent.directManagerId !== user.id) {
+      return NextResponse.json({ error: "Forbidden: agent is not in your team" }, { status: 403 });
+    }
+    const { role: _agentRole, directManagerId: _directManagerId, ...safeAgent } = agent;
 
     // Get leads assigned to this sales agent
     const leads = await prisma.lead.findMany({
@@ -75,7 +82,7 @@ export async function GET(req: Request) {
       },
     });
 
-    return NextResponse.json({ agent, leads, meetings, deals });
+    return NextResponse.json({ agent: safeAgent, leads, meetings, deals });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

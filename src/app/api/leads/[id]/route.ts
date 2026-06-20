@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { normalizeWebUrl } from "@/lib/safe-url";
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -20,7 +21,13 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     } = body;
 
     const user = session.user as any;
-    const existingLead = await prisma.lead.findUnique({ where: { id } });
+    const existingLead = await prisma.lead.findUnique({
+      where: { id },
+      include: {
+        teleAgent: { select: { directManagerId: true } },
+        salesAgent: { select: { directManagerId: true } },
+      },
+    });
     if (!existingLead) {
       return NextResponse.json({ error: "Lead not found" }, { status: 404 });
     }
@@ -28,7 +35,11 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     const isAuthorized = 
       existingLead.assignedTeleAgentId === user.id || 
       existingLead.assignedSalesAgentId === user.id ||
-      ["super_admin", "tele_sales_manager", "sales_manager"].includes(user.role);
+      user.role === "super_admin" ||
+      (user.role === "tele_sales_manager" &&
+        (!existingLead.assignedTeleAgentId || existingLead.teleAgent?.directManagerId === user.id)) ||
+      (user.role === "sales_manager" &&
+        (!existingLead.assignedSalesAgentId || existingLead.salesAgent?.directManagerId === user.id));
 
     if (!isAuthorized) {
       return NextResponse.json({ error: "Forbidden: You are not assigned to this lead." }, { status: 403 });
@@ -36,8 +47,46 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
     const updateData: any = {};
     if (status) updateData.status = status;
-    if (assignedSalesAgentId !== undefined) updateData.assignedSalesAgentId = assignedSalesAgentId;
-    if (assignedTeleAgentId !== undefined) updateData.assignedTeleAgentId = assignedTeleAgentId;
+    if (assignedSalesAgentId !== undefined) {
+      if (!["super_admin", "sales_manager"].includes(user.role)) {
+        return NextResponse.json({ error: "Only Sales Managers can reassign sales leads" }, { status: 403 });
+      }
+      if (assignedSalesAgentId) {
+        const targetSalesAgent = await prisma.user.findUnique({
+          where: { id: assignedSalesAgentId },
+          select: { role: true, status: true, directManagerId: true },
+        });
+        if (
+          !targetSalesAgent ||
+          targetSalesAgent.role !== "sales_agent" ||
+          targetSalesAgent.status !== "Active" ||
+          (user.role === "sales_manager" && targetSalesAgent.directManagerId !== user.id)
+        ) {
+          return NextResponse.json({ error: "Invalid sales assignee" }, { status: 400 });
+        }
+      }
+      updateData.assignedSalesAgentId = assignedSalesAgentId;
+    }
+    if (assignedTeleAgentId !== undefined) {
+      if (!["super_admin", "tele_sales_manager"].includes(user.role)) {
+        return NextResponse.json({ error: "Only TeleSales Managers can reassign TeleSales leads" }, { status: 403 });
+      }
+      if (assignedTeleAgentId) {
+        const targetTeleAgent = await prisma.user.findUnique({
+          where: { id: assignedTeleAgentId },
+          select: { role: true, status: true, directManagerId: true },
+        });
+        if (
+          !targetTeleAgent ||
+          targetTeleAgent.role !== "tele_sales_agent" ||
+          targetTeleAgent.status !== "Active" ||
+          (user.role === "tele_sales_manager" && targetTeleAgent.directManagerId !== user.id)
+        ) {
+          return NextResponse.json({ error: "Invalid TeleSales assignee" }, { status: 400 });
+        }
+      }
+      updateData.assignedTeleAgentId = assignedTeleAgentId;
+    }
     if (followUpDate !== undefined) updateData.followUpDate = new Date(followUpDate);
     if (meetingDate !== undefined) updateData.meetingDate = new Date(meetingDate + "T00:00:00Z");
     if (meetingTime !== undefined) updateData.meetingTime = meetingTime;
@@ -51,7 +100,17 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       updateData.meetingEndedAt = meetingEndedAt === null ? null : new Date(meetingEndedAt);
     }
     if (hasStore !== undefined) updateData.hasStore = hasStore;
-    if (storeLink !== undefined) updateData.storeLink = storeLink;
+    if (storeLink !== undefined) {
+      if (storeLink === null || storeLink === "") {
+        updateData.storeLink = null;
+      } else {
+        const safeStoreLink = normalizeWebUrl(storeLink);
+        if (!safeStoreLink) {
+          return NextResponse.json({ error: "storeLink must be a valid http(s) URL" }, { status: 400 });
+        }
+        updateData.storeLink = safeStoreLink;
+      }
+    }
     if (customerType !== undefined) updateData.customerType = customerType;
     
     // Recycle Bin Fields
@@ -147,6 +206,20 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     }
 
     const { id } = params;
+    const lead = await prisma.lead.findUnique({
+      where: { id },
+      include: { teleAgent: { select: { directManagerId: true } } },
+    });
+    if (!lead) {
+      return NextResponse.json({ error: "Lead not found" }, { status: 404 });
+    }
+    if (
+      user.role === "tele_sales_manager" &&
+      lead.assignedTeleAgentId &&
+      lead.teleAgent?.directManagerId !== user.id
+    ) {
+      return NextResponse.json({ error: "Forbidden: you can only delete leads assigned to your team" }, { status: 403 });
+    }
 
     await prisma.lead.delete({
       where: { id },

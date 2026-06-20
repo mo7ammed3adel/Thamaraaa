@@ -8,6 +8,10 @@ function isHrManager(role?: string) {
   return role === "hr_manager" || role === "super_admin";
 }
 
+function canManageSuperAdmin(actorRole?: string) {
+  return actorRole === "super_admin";
+}
+
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session || (session.user?.role !== "hr_manager" && session.user?.role !== "super_admin")) {
@@ -39,7 +43,8 @@ export async function GET(req: Request) {
  */
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!isHrManager((session?.user as any)?.role)) {
+  const actorRole = (session?.user as any)?.role;
+  if (!isHrManager(actorRole)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -47,6 +52,10 @@ export async function POST(req: Request) {
     const data = await req.json();
     if (!data.name || !data.email || !data.password || !data.role) {
       return NextResponse.json({ error: "Name, email, password and role are required" }, { status: 400 });
+    }
+
+    if (data.role === "super_admin" && !canManageSuperAdmin(actorRole)) {
+      return NextResponse.json({ error: "Only super_admin can create another super_admin" }, { status: 403 });
     }
 
     const orClauses: Array<Record<string, string>> = [{ email: data.email }];
@@ -115,7 +124,8 @@ export async function POST(req: Request) {
  */
 export async function PATCH(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!isHrManager((session?.user as any)?.role)) {
+  const actorRole = (session?.user as any)?.role;
+  if (!isHrManager(actorRole)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -123,6 +133,22 @@ export async function PATCH(req: Request) {
     const data = await req.json();
     if (!data.id) {
       return NextResponse.json({ error: "Employee id is required" }, { status: 400 });
+    }
+
+    const target = await prisma.user.findUnique({
+      where: { id: data.id },
+      select: { role: true },
+    });
+    if (!target) {
+      return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+    }
+
+    if (!canManageSuperAdmin(actorRole) && target.role === "super_admin") {
+      return NextResponse.json({ error: "HR cannot edit super_admin users" }, { status: 403 });
+    }
+
+    if (!canManageSuperAdmin(actorRole) && data.role === "super_admin") {
+      return NextResponse.json({ error: "Only super_admin can grant super_admin role" }, { status: 403 });
     }
 
     const userData: any = {};

@@ -65,11 +65,28 @@ export async function DELETE(req: NextRequest) {
 
     const assignment = await prisma.teamAssignment.findUnique({
       where: { id: assignmentId },
-      include: { user: { select: { name: true, role: true } } },
+      include: {
+        user: { select: { name: true, role: true } },
+        project: { select: { accountManagerId: true, headTechnicalId: true, headSeoId: true } },
+      },
     });
 
     if (!assignment) {
       return NextResponse.json({ error: "Assignment not found" }, { status: 404 });
+    }
+
+    const canRemove =
+      user.role === "super_admin" ||
+      user.role === "head_account_manager" ||
+      (user.role === "head_technical" &&
+        assignment.project.headTechnicalId === user.id &&
+        ["social_media", "media_buyer"].includes(assignment.department)) ||
+      (user.role === "head_seo" &&
+        assignment.project.headSeoId === user.id &&
+        ["seo", "content_seo"].includes(assignment.department));
+
+    if (!canRemove) {
+      return NextResponse.json({ error: "Forbidden: you cannot remove this team assignment" }, { status: 403 });
     }
 
     await prisma.$transaction([

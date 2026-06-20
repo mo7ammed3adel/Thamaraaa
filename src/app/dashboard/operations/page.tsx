@@ -19,11 +19,23 @@ export default async function OperationsPage() {
     redirect("/dashboard");
   }
 
-  // Fetch projects: AM sees their own, Head/Super/Technical sees all
-  const whereClause = ["super_admin", "head_account_manager", "head_technical"].includes(user.role) 
-    ? {} 
-    : user.role === "account_manager" ? { accountManagerId: user.id }
-    : {}; // For regular technical staff, maybe show all projects? Or projects assigned to them. Let's just show all for simplicity.
+  // Fetch projects by role scope. Only org-wide roles see everything; everyone
+  // else is limited to projects they manage, lead, or are assigned to.
+  const whereClause =
+    ["super_admin", "head_account_manager"].includes(user.role)
+      ? {}
+      : user.role === "account_manager"
+        ? { accountManagerId: user.id }
+        : user.role === "head_technical"
+          ? { headTechnicalId: user.id }
+          : user.role === "head_seo"
+            ? { headSeoId: user.id }
+            : {
+                OR: [
+                  { teamAssignments: { some: { userId: user.id, status: "active" } } },
+                  { tasks: { some: { OR: [{ leaderId: user.id }, { agentId: user.id }] } } },
+                ],
+              };
 
   const projects = await prisma.project.findMany({
     where: whereClause,

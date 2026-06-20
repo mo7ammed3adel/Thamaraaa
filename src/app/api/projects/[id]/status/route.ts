@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { backfillReceiptsForNewMember } from "@/lib/distribution";
+import { backfillReceiptsForNewMember, checkProjectBlockers } from "@/lib/distribution";
 
 /**
  * PATCH /api/projects/[id]/status
@@ -20,7 +20,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     // ── Ownership / Role Check ──
     const project = await prisma.project.findUnique({
       where: { id: params.id },
-      select: { id: true, accountManagerId: true },
+      select: { id: true, accountManagerId: true, headTechnicalId: true },
     });
 
     if (!project) {
@@ -28,9 +28,10 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     }
 
     const isOwner = project.accountManagerId === user.id;
-    const isAdmin = ["super_admin", "head_account_manager", "head_technical"].includes(user.role);
+    const isAdmin = ["super_admin", "head_account_manager"].includes(user.role);
+    const isAssignedHeadTechnical = user.role === "head_technical" && project.headTechnicalId === user.id;
 
-    if (!isOwner && !isAdmin) {
+    if (!isOwner && !isAdmin && !isAssignedHeadTechnical) {
       return NextResponse.json({ error: "Forbidden: You are not authorized to modify this project." }, { status: 403 });
     }
 
@@ -66,6 +67,16 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     if (finalStatus) updateData.finalStatus = finalStatus;
     if (notes !== undefined) updateData.notes = notes;
     if (accountManagerId !== undefined) updateData.accountManagerId = accountManagerId || null;
+
+    if (projectStatus && ["in_progress", "completed", "review"].includes(projectStatus)) {
+      const blockers = await checkProjectBlockers(params.id);
+      if (blockers.isBlocked) {
+        return NextResponse.json({
+          error: "Action blocked by unresolved warnings.",
+          warnings: blockers.warnings,
+        }, { status: 403 });
+      }
+    }
 
     const updatedProject = await prisma.project.update({
       where: { id: params.id },

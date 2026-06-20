@@ -14,8 +14,17 @@ const ALL_TEAM_ROLES = [
   "leader_ui", "agent_ui",
 ];
 
+const WARNING_ISSUER_ROLES = [
+  "account_manager",
+  "sales_agent",
+  "sales_manager",
+  "head_account_manager",
+  "super_admin",
+];
+
 export default function WarningsCenterClient({ warnings, leads, userRole, userId }: any) {
   const router = useRouter();
+  const canCreateWarning = WARNING_ISSUER_ROLES.includes(userRole);
   const [showCreate, setShowCreate] = useState(false);
   const [message, setMessage] = useState("");
   const [selectedClient, setSelectedClient] = useState("");
@@ -30,7 +39,7 @@ export default function WarningsCenterClient({ warnings, leads, userRole, userId
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message,
-        clientId: selectedClient || null,
+        projectId: selectedClient,
         recipientRoles: selectedRoles,
       }),
     });
@@ -48,14 +57,14 @@ export default function WarningsCenterClient({ warnings, leads, userRole, userId
   return (
     <div className="space-y-6">
       {/* Create Warning Button */}
-      <div className="flex justify-end">
+      {canCreateWarning && <div className="flex justify-end">
         <button onClick={() => setShowCreate(!showCreate)} className="px-4 py-2 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 shadow-lg shadow-red-200 transition">
           + New Warning
         </button>
-      </div>
+      </div>}
 
       {/* Create Warning Form */}
-      {showCreate && (
+      {canCreateWarning && showCreate && (
         <div className="bg-red-50 rounded-2xl border-2 border-red-200 p-6">
           <h3 className="text-lg font-bold text-red-800 mb-4">Create Warning</h3>
           <div className="space-y-4">
@@ -64,9 +73,9 @@ export default function WarningsCenterClient({ warnings, leads, userRole, userId
               <textarea value={message} onChange={(e) => setMessage(e.target.value)} className="w-full border border-red-200 rounded-xl px-4 py-3 text-sm h-24 resize-none focus:outline-none focus:ring-2 focus:ring-red-300" placeholder="Describe the warning..." />
             </div>
             <div>
-              <label className="text-sm font-medium text-red-700 block mb-1">Related Client (optional)</label>
+              <label className="text-sm font-medium text-red-700 block mb-1">Related Project</label>
               <select value={selectedClient} onChange={(e) => setSelectedClient(e.target.value)} className="w-full border border-red-200 rounded-xl px-3 py-2 text-sm">
-                <option value="">No specific client</option>
+                <option value="">Select a project</option>
                 {leads.map((l: any) => <option key={l.id} value={l.id}>{l.name} - {l.phone}</option>)}
               </select>
             </div>
@@ -86,7 +95,7 @@ export default function WarningsCenterClient({ warnings, leads, userRole, userId
             </div>
             <div className="flex gap-2">
               <button onClick={() => setShowCreate(false)} className="flex-1 py-2 bg-white border border-red-200 text-red-600 rounded-xl text-sm font-medium hover:bg-red-50">Cancel</button>
-              <button onClick={handleCreate} disabled={sending || !message.trim() || selectedRoles.length === 0} className="flex-1 py-2 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 disabled:opacity-50">
+              <button onClick={handleCreate} disabled={sending || !message.trim() || !selectedClient || selectedRoles.length === 0} className="flex-1 py-2 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 disabled:opacity-50">
                 {sending ? "Sending..." : "🚨 Send Warning"}
               </button>
             </div>

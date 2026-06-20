@@ -56,9 +56,9 @@ export function findTeamLeaderRoleForTaskType(taskType: string): string | null {
 }
 
 /**
- * Checks if a project has any unresolved, unacknowledged warnings that block its progress.
- * Uses the WarningReceipt table for acknowledgment tracking (not deprecated acknowledgedBy JSON).
- * Returns { isBlocked: true, warnings: [...] } if blocked, else { isBlocked: false }.
+ * Checks if a project has unresolved warnings that should block progress.
+ * Acknowledgement only closes the popup for a user; the project remains blocked
+ * until the warning creator resolves the warning.
  */
 export async function checkProjectBlockers(projectId: string) {
   const unresolvedWarnings = await prisma.warning.findMany({
@@ -71,16 +71,9 @@ export async function checkProjectBlockers(projectId: string) {
     },
   });
 
-  // A warning blocks if it has no acknowledgment receipts from any user.
-  // Resolved warnings are excluded from the query above.
-  const blockingWarnings = unresolvedWarnings.filter((w: any) => {
-    const receiptCount = w.receipts?.length ?? 0;
-    return receiptCount === 0;
-  });
-
   return {
-    isBlocked: blockingWarnings.length > 0,
-    warnings: blockingWarnings,
+    isBlocked: unresolvedWarnings.length > 0,
+    warnings: unresolvedWarnings,
   };
 }
 
