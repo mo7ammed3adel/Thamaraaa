@@ -50,6 +50,12 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
   const [editEmployee, setEditEmployee] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [deptFilter, setDeptFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const goToEmployees = (status: string) => {
+    setStatusFilter(status);
+    setActiveTab("employees");
+  };
 
   const handleAttendance = async (action: "checkIn" | "checkOut") => {
     setLoading(true);
@@ -140,7 +146,8 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
   const filteredEmployees = (employees || []).filter((emp: any) => {
     const matchSearch = !searchQuery || emp.name.toLowerCase().includes(searchQuery.toLowerCase()) || emp.email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchDept = deptFilter === "all" || getRoleDept(emp.role) === deptFilter;
-    return matchSearch && matchDept;
+    const matchStatus = statusFilter === "all" || emp.status === statusFilter;
+    return matchSearch && matchDept && matchStatus;
   });
 
   // Department stats
@@ -155,22 +162,22 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
       {/* KPI Cards */}
       {isManager && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+          <button onClick={() => goToEmployees("all")} className={`text-left bg-white p-5 rounded-2xl border shadow-sm transition hover:shadow-md ${activeTab === "employees" && statusFilter === "all" ? "border-gray-900 ring-1 ring-gray-900" : "border-gray-200"}`}>
             <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Total Employees</p>
             <p className="text-3xl font-black text-gray-900">{employees?.length || 0}</p>
-          </div>
-          <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-200 shadow-sm">
+          </button>
+          <button onClick={() => goToEmployees("Active")} className={`text-left bg-emerald-50 p-5 rounded-2xl border shadow-sm transition hover:shadow-md ${activeTab === "employees" && statusFilter === "Active" ? "border-emerald-600 ring-1 ring-emerald-600" : "border-emerald-200"}`}>
             <p className="text-xs font-bold text-emerald-700 uppercase tracking-widest mb-2">Active</p>
             <p className="text-3xl font-black text-emerald-700">{employees?.filter((e: any) => e.status === "Active").length || 0}</p>
-          </div>
-          <div className="bg-red-50 p-5 rounded-2xl border border-red-200 shadow-sm">
+          </button>
+          <button onClick={() => goToEmployees("Inactive")} className={`text-left bg-red-50 p-5 rounded-2xl border shadow-sm transition hover:shadow-md ${activeTab === "employees" && statusFilter === "Inactive" ? "border-red-600 ring-1 ring-red-600" : "border-red-200"}`}>
             <p className="text-xs font-bold text-red-700 uppercase tracking-widest mb-2">Inactive</p>
             <p className="text-3xl font-black text-red-700">{employees?.filter((e: any) => e.status === "Inactive").length || 0}</p>
-          </div>
-          <div className="bg-blue-50 p-5 rounded-2xl border border-blue-200 shadow-sm">
+          </button>
+          <button onClick={() => setActiveTab("departments")} className={`text-left bg-blue-50 p-5 rounded-2xl border shadow-sm transition hover:shadow-md ${activeTab === "departments" ? "border-blue-600 ring-1 ring-blue-600" : "border-blue-200"}`}>
             <p className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-2">Departments</p>
             <p className="text-3xl font-black text-blue-700">{deptStats.length}</p>
-          </div>
+          </button>
         </div>
       )}
 
@@ -299,7 +306,15 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
               <option value="all">All Departments</option>
               {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
-            <button onClick={() => setShowAddForm(true)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg flex items-center gap-2 transition shadow-sm">
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none">
+              <option value="all">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+            {(searchQuery || deptFilter !== "all" || statusFilter !== "all") && (
+              <button onClick={() => { setSearchQuery(""); setDeptFilter("all"); setStatusFilter("all"); }} className="px-3 py-2 text-xs font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition">✕ Clear</button>
+            )}
+            <button onClick={() => setShowAddForm(true)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg flex items-center gap-2 transition shadow-sm ml-auto">
               <Plus className="w-4 h-4" /> Add Employee
             </button>
           </div>

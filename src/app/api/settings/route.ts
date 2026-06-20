@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
+    const adminId = (session?.user as any)?.id;
     if ((session?.user as any)?.role !== "super_admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
@@ -14,8 +15,8 @@ export async function POST(req: Request) {
 
     const config = await prisma.systemConfig.upsert({
       where: { key },
-      update: { value },
-      create: { key, value }
+      update: { value, updatedById: adminId },
+      create: { key, value, updatedById: adminId }
     });
 
     return NextResponse.json(config, { status: 200 });

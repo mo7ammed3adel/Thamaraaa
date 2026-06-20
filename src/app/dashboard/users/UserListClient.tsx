@@ -18,6 +18,10 @@ export default function UserListClient({ initialUsers, managers }: { initialUser
     role: "sales_agent",
     level: "Junior",
     status: "Active",
+    directManagerId: "",
+    company: "",
+    baseSalary: "",
+    monthlyTarget: "",
   });
   
   // Edit User State
@@ -52,7 +56,7 @@ export default function UserListClient({ initialUsers, managers }: { initialUser
     if (res.ok) {
       const newUser = await res.json();
       setShowModal(false);
-      setFormData({ name: "", email: "", phone: "", password: "", role: "sales_agent", level: "Junior", status: "Active" });
+      setFormData({ name: "", email: "", phone: "", password: "", role: "sales_agent", level: "Junior", status: "Active", directManagerId: "", company: "", baseSalary: "", monthlyTarget: "" });
       setUsers([newUser, ...users]);
       router.refresh();
     } else {
@@ -282,6 +286,25 @@ export default function UserListClient({ initialUsers, managers }: { initialUser
                       <option value="Mid">Mid</option>
                       <option value="Senior">Senior</option>
                     </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Direct Manager</label>
+                    <select className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value={formData.directManagerId} onChange={e => setFormData({...formData, directManagerId: e.target.value})}>
+                      <option value="">— Auto / None —</option>
+                      {managers.map((m: any) => <option key={m.id} value={m.id}>{m.name} ({m.role.replace(/_/g, " ")})</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
+                    <input type="text" placeholder="Optional" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Base Salary (SAR)</label>
+                    <input type="number" min="0" step="0.01" placeholder="0" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value={formData.baseSalary} onChange={e => setFormData({...formData, baseSalary: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Target (SAR)</label>
+                    <input type="number" min="0" step="0.01" placeholder="0" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value={formData.monthlyTarget} onChange={e => setFormData({...formData, monthlyTarget: e.target.value})} />
                   </div>
                 </div>
               </form>

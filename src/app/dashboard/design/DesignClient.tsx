@@ -190,14 +190,19 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
             )}
 
             <div className="grid grid-cols-1 gap-2 pt-2">
-              {t.status !== "in_progress" && t.status !== "done" && t.status !== "review" && (
+              {/* The assigned designer drives the work up to review */}
+              {t.agentId === userId && t.status !== "in_progress" && t.status !== "done" && t.status !== "review" && (
                 <button onClick={() => handleUpdateStatus(t.id, "in_progress")} className="w-full py-2 bg-gray-800 text-white rounded-xl text-sm font-bold hover:bg-gray-900 shadow-sm transition">Start Task</button>
               )}
-              {t.status === "in_progress" && (
+              {t.agentId === userId && t.status === "in_progress" && (
                 <button onClick={() => handleUpdateStatus(t.id, "review")} className="w-full py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 shadow-sm transition">Submit for Review</button>
               )}
-              {t.status === "review" && (
+              {/* Only the leader approves the final delivery */}
+              {isLeader && t.status === "review" && (
                 <button onClick={() => handleUpdateStatus(t.id, "done")} className="w-full py-2 bg-emerald-500 text-white rounded-xl text-sm font-bold hover:bg-emerald-600 shadow-sm transition">Mark Delivered</button>
+              )}
+              {!isLeader && t.agentId === userId && t.status === "review" && (
+                <span className="w-full py-2 text-center bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold">Awaiting leader review</span>
               )}
             </div>
 
