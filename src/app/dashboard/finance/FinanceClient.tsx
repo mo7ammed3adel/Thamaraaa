@@ -208,6 +208,30 @@ function CommissionsTab() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Live refresh: when Super Admin changes a finance rule, the server recomputes
+  // and broadcasts on `finance-channel` so this view updates without a manual reload.
+  useEffect(() => {
+    const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
+    if (!key) return;
+    let client: any = null;
+    let channel: any = null;
+    (async () => {
+      try {
+        const PusherModule = await import("pusher-js");
+        const Pusher = PusherModule.default;
+        client = new Pusher(key, { cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "eu" });
+        channel = client.subscribe("finance-channel");
+        channel.bind("config-updated", () => load());
+      } catch (e) {
+        console.error("Finance live-update subscription failed:", e);
+      }
+    })();
+    return () => {
+      if (channel) channel.unbind_all();
+      if (client) client.unsubscribe("finance-channel");
+    };
+  }, [load]);
+
   const recompute = async () => {
     setBusy("recompute");
     const res = await fetch("/api/finance/commissions", {

@@ -9,6 +9,35 @@ const DEFAULT_TIERS = [
   { minNet: 20001, maxNet: null, pct: 0.025 },
 ];
 
+// TeleSales bonus thresholds are fixed by spec (§14.4); only the amounts are editable.
+const TELESALES_TIER_THRESHOLDS = [100, 125, 150];
+const DEFAULT_TELESALES_BONUS = {
+  meetingTiers: [
+    { achievementPct: 150, amount: 1000 },
+    { achievementPct: 125, amount: 600 },
+    { achievementPct: 100, amount: 300 },
+  ],
+  perConversionAmount: 100,
+};
+
+function parseTelesalesBonus(raw: string | undefined): {
+  meetingTiers: { achievementPct: number; amount: number }[];
+  perConversionAmount: number;
+} {
+  if (!raw) return DEFAULT_TELESALES_BONUS;
+  try {
+    const parsed = JSON.parse(raw);
+    const tiers = Array.isArray(parsed?.meetingTiers) ? parsed.meetingTiers : [];
+    const perConversionAmount =
+      typeof parsed?.perConversionAmount === "number"
+        ? parsed.perConversionAmount
+        : DEFAULT_TELESALES_BONUS.perConversionAmount;
+    return { meetingTiers: tiers, perConversionAmount };
+  } catch {
+    return DEFAULT_TELESALES_BONUS;
+  }
+}
+
 export default function SettingsClient({
   initialConfigs,
   initialCommissions = [],
@@ -47,6 +76,7 @@ export default function SettingsClient({
   }
 
   const gatewayFee = parseFloat(findConfig("gateway_fee_pct")?.value || "0.07");
+  const telesalesBonus = parseTelesalesBonus(findConfig("telesales_bonus_rules")?.value);
 
   return (
     <div className="space-y-6">
@@ -60,7 +90,10 @@ export default function SettingsClient({
       {activeTab === "permissions" && <PermissionMatrix />}
 
       {activeTab === "finance" && (
-        <FinanceRulesSection gatewayFee={gatewayFee} tiers={tiers} onUpdate={handleUpdate} />
+        <div className="space-y-6">
+          <FinanceRulesSection gatewayFee={gatewayFee} tiers={tiers} onUpdate={handleUpdate} />
+          <TelesalesBonusSection rules={telesalesBonus} loading={loading} onUpdate={handleUpdate} />
+        </div>
       )}
 
       {activeTab === "config" && (
@@ -153,6 +186,92 @@ function FinanceRulesSection({ gatewayFee, tiers, onUpdate }: { gatewayFee: numb
             />
             <p className="text-xs text-gray-500 mt-1">Each row should be an object with minNet, maxNet (or null), and pct.</p>
           </details>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TelesalesBonusSection({
+  rules,
+  loading,
+  onUpdate,
+}: {
+  rules: { meetingTiers: { achievementPct: number; amount: number }[]; perConversionAmount: number };
+  loading: boolean;
+  onUpdate: (k: string, v: string) => void;
+}) {
+  const amountFor = (pct: number) =>
+    rules.meetingTiers.find((t) => t.achievementPct === pct)?.amount ?? 0;
+
+  // Rebuilds the full rules object from the fixed thresholds + current amounts and saves it.
+  const save = (overrides: { pct?: number; amount?: number; perConversion?: number }) => {
+    const meetingTiers = TELESALES_TIER_THRESHOLDS.slice()
+      .sort((a, b) => b - a)
+      .map((p) => ({
+        achievementPct: p,
+        amount: overrides.pct === p ? Number(overrides.amount) || 0 : amountFor(p),
+      }));
+    const perConversionAmount =
+      overrides.perConversion !== undefined ? Number(overrides.perConversion) || 0 : rules.perConversionAmount;
+    onUpdate("telesales_bonus_rules", JSON.stringify({ meetingTiers, perConversionAmount }));
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+      <div className="px-6 py-4 border-b border-gray-200">
+        <h3 className="text-base font-semibold text-gray-900">TeleSales Bonus Rules</h3>
+        <p className="text-xs text-gray-500 mt-1">
+          Per spec §14.4. Bonus (SAR) granted when an agent reaches each % of their monthly meetings
+          target, plus a flat bonus per converted (Closed_Won) deal. Saved to{" "}
+          <code>telesales_bonus_rules</code> and <span className="font-semibold text-emerald-600">applied immediately</span> for the current month.
+        </p>
+      </div>
+      <div className="p-6 space-y-6">
+        <div>
+          <h4 className="font-semibold text-sm text-gray-900 mb-3">Meetings Target Bonus</h4>
+          <div className="grid grid-cols-3 gap-4">
+            {TELESALES_TIER_THRESHOLDS.map((pct) => (
+              <div key={pct}>
+                <label className="block text-xs font-bold text-gray-600 mb-1">At {pct}% of target</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    step="50"
+                    defaultValue={amountFor(pct)}
+                    disabled={loading}
+                    onBlur={(e) => {
+                      const v = Number(e.target.value) || 0;
+                      if (v !== amountFor(pct)) save({ pct, amount: v });
+                    }}
+                    className="border px-3 py-2 rounded text-sm w-full focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
+                  <span className="text-xs text-gray-500">SAR</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="border-t pt-6 max-w-xs">
+          <label className="block text-sm font-bold text-gray-700 mb-1">Bonus per converted deal</label>
+          <p className="text-xs text-gray-500 mb-2">Flat SAR for each lead the agent handled that closed as a deal.</p>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min="0"
+              step="10"
+              defaultValue={rules.perConversionAmount}
+              disabled={loading}
+              onBlur={(e) => {
+                const v = Number(e.target.value) || 0;
+                if (v !== rules.perConversionAmount) save({ perConversion: v });
+              }}
+              className="border px-3 py-2 rounded text-sm w-40 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            />
+            <span className="text-xs text-gray-500">SAR / conversion</span>
+          </div>
         </div>
       </div>
     </div>
