@@ -1,4 +1,11 @@
 import { prisma } from "./prisma";
+import {
+  computeTelesalesBonusItems,
+  mergeAutoBonuses,
+  normalizeTelesalesBonusRules,
+  DEFAULT_TELESALES_BONUS_RULES,
+  type TelesalesBonusRules,
+} from "./telesalesBonus";
 
 /**
  * Commission Engine — implements the spec's financial rules.
@@ -20,6 +27,9 @@ import { prisma } from "./prisma";
 export interface BonusItem {
   reason: string;
   amount: number;
+  /** True for system-generated bonuses (e.g. TeleSales target/conversion bonuses)
+   *  that a recompute is allowed to refresh; manual bonuses omit this flag. */
+  auto?: boolean;
 }
 
 export interface DeductionItem {
@@ -174,7 +184,7 @@ export async function recomputeMonth(month: string) {
 
     const bonusesSum = sumLineItems(existing?.bonuses ?? null);
     const deductionsSum = sumLineItems(existing?.deductions ?? null);
-    const netPayout = Math.round((baseSalary + commissionAmount + bonusesSum - deductionsSum) * 100) / 100;
+    const netPayout = round2(baseSalary + commissionAmount + bonusesSum - deductionsSum);
 
     if (existing) {
       const updated = await prisma.commission.update({
@@ -191,6 +201,111 @@ export async function recomputeMonth(month: string) {
           commissionPct: effectivePct,
           commissionAmount,
           bonuses: "[]",
+          deductions: "[]",
+          netPayout,
+          finalized: false,
+        },
+      });
+      results.push(created);
+    }
+  }
+
+  return results;
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+/** Reads TeleSales bonus rules from System Config, falling back to spec defaults. */
+export async function loadTelesalesBonusConfig(): Promise<TelesalesBonusRules> {
+  const cfg = await prisma.systemConfig.findUnique({ where: { key: "telesales_bonus_rules" } });
+  if (!cfg?.value) return DEFAULT_TELESALES_BONUS_RULES;
+  try {
+    return normalizeTelesalesBonusRules(JSON.parse(cfg.value));
+  } catch {
+    return DEFAULT_TELESALES_BONUS_RULES;
+  }
+}
+
+/**
+ * Recomputes TeleSales bonuses for a month (spec §14.4) and writes them onto each
+ * agent's Commission/payroll row so they surface in Finance and My Profile.
+ *
+ * Meetings booked = call logs with status "Accept and book meeting" in the month.
+ * Meetings target = AgentTarget for that month (falls back to HrRecord.monthlyTarget).
+ * Conversions     = Closed_Won deals for leads the agent handled, in the month.
+ *
+ * Finalized rows are never overwritten. Manual bonus line items are preserved.
+ */
+export async function recomputeTelesalesBonuses(month: string) {
+  const [year, mm] = month.split("-").map((s) => parseInt(s, 10));
+  if (!year || !mm) throw new Error(`Invalid month: ${month}`);
+
+  const start = new Date(year, mm - 1, 1);
+  const end = new Date(year, mm, 1);
+
+  const rules = await loadTelesalesBonusConfig();
+
+  const agents = await prisma.user.findMany({
+    where: { role: "tele_sales_agent" },
+    include: { hrRecord: true },
+  });
+
+  const results: any[] = [];
+  for (const agent of agents) {
+    const [meetingsBooked, targetRow, conversions] = await Promise.all([
+      prisma.callLog.count({
+        where: {
+          agentId: agent.id,
+          callStatus: "Accept and book meeting",
+          createdAt: { gte: start, lt: end },
+        },
+      }),
+      prisma.agentTarget.findUnique({
+        where: { agentId_month: { agentId: agent.id, month } },
+      }),
+      prisma.deal.count({
+        where: {
+          status: "Closed_Won",
+          createdAt: { gte: start, lt: end },
+          lead: { assignedTeleAgentId: agent.id },
+        },
+      }),
+    ]);
+
+    const meetingsTarget = targetRow?.target ?? agent.hrRecord?.monthlyTarget ?? 0;
+    const autoItems = computeTelesalesBonusItems({ meetingsBooked, meetingsTarget, conversions, rules });
+
+    const existing = await prisma.commission.findFirst({ where: { userId: agent.id, month } });
+    if (existing?.finalized) {
+      results.push(existing);
+      continue;
+    }
+
+    const mergedBonuses = mergeAutoBonuses(existing?.bonuses ?? null, autoItems);
+    const bonusesJson = JSON.stringify(mergedBonuses);
+    const baseSalary = agent.hrRecord?.baseSalary ?? 0;
+    const bonusesSum = sumLineItems(bonusesJson);
+    const deductionsSum = sumLineItems(existing?.deductions ?? null);
+    const netPayout = round2(baseSalary + bonusesSum - deductionsSum);
+
+    if (existing) {
+      const updated = await prisma.commission.update({
+        where: { id: existing.id },
+        // netTarget/commission stay 0 for TeleSales — their payout is salary + bonuses.
+        data: { bonuses: bonusesJson, netPayout, netTarget: 0, commissionPct: 0, commissionAmount: 0 },
+      });
+      results.push(updated);
+    } else {
+      const created = await prisma.commission.create({
+        data: {
+          userId: agent.id,
+          month,
+          netTarget: 0,
+          commissionPct: 0,
+          commissionAmount: 0,
+          bonuses: bonusesJson,
           deductions: "[]",
           netPayout,
           finalized: false,

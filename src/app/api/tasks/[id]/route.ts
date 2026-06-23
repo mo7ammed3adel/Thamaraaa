@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { checkProjectBlockers, backfillReceiptsForNewMember } from "@/lib/distribution";
 import { normalizeWebUrl } from "@/lib/safe-url";
+import { computeDepartmentProgress } from "@/lib/progress";
 
 const TASK_AGENT_ROLE_MAP: Record<string, string[]> = {
   SEO: ["agent_seo"],
@@ -234,21 +235,19 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     if (body.progressPct !== undefined) {
       const allProjectTasks = await prisma.task.findMany({ where: { projectId: updatedTask.projectId } });
 
-      const seoTasks = allProjectTasks.filter((t) => t.taskType === "SEO");
-      const socialTasks = allProjectTasks.filter((t) => t.taskType === "Social_Media");
-      const mediaTasks = allProjectTasks.filter((t) => t.taskType === "Media_Buyer");
+      // Roll task progress up into the three department fields. Cross-team creative
+      // sub-tasks (graphic/motion/ui) and content_seo are bucketed into their owning
+      // department so their work is reflected in project progress (spec §11).
+      const { seo: avgSeo, social: avgSocial, media: avgMedia, overall: overallProgress } =
+        computeDepartmentProgress(
+          allProjectTasks.map((t) => ({
+            id: t.id,
+            taskType: t.taskType,
+            parentTaskId: t.parentTaskId,
+            progressPct: t.progressPct,
+          }))
+        );
 
-      const avgSeo = seoTasks.length ? seoTasks.reduce((acc, t) => acc + t.progressPct, 0) / seoTasks.length : 0;
-      const avgSocial = socialTasks.length ? socialTasks.reduce((acc, t) => acc + t.progressPct, 0) / socialTasks.length : 0;
-      const avgMedia = mediaTasks.length ? mediaTasks.reduce((acc, t) => acc + t.progressPct, 0) / mediaTasks.length : 0;
-
-      let totalActive = 0;
-      let totalProgress = 0;
-      if (seoTasks.length) { totalActive++; totalProgress += avgSeo; }
-      if (socialTasks.length) { totalActive++; totalProgress += avgSocial; }
-      if (mediaTasks.length) { totalActive++; totalProgress += avgMedia; }
-
-      const overallProgress = totalActive > 0 ? totalProgress / totalActive : 0;
       let newStatus = updatedTask.project.projectStatus;
 
       if (overallProgress === 100) {

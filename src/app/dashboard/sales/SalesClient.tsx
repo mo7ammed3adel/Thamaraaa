@@ -312,30 +312,13 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
       })
     });
 
-    if (res.ok) {
-      const newDeal = await res.json();
-      // Create project for Head Account Manager distribution
-      try {
-        const setupRes = await fetch("/api/projects/setup", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            dealId: newDeal.id,
-            niche: activeLead.niche || "General",
-          })
-        });
-        if (!setupRes.ok) {
-          const setupErr = await setupRes.json();
-          console.error("Project setup failed:", setupErr.error);
-        }
-      } catch (setupError) {
-        console.error("Project setup network error:", setupError);
-      }
-    } else {
+    if (!res.ok) {
       const errData = await res.json();
       alert(`Failed to close deal: ${errData.error || "Unknown error"}`);
       return;
     }
+    // The Operations project is created atomically by POST /api/deals — no
+    // separate setup call is needed, so the deal can never be left without one.
     
     await fetch(`/api/users/${userId}/status`, {
       method: "PATCH",

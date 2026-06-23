@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { recomputeMonth, loadCommissionConfig } from "@/lib/commissions";
+import { recomputeMonth, recomputeTelesalesBonuses, loadCommissionConfig } from "@/lib/commissions";
 
 const FINANCE_ROLES = ["super_admin", "accountant"];
 
@@ -66,8 +66,16 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const results = await recomputeMonth(month);
-    return NextResponse.json({ success: true, count: results.length });
+    const [salesResults, telesalesResults] = await Promise.all([
+      recomputeMonth(month),
+      recomputeTelesalesBonuses(month),
+    ]);
+    return NextResponse.json({
+      success: true,
+      count: salesResults.length + telesalesResults.length,
+      salesCount: salesResults.length,
+      telesalesCount: telesalesResults.length,
+    });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Unknown error";
     console.error("Finance commissions POST error:", msg);

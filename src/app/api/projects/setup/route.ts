@@ -2,12 +2,18 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import {
+  buildNewProjectData,
+  projectSetupLogDetails,
+  notifyHeadAccountManagersOfNewProject,
+} from "@/lib/projectSetup";
 
 /**
  * POST /api/projects/setup
- * Creates a new project from a closed deal and notifies Head Account Managers.
- * The project starts UNASSIGNED (no AM, no Head Technical) —
- * the Head Account Manager will distribute it manually.
+ * Manual recovery endpoint: creates a project for a closed deal that does not yet
+ * have one. The happy path now creates the project inside POST /api/deals; this
+ * route remains as an idempotent fallback for legacy/orphaned deals.
+ * The project starts UNASSIGNED — the Head Account Manager distributes it.
  *
  * Body: { dealId: string, niche?: string, deadline?: string }
  */
@@ -45,69 +51,25 @@ export async function POST(request: Request) {
     }
 
     const packageName = dealData.package;
-
-    const newProject = await prisma.project.create({
-      data: {
-        dealId,
-        accountManagerId: null,
-        headTechnicalId: null,
-        niche: niche || null,
-        package: packageName,
-        technicalDeadline: deadline ? new Date(deadline) : null,
-        finalDeadline: deadline ? new Date(deadline) : null,
-        projectStatus: "new",
-        lifecycleState: "Onboarding",
-      }
-    });
-
-    // Log the setup
-    await prisma.projectLog.create({
-      data: {
-        projectId: newProject.id,
-        action: "setup",
-        details: `Project created from deal. Package: ${packageName}. Awaiting Head AM distribution.`,
-        userId,
-      }
-    });
-
-    // Notify ALL Head Account Managers so they can pick it up
-    const headAccountManagers = await prisma.user.findMany({
-      where: { role: "head_account_manager", status: "Active" },
-      select: { id: true },
-    });
-
     const clientName = dealData.lead?.name || "Unknown Client";
 
-    const notificationPromises = headAccountManagers.map((ham) =>
-      prisma.notification.create({
+    const newProject = await prisma.$transaction(async (tx) => {
+      const project = await tx.project.create({
+        data: buildNewProjectData(dealData, niche || null, deadline ? new Date(deadline) : null),
+      });
+      await tx.projectLog.create({
         data: {
-          userId: ham.id,
-          title: "New Project Awaiting Distribution",
-          message: `A new project for "${clientName}" (${packageName}) is ready for assignment.`,
-          type: "deal_closed",
-          link: "/dashboard/head-account-manager",
+          projectId: project.id,
+          action: "setup",
+          details: projectSetupLogDetails(packageName),
+          userId,
         },
-      })
-    );
+      });
+      return project;
+    });
 
-    // Also notify via Pusher for real-time updates
-    try {
-      const { pusherServer } = await import("@/lib/pusher");
-      if (pusherServer) {
-        const pusherPromises = headAccountManagers.map((ham) =>
-          pusherServer.trigger(`user-${ham.id}`, "new-notification", {
-            title: "New Project Awaiting Distribution",
-            message: `A new project for "${clientName}" (${packageName}) is ready for assignment.`,
-            link: "/dashboard/head-account-manager",
-          })
-        );
-        await Promise.all([...notificationPromises, ...pusherPromises]);
-      } else {
-        await Promise.all(notificationPromises);
-      }
-    } catch {
-      await Promise.all(notificationPromises);
-    }
+    // Notify ALL Head Account Managers so they can pick it up (best-effort)
+    await notifyHeadAccountManagersOfNewProject(clientName, packageName);
 
     return NextResponse.json(newProject, { status: 201 });
   } catch (error) {

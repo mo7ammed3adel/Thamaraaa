@@ -104,15 +104,17 @@ export default function ClientJourney({ leadName, phone, callLogs, meetings, dea
     });
   });
 
-  // Warnings
+  // Warnings — map the real Warning model fields (sender / message / status / severity),
+  // tolerating older shapes via fallbacks.
   warnings?.forEach((w) => {
+    const resolved = w.status ? w.status === "Resolved" : !!w.resolved;
     timeline.push({
       stage: "warning",
       date: w.createdAt,
-      agentName: w.authorUserName || "System",
-      agentRole: w.authorUserRole || "System",
-      notes: w.content,
-      details: `Severity: ${w.severity} | Code: ${w.type}${w.resolved ? " | RESOLVED" : " | UNRESOLVED"}`,
+      agentName: w.sender?.name || w.senderName || w.authorUserName || "System",
+      agentRole: (w.senderRole || w.authorUserRole || "System").replace(/_/g, " "),
+      notes: w.message || w.content,
+      details: `Severity: ${w.severity || "Medium"}${w.subject ? ` | ${w.subject}` : ""} | ${resolved ? "RESOLVED" : "ACTIVE"}`,
     });
   });
 

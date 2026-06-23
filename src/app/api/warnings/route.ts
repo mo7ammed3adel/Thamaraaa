@@ -89,6 +89,7 @@ export async function POST(req: NextRequest) {
         where: { id: projectId },
         include: {
           teamAssignments: { where: { status: "active" } },
+          deal: { select: { salesAgentId: true } },
         }
       });
 
@@ -101,6 +102,8 @@ export async function POST(req: NextRequest) {
       if (project.accountManagerId) affectedUserIds.add(project.accountManagerId);
       if (project.headTechnicalId) affectedUserIds.add(project.headTechnicalId);
       if (project.headSeoId) affectedUserIds.add(project.headSeoId);
+      // Sales Agent who closed the deal — they were the client's contact point (spec §13)
+      if (project.deal?.salesAgentId) affectedUserIds.add(project.deal.salesAgentId);
       hdAMs.forEach(h => affectedUserIds.add(h.id));
       project.teamAssignments.forEach(t => affectedUserIds.add(t.userId));
       
