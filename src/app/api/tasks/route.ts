@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { findTeamLeaderRoleForTaskType, userCanAccessProject } from "@/lib/distribution";
 import { CROSS_TEAM_TASK_TYPES, AGENT_ASSIGNER_ROLES, MANAGEMENT_ROLES, ACCOUNT_MANAGER_ROLES, hasRole, getDefaultChecklistForTaskType } from "@/lib/constants";
 import { normalizeWebUrl } from "@/lib/safe-url";
+import { safeTrigger } from "@/lib/pusher";
 
 // Roles that may create tasks. Includes:
 //  - Team leaders / heads who orchestrate the work (AGENT_ASSIGNER_ROLES, MANAGEMENT_ROLES)
@@ -158,21 +159,14 @@ export async function POST(req: Request) {
         }
       });
 
-      try {
-        const { pusherServer } = await import("@/lib/pusher");
-        if (pusherServer) {
-          await pusherServer.trigger(`private-user-${finalLeaderId}`, "task-assigned", {
-            projectId,
-            taskId: newTask.id
-          });
-          await pusherServer.trigger(`private-project-${projectId}`, "task-status-changed", {
-            taskId: newTask.id,
-            status: "pending"
-          });
-        }
-      } catch (err) {
-        console.error("Pusher error in cross-team task:", err);
-      }
+      await safeTrigger(`private-user-${finalLeaderId}`, "task-assigned", {
+        projectId,
+        taskId: newTask.id
+      });
+      await safeTrigger(`private-project-${projectId}`, "task-status-changed", {
+        taskId: newTask.id,
+        status: "pending"
+      });
     }
 
     return NextResponse.json({ success: true, task: newTask });

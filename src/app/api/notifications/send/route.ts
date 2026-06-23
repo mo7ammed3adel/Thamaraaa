@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { pusherServer } from "@/lib/pusher";
+import { safeTrigger } from "@/lib/pusher";
 import { hasRole, MANAGEMENT_ROLES } from "@/lib/constants";
 import { normalizeNotificationLink } from "@/lib/safe-url";
 
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
       }
     });
 
-    await pusherServer.trigger(`user-${userId}`, "new-notification", notification);
+    await safeTrigger(`user-${userId}`, "new-notification", notification);
 
     return NextResponse.json({ success: true, notification });
   } catch (error) {

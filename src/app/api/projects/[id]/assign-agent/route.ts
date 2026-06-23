@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canDistributeTo, backfillReceiptsForNewMember } from "@/lib/distribution";
+import { safeTrigger } from "@/lib/pusher";
 
 const DEPARTMENT_AGENT_CONFIG: Record<string, { taskTypes: string[]; agentRoles: string[]; dashboardLink: string }> = {
   seo: {
@@ -219,16 +220,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     // Ensure newly-assigned agent receives any unresolved warnings on this project
     await backfillReceiptsForNewMember(params.id, agentUserId);
 
-    try {
-      const { pusherServer } = await import("@/lib/pusher");
-      if (pusherServer) {
-        await pusherServer.trigger(`private-user-${agentUserId}`, "team-distributed", {
-          projectId: params.id,
-        });
-      }
-    } catch (pusherError) {
-      console.error("Pusher team-distributed error:", pusherError);
-    }
+    await safeTrigger(`private-user-${agentUserId}`, "team-distributed", {
+      projectId: params.id,
+    });
 
     return NextResponse.json({ success: true, assignment: result.assignment, tasksUpdated: result.tasksUpdated });
   } catch (error: any) {

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { validateLifecycleTransition, canChangeLifecycle } from "@/lib/lifecycle";
+import { safeTrigger } from "@/lib/pusher";
 
 /**
  * PATCH /api/projects/lifecycle
@@ -75,18 +76,11 @@ export async function PATCH(req: NextRequest) {
     ]);
 
     // Trigger real-time notification
-    try {
-      const { pusherServer } = await import("@/lib/pusher");
-      if (pusherServer) {
-        await pusherServer.trigger("projects-channel", "lifecycle-changed", {
-          projectId,
-          newState,
-          changedBy: user.name,
-        });
-      }
-    } catch (pusherError) {
-      console.error("Pusher lifecycle broadcast error:", pusherError);
-    }
+    await safeTrigger("projects-channel", "lifecycle-changed", {
+      projectId,
+      newState,
+      changedBy: user.name,
+    });
 
     return NextResponse.json({
       success: true,

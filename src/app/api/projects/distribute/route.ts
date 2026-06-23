@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canDistributeTo, backfillReceiptsForNewMember } from "@/lib/distribution";
+import { safeTrigger } from "@/lib/pusher";
 
 /**
  * POST /api/projects/distribute
@@ -169,19 +170,12 @@ export async function POST(req: NextRequest) {
       }
 
       // Send real-time notification
-      try {
-        const { pusherServer } = await import("@/lib/pusher");
-        if (pusherServer) {
-          await pusherServer.trigger("projects-channel", "team-assigned", {
-            projectId,
-            userId: targetUser.id,
-            role: targetUser.role,
-            assignedBy: user.name,
-          });
-        }
-      } catch (pusherError) {
-        console.error("Pusher team-assigned error:", pusherError);
-      }
+      await safeTrigger("projects-channel", "team-assigned", {
+        projectId,
+        userId: targetUser.id,
+        role: targetUser.role,
+        assignedBy: user.name,
+      });
 
       // Send notification to the assigned user
       await prisma.notification.create({
@@ -235,19 +229,12 @@ export async function POST(req: NextRequest) {
       });
 
       // Real-time update
-      try {
-        const { pusherServer } = await import("@/lib/pusher");
-        if (pusherServer) {
-          await pusherServer.trigger("projects-channel", "project-distributed", {
-            projectId,
-            assignedTo: targetUser.name,
-            assignedToRole: targetUser.role,
-            assignedBy: user.name,
-          });
-        }
-      } catch (pusherError) {
-        console.error("Pusher distribute error:", pusherError);
-      }
+      await safeTrigger("projects-channel", "project-distributed", {
+        projectId,
+        assignedTo: targetUser.name,
+        assignedToRole: targetUser.role,
+        assignedBy: user.name,
+      });
 
       return NextResponse.json({
         success: true,
