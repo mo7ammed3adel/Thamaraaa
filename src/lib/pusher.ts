@@ -21,3 +21,19 @@ export const getPusherClient = () => {
     cluster,
   });
 };
+
+const pusherConfigured = Boolean(appId && key && secret);
+
+/**
+ * Fire-and-forget realtime trigger that never throws and no-ops when Pusher is
+ * not configured. Replaces the duplicated `try { ... pusherServer.trigger ... }
+ * catch {}` blocks scattered across API routes.
+ */
+export async function safeTrigger(channel: string, event: string, data: unknown): Promise<void> {
+  if (!pusherConfigured) return;
+  try {
+    await pusherServer.trigger(channel, event, data as Record<string, unknown>);
+  } catch (error) {
+    console.error(`Pusher trigger failed (${channel}/${event}):`, error);
+  }
+}

@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { notifyUsers } from "./notify";
 
 /**
  * Shared helpers for creating a Project from a closed Deal.
@@ -55,32 +56,14 @@ export async function notifyHeadAccountManagersOfNewProject(
     where: { role: "head_account_manager", status: "Active" },
     select: { id: true },
   });
-  if (headAccountManagers.length === 0) return;
 
-  const title = "New Project Awaiting Distribution";
-  const message = `A new project for "${clientName}" (${packageName}) is ready for assignment.`;
-  const link = "/dashboard/head-account-manager";
-
-  await prisma.notification.createMany({
-    data: headAccountManagers.map((ham) => ({
-      userId: ham.id,
-      title,
-      message,
+  await notifyUsers(
+    headAccountManagers.map((ham) => ham.id),
+    {
+      title: "New Project Awaiting Distribution",
+      message: `A new project for "${clientName}" (${packageName}) is ready for assignment.`,
       type: "deal_closed",
-      link,
-    })),
-  });
-
-  try {
-    const { pusherServer } = await import("./pusher");
-    if (pusherServer) {
-      await Promise.all(
-        headAccountManagers.map((ham) =>
-          pusherServer.trigger(`user-${ham.id}`, "new-notification", { title, message, link })
-        )
-      );
+      link: "/dashboard/head-account-manager",
     }
-  } catch (error) {
-    console.error("Pusher HAM new-project notify failed:", error);
-  }
+  );
 }

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { recomputeMonth, recomputeTelesalesBonuses } from "@/lib/commissions";
-import { pusherServer } from "@/lib/pusher";
+import { safeTrigger } from "@/lib/pusher";
 
 // Config keys that affect payroll/commission math. Changing any of them triggers
 // an immediate recompute of the current month so the new values apply live.
@@ -59,9 +59,7 @@ export async function POST(req: Request) {
       try {
         await Promise.all([recomputeMonth(month), recomputeTelesalesBonuses(month)]);
         recomputed = true;
-        if (pusherServer) {
-          await pusherServer.trigger("finance-channel", "config-updated", { key, month });
-        }
+        await safeTrigger("finance-channel", "config-updated", { key, month });
       } catch (e) {
         console.error("Live recompute after config change failed:", e);
       }

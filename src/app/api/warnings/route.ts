@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendWarningEmail } from "@/lib/email";
-import { pusherServer } from "@/lib/pusher";
+import { safeTrigger } from "@/lib/pusher";
 import { SEVERITY, WARNING_ISSUER_ROLES } from "@/lib/constants";
 
 const VALID_SEVERITIES = new Set(Object.values(SEVERITY));
@@ -144,22 +144,16 @@ export async function POST(req: NextRequest) {
 
       const deliveryPromises = usersToNotify.map(async (u) => {
         // Pusher event on the user's own channel (matches existing convention used in deals/projects routes)
-        if (pusherServer) {
-          try {
-            await pusherServer.trigger(`user-${u.id}`, "new-warning", {
-              id: w.id,
-              warningId: w.id,
-              subject: w.subject,
-              message: w.message,
-              severity: w.severity,
-              senderRole: w.senderRole,
-              senderUserId: w.senderUserId,
-              createdAt: w.createdAt,
-            });
-          } catch (e) {
-            console.error("Pusher broadcast error", e);
-          }
-        }
+        await safeTrigger(`user-${u.id}`, "new-warning", {
+          id: w.id,
+          warningId: w.id,
+          subject: w.subject,
+          message: w.message,
+          severity: w.severity,
+          senderRole: w.senderRole,
+          senderUserId: w.senderUserId,
+          createdAt: w.createdAt,
+        });
 
         if (u.email) {
           const res = await sendWarningEmail(u.email, `Warning: ${w.subject}`, w.message, user.name);

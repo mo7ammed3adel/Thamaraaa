@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { pusherServer } from "@/lib/pusher";
+import { safeTrigger } from "@/lib/pusher";
 import { normalizeWebUrl } from "@/lib/safe-url";
 import {
   buildNewProjectData,
@@ -124,7 +124,7 @@ export async function POST(req: Request) {
       await prisma.notification.create({
         data: { userId: dbUser.directManagerId, title: "Deal Closed!", message: mgrMessage, link: managerLink }
       });
-      await pusherServer.trigger(`user-${dbUser.directManagerId}`, "new-notification", { title: "Deal Closed!", message: mgrMessage, link: managerLink });
+      await safeTrigger(`user-${dbUser.directManagerId}`, "new-notification", { title: "Deal Closed!", message: mgrMessage, link: managerLink });
     }
 
     return NextResponse.json(deal, { status: 201 });
