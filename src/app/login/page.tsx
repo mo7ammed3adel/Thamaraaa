@@ -40,8 +40,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex h-screen items-center justify-center bg-gray-50">
-      <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+    <div className="flex h-screen items-center justify-center bg-gray-50 p-4">
+      <div className="w-full max-w-md bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-100">
         <div className="flex justify-center mb-6">
           <div className="text-3xl font-extrabold text-blue-600 tracking-tight">
             Thamaraa<span className="text-gray-800">ERP</span>

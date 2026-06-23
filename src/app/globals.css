@@ -26,6 +26,24 @@ body {
   }
 }
 
+/* Mobile safety net: never let content force the whole page to scroll sideways,
+   and make any wide table scroll horizontally within its own box instead of
+   breaking the layout. Scoped to small screens so desktop is untouched. */
+@media (max-width: 767px) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+
+  table {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 @layer components {
   :where(button, [role="button"]) {
     transition-property: color, background-color, border-color, box-shadow, transform, opacity;
