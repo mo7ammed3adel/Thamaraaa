@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { parsePerformanceHistory } from "@/server/parsers/hr";
 
 /**
  * Promotion Engine — encodes the spec's rules:
@@ -89,15 +90,10 @@ async function computeMonthlyAchievements(
   }
 
   // Fallback: legacy hitTarget binary history
-  try {
-    const history: { month: string; hitTarget: boolean }[] = JSON.parse(performanceHistory || "[]");
-    return history.slice(-12).map((h) => ({
-      month: h.month,
-      achievementPct: h.hitTarget ? 100 : 0,
-    }));
-  } catch {
-    return [];
-  }
+  return parsePerformanceHistory(performanceHistory).slice(-12).map((h) => ({
+    month: h.month,
+    achievementPct: h.hitTarget ? 100 : 0,
+  }));
 }
 
 /**

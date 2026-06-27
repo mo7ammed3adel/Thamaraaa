@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
-import { parseJsonArray, parseJsonOr, stringifyJson } from "@/server/parsers/json";
+import { parseJsonOr } from "@/server/parsers/json";
+import { parseCommissionTiers, sumFinanceLineItems, stringifyFinanceLineItems } from "@/server/parsers/finance";
 import {
   computeTelesalesBonusItems,
   mergeAutoBonuses,
@@ -63,7 +64,7 @@ export async function loadCommissionConfig(): Promise<{ tiers: CommissionTier[];
 
   let tiers: CommissionTier[] = DEFAULT_TIERS;
   if (tiersConfig?.value) {
-    const parsed = parseJsonArray<CommissionTier>(tiersConfig.value);
+    const parsed = parseCommissionTiers(tiersConfig.value) as CommissionTier[];
     if (parsed.length > 0) tiers = parsed;
   }
 
@@ -112,8 +113,7 @@ export function achievementMultiplier(achievementPct: number): number {
  */
 export function sumLineItems(json: string | null): number {
   if (!json) return 0;
-  const items = parseJsonArray<{ amount?: unknown }>(json);
-  return items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  return sumFinanceLineItems(json);
 }
 
 /**
@@ -272,7 +272,7 @@ export async function recomputeTelesalesBonuses(month: string) {
     }
 
     const mergedBonuses = mergeAutoBonuses(existing?.bonuses ?? null, autoItems);
-    const bonusesJson = stringifyJson(mergedBonuses);
+    const bonusesJson = stringifyFinanceLineItems(mergedBonuses);
     const baseSalary = agent.hrRecord?.baseSalary ?? 0;
     const bonusesSum = sumLineItems(bonusesJson);
     const deductionsSum = sumLineItems(existing?.deductions ?? null);

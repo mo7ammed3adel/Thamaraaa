@@ -56,3 +56,22 @@ Smell -> principle -> fix:
 Behavior preserved by:
 
 - `npx tsc --noEmit`: passed.
+
+## 2026-06-27 - Phase 1 Slice: Specialized Server Parsers
+
+Scope:
+
+- Added finance, HR, and task parser modules under `src/server/parsers`.
+- Moved deliverable file normalization out of `src/app/api/tasks/[id]/route.ts`.
+- Reused finance line-item parsing in `src/lib/commissions.ts`.
+- Reused HR performance history parsing in `src/lib/promotion.ts`.
+
+Smell -> principle -> fix:
+
+- `src/app/api/tasks/[id]/route.ts` mixed route delivery with deliverable URL parsing -> SRP / boundary parsing -> moved parser logic to `src/server/parsers/task.ts`.
+- Finance and HR JSON data had local parsing rules -> single parsing owner -> added `src/server/parsers/finance.ts` and `src/server/parsers/hr.ts`.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.

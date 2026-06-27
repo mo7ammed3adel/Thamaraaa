@@ -129,9 +129,9 @@ npm run build
 
 - [x] R0110 إنشاء `src/server/parsers/json.ts` لدوال safe parse عامة.
 - [ ] R0111 إنشاء parser typed للـ task checklist بدلاً من تكرار `JSON.parse` في `TaskWorkspaceModal` و `ProjectLogsPanel` و routes.
-- [ ] R0112 إنشاء parser typed للـ task files/deliverables.
-- [ ] R0113 إنشاء parser typed للـ commission bonuses/deductions.
-- [ ] R0114 إنشاء parser typed للـ HR performance history.
+- [x] R0112 إنشاء parser typed للـ task files/deliverables.
+- [x] R0113 إنشاء parser typed للـ commission bonuses/deductions.
+- [x] R0114 إنشاء parser typed للـ HR performance history.
 - [x] R0115 استبدال parsing في `src/lib/commissions.ts` بدون تغيير الناتج.
 
 ### 1.3 Formatting utilities

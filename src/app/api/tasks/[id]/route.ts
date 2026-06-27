@@ -3,8 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { checkProjectBlockers, backfillReceiptsForNewMember } from "@/lib/distribution";
-import { normalizeWebUrl } from "@/lib/safe-url";
 import { computeDepartmentProgress } from "@/lib/progress";
+import { normalizeDeliverableFiles } from "@/server/parsers/task";
 
 const TASK_AGENT_ROLE_MAP: Record<string, string[]> = {
   SEO: ["agent_seo"],
@@ -19,34 +19,6 @@ const TASK_AGENT_ROLE_MAP: Record<string, string[]> = {
   motion_graphic: ["agent_motion_graphic"],
   ui_design: ["agent_ui"],
 };
-
-function normalizeDeliverableFiles(value: unknown) {
-  if (value === null || value === "") return { value: null };
-
-  let parsed: unknown = value;
-  if (typeof value === "string") {
-    try {
-      parsed = JSON.parse(value);
-    } catch {
-      return { error: "files must be valid JSON" };
-    }
-  }
-
-  if (!Array.isArray(parsed)) return { error: "files must be an array" };
-  if (parsed.length > 50) return { error: "files cannot contain more than 50 links" };
-
-  const normalized = [];
-  for (const item of parsed) {
-    if (!item || typeof item !== "object") return { error: "Invalid file entry" };
-    const entry = item as { label?: unknown; url?: unknown };
-    const safeUrl = normalizeWebUrl(entry.url);
-    if (!safeUrl) return { error: "Each deliverable URL must be a valid http(s) URL" };
-    const label = typeof entry.label === "string" && entry.label.trim() ? entry.label.trim().slice(0, 120) : "Deliverable";
-    normalized.push({ label, url: safeUrl });
-  }
-
-  return { value: JSON.stringify(normalized) };
-}
 
 /**
  * PATCH /api/tasks/[id]
