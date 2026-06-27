@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { autoAssignLead } from "@/lib/autoAssign";
 
 /**
  * POST /api/call-logs
@@ -89,7 +88,7 @@ export async function POST(req: Request) {
       data: updateData,
     });
 
-    // Create meeting record and trigger auto-assignment for booked meetings
+    // Create meeting record. Sales distribution is now triggered manually from Tele-Sales.
     if (callStatus === "Accept and book meeting" && meetingDate) {
       await prisma.meeting.create({
         data: {
@@ -100,8 +99,6 @@ export async function POST(req: Request) {
           status: "Scheduled",
         }
       });
-      // Trigger auto-assignment engine asynchronously
-      autoAssignLead(leadId).catch(console.error);
     }
 
     // Return the FULL lead with callLogs and related data so the frontend

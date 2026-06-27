@@ -11,9 +11,13 @@ import { prisma } from "./prisma";
  * 5. Load balance: pick agent with fewest active In_Sales leads
  * 6. Assign lead + update meeting + create notification
  */
-export async function autoAssignLead(leadId: string) {
+export type AutoAssignLeadResult =
+  | { assigned: true; salesAgent: { id: string; name: string } }
+  | { assigned: false; reason: "lead_not_found" | "no_available_sales_agents" };
+
+export async function autoAssignLead(leadId: string): Promise<AutoAssignLeadResult> {
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
-  if (!lead) return;
+  if (!lead) return { assigned: false, reason: "lead_not_found" };
 
   // 1. Get all AVAILABLE sales agents (exclude Busy and In_Call)
   const agents = await prisma.user.findMany({
@@ -38,7 +42,7 @@ export async function autoAssignLead(leadId: string) {
       where: { id: leadId },
       data: { status: "Waiting" },
     });
-    return;
+    return { assigned: false, reason: "no_available_sales_agents" };
   }
 
   // 2. Match by specialization
@@ -126,4 +130,9 @@ export async function autoAssignLead(leadId: string) {
     // Notification creation failure should not break the assignment
     console.error("Failed to create notification:", e);
   }
+
+  return {
+    assigned: true,
+    salesAgent: { id: chosenAgent.id, name: chosenAgent.name },
+  };
 }

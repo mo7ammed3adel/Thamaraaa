@@ -1,7 +1,8 @@
 "use client";
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Pencil, Check, PhoneCall, CheckCircle2, PhoneOff, XCircle, CalendarDays } from "lucide-react";
+import { Plus, X, Pencil, Check, PhoneCall, CheckCircle2, PhoneOff, XCircle, CalendarDays, Send } from "lucide-react";
+import { canManuallyDistributeMeeting } from "@/lib/meetingDistribution";
 
 interface CustomColumn {
   id: string;
@@ -32,6 +33,7 @@ export default function TeleSalesClient({
     meetingTime: "",
   });
   const [loading, setLoading] = useState(false);
+  const [distributingLeadId, setDistributingLeadId] = useState<string | null>(null);
 
   // Custom Columns
   const [customColumns, setCustomColumns] = useState<CustomColumn[]>(initialCustomColumns || []);
@@ -121,6 +123,32 @@ export default function TeleSalesClient({
       alert("Network error. Please try again.");
     }
     setLoading(false);
+  };
+
+  const handleDistributeMeeting = async (leadId: string) => {
+    setDistributingLeadId(leadId);
+
+    try {
+      const res = await fetch(`/api/leads/${leadId}/distribute-meeting`, {
+        method: "POST",
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        alert(data.error || "Failed to distribute meeting");
+        router.refresh();
+        return;
+      }
+
+      if (data.lead) {
+        setLeads(leads.map((l) => (l.id === leadId ? data.lead : l)));
+      }
+      router.refresh();
+    } catch {
+      alert("Network error. Please try again.");
+    } finally {
+      setDistributingLeadId(null);
+    }
   };
 
   // Custom Column handlers
@@ -512,7 +540,17 @@ export default function TeleSalesClient({
                   })}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div className="flex items-center gap-2">
-                      {l.status === "Transferred" || l.status === "In_Sales" ? (
+                      {canManuallyDistributeMeeting(l) ? (
+                        <button
+                          onClick={() => handleDistributeMeeting(l.id)}
+                          disabled={distributingLeadId === l.id}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-md text-xs font-bold hover:bg-indigo-700 disabled:opacity-50 transition"
+                          title="Assign this booked meeting to an available sales agent"
+                        >
+                          <Send className="h-3.5 w-3.5" />
+                          {distributingLeadId === l.id ? "Distributing..." : "Distribute Meeting"}
+                        </button>
+                      ) : l.status === "Transferred" || l.status === "In_Sales" ? (
                         <span className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-md text-xs font-bold">📅 Meeting Booked</span>
                       ) : l.status === "Closed_Won" ? (
                         <span className="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-md text-xs font-bold">✓ Won</span>
