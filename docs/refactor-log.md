@@ -564,6 +564,24 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Lead Mutation Service Boundary
+
+Scope:
+
+- Added `src/server/repositories/leadRepository.ts`.
+- Added `src/server/services/leadService.ts`.
+- Migrated manual lead creation and single lead update/delete routes to the service boundary.
+- Centralized lead ownership checks, manager-scoped reassignment validation, store-link normalization, notes logging, meeting synchronization, and reassignment notifications.
+
+Smell -> principle -> fix:
+
+- Lead mutation routes mixed auth, IDOR checks, assignee validation, persistence, and side effects -> SRP / authorization locality -> moved lead workflow decisions into a service and left routes as response adapters.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Deals Service Boundary
 
 Scope:
