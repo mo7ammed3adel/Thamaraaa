@@ -411,6 +411,22 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: HR Documents Boundary
+
+Scope:
+
+- Moved `/api/hr/documents` list/upload/delete document data access and owner-vs-HR checks into `hrService` and `hrRepository`.
+- Preserved URL/name validation, HR-only delete, response shapes/status codes, and internal-error logging.
+
+Smell -> principle -> fix:
+
+- HR documents route mixed HTTP parsing, ownership policy, URL validation, and Prisma CRUD -> controller-service-repository boundary -> route now maps HR document service outcomes to HTTP.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
 
 Scope:

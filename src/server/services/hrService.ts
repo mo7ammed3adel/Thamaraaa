@@ -1,11 +1,17 @@
 import {
   createHrNotification,
+  createEmployeeDocument,
   createLeaveRequest,
+  deleteEmployeeDocument,
+  findEmployeeDocuments,
   findAllLeaveRequests,
   findFirstHrManager,
   findLeaveRequestsForUser,
   updateLeaveRequestDecision,
 } from "@/server/repositories/hrRepository";
+import { normalizeWebUrl } from "@/lib/safe-url";
+
+const HR_ROLES = ["super_admin", "hr_manager"];
 
 export async function submitLeaveRequest(input: {
   userId: string;
@@ -57,4 +63,51 @@ export async function decideLeaveRequest(input: {
   });
 
   return leaveRequest;
+}
+
+export async function listEmployeeDocuments(input: {
+  sessionUserId: string;
+  sessionUserRole?: string | null;
+  userIdParam?: string | null;
+}) {
+  const isHr = HR_ROLES.includes(input.sessionUserRole || "");
+  const targetUserId = input.userIdParam || input.sessionUserId;
+  if (!isHr && targetUserId !== input.sessionUserId) {
+    return { status: "forbidden" as const };
+  }
+
+  const documents = await findEmployeeDocuments(targetUserId);
+  return { status: "ok" as const, documents };
+}
+
+export async function uploadEmployeeDocument(input: {
+  sessionUserId: string;
+  sessionUserRole?: string | null;
+  body: any;
+}) {
+  const { userId, name, fileUrl } = input.body || {};
+  const safeFileUrl = normalizeWebUrl(fileUrl);
+  const safeName = typeof name === "string" ? name.trim().slice(0, 120) : "";
+  if (!safeName || !safeFileUrl) {
+    return { status: "missing_fields" as const };
+  }
+
+  const isHr = HR_ROLES.includes(input.sessionUserRole || "");
+  const targetUserId = userId || input.sessionUserId;
+  if (!isHr && targetUserId !== input.sessionUserId) {
+    return { status: "upload_forbidden" as const };
+  }
+
+  const document = await createEmployeeDocument({
+    userId: targetUserId,
+    name: safeName,
+    fileUrl: safeFileUrl,
+  });
+
+  return { status: "ok" as const, document };
+}
+
+export async function removeEmployeeDocument(id: string) {
+  await deleteEmployeeDocument(id);
+  return { success: true };
 }

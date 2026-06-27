@@ -52,3 +52,21 @@ export function updateLeaveRequestDecision(input: {
     data: { status: input.status, feedbackNotes: input.feedbackNotes },
   });
 }
+
+export function findEmployeeDocuments(targetUserId?: string | null) {
+  return prisma.employeeDocument.findMany({
+    where: targetUserId ? { userId: targetUserId } : undefined,
+    include: { user: { select: { id: true, name: true, role: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export function createEmployeeDocument(input: { userId: string; name: string; fileUrl: string }) {
+  return prisma.employeeDocument.create({
+    data: input,
+  });
+}
+
+export function deleteEmployeeDocument(id: string) {
+  return prisma.employeeDocument.delete({ where: { id } });
+}
