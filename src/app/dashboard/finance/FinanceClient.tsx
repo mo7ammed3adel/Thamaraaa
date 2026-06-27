@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { DollarSign, AlertCircle, FileText, CheckCircle2, Calculator, Download, Plus, X, Trash2, Lock } from "lucide-react";
+import { formatSar } from "@/shared/formatters/currency";
+import { formatDate } from "@/shared/formatters/date";
 
 export default function FinanceClient() {
   const [data, setData] = useState<any>(null);
@@ -47,7 +49,7 @@ export default function FinanceClient() {
             activeFilter === "all" ? "border-gray-500 bg-gray-100" : "border-transparent bg-white hover:bg-gray-50 border-gray-200"
           }`}>
           <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Total Revenue</p>
-          <p className="text-3xl font-black text-gray-900">SAR {data.overview.totalRevenue.toLocaleString()}</p>
+          <p className="text-3xl font-black text-gray-900">{formatSar(data.overview.totalRevenue)}</p>
         </div>
         <div 
           onClick={() => setActiveFilter("fully_paid")}
@@ -55,7 +57,7 @@ export default function FinanceClient() {
             activeFilter === "fully_paid" ? "border-green-500 bg-green-100" : "border-transparent bg-green-50 hover:bg-green-100 border-green-200"
           }`}>
           <p className="text-xs font-bold text-green-700 uppercase tracking-widest mb-2">Total Collected</p>
-          <p className="text-3xl font-black text-green-700">SAR {data.overview.totalCollected.toLocaleString()}</p>
+          <p className="text-3xl font-black text-green-700">{formatSar(data.overview.totalCollected)}</p>
         </div>
         <div 
           onClick={() => setActiveFilter("partial")}
@@ -63,7 +65,7 @@ export default function FinanceClient() {
             activeFilter === "partial" ? "border-amber-500 bg-amber-100" : "border-transparent bg-amber-50 hover:bg-amber-100 border-amber-200"
           }`}>
           <p className="text-xs font-bold text-amber-700 uppercase tracking-widest mb-2">Total Remaining</p>
-          <p className="text-3xl font-black text-amber-700">SAR {data.overview.totalRemaining.toLocaleString()}</p>
+          <p className="text-3xl font-black text-amber-700">{formatSar(data.overview.totalRemaining)}</p>
         </div>
         <div 
           onClick={() => { setActiveTab("installments"); setActiveFilter("overdue"); }}
@@ -71,7 +73,7 @@ export default function FinanceClient() {
             activeFilter === "overdue" && activeTab === "installments" ? "border-blue-500 bg-blue-100" : "border-transparent bg-blue-50 hover:bg-blue-100 border-blue-200"
           }`}>
           <p className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-2">Upcoming Installments</p>
-          <p className="text-3xl font-black text-blue-700">SAR {data.overview.upcomingAmounts.toLocaleString()}</p>
+          <p className="text-3xl font-black text-blue-700">{formatSar(data.overview.upcomingAmounts)}</p>
         </div>
       </div>
 
@@ -117,12 +119,12 @@ export default function FinanceClient() {
                       <div className="font-bold text-gray-900">{d.lead?.name || "Unknown"}</div>
                       <div className="text-xs text-gray-500">Agent: {d.salesAgent?.name || "N/A"}</div>
                     </td>
-                    <td className="px-6 py-4 font-bold text-gray-900">SAR {d.totalAmount.toLocaleString()}</td>
+                    <td className="px-6 py-4 font-bold text-gray-900">{formatSar(d.totalAmount)}</td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
-                        <span className="font-bold text-green-600">SAR {collected.toLocaleString()}</span>
+                        <span className="font-bold text-green-600">{formatSar(collected)}</span>
                         {collected < d.totalAmount && (
-                          <span className="text-xs text-amber-600 mt-1">Remaining: SAR {(d.totalAmount - collected).toLocaleString()}</span>
+                          <span className="text-xs text-amber-600 mt-1">Remaining: {formatSar(d.totalAmount - collected)}</span>
                         )}
                       </div>
                     </td>
@@ -156,8 +158,8 @@ export default function FinanceClient() {
                   </span>
                 </div>
                 <div className="mb-4">
-                  <p className="text-3xl font-black text-gray-900">SAR {inst.amount.toLocaleString()}</p>
-                  <p className="text-sm font-medium text-gray-500 mt-1">Due: {new Date(inst.dueDate).toLocaleDateString()}</p>
+                  <p className="text-3xl font-black text-gray-900">{formatSar(inst.amount)}</p>
+                  <p className="text-sm font-medium text-gray-500 mt-1">Due: {formatDate(inst.dueDate)}</p>
                 </div>
                 <button 
                   onClick={() => handleMarkInstallmentPaid(inst.id)}

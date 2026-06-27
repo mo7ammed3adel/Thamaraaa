@@ -75,3 +75,19 @@ Behavior preserved by:
 
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
+
+## 2026-06-27 - Phase 1 Slice: Shared Formatters
+
+Scope:
+
+- Added shared currency and date formatters under `src/shared/formatters`.
+- Replaced a first small set of finance and warning display formatting calls with the shared helpers.
+
+Smell -> principle -> fix:
+
+- Currency/date display rules were scattered across components -> shared leaf utilities -> introduced `formatSar`, `formatDate`, and `formatDateTime`.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm run lint`: passed with the same pre-existing React hook dependency warnings recorded in the baseline.

@@ -136,8 +136,8 @@ npm run build
 
 ### 1.3 Formatting utilities
 
-- [ ] R0120 إنشاء `src/shared/formatters/currency.ts` واستخدام `SAR` من مكان واحد.
-- [ ] R0121 إنشاء `src/shared/formatters/date.ts` للتواريخ المعروضة.
+- [x] R0120 إنشاء `src/shared/formatters/currency.ts` واستخدام `SAR` من مكان واحد.
+- [x] R0121 إنشاء `src/shared/formatters/date.ts` للتواريخ المعروضة.
 - [ ] R0122 توحيد formatting في finance/sales analytics/dashboard cards بدون تغيير النصوص الظاهرة إلا العملة المطلوبة.
 
 **لا ننتقل للمرحلة التالية إلا إذا**: كل parser عليه استخدام فعلي، ولا يوجد تغيير في شكل البيانات الراجعة، و`npx tsc --noEmit` يمر.

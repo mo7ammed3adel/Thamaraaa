@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { formatDateTime } from "@/shared/formatters/date";
 
 interface WarningData {
   id: string;
@@ -128,7 +129,7 @@ export default function WarningPopup({ userRole, userId }: { userRole: string; u
               {activeWarning.senderRole.replace(/_/g, " ")}
             </span>
             <span>•</span>
-            <span>{new Date(activeWarning.createdAt).toLocaleString()}</span>
+            <span>{formatDateTime(activeWarning.createdAt)}</span>
           </div>
         </div>
 

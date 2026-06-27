@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, X, CheckCircle, Clock } from "lucide-react";
 import PusherClient from "pusher-js";
+import { formatDate } from "@/shared/formatters/date";
 
 export default function GlobalWarningAlert({ userId }: { userId?: string }) {
   const [warnings, setWarnings] = useState<any[]>([]);
@@ -103,7 +104,7 @@ export default function GlobalWarningAlert({ userId }: { userId?: string }) {
                   </span>
                   <span className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    {new Date(w.createdAt).toLocaleDateString()}
+                    {formatDate(w.createdAt)}
                   </span>
                   <span>From: {w.senderRole.replace(/_/g, " ")}</span>
                 </div>
