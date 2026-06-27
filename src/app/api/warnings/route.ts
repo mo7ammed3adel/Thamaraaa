@@ -5,6 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { sendWarningEmail } from "@/lib/email";
 import { safeTrigger } from "@/lib/pusher";
 import { SEVERITY, WARNING_ISSUER_ROLES } from "@/lib/constants";
+import { getSessionUser } from "@/server/auth/session";
+import { errorJson, successJson, unauthorizedJson } from "@/server/http/responses";
+import { listUnreadWarnings } from "@/server/services/warningService";
 
 const VALID_SEVERITIES = new Set(Object.values(SEVERITY));
 
@@ -181,37 +184,14 @@ export async function POST(req: NextRequest) {
 // Shape matches what WarningPopup / GlobalWarningAlert consume so they can mount-load existing warnings.
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const user = session.user as { id: string };
+    const user = await getSessionUser();
+    if (!user) return unauthorizedJson();
 
-    const receipts = await prisma.warningReceipt.findMany({
-      where: { userId: user.id, isRead: false, warning: { status: { not: "Resolved" } } },
-      include: {
-        warning: {
-          include: { sender: { select: { id: true, name: true, role: true } } },
-        },
-      },
-      orderBy: { createdAt: "asc" },
-    });
-
-    const warnings = receipts.map((r) => ({
-      id: r.warning.id,
-      subject: r.warning.subject,
-      message: r.warning.message,
-      severity: r.warning.severity,
-      senderRole: r.warning.senderRole,
-      senderUserId: r.warning.senderUserId,
-      senderName: r.warning.sender?.name ?? "System",
-      createdAt: r.warning.createdAt,
-      userAcknowledged: false,
-      receiptId: r.id,
-    }));
-
-    return NextResponse.json(warnings);
+    const warnings = await listUnreadWarnings(user.id);
+    return successJson(warnings);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("Fetch Warnings Error:", message);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return errorJson("Internal Server Error", 500);
   }
 }

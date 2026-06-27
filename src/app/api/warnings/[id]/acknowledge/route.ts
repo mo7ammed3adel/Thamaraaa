@@ -1,42 +1,25 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { NextRequest } from "next/server";
+import { getSessionUser } from "@/server/auth/session";
+import { errorJson, successJson, unauthorizedJson } from "@/server/http/responses";
+import { acknowledgeWarningForUser } from "@/server/services/warningService";
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const user = session.user as any;
+    const user = await getSessionUser();
+    if (!user) return unauthorizedJson();
 
-    const receipt = await prisma.warningReceipt.findUnique({
-      where: { warningId_userId: { warningId: params.id, userId: user.id } }
+    const result = await acknowledgeWarningForUser({
+      warningId: params.id,
+      userId: user.id,
+      userName: user.name,
     });
 
-    if (!receipt) return NextResponse.json({ error: "Warning receipt not found" }, { status: 404 });
-    if (receipt.isRead) return NextResponse.json({ error: "Warning already acknowledged" }, { status: 400 });
+    if (result.status === "not_found") return errorJson("Warning receipt not found", 404);
+    if (result.status === "already_read") return errorJson("Warning already acknowledged", 400);
 
-    const updated = await prisma.$transaction(async (tx) => {
-      const rec = await tx.warningReceipt.update({
-        where: { id: receipt.id },
-        data: { isRead: true, readAt: new Date() }
-      });
-
-      await tx.projectLog.create({
-        data: {
-          projectId: (await tx.warning.findUnique({ where: { id: params.id } }))?.projectId || "",
-          userId: user.id,
-          action: "warning_read",
-          details: `Warning acknowledged by ${user.name}`
-        }
-      });
-
-      return rec;
-    });
-
-    return NextResponse.json({ success: true, receipt: updated });
+    return successJson({ success: true, receipt: result.receipt });
   } catch (error: any) {
     console.error("Acknowledge Warning Error:", error);
-    return NextResponse.json({ error: "Internal Server Error", details: error.message }, { status: 500 });
+    return errorJson("Internal Server Error", 500, { details: error.message });
   }
 }

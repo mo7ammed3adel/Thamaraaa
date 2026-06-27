@@ -76,6 +76,24 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Warning Read/Acknowledge Boundary
+
+Scope:
+
+- Added `src/server/repositories/warningRepository.ts`.
+- Added `src/server/services/warningService.ts` for unread-warning reads and acknowledge workflow.
+- Migrated `/api/warnings`, `/api/warnings/unread`, and `/api/warnings/[id]/acknowledge` read/acknowledge flows to the service.
+- Left warning creation and resolve flows for a later slice.
+
+Smell -> principle -> fix:
+
+- Warning routes repeated receipt queries and response shaping -> controller/service/repository boundary -> moved warning receipt access to a repository and workflow decisions to a service.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Notification Service Boundary
 
 Scope:

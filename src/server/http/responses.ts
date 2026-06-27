@@ -8,6 +8,6 @@ export function unauthorizedJson() {
   return errorJson("Unauthorized", 401);
 }
 
-export function successJson<T extends Record<string, unknown>>(data: T, status = 200) {
+export function successJson<T>(data: T, status = 200) {
   return NextResponse.json(data, { status });
 }
