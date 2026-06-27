@@ -131,6 +131,24 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Project Team Assignment Boundary
+
+Scope:
+
+- Moved `/api/projects/[id]/team-assignment` role, department, target-user, and project-scope checks into `projectDistributionService`.
+- Moved replacement of active team-assignment slots, task reassignment, audit logging, and notification creation into `projectRepository`.
+- Kept warning receipt backfill in the service after successful assignment.
+- Preserved existing response messages/status codes and the transaction order of assignment cleanup, upsert, task update, log, and notification.
+
+Smell -> principle -> fix:
+
+- Team assignment route contained UI-facing request mapping plus department policy, project ownership, multi-table mutation, audit, and notification code -> SRP / domain service boundary -> route now maps a typed service result to HTTP.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
 
 Scope:

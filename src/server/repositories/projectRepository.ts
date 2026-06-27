@@ -116,3 +116,108 @@ export function createProjectFromDealWithLog(input: {
     return project;
   });
 }
+
+export function findProjectTeamAssignmentScope(projectId: string) {
+  return prisma.project.findUnique({
+    where: { id: projectId },
+    select: { id: true, headTechnicalId: true, headSeoId: true },
+  });
+}
+
+export function replaceProjectTeamAssignment(input: {
+  projectId: string;
+  userId: string;
+  userName: string;
+  targetUserId: string;
+  targetUserName: string;
+  targetUserRole: string;
+  department: string;
+  assignedRoleType: string;
+  dbDepartments: string[];
+  taskTypes: string[];
+  canonicalDepartment: string;
+}) {
+  return prisma.$transaction(async (tx) => {
+    const roleContains = input.assignedRoleType === "leader" ? "leader" : "agent";
+    const oldAssignments = await tx.teamAssignment.findMany({
+      where: {
+        projectId: input.projectId,
+        department: { in: input.dbDepartments },
+        status: "active",
+        role: { contains: roleContains },
+      },
+    });
+
+    if (oldAssignments.length > 0) {
+      await tx.teamAssignment.deleteMany({
+        where: { id: { in: oldAssignments.map((assignment) => assignment.id) } },
+      });
+    }
+
+    const existingUserAssignment = await tx.teamAssignment.findUnique({
+      where: {
+        projectId_userId: { projectId: input.projectId, userId: input.targetUserId },
+      },
+    });
+
+    const assignment = existingUserAssignment
+      ? await tx.teamAssignment.update({
+          where: { id: existingUserAssignment.id },
+          data: {
+            department: input.canonicalDepartment,
+            role: input.targetUserRole,
+            status: "active",
+            assignedByUserId: input.userId,
+          },
+        })
+      : await tx.teamAssignment.create({
+          data: {
+            projectId: input.projectId,
+            userId: input.targetUserId,
+            assignedByUserId: input.userId,
+            role: input.targetUserRole,
+            department: input.canonicalDepartment,
+            status: "active",
+          },
+        });
+
+    const updateResult = await tx.task.updateMany({
+      where: {
+        projectId: input.projectId,
+        taskType: { in: input.taskTypes },
+      },
+      data:
+        input.assignedRoleType === "leader"
+          ? { leaderId: input.targetUserId }
+          : { agentId: input.targetUserId },
+    });
+
+    await tx.projectLog.create({
+      data: {
+        projectId: input.projectId,
+        action: "team_assigned",
+        details: JSON.stringify({
+          message: `Assigned ${input.targetUserName} as ${input.assignedRoleType} for ${input.department}`,
+          assignedUser: input.targetUserName,
+          assignedUserRole: input.targetUserRole,
+          department: input.department,
+          assignedBy: input.userName,
+          tasksUpdated: updateResult.count,
+        }),
+        userId: input.userId,
+      },
+    });
+
+    await tx.notification.create({
+      data: {
+        userId: input.targetUserId,
+        title: "Team Assignment",
+        message: `You were assigned as ${input.assignedRoleType} for ${input.department} by ${input.userName}.`,
+        type: "project_assigned",
+        link: `/dashboard/operations`,
+      },
+    });
+
+    return { assignment, tasksUpdated: updateResult.count };
+  });
+}
