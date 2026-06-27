@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import DrillDownModal from "@/components/DrillDownModal";
 import { DollarSign, CheckCircle2, TrendingUp, Users, Presentation, CalendarX } from "lucide-react";
+import { getChiefSalesAnalytics } from "@/client/api/analytics";
 
 export default function ChiefSalesClient() {
   const [range, setRange] = useState("today");
@@ -17,9 +18,8 @@ export default function ChiefSalesClient() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/analytics/chief-sales?range=${range}`);
-      const json = await res.json();
-      setData(json);
+      const data = await getChiefSalesAnalytics({ range });
+      setData(data);
     } catch (e) {
       console.error(e);
     } finally {

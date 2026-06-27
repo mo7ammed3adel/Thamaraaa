@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { Briefcase, Calendar, Handshake, DollarSign, XCircle, TrendingUp, ChevronDown } from "lucide-react";
+import { getMyProgress } from "@/client/api/analytics";
 
 interface SalesProgress {
   role: string;
@@ -54,13 +55,8 @@ export default function SalesProgressClient() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (fromDate) params.set("from", fromDate);
-      if (toDate) params.set("to", toDate);
-      const res = await fetch(`/api/analytics/my-progress?${params.toString()}`);
-      if (res.ok) {
-        setData(await res.json());
-      }
+      const data = await getMyProgress({ from: fromDate, to: toDate });
+      setData(data as SalesProgress);
     } catch {
       console.error("Failed to fetch progress");
     }

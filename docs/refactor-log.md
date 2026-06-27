@@ -95,6 +95,23 @@ Behavior preserved by:
 - `npm test`: passed, 7 files and 30 tests.
 - `npm run lint`: passed with the same pre-existing React hook dependency warnings recorded in the baseline.
 
+## 2026-06-27 - Phase 4 Slice: Sales and TeleSales Analytics API Clients
+
+Scope:
+
+- Replaced direct `fetch` calls in Sales/TeleSales analytics, My Progress, My Team, and Chief Sales dashboard clients.
+- Extended `src/client/api/analytics.ts` with drill-down and Chief Sales helpers.
+- Reused `src/client/api/users.ts` for team specialization and target updates.
+
+Smell -> principle -> fix:
+
+- Sales leadership/team screens duplicated URL construction and response parsing -> client transport boundary / typed API surface -> routed those calls through `src/client/api/analytics.ts` and `src/client/api/users.ts`.
+
+Behavior preserved by:
+
+- `rg "fetch\\("` over Sales/TeleSales analytics, my-team, my-progress, and chief-sales paths: no matches.
+- `npx tsc --noEmit`: passed.
+
 ## 2026-06-27 - Phase 3 Slice: Project Status Boundary
 
 Scope:

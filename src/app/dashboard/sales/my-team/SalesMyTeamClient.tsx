@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Users, Flame, Snowflake, Sun, Handshake, XCircle, DollarSign, Briefcase, Calendar, ChevronDown } from "lucide-react";
+import { updateUserSpecialization } from "@/client/api/users";
 
 interface Agent {
   id: string;
@@ -55,19 +56,10 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
   const updateSpecialization = async (agentId: string, spec: string | null) => {
     setLoading(agentId);
     try {
-      const res = await fetch(`/api/users/${agentId}/specialization`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ specialization: spec }),
-      });
-
-      if (res.ok) {
-        setAgents(agents.map(a => a.id === agentId ? { ...a, specialization: spec } : a));
-      } else {
-        alert("Failed to update specialization");
-      }
-    } catch {
-      alert("Network error");
+      await updateUserSpecialization(agentId, { specialization: spec });
+      setAgents(agents.map(a => a.id === agentId ? { ...a, specialization: spec } : a));
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Network error");
     }
     setLoading(null);
   };

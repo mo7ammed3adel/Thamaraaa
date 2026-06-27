@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Users, Flame, Snowflake, Sun, PhoneCall, Calendar, ArrowRightLeft, BarChart3 } from "lucide-react";
+import { updateUserSpecialization, updateUserTarget } from "@/client/api/users";
 
 interface Agent {
   id: string;
@@ -65,38 +66,20 @@ export default function MyTeamClient({
   const updateSpecialization = async (agentId: string, spec: string | null) => {
     setLoading(agentId);
     try {
-      const res = await fetch(`/api/users/${agentId}/specialization`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ specialization: spec }),
-      });
-
-      if (res.ok) {
-        setAgents(agents.map(a => a.id === agentId ? { ...a, specialization: spec } : a));
-      } else {
-        alert("Failed to update specialization");
-      }
-    } catch {
-      alert("Network error");
+      await updateUserSpecialization(agentId, { specialization: spec });
+      setAgents(agents.map(a => a.id === agentId ? { ...a, specialization: spec } : a));
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Network error");
     }
     setLoading(null);
   };
 
   const updateTarget = async (agentId: string, newTarget: number) => {
     try {
-      const res = await fetch(`/api/users/${agentId}/target`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ target: newTarget }),
-      });
-
-      if (res.ok) {
-        setAgents(agents.map(a => a.id === agentId ? { ...a, target: newTarget } : a));
-      } else {
-        alert("Failed to update target");
-      }
-    } catch {
-      alert("Network error");
+      await updateUserTarget(agentId, { target: newTarget });
+      setAgents(agents.map(a => a.id === agentId ? { ...a, target: newTarget } : a));
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Network error");
     }
   };
 

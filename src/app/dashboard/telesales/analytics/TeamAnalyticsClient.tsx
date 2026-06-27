@@ -1,6 +1,11 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { PhoneCall, Calendar, Handshake, DollarSign, X, Clock, TrendingUp, ChevronDown } from "lucide-react";
+import {
+  getTeleSalesAgentAnalytics,
+  getTeleSalesTeamAnalytics,
+  getTeleSalesTeamDrill,
+} from "@/client/api/analytics";
 
 interface AgentAnalytics {
   id: string;
@@ -38,13 +43,8 @@ export default function TeamAnalyticsClient() {
   const fetchAnalytics = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (fromDate) params.set("from", fromDate);
-      if (toDate) params.set("to", toDate);
-      const res = await fetch(`/api/analytics/team?${params.toString()}`);
-      if (res.ok) {
-        setAnalytics(await res.json());
-      }
+      const data = await getTeleSalesTeamAnalytics({ from: fromDate, to: toDate });
+      setAnalytics(data as AgentAnalytics[]);
     } catch {
       console.error("Failed to fetch analytics");
     }
@@ -58,13 +58,8 @@ export default function TeamAnalyticsClient() {
   const openAgentDetail = async (agentId: string) => {
     setDetailLoading(true);
     try {
-      const params = new URLSearchParams({ agentId });
-      if (fromDate) params.set("from", fromDate);
-      if (toDate) params.set("to", toDate);
-      const res = await fetch(`/api/analytics/agent?${params.toString()}`);
-      if (res.ok) {
-        setSelectedAgent(await res.json());
-      }
+      const data = await getTeleSalesAgentAnalytics({ agentId, from: fromDate, to: toDate });
+      setSelectedAgent(data as AgentDetail);
     } catch {
       console.error("Failed to fetch agent details");
     }
@@ -77,17 +72,12 @@ export default function TeamAnalyticsClient() {
       setDrillData([]);
       return;
     }
+    if (!type) return;
     setDrillDown(type);
     setDrillLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (fromDate) params.set("from", fromDate);
-      if (toDate) params.set("to", toDate);
-      if (type) params.set("drillDown", type);
-      const res = await fetch(`/api/analytics/team/drill?${params.toString()}`);
-      if (res.ok) {
-        setDrillData(await res.json());
-      }
+      const data = await getTeleSalesTeamDrill({ from: fromDate, to: toDate, drillDown: type });
+      setDrillData(data as any[]);
     } catch {
       console.error("Failed to fetch drill-down data");
     }
