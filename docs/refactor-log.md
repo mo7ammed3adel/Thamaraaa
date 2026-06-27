@@ -40,6 +40,21 @@ Behavior preserved by:
 
 - `npx tsc --noEmit`: passed.
 
+## 2026-06-27 - Phase 5 Slice: Account Manager Task Monitoring
+
+Scope:
+
+- Extracted the account-manager global task monitoring filters and table into `AccountManagerTaskMonitoringPanel`.
+- Kept filter values/options, task ordering input, task status display, deadline highlighting, and client navigation unchanged.
+
+Smell -> principle -> fix:
+
+- The account-manager page mixed dashboard orchestration with a full task-monitoring table -> SRP / presentation component boundary -> moved task monitoring UI into a focused component and kept routing owned by the page.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+
 ## 2026-06-27 - Phase 5 Slice: Account Manager Setup Modal
 
 Scope:
