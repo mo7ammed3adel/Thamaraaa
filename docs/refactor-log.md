@@ -40,6 +40,21 @@ Behavior preserved by:
 
 - `npx tsc --noEmit`: passed.
 
+## 2026-06-27 - Phase 5 Slice: Head Account Manager Workload
+
+Scope:
+
+- Extracted the account-manager workload section into `HeadAccountManagerWorkload`.
+- Kept unassigned filtering, AM filtering, load counts, average progress, and delayed badges unchanged.
+
+Smell -> principle -> fix:
+
+- `HeadAccountManagerClient.tsx` mixed page composition with workload-card calculations and rendering -> SRP / presentation component boundary -> moved workload rendering into a focused component.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+
 ## 2026-06-27 - Phase 5 Slice: Head Account Manager KPI Grid
 
 Scope:
