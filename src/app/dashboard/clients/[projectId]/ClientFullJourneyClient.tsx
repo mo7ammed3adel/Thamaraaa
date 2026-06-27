@@ -4,10 +4,10 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import ProjectLogsPanel from "@/components/ProjectLogsPanel";
 import { buildClientJourneyTimeline } from "@/lib/clientJourneyTimeline";
+import ClientNotesTab from "./ClientNotesTab";
 import ClientTasksTab from "./ClientTasksTab";
 import ClientTeamTab from "./ClientTeamTab";
 import ClientTimelineTab from "./ClientTimelineTab";
-import ClientWarningsTab from "./ClientWarningsTab";
 
 const TABS = [
   { key: "timeline", label: "📋 Timeline", icon: "📋" },
@@ -479,64 +479,16 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
 
       {/* ═══ SECTION 7: Notes ═══ */}
       {activeTab === "notes" && (
-        <div className="space-y-4">
-          <ClientWarningsTab warnings={project.warnings || []} />
-
-          {/* Add Note */}
-          <div className="bg-white rounded-xl border shadow-sm p-6">
-            <h2 className="text-lg font-bold text-slate-800 mb-3">Add Note</h2>
-            <div className="flex gap-3">
-              <select value={noteCategory} onChange={(e) => setNoteCategory(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white min-w-[120px]">
-                <option value="general">General</option>
-                <option value="telesales">TeleSales</option>
-                <option value="sales">Sales</option>
-                <option value="account_manager">Account Mgr</option>
-                <option value="technical">Technical</option>
-                <option value="design">Design</option>
-              </select>
-              <textarea value={noteContent} onChange={(e) => setNoteContent(e.target.value)} placeholder="Write a note visible to all departments..." className="flex-1 border rounded-lg px-3 py-2 text-sm resize-none h-20" />
-              <button onClick={handleAddNote} disabled={!noteContent.trim() || saving} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium self-end hover:bg-indigo-700 disabled:opacity-50 transition">
-                {saving ? "..." : "Add"}
-              </button>
-            </div>
-          </div>
-
-          {/* Notes List */}
-          <div className="bg-white rounded-xl border shadow-sm p-6">
-            <h2 className="text-lg font-bold text-slate-800 mb-3">All Notes ({project.globalNotes?.length || 0})</h2>
-            {project.globalNotes?.length === 0 ? (
-              <p className="text-sm text-slate-400 italic">No notes yet.</p>
-            ) : (
-              <div className="space-y-3">
-                {project.globalNotes.map((note: any) => {
-                  const catColors: Record<string, string> = {
-                    telesales: "bg-blue-50 border-blue-200 text-blue-700",
-                    sales: "bg-purple-50 border-purple-200 text-purple-700",
-                    account_manager: "bg-amber-50 border-amber-200 text-amber-700",
-                    technical: "bg-indigo-50 border-indigo-200 text-indigo-700",
-                    design: "bg-pink-50 border-pink-200 text-pink-700",
-                    general: "bg-slate-50 border-slate-200 text-slate-700",
-                  };
-                  const colors = catColors[note.category] || catColors.general;
-                  return (
-                    <div key={note.id} className={`${colors} border rounded-lg p-4`}>
-                      <div className="flex items-center justify-between mb-1 flex-wrap gap-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold uppercase">{note.category.replace(/_/g, " ")}</span>
-                          <span className="text-xs opacity-50">•</span>
-                          <span className="text-xs font-medium">{note.userName}</span>
-                          <span className="text-xs opacity-50 capitalize">({note.userRole.replace(/_/g, " ")})</span>
-                        </div>
-                        <span className="text-xs opacity-50">{new Date(note.createdAt).toLocaleString()}</span>
-                      </div>
-                      <p className="text-sm">{note.content}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
+        <ClientNotesTab
+          warnings={project.warnings || []}
+          notes={project.globalNotes || []}
+          noteCategory={noteCategory}
+          setNoteCategory={setNoteCategory}
+          noteContent={noteContent}
+          setNoteContent={setNoteContent}
+          saving={saving}
+          handleAddNote={handleAddNote}
+        />
       )}
 
       {/* ═══ SECTION 8: Files ═══ */}

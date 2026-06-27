@@ -229,6 +229,22 @@ Behavior preserved by:
 
 - `npx tsc --noEmit`: passed.
 
+## 2026-06-27 - Phase 5 Slice: Client Journey Notes Tab
+
+Scope:
+
+- Extracted the notes view into `ClientNotesTab`.
+- Kept warnings displayed in the notes view by composing `ClientWarningsTab`.
+- Preserved add-note controls, category styling, and notes list rendering.
+
+Smell -> principle -> fix:
+
+- Notes creation and listing were embedded inline in the journey page -> component decomposition / typed props -> moved notes UI to a focused component while keeping note state and submit handler owned by the parent.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+
 ## 2026-06-27 - Phase 3 Slice: Project Status Boundary
 
 Scope:
