@@ -7,7 +7,23 @@ import {
 } from "@/lib/distribution";
 import { getDefaultChecklistForTaskType } from "@/lib/constants";
 import {
+  ACCOUNT_MANAGER_ROLES,
+  AGENT_ASSIGNER_ROLES,
+  CROSS_TEAM_TASK_TYPES,
+  MANAGEMENT_ROLES,
+  hasRole,
+} from "@/lib/constants";
+import { findTeamLeaderRoleForTaskType } from "@/lib/distribution";
+import { normalizeWebUrl } from "@/lib/safe-url";
+import { safeTrigger } from "@/lib/pusher";
+import {
+  createTaskNotification,
+  createTaskProjectLog,
+  createTaskRecord,
   createSelfAssignedTaskWithLog,
+  findActiveTeamAssignmentByRole,
+  findFirstActiveUserByRoles,
+  findProjectNameForTask,
   findTasksForList,
   findTaskForFlag,
   findTaskForReassign,
@@ -59,6 +75,16 @@ const SELF_TASK_ALLOWED_ROLES = [
   "head_technical",
   "super_admin",
 ];
+
+const TASK_CREATOR_ROLES = [
+  ...AGENT_ASSIGNER_ROLES,
+  ...MANAGEMENT_ROLES,
+  ...ACCOUNT_MANAGER_ROLES,
+  "agent_social_media",
+  "agent_media_buyer",
+  "agent_seo",
+  "agent_content_seo",
+] as const;
 
 export async function listTasksForUser(input: {
   userId: string;
@@ -221,6 +247,155 @@ export async function createSelfTask(input: {
     checklistItems: getDefaultChecklistForTaskType(taskType),
     projectName: project.deal?.lead?.name || "Unknown Project",
   });
+
+  return { status: "ok" as const, task };
+}
+
+async function resolveTaskLeader(projectId: string, roleToFind: string) {
+  if (["team_leader_seo"].includes(roleToFind)) {
+    return findFirstActiveUserByRoles(["head_seo", "team_leader_seo"]);
+  }
+
+  return findFirstActiveUserByRoles([roleToFind, "super_admin"]);
+}
+
+export async function createProjectTask(input: {
+  userId: string;
+  userRole: string;
+  userName?: string | null;
+  body: any;
+}) {
+  if (!hasRole(input.userRole, TASK_CREATOR_ROLES)) {
+    return { status: "role_forbidden" as const };
+  }
+
+  const {
+    projectId,
+    leaderId,
+    assignedRole,
+    taskType,
+    priority,
+    brief,
+    taskLink,
+    deadline,
+    checklistItems,
+  } = input.body;
+
+  if (!projectId || !taskType) {
+    return { status: "missing_project_or_task_type" as const };
+  }
+
+  const safeTaskLink = taskLink ? normalizeWebUrl(taskLink) : null;
+  if (taskLink && !safeTaskLink) {
+    return { status: "invalid_task_link" as const };
+  }
+
+  const projectAllowed = await userCanAccessProject(input.userId, input.userRole, projectId);
+  if (!projectAllowed) {
+    return { status: "project_forbidden" as const };
+  }
+
+  let finalLeaderId = leaderId;
+  let finalAssignedRole = assignedRole;
+
+  const isCrossTeam = CROSS_TEAM_TASK_TYPES.includes(taskType);
+
+  if (isCrossTeam && !finalLeaderId) {
+    const leaderRole = findTeamLeaderRoleForTaskType(taskType);
+    if (leaderRole) {
+      const projectLeader = await findActiveTeamAssignmentByRole(projectId, leaderRole);
+      if (projectLeader) {
+        finalLeaderId = projectLeader.userId;
+        finalAssignedRole = leaderRole;
+      } else {
+        const leader = await findFirstActiveUserByRoles([leaderRole]);
+        if (leader) {
+          finalLeaderId = leader.id;
+          finalAssignedRole = leaderRole;
+        }
+      }
+    }
+
+    if (!finalLeaderId) {
+      const admin = await findFirstActiveUserByRoles(["super_admin"]);
+      if (admin) {
+        finalLeaderId = admin.id;
+        finalAssignedRole = "super_admin";
+      }
+    }
+  } else if (!finalLeaderId) {
+    let roleToFind = "super_admin";
+    switch (taskType) {
+      case "seo":
+      case "content_seo":
+        roleToFind = "head_seo";
+        break;
+      case "social_media":
+        roleToFind = "team_leader_social_media";
+        break;
+      case "media_buyer":
+        roleToFind = "team_leader_media_buyer";
+        break;
+      case "technical":
+        roleToFind = "head_technical";
+        break;
+    }
+
+    const leader = await resolveTaskLeader(projectId, roleToFind);
+    if (leader) finalLeaderId = leader.id;
+  }
+
+  if (!projectId || !finalLeaderId || !taskType) {
+    return { status: "leader_not_found" as const, taskType };
+  }
+
+  const project = await findProjectNameForTask(projectId);
+  const projectName = project?.deal?.lead?.name || "Unknown Project";
+
+  const task = await createTaskRecord({
+    projectId,
+    leaderId: finalLeaderId,
+    assignedRole: finalAssignedRole || null,
+    taskType,
+    brief: brief || "",
+    taskLink: safeTaskLink,
+    priority: priority || "Medium",
+    deadline: deadline ? new Date(deadline) : null,
+    checklistItems: checklistItems || getDefaultChecklistForTaskType(taskType),
+    requesterRole: input.userRole,
+    status: "pending",
+    progressPct: 0,
+  });
+
+  if (isCrossTeam) {
+    await createTaskProjectLog({
+      projectId,
+      action: "task_created",
+      details: JSON.stringify({
+        description: `Cross-team task created: ${taskType.replace(/_/g, " ")} for ${projectName}`,
+        taskType,
+        priority: priority || "Medium",
+      }),
+      userId: input.userId,
+    });
+
+    await createTaskNotification({
+      userId: finalLeaderId,
+      type: "task_assigned",
+      title: "Cross-Team Task Request",
+      message: `A new ${taskType.replace(/_/g, " ")} task has been requested by ${input.userName} for ${projectName}`,
+      link: "/dashboard/operations",
+    });
+
+    await safeTrigger(`private-user-${finalLeaderId}`, "task-assigned", {
+      projectId,
+      taskId: task.id,
+    });
+    await safeTrigger(`private-project-${projectId}`, "task-status-changed", {
+      taskId: task.id,
+      status: "pending",
+    });
+  }
 
   return { status: "ok" as const, task };
 }

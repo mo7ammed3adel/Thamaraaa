@@ -43,6 +43,55 @@ export function findProjectForSelfTask(projectId: string, userId: string) {
   });
 }
 
+export function findActiveTeamAssignmentByRole(projectId: string, role: string) {
+  return prisma.teamAssignment.findFirst({
+    where: {
+      projectId,
+      role,
+      status: "active",
+      user: { status: "Active" },
+    },
+    select: { userId: true },
+  });
+}
+
+export function findFirstActiveUserByRoles(roles: string[]) {
+  return prisma.user.findFirst({
+    where: { role: { in: roles }, status: "Active" },
+    select: { id: true },
+  });
+}
+
+export function findProjectNameForTask(projectId: string) {
+  return prisma.project.findUnique({
+    where: { id: projectId },
+    include: { deal: { include: { lead: true } } },
+  });
+}
+
+export function createTaskRecord(data: any) {
+  return prisma.task.create({ data });
+}
+
+export function createTaskProjectLog(input: {
+  projectId: string;
+  action: string;
+  details: string;
+  userId: string;
+}) {
+  return prisma.projectLog.create({ data: input });
+}
+
+export function createTaskNotification(input: {
+  userId: string;
+  type: string;
+  title: string;
+  message: string;
+  link?: string | null;
+}) {
+  return prisma.notification.create({ data: input });
+}
+
 export function flagTaskWithNotificationAndLog(input: {
   taskId: string;
   projectId: string | null;

@@ -254,6 +254,22 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Task Create Boundary
+
+Scope:
+
+- Moved POST `/api/tasks` role checks, required-field validation, task link sanitization, project membership check, leader resolution, task creation, cross-team logging, notifications, and realtime triggers into `taskWorkflowService` and `taskRepository`.
+- Preserved the existing leader fallback order and cross-team task side effects.
+
+Smell -> principle -> fix:
+
+- Task create route mixed request handling, project IDOR checks, leader discovery, persistence, notifications, and realtime events -> controller-service-repository boundary -> route now maps service outcomes to HTTP.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
 
 Scope:
