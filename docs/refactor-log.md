@@ -40,6 +40,21 @@ Behavior preserved by:
 
 - `npx tsc --noEmit`: passed.
 
+## 2026-06-27 - Phase 5 Slice: Account Manager Setup Modal
+
+Scope:
+
+- Extracted the account-manager project setup drawer into `AccountManagerSetupModal`.
+- Kept form fields, default values, submit handler, loading text, and close behavior unchanged.
+
+Smell -> principle -> fix:
+
+- `AccountManagerClient.tsx` embedded a full form modal inside the dashboard page -> SRP / component boundary -> moved the modal presentation into a focused component while retaining page-owned submit workflow.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+
 ## 2026-06-27 - Phase 5 Slice: Account Manager KPI Grid
 
 Scope:
