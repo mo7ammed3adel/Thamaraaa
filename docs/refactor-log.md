@@ -40,6 +40,21 @@ Behavior preserved by:
 
 - `npx tsc --noEmit`: passed.
 
+## 2026-06-27 - Phase 5 Slice: Head Account Manager Tasks Panel
+
+Scope:
+
+- Extracted the Head Account Manager global tasks execution panel into `HeadAccountManagerTasksPanel`.
+- Kept task status filter, delayed detection, task count, sort order, and task row display unchanged.
+
+Smell -> principle -> fix:
+
+- `HeadAccountManagerClient.tsx` embedded a full task execution table -> SRP / presentation component boundary -> moved task execution rendering into a focused component.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+
 ## 2026-06-27 - Phase 5 Slice: Head Account Manager Derived Data
 
 Scope:
