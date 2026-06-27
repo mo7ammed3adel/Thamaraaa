@@ -38,6 +38,24 @@ export function findCommissionsByMonth(month: string) {
   });
 }
 
+export function findCommissionsForExport(month: string) {
+  return prisma.commission.findMany({
+    where: { month },
+    include: {
+      user: {
+        select: {
+          name: true,
+          email: true,
+          role: true,
+          level: true,
+          hrRecord: { select: { monthlyTarget: true, baseSalary: true } },
+        },
+      },
+    },
+    orderBy: { netPayout: "desc" },
+  });
+}
+
 export function findCommissionForEdit(id: string) {
   return prisma.commission.findUnique({
     where: { id },

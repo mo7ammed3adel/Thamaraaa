@@ -203,7 +203,7 @@ npm run build
 - [x] R0323 إنشاء `src/server/services/projectDistributionService.ts` ونقل project distribute/assign-agent/team-assignment flows.
 - [x] R0324 إنشاء `src/server/services/projectLifecycleService.ts` ونقل lifecycle/status/setup flows.
 - [x] R0325 إنشاء `src/server/services/notesService.ts` ونقل notes list/create.
-- [ ] R0326 إنشاء `src/server/services/financeService.ts` حول overview/installments/commissions.
+- [x] R0326 إنشاء `src/server/services/financeService.ts` حول overview/installments/commissions.
 - [ ] R0327 إنشاء `src/server/services/hrService.ts` حول employees/attendance/documents/evaluations.
 - [ ] R0328 إنشاء `src/server/services/analyticsService.ts` لتجميع analytics queries المتكررة.
 
@@ -216,7 +216,7 @@ npm run build
 - [x] R0332 Project lifecycle/setup/status routes.
 - [x] R0333 Project distribution/team assignment/assign-agent routes.
 - [x] R0334 Task routes.
-- [ ] R0335 Finance routes.
+- [x] R0335 Finance routes.
 - [ ] R0336 HR routes.
 - [ ] R0337 Analytics routes.
 - [ ] R0338 Leads/deals routes بعد تثبيت كل ما سبق.

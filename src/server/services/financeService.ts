@@ -4,9 +4,11 @@ import {
   recomputeTelesalesBonuses,
   sumLineItems,
 } from "@/lib/commissions";
+import * as XLSX from "xlsx";
 import {
   findCommissionsByMonth,
   findCommissionForEdit,
+  findCommissionsForExport,
   findFinanceOverviewDeals,
   findInstallmentForUpdate,
   findPendingInstallments,
@@ -113,4 +115,34 @@ export async function updateInstallmentPayment(input: { id: string; userId: stri
   });
 
   return { status: "ok" as const, installment };
+}
+
+export async function buildCommissionsExport(month: string) {
+  const commissions = await findCommissionsForExport(month);
+
+  const rows = commissions.map((commission) => ({
+    Employee: commission.user.name,
+    Email: commission.user.email,
+    Role: commission.user.role,
+    Level: commission.user.level || "",
+    "Base Salary (SAR)": commission.user.hrRecord?.baseSalary || 0,
+    "Monthly Target (SAR)": commission.user.hrRecord?.monthlyTarget || 0,
+    "Net Target Achieved (SAR)": commission.netTarget,
+    "Achievement %":
+      commission.user.hrRecord?.monthlyTarget && commission.user.hrRecord.monthlyTarget > 0
+        ? Math.round((commission.netTarget / commission.user.hrRecord.monthlyTarget) * 100)
+        : 0,
+    "Commission %": Math.round(commission.commissionPct * 10000) / 100,
+    "Commission Amount (SAR)": commission.commissionAmount,
+    "Bonuses (SAR)": sumLineItems(commission.bonuses),
+    "Deductions (SAR)": sumLineItems(commission.deductions),
+    "Net Payout (SAR)": commission.netPayout,
+    Finalized: commission.finalized ? "Yes" : "No",
+  }));
+
+  const workbook = XLSX.utils.book_new();
+  const worksheet = XLSX.utils.json_to_sheet(rows);
+  XLSX.utils.book_append_sheet(workbook, worksheet, `Commissions ${month}`);
+
+  return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
 }

@@ -373,6 +373,25 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Finance Export Boundary
+
+Scope:
+
+- Moved `/api/finance/commissions/export` commission export query, row mapping, workbook creation, and default month calculation into `financeService` and `financeRepository`.
+- Kept the route responsible for finance authorization and binary `NextResponse` headers.
+- Closed roadmap items R0326 and R0335.
+
+Smell -> principle -> fix:
+
+- Export route mixed HTTP response construction with query and spreadsheet generation details -> service boundary -> route now only returns the service-built workbook buffer.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+- `npm run lint`: passed with the same pre-existing React hook dependency warnings recorded in the baseline.
+- `npm run build`: passed.
+
 ## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
 
 Scope:
