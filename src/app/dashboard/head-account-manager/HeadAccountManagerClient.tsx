@@ -9,6 +9,7 @@ import LifecycleChangeModal from "@/components/LifecycleChangeModal";
 import DistributeModal from "@/components/DistributeModal";
 import ClientReassignModal from "@/components/ClientReassignModal";
 import CreateWarningModal from "@/components/CreateWarningModal";
+import { distributeProject as distributeProjectRequest, updateProjectStatus } from "@/client/api/projects";
 
 export default function HeadAccountManagerClient({ projects, accountManagers, headTechnicals, headSeoUsers, kpis, userId }: any) {
   const router = useRouter();
@@ -67,19 +68,11 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
 
   const handleAssignAM = async (projectId: string, amId: string) => {
     if (amId) {
-      await fetch("/api/projects/distribute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, targetUserId: amId }),
-      });
+      await distributeProjectRequest({ projectId, targetUserId: amId });
     } else {
-      await fetch(`/api/projects/${projectId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          accountManagerId: null,
-          details: "Account Manager unassigned by Head Account Manager",
-        }),
+      await updateProjectStatus(projectId, {
+        accountManagerId: null,
+        details: "Account Manager unassigned by Head Account Manager",
       });
     }
     router.refresh();

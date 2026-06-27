@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
+import { generateTasks, updateTask } from "@/client/api/tasks";
 
 interface SubTaskType {
   value: string;
@@ -56,39 +57,27 @@ export default function TeamDashboardClient({ tasks, agents, designLeaders, user
 
   // ── Handlers ──
   async function handleAssign(taskId: string, agentId: string) {
-    await fetch(`/api/tasks/${taskId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ agentId }),
-    });
+    await updateTask(taskId, { agentId });
     router.refresh();
   }
 
   async function handleUpdateStatus(taskId: string, status: string) {
-    await fetch(`/api/tasks/${taskId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, ...(status === "done" ? { completedAt: new Date().toISOString() } : {}) }),
-    });
+    await updateTask(taskId, { status, ...(status === "done" ? { completedAt: new Date().toISOString() } : {}) });
     router.refresh();
   }
 
   async function handleCreateSubTask() {
     if (!createSubTask || !subTaskLeader) return;
-    await fetch("/api/tasks/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        projectId: createSubTask.projectId,
-        packageType: subTaskType,
-        parentTaskId: createSubTask.id,
-        brief: subTaskBrief,
-        deadline: subTaskDeadline || undefined,
-        priority: subTaskPriority,
-        graphicLeaderId: subTaskType === "graphic_design" ? subTaskLeader : undefined,
-        motionLeaderId: subTaskType === "motion_graphic" ? subTaskLeader : undefined,
-        uiLeaderId: subTaskType === "ui_design" ? subTaskLeader : undefined,
-      }),
+    await generateTasks({
+      projectId: createSubTask.projectId,
+      packageType: subTaskType,
+      parentTaskId: createSubTask.id,
+      brief: subTaskBrief,
+      deadline: subTaskDeadline || undefined,
+      priority: subTaskPriority,
+      graphicLeaderId: subTaskType === "graphic_design" ? subTaskLeader : undefined,
+      motionLeaderId: subTaskType === "motion_graphic" ? subTaskLeader : undefined,
+      uiLeaderId: subTaskType === "ui_design" ? subTaskLeader : undefined,
     });
     setCreateSubTask(null);
     setSubTaskBrief("");

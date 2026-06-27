@@ -255,7 +255,7 @@ npm run build
 - [x] R0421 Replace fetch in operations components: `TaskWorkspaceModal`, `TaskAssignmentForm`, `TaskReassignModal`, `TaskFlagModal`, `DistributeModal`.
 - [x] R0422 Replace fetch in finance dashboard.
 - [x] R0423 Replace fetch in HR dashboard.
-- [ ] R0424 Replace fetch in account/technical/SEO/social/media/design dashboards.
+- [x] R0424 Replace fetch in account/technical/SEO/social/media/design dashboards.
 - [ ] R0425 Replace fetch in Sales/TeleSales only after smoke test baseline.
 
 **لا ننتقل للمرحلة التالية إلا إذا**: كل شاشة تم تعديلها لا تحتوي fetch مباشر لنفس الدومين، وerrors ما زالت تظهر بنفس الشكل أو بشكل متوافق.

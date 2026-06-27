@@ -11,6 +11,8 @@ import SelfTaskForm from "@/components/SelfTaskForm";
 import TaskFlagModal from "@/components/TaskFlagModal";
 import TaskReassignModal from "@/components/TaskReassignModal";
 import TaskWorkspaceModal from "@/components/TaskWorkspaceModal";
+import { assignProjectAgent } from "@/client/api/projects";
+import { updateTask } from "@/client/api/tasks";
 
 const DEPARTMENT_TASK_TYPES: Record<string, string[]> = {
   social_media: ["Social_Media", "social_media"],
@@ -112,21 +114,12 @@ export default function SocialMediaClient({ projects, teamMembers, userRole, use
   const handleAssignAgent = async (projectId: string, agentId: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/projects/${projectId}/assign-agent`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agentUserId: agentId, department: "social_media" }),
-      });
-      if (res.ok) {
-        alert("Agent assigned successfully");
-        setActiveDistribution(null);
-        router.refresh();
-      } else {
-        const errorData = await res.json();
-        alert(errorData.error || "Failed to assign Agent");
-      }
+      await assignProjectAgent(projectId, { agentUserId: agentId, department: "social_media" });
+      alert("Agent assigned successfully");
+      setActiveDistribution(null);
+      router.refresh();
     } catch (e) {
-      alert("An unexpected error occurred");
+      alert(e instanceof Error ? e.message : "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -134,19 +127,10 @@ export default function SocialMediaClient({ projects, teamMembers, userRole, use
 
   const handleUpdateTaskStatus = async (taskId: string, status: string) => {
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        alert(data.error || "Failed to update task status");
-        return;
-      }
+      await updateTask(taskId, { status });
       router.refresh();
-    } catch {
-      alert("Network error — please try again");
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Network error — please try again");
     }
   };
 

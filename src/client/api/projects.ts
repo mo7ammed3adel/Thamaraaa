@@ -1,11 +1,19 @@
 import { deleteJson, getJson, patchJson, postJson } from "@/client/transport/http";
 
 export function setupProject(projectId: string, body: unknown) {
-  return postJson(`/api/projects/${projectId}/setup`, body);
+  return patchJson(`/api/projects/${projectId}/setup`, body);
 }
 
 export function updateProjectStatus(projectId: string, body: unknown) {
   return patchJson(`/api/projects/${projectId}/status`, body);
+}
+
+export function updateProjectTeamAssignment(projectId: string, body: unknown) {
+  return postJson(`/api/projects/${projectId}/team-assignment`, body);
+}
+
+export function assignProjectAgent(projectId: string, body: unknown) {
+  return postJson(`/api/projects/${projectId}/assign-agent`, body);
 }
 
 export function distributeProject(body: unknown) {

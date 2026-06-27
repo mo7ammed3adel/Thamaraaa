@@ -9,6 +9,8 @@ import LifecycleStateBadge from "@/components/LifecycleStateBadge";
 import LifecycleChangeModal from "@/components/LifecycleChangeModal";
 import DistributeModal from "@/components/DistributeModal";
 import TeamOverview from "@/components/TeamOverview";
+import { setupProject } from "@/client/api/projects";
+import { generateTasks } from "@/client/api/tasks";
 
 export default function AccountManagerClient({ userId, projects, kpis, headTechnicalUsers, headSeoUsers, teamLeaders }: any) {
   const router = useRouter();
@@ -93,28 +95,19 @@ export default function AccountManagerClient({ userId, projects, kpis, headTechn
     const formData = new FormData(e.currentTarget);
 
     try {
-      const res = await fetch(`/api/projects/${setupModalProject.id}/setup`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          niche: formData.get("niche"),
-          storeUrl: formData.get("storeUrl"),
-          driveLink: formData.get("driveLink"),
-          technicalDeadline: formData.get("technicalDeadline")
-            ? new Date(formData.get("technicalDeadline") as string).toISOString()
-            : null,
-          finalDeadline: formData.get("finalDeadline")
-            ? new Date(formData.get("finalDeadline") as string).toISOString()
-            : null,
-          notes: formData.get("notes"),
-          projectStatus: "setup",
-        }),
+      await setupProject(setupModalProject.id, {
+        niche: formData.get("niche"),
+        storeUrl: formData.get("storeUrl"),
+        driveLink: formData.get("driveLink"),
+        technicalDeadline: formData.get("technicalDeadline")
+          ? new Date(formData.get("technicalDeadline") as string).toISOString()
+          : null,
+        finalDeadline: formData.get("finalDeadline")
+          ? new Date(formData.get("finalDeadline") as string).toISOString()
+          : null,
+        notes: formData.get("notes"),
+        projectStatus: "setup",
       });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to save project setup");
-      }
 
       setSetupModalProject(null);
       router.refresh();
@@ -134,22 +127,13 @@ export default function AccountManagerClient({ userId, projects, kpis, headTechn
     const mediaLeader = teamLeaders?.find((l: any) => l.role === "team_leader_media_buyer");
 
     try {
-      const res = await fetch("/api/tasks/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          projectId,
-          packageType,
-          seoLeaderId: seoLeader?.id,
-          socialLeaderId: socialLeader?.id,
-          mediaLeaderId: mediaLeader?.id,
-        }),
+      await generateTasks({
+        projectId,
+        packageType,
+        seoLeaderId: seoLeader?.id,
+        socialLeaderId: socialLeader?.id,
+        mediaLeaderId: mediaLeader?.id,
       });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to push tasks to teams");
-      }
 
       router.refresh();
     } catch (err: any) {

@@ -76,6 +76,25 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 4 Slice: Operations Dashboard API Clients
+
+Scope:
+
+- Replaced direct `fetch` calls in account manager, head account manager, SEO, social media, media buyer, and design dashboard clients.
+- Extended `src/client/api/projects.ts` with project team assignment and agent assignment helpers.
+- Corrected client HTTP methods to match route contracts for project setup, team assignment, and agent assignment.
+
+Smell -> principle -> fix:
+
+- Large dashboard clients were calling API URLs directly -> client transport boundary / single API surface -> moved those calls behind `src/client/api/*` helpers while preserving existing UI flows and refresh behavior.
+
+Behavior preserved by:
+
+- `rg "fetch\\("` over account/technical/SEO/social/media/design dashboard paths: no matches.
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+- `npm run lint`: passed with the same pre-existing React hook dependency warnings recorded in the baseline.
+
 ## 2026-06-27 - Phase 3 Slice: Project Status Boundary
 
 Scope:

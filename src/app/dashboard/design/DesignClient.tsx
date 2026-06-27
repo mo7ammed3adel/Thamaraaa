@@ -10,6 +10,7 @@ import TaskFlagModal from "@/components/TaskFlagModal";
 import TaskReassignModal from "@/components/TaskReassignModal";
 import SelfTaskForm from "@/components/SelfTaskForm";
 import TaskWorkspaceModal from "@/components/TaskWorkspaceModal";
+import { updateTask } from "@/client/api/tasks";
 
 /**
  * Design & Creative department client component (Graphic, Motion, UI/UX).
@@ -79,20 +80,12 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
   // ── Handlers ──
   async function handleAssign(taskId: string, agentId: string) {
     if (!agentId) return;
-    await fetch(`/api/tasks/${taskId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ agentId, status: "pending" }),
-    });
+    await updateTask(taskId, { agentId, status: "pending" });
     router.refresh();
   }
 
   async function handleUpdateStatus(taskId: string, status: string) {
-    await fetch(`/api/tasks/${taskId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, ...(status === "done" ? { completedAt: new Date().toISOString() } : {}) }),
-    });
+    await updateTask(taskId, { status, ...(status === "done" ? { completedAt: new Date().toISOString() } : {}) });
     router.refresh();
   }
 

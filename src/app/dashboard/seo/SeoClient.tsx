@@ -12,6 +12,8 @@ import SelfTaskForm from "@/components/SelfTaskForm";
 import TaskFlagModal from "@/components/TaskFlagModal";
 import TaskReassignModal from "@/components/TaskReassignModal";
 import TaskWorkspaceModal from "@/components/TaskWorkspaceModal";
+import { assignProjectAgent, updateProjectTeamAssignment } from "@/client/api/projects";
+import { updateTask } from "@/client/api/tasks";
 
 export default function SeoClient({ projects, teamMembers, userRole, userId }: any) {
   const router = useRouter();
@@ -123,25 +125,16 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
   const handleDistributeTeam = async (projectId: string, leaderId: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/projects/${projectId}/team-assignment`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          department: "SEO",
-          assignedRoleType: "leader",
-          newUserId: leaderId,
-        }),
+      await updateProjectTeamAssignment(projectId, {
+        department: "SEO",
+        assignedRoleType: "leader",
+        newUserId: leaderId,
       });
-      if (res.ok) {
-        alert("Team Leader assigned successfully");
-        setActiveDistribution(null);
-        router.refresh();
-      } else {
-        const errorData = await res.json();
-        alert(errorData.error || "Failed to assign Team Leader");
-      }
+      alert("Team Leader assigned successfully");
+      setActiveDistribution(null);
+      router.refresh();
     } catch (e) {
-      alert("An unexpected error occurred");
+      alert(e instanceof Error ? e.message : "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -150,21 +143,12 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
   const handleAssignAgent = async (projectId: string, agentId: string, department: "seo" | "content_seo") => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/projects/${projectId}/assign-agent`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agentUserId: agentId, department }),
-      });
-      if (res.ok) {
-        alert(`${department === "content_seo" ? "Content SEO" : "SEO"} Agent assigned successfully`);
-        setActiveDistribution(null);
-        router.refresh();
-      } else {
-        const errorData = await res.json();
-        alert(errorData.error || "Failed to assign Agent");
-      }
+      await assignProjectAgent(projectId, { agentUserId: agentId, department });
+      alert(`${department === "content_seo" ? "Content SEO" : "SEO"} Agent assigned successfully`);
+      setActiveDistribution(null);
+      router.refresh();
     } catch (e) {
-      alert("An unexpected error occurred");
+      alert(e instanceof Error ? e.message : "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -172,19 +156,10 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
 
   const handleUpdateTaskStatus = async (taskId: string, status: string) => {
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        alert(data.error || "Failed to update task status");
-        return;
-      }
+      await updateTask(taskId, { status });
       router.refresh();
-    } catch {
-      alert("Network error — please try again");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Network error — please try again");
     }
   };
 
