@@ -564,6 +564,24 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Analytics Service Boundary
+
+Scope:
+
+- Added `src/server/repositories/analyticsRepository.ts`.
+- Added `src/server/services/analyticsService.ts`.
+- Migrated TeleSales team, drill-down, agent detail, Sales team, Sales drill-down, Sales agent, My Progress, and Chief Sales analytics routes to the service boundary.
+- Preserved manager-scoped team access checks for agent detail and drill-down data.
+
+Smell -> principle -> fix:
+
+- Analytics routes repeated date filters, team scoping, aggregation loops, and Prisma queries -> SRP / controller-service-repository boundary -> moved data access to a repository and kept aggregation/access workflows in the service.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Warning Read/Acknowledge Boundary
 
 Scope:

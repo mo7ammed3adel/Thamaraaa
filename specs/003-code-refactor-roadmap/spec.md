@@ -205,7 +205,7 @@ npm run build
 - [x] R0325 إنشاء `src/server/services/notesService.ts` ونقل notes list/create.
 - [x] R0326 إنشاء `src/server/services/financeService.ts` حول overview/installments/commissions.
 - [x] R0327 إنشاء `src/server/services/hrService.ts` حول employees/attendance/documents/evaluations.
-- [ ] R0328 إنشاء `src/server/services/analyticsService.ts` لتجميع analytics queries المتكررة.
+- [x] R0328 إنشاء `src/server/services/analyticsService.ts` لتجميع analytics queries المتكررة.
 
 ### 3.4 Route clusters order
 
@@ -218,7 +218,7 @@ npm run build
 - [x] R0334 Task routes.
 - [x] R0335 Finance routes.
 - [x] R0336 HR routes.
-- [ ] R0337 Analytics routes.
+- [x] R0337 Analytics routes.
 - [ ] R0338 Leads/deals routes بعد تثبيت كل ما سبق.
 - [ ] R0339 Sales/TeleSales touched only through shared service calls, no UI rewrite.
 
