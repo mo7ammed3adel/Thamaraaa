@@ -214,6 +214,21 @@ Behavior preserved by:
 
 - `npx tsc --noEmit`: passed.
 
+## 2026-06-27 - Phase 5 Slice: Client Journey Warnings Panel
+
+Scope:
+
+- Extracted the active warnings panel from the Notes tab into `ClientWarningsTab`.
+- Kept the current product behavior where warnings appear inside the Notes view rather than adding a new tab.
+
+Smell -> principle -> fix:
+
+- Warning rendering was embedded inside the larger notes section -> component decomposition / typed props -> moved warning display to a focused component.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+
 ## 2026-06-27 - Phase 3 Slice: Project Status Boundary
 
 Scope:

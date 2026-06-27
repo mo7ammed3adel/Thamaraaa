@@ -280,7 +280,7 @@ npm run build
 - [x] R0511 استخراج `ClientTimelineTab`.
 - [x] R0512 استخراج `ClientTasksTab`.
 - [x] R0513 استخراج `ClientTeamTab`.
-- [ ] R0514 استخراج `ClientWarningsTab`.
+- [x] R0514 استخراج `ClientWarningsTab`.
 - [ ] R0515 استخراج `ClientNotesTab`.
 - [ ] R0516 استخراج `ClientFilesTab`.
 - [ ] R0517 تقليل `ClientFullJourneyClient.tsx` إلى orchestrator لا يتخطى 250-300 سطر.
