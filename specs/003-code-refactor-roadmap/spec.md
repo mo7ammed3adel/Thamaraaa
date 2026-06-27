@@ -268,11 +268,11 @@ npm run build
 
 ### 5.1 Shared UI primitives
 
-- [ ] R0501 إنشاء component موحد لـ KPI cards مع نفس نمط `Sales Team Analytics`.
-- [ ] R0502 إنشاء component موحد لـ dashboard filters.
-- [ ] R0503 إنشاء component موحد لـ empty states.
-- [ ] R0504 إنشاء component موحد لـ status badges.
-- [ ] R0505 إنشاء component موحد لـ modal shell.
+- [x] R0501 إنشاء component موحد لـ KPI cards مع نفس نمط `Sales Team Analytics`.
+- [x] R0502 إنشاء component موحد لـ dashboard filters.
+- [x] R0503 إنشاء component موحد لـ empty states.
+- [x] R0504 إنشاء component موحد لـ status badges.
+- [x] R0505 إنشاء component موحد لـ modal shell.
 
 ### 5.2 Client journey page
 

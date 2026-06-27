@@ -39,6 +39,7 @@ Smell -> principle -> fix:
 Behavior preserved by:
 
 - `npx tsc --noEmit`: passed.
+- `npm run lint`: passed with the same pre-existing React hook dependency warnings recorded in the baseline.
 - `npm test -- --run src/lib/__tests__/telesalesBonus.test.ts`: passed, 8 tests.
 - `npm test`: passed, 7 files and 30 tests.
 
@@ -130,6 +131,23 @@ Behavior preserved by:
 - `rg "fetch\\("` over `src/app/dashboard/sales` and `src/app/dashboard/telesales`: no matches.
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
+- `npm run lint`: passed with the same pre-existing React hook dependency warnings recorded in the baseline.
+
+## 2026-06-27 - Phase 5 Slice: Shared Dashboard UI Primitives
+
+Scope:
+
+- Added shared dashboard primitives for KPI cards, filter bars, empty states, status badges, and modal shells.
+- Added a dashboard component barrel export under `src/components/dashboard`.
+- Kept the primitives behavior-free and typed so later dashboard decomposition can reuse them safely.
+
+Smell -> principle -> fix:
+
+- Dashboard screens repeated card/filter/empty/modal markup with inconsistent styling -> DRY / typed view primitives -> introduced shared UI building blocks without changing existing screens yet.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
 - `npm run lint`: passed with the same pre-existing React hook dependency warnings recorded in the baseline.
 
 ## 2026-06-27 - Phase 3 Slice: Project Status Boundary
