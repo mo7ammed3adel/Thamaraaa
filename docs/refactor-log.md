@@ -40,6 +40,21 @@ Behavior preserved by:
 
 - `npx tsc --noEmit`: passed.
 
+## 2026-06-27 - Phase 5 Slice: Account Manager Clients Table
+
+Scope:
+
+- Extracted the account-manager clients table, expanded governance row, recent notes, and operational teams view into `AccountManagerClientsTable`.
+- Kept row expansion, setup/push/details/warning/lifecycle/distribution actions, search empty state, and progress display unchanged.
+
+Smell -> principle -> fix:
+
+- The account-manager page embedded a large table with nested governance rendering -> SRP / presentation component boundary -> moved the clients table and expanded-row presentation into a focused component.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+
 ## 2026-06-27 - Phase 5 Slice: Account Manager Task Monitoring
 
 Scope:

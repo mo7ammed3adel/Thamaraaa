@@ -2,15 +2,13 @@
 
 import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, FileEdit, Send } from "lucide-react";
 import ClientDetailModal from "@/components/ClientDetailModal";
 import CreateWarningModal from "@/components/CreateWarningModal";
-import LifecycleStateBadge from "@/components/LifecycleStateBadge";
 import LifecycleChangeModal from "@/components/LifecycleChangeModal";
 import DistributeModal from "@/components/DistributeModal";
-import TeamOverview from "@/components/TeamOverview";
 import { setupProject } from "@/client/api/projects";
 import { generateTasks } from "@/client/api/tasks";
+import AccountManagerClientsTable from "./AccountManagerClientsTable";
 import AccountManagerKpiGrid from "./AccountManagerKpiGrid";
 import AccountManagerSetupModal from "./AccountManagerSetupModal";
 import AccountManagerTaskMonitoringPanel from "./AccountManagerTaskMonitoringPanel";
@@ -166,280 +164,22 @@ export default function AccountManagerClient({ userId, projects, kpis, headTechn
       <AccountManagerKpiGrid kpis={kpis} activeKpi={activeKpi} setActiveKpi={setActiveKpi} />
 
       {/* ── My Clients List ── */}
-      <div className="bg-white rounded-xl shadow border overflow-hidden">
-        <div className="p-4 border-b bg-slate-50 flex gap-4 items-center">
-          <h2 className="text-lg font-bold text-slate-800 whitespace-nowrap">My Clients</h2>
-          <input
-            type="text"
-            placeholder="Search by client name or phone..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="flex-1 max-w-sm border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-          />
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-slate-50 text-xs font-semibold text-slate-500 uppercase">
-              <tr>
-                <th className="px-6 py-3 text-left">Client Info</th>
-                <th className="px-6 py-3 text-left">Start Date</th>
-                <th className="px-6 py-3 text-left">Technical Progress</th>
-                <th className="px-6 py-3 text-center">Lifecycle</th>
-                <th className="px-6 py-3 text-center">Tasks</th>
-                <th className="px-6 py-3 text-center">Last Activity</th>
-                <th className="px-6 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filteredProjects.map((p: any) => {
-                const activeTasks = p.tasks?.filter((t: any) => t.status !== "done").length || 0;
-                const completedTasks = p.tasks?.filter((t: any) => t.status === "done").length || 0;
-                const hasWarnings = p.warnings && p.warnings.length > 0;
-                const lastActivity = p.logs && p.logs.length > 0 ? new Date(p.logs[0].createdAt).toLocaleDateString() : new Date(p.createdAt).toLocaleDateString();
-
-                return (
-                  <React.Fragment key={p.id}>
-                  <tr className="hover:bg-slate-50 transition cursor-pointer" onClick={() => setExpandedRow(expandedRow === p.id ? null : p.id)}>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="font-bold text-slate-900">{p.deal?.lead?.name}</div>
-                        {hasWarnings && <span title="Active Warnings"><AlertTriangle className="w-4 h-4 text-red-500" /></span>}
-                      </div>
-                      <div className="text-xs text-slate-500 mt-1 uppercase font-medium bg-slate-100 w-fit px-2 py-0.5 rounded">{p.package}</div>
-                      <div className="text-[10px] text-slate-500 mt-2 font-bold uppercase">{p.projectStatus.replace(/_/g, " ")}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-slate-700">
-                        {p.deal?.contractStart ? new Date(p.deal.contractStart).toLocaleDateString() : "Pending"}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="w-48 space-y-1">
-                        {[{ label: "SEO", val: p.seoProgress }, { label: "SMM", val: p.socialMediaProgress }, { label: "Media", val: p.mediaBuyerProgress }].map((b) => (
-                          <div key={b.label} className="flex items-center text-[10px]">
-                            <span className="w-8 font-bold text-slate-400">{b.label}</span>
-                            <div className="flex-1 bg-slate-100 h-1 mx-2 rounded-full overflow-hidden">
-                              <div className={`${getProgressColor(b.val)} h-1`} style={{ width: `${b.val}%` }} />
-                            </div>
-                            <span className="w-6 text-right font-bold text-slate-600">{b.val.toFixed(0)}%</span>
-                          </div>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <LifecycleStateBadge state={p.lifecycleState || "Onboarding"} />
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex flex-col gap-1 items-center">
-                        {activeTasks > 0 ? (
-                          <span className="inline-flex items-center justify-center bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-full">
-                            {activeTasks} Active
-                          </span>
-                        ) : (
-                          <span className="text-xs text-slate-400 font-medium">0 Active</span>
-                        )}
-                        <span className="text-xs text-emerald-600 font-bold">{completedTasks} Completed</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-center text-sm font-medium text-slate-600">
-                      {lastActivity}
-                    </td>
-                    <td className="px-6 py-4 text-right space-y-2">
-                      <div className="flex flex-col gap-2 relative">
-                        {p.projectStatus === "new" && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setSetupModalProject(p); }}
-                            className="px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-medium hover:bg-slate-900 shadow-sm transition inline-flex items-center justify-center gap-2"
-                          >
-                            <FileEdit className="w-3 h-3" /> Setup Project
-                          </button>
-                        )}
-                        {p.projectStatus === "setup" && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handlePushToTeams(p.id, p.package); }}
-                            disabled={loadingAction === `push-${p.id}`}
-                            className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-medium hover:bg-emerald-700 shadow-sm transition disabled:opacity-50 inline-flex items-center justify-center gap-2"
-                          >
-                            <Send className="w-3 h-3" /> {loadingAction === `push-${p.id}` ? "Pushing..." : "Push to Teams"}
-                          </button>
-                        )}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setSelectedClient(p); }}
-                          className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 shadow-sm transition inline-flex items-center justify-center gap-2"
-                        >
-                          Client Details <span>→</span>
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setWarningTarget({ projectId: p.id, clientId: p.deal?.leadId }); setWarningModalOpen(true); }}
-                          className="px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg text-xs font-bold hover:bg-red-100 transition inline-flex items-center justify-center gap-2"
-                        >
-                          <AlertTriangle className="w-3 h-3" /> Issue Warning
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                  
-                  {/* Expanded Row */}
-                  {expandedRow === p.id && (
-                    <tr className="bg-slate-50/50">
-                      <td colSpan={7} className="px-6 py-4 border-b border-t">
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                          
-                          {/* Left Column: Lifecycle & Distribution Controls */}
-                          <div className="space-y-4">
-                            <div className="bg-white p-4 rounded-lg border shadow-sm">
-                              <h3 className="text-sm font-bold text-slate-800 mb-3 border-b pb-2">Client Governance</h3>
-                              
-                              <div className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-xs text-slate-500 font-medium">Head Technical:</span>
-                                  {p.headTechnicalId ? (
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-sm font-semibold text-slate-700">{p.headTechnical?.name}</span>
-                                      <button
-                                        onClick={(e) => { e.stopPropagation(); setTechnicalModalProject(p); }}
-                                        className="text-[10px] font-bold px-2 py-1 bg-slate-100 text-slate-600 border rounded hover:bg-slate-200 transition"
-                                      >
-                                        Change
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); setTechnicalModalProject(p); }}
-                                      className="text-xs font-bold px-3 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded hover:bg-indigo-100 transition"
-                                    >
-                                      Assign Head Technical
-                                    </button>
-                                  )}
-                                </div>
-                                
-                                <div className="flex justify-between items-center">
-                                  <span className="text-xs text-slate-500 font-medium">Head SEO:</span>
-                                  {p.headSeoId ? (
-                                    <span className="text-sm font-semibold text-slate-700">{p.headSeo?.name}</span>
-                                  ) : (
-                                    <button 
-                                      onClick={(e) => { e.stopPropagation(); setDistributeModalProject(p); }}
-                                      className="text-xs font-bold px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded hover:bg-blue-100 transition"
-                                    >
-                                      Distribute SEO Scope
-                                    </button>
-                                  )}
-                                </div>
-
-                                <div className="flex justify-between items-center pt-2 border-t mt-2">
-                                  <span className="text-xs text-slate-500 font-medium">Lifecycle State:</span>
-                                    <button 
-                                      onClick={(e) => { e.stopPropagation(); setLifecycleModalProject(p); }}
-                                      className="text-xs font-bold px-3 py-1 bg-slate-100 text-slate-700 border rounded hover:bg-slate-200 transition"
-                                    >
-                                      Manage State
-                                    </button>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div className="bg-white p-4 rounded-lg border shadow-sm">
-                              <h3 className="text-sm font-bold text-slate-800 mb-3 border-b pb-2">Recent Notes</h3>
-                              {p.globalNotes && p.globalNotes.length > 0 ? (
-                                <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
-                                  {p.globalNotes.slice(0, 3).map((note: any) => (
-                                    <div key={note.id} className="text-xs">
-                                      <div className="flex justify-between text-slate-500 mb-1">
-                                        <span className="font-semibold text-slate-700">{note.userName || note.user?.name || note.userRole}</span>
-                                        <span>{new Date(note.createdAt).toLocaleDateString()}</span>
-                                      </div>
-                                      <p className="text-slate-600 line-clamp-2">{note.content}</p>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <p className="text-xs text-slate-400 italic">No notes found.</p>
-                              )}
-                            </div>
-                          </div>
-                          
-                          {/* Right Column: Team Overview */}
-                          <div className="lg:col-span-2 space-y-3">
-                            <h3 className="text-sm font-bold text-slate-800">Operational Teams</h3>
-                            {(() => {
-                              // Group team assignments by department
-                              const assignments = p.teamAssignments || [];
-                              const tasks = p.tasks || [];
-                              const deptMap = new Map<string, any>();
-                              
-                              // First build from active assignments
-                              assignments.forEach((assignment: any) => {
-                                const dept = assignment.department;
-                                if (!deptMap.has(dept)) {
-                                  deptMap.set(dept, {
-                                    department: dept,
-                                    leader: null,
-                                    agents: [],
-                                    taskCounts: { hold: 0, inProgress: 0, done: 0, total: 0 },
-                                    progressPercentage: 0
-                                  });
-                                }
-                                
-                                const deptObj = deptMap.get(dept);
-                                const isLeader = assignment.role.includes("leader") || assignment.role.includes("head");
-                                
-                                if (isLeader) {
-                                  deptObj.leader = assignment.user;
-                                } else {
-                                  deptObj.agents.push(assignment.user);
-                                }
-                              });
-                              
-                              // Check tasks to fill taskCounts per department
-                              tasks.forEach((t: any) => {
-                                const dept = t.taskType; // assuming taskType maps to department (mostly true)
-                                // Only process if the department is in our map (assigned)
-                                // or if it's not, we might create a ghost dept entry
-                                if (!deptMap.has(dept)) {
-                                  deptMap.set(dept, {
-                                    department: dept,
-                                    leader: null,
-                                    agents: [],
-                                    taskCounts: { hold: 0, inProgress: 0, done: 0, total: 0 },
-                                    progressPercentage: 0
-                                  });
-                                }
-                                
-                                const deptObj = deptMap.get(dept);
-                                deptObj.taskCounts.total++;
-                                if (t.status === "done") deptObj.taskCounts.done++;
-                                else if (t.status === "in_progress") deptObj.taskCounts.inProgress++;
-                                else deptObj.taskCounts.hold++;
-                              });
-
-                              const teamsArray = Array.from(deptMap.values()).map(t => {
-                                t.progressPercentage = t.taskCounts.total > 0 ? Math.round((t.taskCounts.done / t.taskCounts.total) * 100) : 0;
-                                return t;
-                              });
-
-                              return <TeamOverview teams={teamsArray} />;
-                            })()}
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                  </React.Fragment>
-                );
-              })}
-              {filteredProjects.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-sm text-slate-400 italic">
-                    {searchQuery ? "No matched clients found." : "You have no clients assigned yet."}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <AccountManagerClientsTable
+        filteredProjects={filteredProjects}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        expandedRow={expandedRow}
+        setExpandedRow={setExpandedRow}
+        loadingAction={loadingAction}
+        handlePushToTeams={handlePushToTeams}
+        setSetupModalProject={setSetupModalProject}
+        setSelectedClient={setSelectedClient}
+        setWarningTarget={setWarningTarget}
+        setWarningModalOpen={setWarningModalOpen}
+        setTechnicalModalProject={setTechnicalModalProject}
+        setDistributeModalProject={setDistributeModalProject}
+        setLifecycleModalProject={setLifecycleModalProject}
+      />
 
       <AccountManagerTaskMonitoringPanel
         projects={projects}
