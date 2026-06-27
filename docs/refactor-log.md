@@ -77,6 +77,23 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 5 Slice: Client Journey Orchestrator
+
+Scope:
+
+- Extracted client info, deal, progress, and logs tabs from `ClientFullJourneyClient.tsx`.
+- Extracted project task/note/file/warning/team assignment actions into `useClientJourneyActions`.
+- Extracted team-grid derivation into `src/lib/clientJourneyTeamGrid.ts`.
+- Reduced `ClientFullJourneyClient.tsx` to a 212-line orchestrator that wires tabs, permissions, and child components.
+
+Smell -> principle -> fix:
+
+- Client journey owned rendering, API actions, and team-grid derivation in one component -> SRP / frontend ui-state-shared boundaries -> moved tab UI into components, side-effecting view logic into a hook, and pure derivation into a lib helper.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+
 ## 2026-06-27 - Phase 4 Slice: Operations Dashboard API Clients
 
 Scope:
