@@ -76,6 +76,23 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Notes Service Boundary
+
+Scope:
+
+- Added `src/server/repositories/noteRepository.ts`.
+- Added `src/server/services/notesService.ts`.
+- Reduced `/api/notes` GET/POST to request parsing and response mapping.
+
+Smell -> principle -> fix:
+
+- Notes API route mixed authorization, query construction, pagination, and persistence -> service/repository boundary -> moved access checks and workflows into `notesService` and Prisma calls into `noteRepository`.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Warning Create Boundary
 
 Scope:

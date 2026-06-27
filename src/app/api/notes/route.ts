@@ -1,13 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { userCanAccessProject } from "@/lib/distribution";
+import { NextRequest } from "next/server";
+import { getSessionUser } from "@/server/auth/session";
+import { errorJson, successJson, unauthorizedJson } from "@/server/http/responses";
+import { createProjectNote, listProjectNotes } from "@/server/services/notesService";
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = session.user as { id: string; role: string };
+  const user = await getSessionUser();
+  if (!user) return unauthorizedJson();
 
   const { searchParams } = new URL(req.url);
   const projectId = searchParams.get("projectId");
@@ -18,79 +16,53 @@ export async function GET(req: NextRequest) {
   const page = parseInt(searchParams.get("page") || "1", 10);
   const limit = parseInt(searchParams.get("limit") || "50", 10);
 
-  if (!projectId) return NextResponse.json({ error: "projectId required" }, { status: 400 });
-
-  const allowed = await userCanAccessProject(user.id, user.role, projectId);
-  if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!projectId) return errorJson("projectId required", 400);
 
   try {
-    const whereClause: any = { projectId };
-    
-    if (category && category !== "all") {
-      whereClause.category = category;
-    }
-    if (authorUserId && authorUserId !== "all") {
-      whereClause.userId = authorUserId;
-    }
-    
-    if (from || to) {
-      whereClause.createdAt = {};
-      if (from) whereClause.createdAt.gte = new Date(from);
-      if (to) whereClause.createdAt.lte = new Date(to);
-    }
+    const result = await listProjectNotes({
+      userId: user.id,
+      userRole: user.role as string,
+      projectId,
+      category,
+      authorUserId,
+      from,
+      to,
+      page,
+      limit,
+    });
+    if (result.status === "forbidden") return errorJson("Forbidden", 403);
 
-    const totalCount = await prisma.note.count({ where: whereClause });
-    const notes = await prisma.note.findMany({
-      where: whereClause,
-      orderBy: { createdAt: "desc" },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-    
-    return NextResponse.json({ 
-      notes, 
-      pagination: {
-        total: totalCount,
-        page,
-        limit,
-        totalPages: Math.ceil(totalCount / limit)
-      }
-    });
+    return successJson({ notes: result.notes, pagination: result.pagination });
   } catch (error) {
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+    return errorJson("Internal error", 500);
   }
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = session.user as { id: string; role: string; name: string };
+  const user = await getSessionUser();
+  if (!user) return unauthorizedJson();
 
   try {
     const body = await req.json();
     const { projectId, content, category } = body;
 
     if (!projectId || !content) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return errorJson("Missing required fields", 400);
     }
 
-    const allowed = await userCanAccessProject(user.id, user.role, projectId);
-    if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
-    const note = await prisma.note.create({
-      data: {
-        projectId,
-        content,
-        category: category || "general",
-        userId: user.id,
-        userRole: user.role,
-        userName: user.name,
-      },
+    const result = await createProjectNote({
+      userId: user.id,
+      userRole: user.role as string,
+      userName: user.name as string,
+      projectId,
+      content,
+      category,
     });
+    if (result.status === "forbidden") return errorJson("Forbidden", 403);
 
-    return NextResponse.json({ note });
+    return successJson({ note: result.note });
   } catch (error) {
     console.error("Failed to create note:", error);
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+    return errorJson("Internal error", 500);
   }
 }

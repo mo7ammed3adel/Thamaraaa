@@ -202,7 +202,7 @@ npm run build
 - [ ] R0322 إنشاء `src/server/services/taskWorkflowService.ts` ونقل update/reassign/flag/generate task flows.
 - [ ] R0323 إنشاء `src/server/services/projectDistributionService.ts` ونقل project distribute/assign-agent/team-assignment flows.
 - [ ] R0324 إنشاء `src/server/services/projectLifecycleService.ts` ونقل lifecycle/status/setup flows.
-- [ ] R0325 إنشاء `src/server/services/notesService.ts` ونقل notes list/create.
+- [x] R0325 إنشاء `src/server/services/notesService.ts` ونقل notes list/create.
 - [ ] R0326 إنشاء `src/server/services/financeService.ts` حول overview/installments/commissions.
 - [ ] R0327 إنشاء `src/server/services/hrService.ts` حول employees/attendance/documents/evaluations.
 - [ ] R0328 إنشاء `src/server/services/analyticsService.ts` لتجميع analytics queries المتكررة.
@@ -212,7 +212,7 @@ npm run build
 يتم العمل بالترتيب التالي لتقليل المخاطرة:
 
 - [ ] R0330 Warnings & notifications routes.
-- [ ] R0331 Notes routes.
+- [x] R0331 Notes routes.
 - [ ] R0332 Project lifecycle/setup/status routes.
 - [ ] R0333 Project distribution/team assignment/assign-agent routes.
 - [ ] R0334 Task routes.
