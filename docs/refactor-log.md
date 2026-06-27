@@ -564,6 +564,24 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Deals Service Boundary
+
+Scope:
+
+- Added `src/server/repositories/dealRepository.ts`.
+- Added `src/server/services/dealService.ts`.
+- Migrated deal closing and closed-deals listing routes to the service boundary.
+- Preserved the deal + operations project transaction and manager-scoped deal list filters.
+
+Smell -> principle -> fix:
+
+- Deal routes mixed validation, URL normalization, transaction persistence, project setup, and notification side effects -> SRP / transaction boundary ownership -> moved the workflow into a service and left routes as auth/response adapters.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Analytics Service Boundary
 
 Scope:
