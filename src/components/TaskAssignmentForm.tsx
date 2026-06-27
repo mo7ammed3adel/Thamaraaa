@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { X, Plus, Trash2 } from "lucide-react";
+import { HttpError } from "@/client/transport/http";
+import { createTask } from "@/client/api/tasks";
 
 interface TaskAssignmentFormProps {
   projectId: string;
@@ -45,31 +47,26 @@ export default function TaskAssignmentForm({ projectId, projectNiche, onSuccess 
     const checklistItems = JSON.stringify(validChecklist.map(item => ({ text: item, completed: false })));
 
     try {
-      const res = await fetch("/api/tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          projectId,
-          taskType,
-          priority,
-          brief,
-          deadline: deadline || null,
-          checklistItems
-        })
+      await createTask({
+        projectId,
+        taskType,
+        priority,
+        brief,
+        deadline: deadline || null,
+        checklistItems
       });
 
-      if (res.ok) {
-        setTaskType("social_media");
-        setBrief("");
-        setPriority("Medium");
-        setDeadline("");
-        setChecklist([""]);
-        onSuccess();
-      } else {
-        const error = await res.json();
-        alert(`Failed: ${error.error || "Unknown error"}`);
-      }
+      setTaskType("social_media");
+      setBrief("");
+      setPriority("Medium");
+      setDeadline("");
+      setChecklist([""]);
+      onSuccess();
     } catch (err) {
+      if (err instanceof HttpError) {
+        alert(`Failed: ${err.message || "Unknown error"}`);
+        return;
+      }
       alert("Error creating task");
     } finally {
       setLoading(false);

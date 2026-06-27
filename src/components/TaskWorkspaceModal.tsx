@@ -2,6 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { X, Loader2, Plus, ExternalLink, Trash2, Flag, CheckCircle2 } from "lucide-react";
+import { createNote } from "@/client/api/notes";
+import { addProjectFile } from "@/client/api/projects";
+import { updateTask } from "@/client/api/tasks";
 
 /**
  * Maps an agent/leader role to the Note category it should write under,
@@ -93,15 +96,7 @@ export default function TaskWorkspaceModal({
     setBusy(action);
     setError(null);
     try {
-      const res = await fetch(`/api/tasks/${task.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Request failed");
-      }
+      await updateTask(task.id, payload);
       return true;
     } catch (e: any) {
       setError(e.message || "Network error");
@@ -146,21 +141,9 @@ export default function TaskWorkspaceModal({
     setError(null);
     try {
       // Persist on the task so it stays attached to the work item…
-      const taskRes = await fetch(`/api/tasks/${task.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ files: JSON.stringify(updated) }),
-      });
-      if (!taskRes.ok) {
-        const data = await taskRes.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to attach deliverable");
-      }
+      await updateTask(task.id, { files: JSON.stringify(updated) });
       // …and mirror it into the project Files tab so the Account Manager sees it.
-      await fetch(`/api/projects/${projectId}/files`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileUrl: entry.url, fileType: `${noteCategory} deliverable` }),
-      }).catch(() => {});
+      await addProjectFile(projectId, { fileUrl: entry.url, fileType: `${noteCategory} deliverable` }).catch(() => {});
 
       setDeliverables(updated);
       setNewLabel("");
@@ -185,15 +168,7 @@ export default function TaskWorkspaceModal({
     setBusy("note");
     setError(null);
     try {
-      const res = await fetch("/api/notes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, content: note.trim(), category: noteCategory }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to add note");
-      }
+      await createNote({ projectId, content: note.trim(), category: noteCategory });
       setNote("");
       onSuccess();
     } catch (e: any) {

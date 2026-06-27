@@ -564,6 +564,25 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 4 Slice: Operations Component Fetch Replacement
+
+Scope:
+
+- Replaced direct fetch calls in `TaskWorkspaceModal`, `TaskAssignmentForm`, `TaskReassignModal`, `TaskFlagModal`, and `DistributeModal`.
+- Extended `src/client/api/projects.ts` with project file upload mirroring support.
+- Reused task, note, project, and user client API modules from the shared transport layer.
+
+Smell -> principle -> fix:
+
+- Operations components repeated endpoint URLs, JSON headers, and non-2xx parsing -> client transport boundary -> centralized HTTP details in client API modules while preserving local UI state and error messaging.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+- `npm run lint`: passed with the same baseline React hook dependency warnings.
+- `rg "fetch\\("` on the five operations components: no matches.
+
 ## 2026-06-27 - Phase 4 Slice: Client Transport and Shared Fetch Replacement
 
 Scope:

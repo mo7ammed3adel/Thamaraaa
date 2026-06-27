@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { flagTask } from "@/client/api/tasks";
 
 /**
  * Props for the TaskFlagModal component.
@@ -50,16 +51,7 @@ export default function TaskFlagModal({
     setErrorMessage("");
 
     try {
-      const response = await fetch(`/api/tasks/${taskId}/flag`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: trimmedReason }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to flag task");
-      }
+      await flagTask(taskId, { reason: trimmedReason });
 
       setReason("");
       onSuccess();

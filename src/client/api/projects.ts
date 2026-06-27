@@ -20,6 +20,10 @@ export function listProjectFiles(projectId: string) {
   return getJson(`/api/projects/${projectId}/files`);
 }
 
+export function addProjectFile(projectId: string, body: unknown) {
+  return postJson(`/api/projects/${projectId}/files`, body);
+}
+
 export function deleteProjectFile(projectId: string, fileId: string) {
   return deleteJson(`/api/projects/${projectId}/files?id=${encodeURIComponent(fileId)}`);
 }

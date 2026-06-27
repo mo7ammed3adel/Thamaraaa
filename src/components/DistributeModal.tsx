@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X, UserPlus } from "lucide-react";
+import { distributeProject } from "@/client/api/projects";
 
 interface User {
   id: string;
@@ -59,23 +60,13 @@ export default function DistributeModal({
     setError("");
 
     try {
-      const response = await fetch("/api/projects/distribute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, targetUserId: selectedUserId }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        setError(data.error || "Distribution failed");
-        return;
-      }
+      await distributeProject({ projectId, targetUserId: selectedUserId });
 
       onDistributed();
       onClose();
       setSelectedUserId("");
-    } catch {
-      setError("Network error. Please try again.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Network error. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

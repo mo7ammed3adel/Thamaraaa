@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { reassignTask } from "@/client/api/tasks";
+import { listUsers } from "@/client/api/users";
 
 /**
  * Props for the TaskReassignModal component.
@@ -60,9 +62,7 @@ export default function TaskReassignModal({
   async function loadAgents() {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/users");
-      if (!response.ok) throw new Error("Failed to load team members");
-      const data = await response.json();
+      const data: any = await listUsers();
 
       const roleMap: Record<string, string[]> = {
         team_leader_social_media: ["agent_social_media"],
@@ -121,16 +121,7 @@ export default function TaskReassignModal({
     setErrorMessage("");
 
     try {
-      const response = await fetch(`/api/tasks/${taskId}/reassign`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ newAgentId: selectedAgentId }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to reassign task");
-      }
+      await reassignTask(taskId, { newAgentId: selectedAgentId });
 
       setSelectedAgentId("");
       onSuccess();
