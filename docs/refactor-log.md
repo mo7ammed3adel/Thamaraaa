@@ -392,6 +392,25 @@ Behavior preserved by:
 - `npm run lint`: passed with the same pre-existing React hook dependency warnings recorded in the baseline.
 - `npm run build`: passed.
 
+## 2026-06-27 - Phase 3 Slice: HR Leave Requests Boundary
+
+Scope:
+
+- Added `src/server/repositories/hrRepository.ts`.
+- Added `src/server/services/hrService.ts`.
+- Moved `/api/hr/requests` create/list workflows and `/api/hr/requests/[id]` decision workflow into the HR service/repository boundary.
+- Preserved user-vs-HR visibility, HR authorization, response shapes/status codes, and notification side effects.
+- Closed roadmap item R0317.
+
+Smell -> principle -> fix:
+
+- HR leave request routes mixed session handling, request workflow, Prisma reads/writes, and notification creation -> controller-service-repository boundary -> routes now map HR service operations to HTTP.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
 
 Scope:

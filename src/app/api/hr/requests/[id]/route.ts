@@ -1,37 +1,22 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getSessionUser } from "@/server/auth/session";
+import { errorJson, successJson } from "@/server/http/responses";
+import { decideLeaveRequest } from "@/server/services/hrService";
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
-    const user = session?.user as any;
-    
+    const user = await getSessionUser();
+
     if (!user || (user.role !== "hr_manager" && user.role !== "super_admin")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return errorJson("Unauthorized", 401);
     }
 
     const { id } = params;
     const { status, feedbackNotes } = await req.json();
 
-    const leaveRequest = await prisma.leaveRequest.update({
-      where: { id },
-      data: { status, feedbackNotes }
-    });
+    const leaveRequest = await decideLeaveRequest({ id, status, feedbackNotes });
 
-    // Notify the user about the decision
-    await prisma.notification.create({
-      data: {
-        userId: leaveRequest.userId,
-        title: `Request ${status}`,
-        message: `Your ${leaveRequest.type} request for ${leaveRequest.date.toLocaleDateString()} has been ${status}.`,
-        link: `/dashboard/profile`
-      }
-    });
-
-    return NextResponse.json(leaveRequest);
+    return successJson(leaveRequest);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return errorJson(error.message, 500);
   }
 }

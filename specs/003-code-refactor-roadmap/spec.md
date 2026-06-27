@@ -193,7 +193,7 @@ npm run build
 - [ ] R0314 إنشاء `src/server/repositories/leadRepository.ts`.
 - [ ] R0315 إنشاء `src/server/repositories/dealRepository.ts`.
 - [x] R0316 إنشاء `src/server/repositories/financeRepository.ts`.
-- [ ] R0317 إنشاء `src/server/repositories/hrRepository.ts`.
+- [x] R0317 إنشاء `src/server/repositories/hrRepository.ts`.
 
 ### 3.3 Services by domain
 
