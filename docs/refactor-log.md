@@ -150,6 +150,22 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm run lint`: passed with the same pre-existing React hook dependency warnings recorded in the baseline.
 
+## 2026-06-27 - Phase 5 Slice: Client Journey Timeline Builder
+
+Scope:
+
+- Extracted the Client Full Journey timeline construction into `src/lib/clientJourneyTimeline.ts`.
+- Added explicit timeline input/output types for leads, calls, meetings, deals, installments, tasks, notes, and warnings.
+- Kept timeline ordering, labels, colors, and display text compatible with the existing screen.
+
+Smell -> principle -> fix:
+
+- `ClientFullJourneyClient.tsx` mixed rendering, network handlers, and timeline aggregation -> pure function extraction / SRP -> moved timeline aggregation into a typed helper while leaving the rendered timeline unchanged.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+
 ## 2026-06-27 - Phase 3 Slice: Project Status Boundary
 
 Scope:

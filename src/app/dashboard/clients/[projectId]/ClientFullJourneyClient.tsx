@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import ProjectLogsPanel from "@/components/ProjectLogsPanel";
+import { buildClientJourneyTimeline } from "@/lib/clientJourneyTimeline";
 
 const TABS = [
   { key: "timeline", label: "📋 Timeline", icon: "📋" },
@@ -227,119 +228,6 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
     return false;
   }
 
-  // ── Build Timeline Entries ──
-  function buildTimeline() {
-    const entries: any[] = [];
-
-    // Lead created
-    if (lead) {
-      entries.push({
-        stage: "lead", color: "bg-slate-500", label: "Lead Created",
-        date: lead.createdAt, agent: lead.createdBy?.name || "System",
-        role: "TeleSales", detail: `Source: ${lead.source || "N/A"} | Classification: ${lead.classification}`,
-      });
-    }
-
-    // Call logs
-    lead?.callLogs?.forEach((c: any) => {
-      entries.push({
-        stage: "telesales", color: "bg-blue-500", label: "Call Log",
-        date: c.createdAt, agent: c.agent?.name || "Agent",
-        role: "TeleSales", detail: `Status: ${c.callStatus} | ${c.notes}`,
-      });
-    });
-
-    // Meetings
-    lead?.meetings?.forEach((m: any) => {
-      entries.push({
-        stage: "sales", color: "bg-purple-500", label: `Meeting (${m.status})`,
-        date: m.meetingDate, agent: m.salesAgent?.name || m.teleAgent?.name || "Agent",
-        role: "Sales", detail: m.salesNotes || m.summary || "No notes",
-      });
-    });
-
-    // Deal closing
-    if (deal) {
-      entries.push({
-        stage: "deal", color: "bg-emerald-500", label: "Deal Closed",
-        date: deal.createdAt, agent: deal.salesAgent?.name || "Sales",
-        role: "Sales", detail: `Package: ${deal.package} | Total: ${deal.totalAmount?.toLocaleString()} SAR | Method: ${deal.paymentMethod}`,
-      });
-    }
-
-    // First payment
-    if (deal?.firstAmount) {
-      entries.push({
-        stage: "payment", color: "bg-green-600", label: "First Payment",
-        date: deal.createdAt, agent: "System", role: "Finance",
-        detail: `Amount: ${deal.firstAmount.toLocaleString()} SAR`,
-      });
-    }
-
-    // Installments
-    deal?.installments?.forEach((inst: any, i: number) => {
-      entries.push({
-        stage: "payment", color: inst.isPaid ? "bg-green-500" : "bg-orange-500",
-        label: `Installment ${i + 1} ${inst.isPaid ? "(Paid)" : "(Pending)"}`,
-        date: inst.dueDate, agent: "System", role: "Finance",
-        detail: `Amount: ${inst.amount?.toLocaleString()} SAR | Due: ${new Date(inst.dueDate).toLocaleDateString()}`,
-      });
-    });
-
-    // Project created
-    entries.push({
-      stage: "accounts", color: "bg-amber-500", label: "Project Created",
-      date: project.createdAt, agent: project.accountManager?.name || "AM",
-      role: "Account Manager", detail: `Package: ${project.package} | Niche: ${project.niche || "N/A"} | Status: ${project.projectStatus}`,
-    });
-
-    // Account Manager notes
-    if (project.notes) {
-      entries.push({
-        stage: "accounts", color: "bg-amber-400", label: "AM Notes",
-        date: project.createdAt, agent: project.accountManager?.name || "AM",
-        role: "Account Manager", detail: project.notes,
-      });
-    }
-
-    // Tasks
-    project.tasks?.forEach((t: any) => {
-      entries.push({
-        stage: "technical", color: "bg-indigo-500", label: `Task: ${t.taskType.replace(/_/g, " ")}`,
-        date: t.createdAt, agent: t.leader?.name || "Leader",
-        role: t.taskType, detail: `Status: ${t.status} | Agent: ${t.agent?.name || "Unassigned"} | Progress: ${t.progressPct}%`,
-      });
-      if (t.completedAt) {
-        entries.push({
-          stage: "delivery", color: "bg-teal-500", label: `Completed: ${t.taskType.replace(/_/g, " ")}`,
-          date: t.completedAt, agent: t.agent?.name || t.leader?.name || "Team",
-          role: t.taskType, detail: `Duration: ${Math.ceil((new Date(t.completedAt).getTime() - new Date(t.createdAt).getTime()) / 86400000)} days`,
-        });
-      }
-    });
-
-    // Global notes
-    project.globalNotes?.forEach((n: any) => {
-      entries.push({
-        stage: "note", color: "bg-yellow-500", label: `Note (${n.category})`,
-        date: n.createdAt, agent: n.userName,
-        role: n.userRole.replace(/_/g, " "), detail: n.content,
-      });
-    });
-
-    project.warnings?.forEach((warning: any) => {
-      entries.push({
-        stage: "warning", color: "bg-red-500", label: `Warning (${warning.severity})`,
-        date: warning.createdAt, agent: warning.sender?.name || "System",
-        role: warning.senderRole?.replace(/_/g, " ") || "Warning",
-        detail: `${warning.subject}: ${warning.message}`,
-      });
-    });
-
-    entries.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    return entries;
-  }
-
   // ── Build Team Assignment Grid ──
   function buildTeamGrid() {
     const departments = [
@@ -391,7 +279,7 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
     });
   }
 
-  const timeline = buildTimeline();
+  const timeline = buildClientJourneyTimeline(project);
   const teamGrid = buildTeamGrid();
 
   return (
