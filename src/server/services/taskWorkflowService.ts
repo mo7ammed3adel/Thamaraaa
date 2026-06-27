@@ -3,10 +3,12 @@ import {
   canDistributeTo,
   canFlagTask,
   canReassignTask,
+  userCanAccessProject,
 } from "@/lib/distribution";
 import { getDefaultChecklistForTaskType } from "@/lib/constants";
 import {
   createSelfAssignedTaskWithLog,
+  findTasksForList,
   findTaskForFlag,
   findTaskForReassign,
   findProjectForSelfTask,
@@ -57,6 +59,37 @@ const SELF_TASK_ALLOWED_ROLES = [
   "head_technical",
   "super_admin",
 ];
+
+export async function listTasksForUser(input: {
+  userId: string;
+  userRole: string;
+  projectId?: string | null;
+}) {
+  const whereClause: any = {};
+
+  if (input.projectId) {
+    const allowed = await userCanAccessProject(input.userId, input.userRole, input.projectId);
+    if (!allowed) return { status: "forbidden" as const };
+    whereClause.projectId = input.projectId;
+  } else if (["super_admin", "head_account_manager", "chief_sales"].includes(input.userRole)) {
+    // org-wide visibility
+  } else if (input.userRole === "account_manager") {
+    whereClause.project = { is: { accountManagerId: input.userId } };
+  } else if (input.userRole === "head_technical") {
+    whereClause.project = { is: { headTechnicalId: input.userId } };
+  } else if (input.userRole === "head_seo") {
+    whereClause.project = { is: { headSeoId: input.userId } };
+  } else {
+    whereClause.OR = [
+      { leaderId: input.userId },
+      { agentId: input.userId },
+      { project: { is: { teamAssignments: { some: { userId: input.userId, status: "active" } } } } },
+    ];
+  }
+
+  const tasks = await findTasksForList(whereClause);
+  return { status: "ok" as const, tasks };
+}
 
 export async function flagTask(input: {
   taskId: string;

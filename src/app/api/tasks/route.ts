@@ -6,6 +6,9 @@ import { findTeamLeaderRoleForTaskType, userCanAccessProject } from "@/lib/distr
 import { CROSS_TEAM_TASK_TYPES, AGENT_ASSIGNER_ROLES, MANAGEMENT_ROLES, ACCOUNT_MANAGER_ROLES, hasRole, getDefaultChecklistForTaskType } from "@/lib/constants";
 import { normalizeWebUrl } from "@/lib/safe-url";
 import { safeTrigger } from "@/lib/pusher";
+import { getSessionUser } from "@/server/auth/session";
+import { errorJson, successJson, unauthorizedJson } from "@/server/http/responses";
+import { listTasksForUser } from "@/server/services/taskWorkflowService";
 
 // Roles that may create tasks. Includes:
 //  - Team leaders / heads who orchestrate the work (AGENT_ASSIGNER_ROLES, MANAGEMENT_ROLES)
@@ -178,45 +181,22 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const user = session.user as { id: string; role: string };
+    const user = await getSessionUser();
+    if (!user?.id || !user.role) return unauthorizedJson();
 
     const { searchParams } = new URL(req.url);
     const projectId = searchParams.get("projectId");
 
-    const whereClause: any = {};
-    if (projectId) {
-      const allowed = await userCanAccessProject(user.id, user.role, projectId);
-      if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-      whereClause.projectId = projectId;
-    } else if (["super_admin", "head_account_manager", "chief_sales"].includes(user.role)) {
-      // org-wide visibility
-    } else if (user.role === "account_manager") {
-      whereClause.project = { is: { accountManagerId: user.id } };
-    } else if (user.role === "head_technical") {
-      whereClause.project = { is: { headTechnicalId: user.id } };
-    } else if (user.role === "head_seo") {
-      whereClause.project = { is: { headSeoId: user.id } };
-    } else {
-      whereClause.OR = [
-        { leaderId: user.id },
-        { agentId: user.id },
-        { project: { is: { teamAssignments: { some: { userId: user.id, status: "active" } } } } },
-      ];
-    }
-
-    const tasks = await prisma.task.findMany({
-      where: whereClause,
-      include: {
-        leader: true,
-        agent: true
-      },
-      orderBy: { createdAt: "desc" }
+    const result = await listTasksForUser({
+      userId: user.id,
+      userRole: user.role,
+      projectId,
     });
 
-    return NextResponse.json({ tasks });
+    if (result.status === "forbidden") return errorJson("Forbidden", 403);
+
+    return successJson({ tasks: result.tasks });
   } catch (error: any) {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return errorJson("Internal server error", 500);
   }
 }

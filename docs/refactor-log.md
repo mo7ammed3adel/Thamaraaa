@@ -237,6 +237,23 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Task List Boundary
+
+Scope:
+
+- Moved GET `/api/tasks` visibility filtering and task list query into `taskWorkflowService` and `taskRepository`.
+- Preserved project-scoped IDOR check via `userCanAccessProject` and role-based task visibility for account/head/team users.
+- Left POST `/api/tasks` for a separate slice.
+
+Smell -> principle -> fix:
+
+- Task list route mixed request query parsing, authorization scope construction, and Prisma query shape -> controller-service-repository boundary -> route now delegates visibility and persistence to server layers.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
 
 Scope:

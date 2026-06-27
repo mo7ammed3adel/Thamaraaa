@@ -1,5 +1,16 @@
 import { prisma } from "@/lib/prisma";
 
+export function findTasksForList(whereClause: any) {
+  return prisma.task.findMany({
+    where: whereClause,
+    include: {
+      leader: true,
+      agent: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
 export function findTaskForFlag(taskId: string) {
   return prisma.task.findUnique({
     where: { id: taskId },
