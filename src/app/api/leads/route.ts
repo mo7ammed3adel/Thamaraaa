@@ -3,11 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { normalizeWebUrl } from "@/lib/safe-url";
+import { getActiveSessionUser } from "@/lib/activeSessionUser";
+import { resolveManualLeadAssigneeId } from "@/lib/manualLeadAssignment";
 
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const user = session?.user as any;
+    const sessionUser = session?.user as any;
+    const user = await getActiveSessionUser(sessionUser);
     
     // Only telesales agents or admins can create leads manually
     if (!user || (user.role !== "tele_sales_agent" && user.role !== "super_admin" && user.role !== "tele_sales_manager")) {
@@ -32,10 +35,15 @@ export async function POST(req: Request) {
        sourceName = `Manual (${user.role.replace(/_/g, ' ')}) - ${user.name}`;
     }
 
-    const finalTeleAgentId = user.role === "tele_sales_agent" ? user.id : (assignedTeleAgentId || null);
-    if (assignedTeleAgentId && user.role === "tele_sales_manager") {
+    const finalTeleAgentId = resolveManualLeadAssigneeId({
+      creatorId: user.id,
+      creatorRole: user.role,
+      requestedTeleAgentId: assignedTeleAgentId,
+    });
+
+    if (finalTeleAgentId && user.role === "tele_sales_manager") {
       const targetAgent = await prisma.user.findUnique({
-        where: { id: assignedTeleAgentId },
+        where: { id: finalTeleAgentId },
         select: { role: true, status: true, directManagerId: true },
       });
       if (
@@ -47,9 +55,9 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Invalid TeleSales assignee" }, { status: 400 });
       }
     }
-    if (assignedTeleAgentId && user.role === "super_admin") {
+    if (finalTeleAgentId && user.role === "super_admin") {
       const targetAgent = await prisma.user.findUnique({
-        where: { id: assignedTeleAgentId },
+        where: { id: finalTeleAgentId },
         select: { role: true, status: true },
       });
       if (!targetAgent || targetAgent.role !== "tele_sales_agent" || targetAgent.status !== "Active") {

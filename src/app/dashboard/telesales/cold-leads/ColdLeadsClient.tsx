@@ -11,7 +11,15 @@ interface ColdLead {
   createdAt: Date;
 }
 
-export default function ColdLeadsClient({ initialLeads, agentId }: { initialLeads: ColdLead[], agentId: string }) {
+export default function ColdLeadsClient({
+  initialLeads,
+  agentId,
+  userRole,
+}: {
+  initialLeads: ColdLead[];
+  agentId: string;
+  userRole: string;
+}) {
   const [leads, setLeads] = useState<ColdLead[]>(initialLeads);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -67,23 +75,29 @@ export default function ColdLeadsClient({ initialLeads, agentId }: { initialLead
         }
       }
 
+      const payload: Record<string, string | undefined> = {
+        name,
+        phone,
+        storeLink: storeLink || undefined,
+        niche: finalNiche || undefined,
+        classification: "Cold",
+        status: "Draft",
+      };
+
+      if (userRole === "tele_sales_agent") {
+        payload.assignedTeleAgentId = agentId;
+      }
+
       const res = await fetch("/api/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          phone,
-          storeLink: storeLink || undefined,
-          niche: finalNiche || undefined,
-          classification: "Cold",
-          assignedTeleAgentId: agentId,
-          status: "Draft"
-        }),
+        body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("Failed to add lead");
+      const responseBody = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(responseBody?.error || "Failed to add lead");
 
-      const newLead = await res.json();
+      const newLead = responseBody;
       setLeads([newLead, ...leads]);
       setShowForm(false);
       setName("");

@@ -2,13 +2,18 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getActiveSessionUser } from "@/lib/activeSessionUser";
 import ColdLeadsClient from "./ColdLeadsClient";
 
 export default async function ColdLeadsPage() {
   const session = await getServerSession(authOptions);
-  const user = session?.user as any;
+  const user = await getActiveSessionUser(session?.user as any);
 
-  if (!["tele_sales_agent", "tele_sales_manager", "super_admin"].includes(user?.role)) {
+  if (!user) {
+    redirect("/login");
+  }
+
+  if (!["tele_sales_agent", "tele_sales_manager", "super_admin"].includes(user.role)) {
     redirect("/dashboard");
   }
 
@@ -37,7 +42,7 @@ export default async function ColdLeadsPage() {
       <p className="text-sm text-gray-500 mb-6">
         Manually add new cold leads you have gathered.
       </p>
-      <ColdLeadsClient initialLeads={coldLeads} agentId={user.id} />
+      <ColdLeadsClient initialLeads={coldLeads} agentId={user.id} userRole={user.role} />
     </div>
   );
 }
