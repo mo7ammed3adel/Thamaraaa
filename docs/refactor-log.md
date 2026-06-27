@@ -325,6 +325,22 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Finance Commissions Boundary
+
+Scope:
+
+- Moved `/api/finance/commissions` commission listing, default month calculation, config loading, and recompute orchestration into `financeService` and `financeRepository`.
+- Preserved finance role authorization, JSON validation, month validation, and error details.
+
+Smell -> principle -> fix:
+
+- Commissions route mixed finance auth, Prisma query, config loading, and recompute workflow orchestration -> controller-service-repository boundary -> route now maps finance service calls to HTTP.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
 
 Scope:

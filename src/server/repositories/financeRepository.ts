@@ -18,3 +18,22 @@ export function findPendingInstallments() {
     orderBy: { dueDate: "asc" },
   });
 }
+
+export function findCommissionsByMonth(month: string) {
+  return prisma.commission.findMany({
+    where: { month },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          level: true,
+          hrRecord: { select: { monthlyTarget: true, baseSalary: true } },
+        },
+      },
+    },
+    orderBy: { netPayout: "desc" },
+  });
+}

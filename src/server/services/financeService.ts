@@ -1,4 +1,9 @@
-import { findFinanceOverviewDeals, findPendingInstallments } from "@/server/repositories/financeRepository";
+import { loadCommissionConfig, recomputeMonth, recomputeTelesalesBonuses } from "@/lib/commissions";
+import {
+  findCommissionsByMonth,
+  findFinanceOverviewDeals,
+  findPendingInstallments,
+} from "@/server/repositories/financeRepository";
 
 export async function getFinanceOverview() {
   const deals = await findFinanceOverviewDeals();
@@ -25,5 +30,29 @@ export async function getFinanceOverview() {
     },
     deals,
     pendingInstallments,
+  };
+}
+
+export function getDefaultCommissionMonth(now = new Date()) {
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+export async function listCommissions(month: string) {
+  const commissions = await findCommissionsByMonth(month);
+  const config = await loadCommissionConfig();
+  return { commissions, month, config };
+}
+
+export async function recomputeCommissions(month: string) {
+  const [salesResults, telesalesResults] = await Promise.all([
+    recomputeMonth(month),
+    recomputeTelesalesBonuses(month),
+  ]);
+
+  return {
+    success: true,
+    count: salesResults.length + telesalesResults.length,
+    salesCount: salesResults.length,
+    telesalesCount: telesalesResults.length,
   };
 }

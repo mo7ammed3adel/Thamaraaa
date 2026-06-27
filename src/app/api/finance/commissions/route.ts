@@ -1,8 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { recomputeMonth, recomputeTelesalesBonuses, loadCommissionConfig } from "@/lib/commissions";
+import { NextRequest } from "next/server";
+import { getSessionUser } from "@/server/auth/session";
+import { errorJson, successJson } from "@/server/http/responses";
+import {
+  getDefaultCommissionMonth,
+  listCommissions,
+  recomputeCommissions,
+} from "@/server/services/financeService";
 
 const FINANCE_ROLES = ["super_admin", "accountant"];
 
@@ -11,33 +14,20 @@ const FINANCE_ROLES = ["super_admin", "accountant"];
  *   month defaults to the current month if omitted.
  */
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  const user = session?.user as { role?: string } | undefined;
+  const user = await getSessionUser();
   if (!user || !FINANCE_ROLES.includes(user.role || "")) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return errorJson("Forbidden", 403);
   }
 
   const { searchParams } = new URL(req.url);
-  const today = new Date();
-  const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
-  const month = searchParams.get("month") || defaultMonth;
+  const month = searchParams.get("month") || getDefaultCommissionMonth();
 
   try {
-    const commissions = await prisma.commission.findMany({
-      where: { month },
-      include: {
-        user: {
-          select: { id: true, name: true, email: true, role: true, level: true, hrRecord: { select: { monthlyTarget: true, baseSalary: true } } },
-        },
-      },
-      orderBy: { netPayout: "desc" },
-    });
-    const config = await loadCommissionConfig();
-    return NextResponse.json({ commissions, month, config });
+    return successJson(await listCommissions(month));
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Unknown error";
     console.error("Finance commissions GET error:", msg);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return errorJson("Internal Server Error", 500);
   }
 }
 
@@ -47,38 +37,28 @@ export async function GET(req: NextRequest) {
  * Skips finalized rows.
  */
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  const user = session?.user as { role?: string } | undefined;
+  const user = await getSessionUser();
   if (!user || !FINANCE_ROLES.includes(user.role || "")) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return errorJson("Forbidden", 403);
   }
 
   let body: any;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    return errorJson("Invalid JSON body", 400);
   }
 
   const { month } = body || {};
   if (!month || !/^\d{4}-\d{2}$/.test(month)) {
-    return NextResponse.json({ error: "month must be YYYY-MM" }, { status: 400 });
+    return errorJson("month must be YYYY-MM", 400);
   }
 
   try {
-    const [salesResults, telesalesResults] = await Promise.all([
-      recomputeMonth(month),
-      recomputeTelesalesBonuses(month),
-    ]);
-    return NextResponse.json({
-      success: true,
-      count: salesResults.length + telesalesResults.length,
-      salesCount: salesResults.length,
-      telesalesCount: telesalesResults.length,
-    });
+    return successJson(await recomputeCommissions(month));
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Unknown error";
     console.error("Finance commissions POST error:", msg);
-    return NextResponse.json({ error: "Internal Server Error", details: msg }, { status: 500 });
+    return errorJson("Internal Server Error", 500, { details: msg });
   }
 }
