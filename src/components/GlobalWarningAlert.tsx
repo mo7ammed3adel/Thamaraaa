@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, X, CheckCircle, Clock } from "lucide-react";
 import PusherClient from "pusher-js";
 import { formatDate } from "@/shared/formatters/date";
+import { acknowledgeWarning, listWarnings } from "@/client/api/warnings";
 
 export default function GlobalWarningAlert({ userId }: { userId?: string }) {
   const [warnings, setWarnings] = useState<any[]>([]);
@@ -34,12 +35,9 @@ export default function GlobalWarningAlert({ userId }: { userId?: string }) {
 
   const fetchWarnings = async () => {
     try {
-      const res = await fetch("/api/warnings");
-      if (res.ok) {
-        const data = await res.json();
-        // Only show warnings that haven't been acknowledged by this user
-        setWarnings(data.filter((w: any) => !w.userAcknowledged));
-      }
+      const data = await listWarnings();
+      // Only show warnings that haven't been acknowledged by this user
+      setWarnings(data.filter((w: any) => !w.userAcknowledged));
     } catch (e) {
       console.error("Failed to fetch warnings", e);
     }
@@ -48,10 +46,8 @@ export default function GlobalWarningAlert({ userId }: { userId?: string }) {
   const handleAcknowledge = async (id: string) => {
     setLoadingAcks(prev => ({ ...prev, [id]: true }));
     try {
-      const res = await fetch(`/api/warnings/${id}/acknowledge`, { method: "POST" });
-      if (res.ok) {
-        setWarnings(prev => prev.filter(w => w.id !== id));
-      }
+      await acknowledgeWarning(id);
+      setWarnings(prev => prev.filter(w => w.id !== id));
     } catch (error) {
       console.error(error);
     } finally {

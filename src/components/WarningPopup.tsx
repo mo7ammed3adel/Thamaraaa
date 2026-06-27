@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { formatDateTime } from "@/shared/formatters/date";
+import { acknowledgeWarning, listWarnings } from "@/client/api/warnings";
 
 interface WarningData {
   id: string;
@@ -21,8 +22,7 @@ export default function WarningPopup({ userRole, userId }: { userRole: string; u
 
   // Load unacknowledged warnings on mount
   useEffect(() => {
-    fetch("/api/warnings")
-      .then((r) => r.json())
+    listWarnings()
       .then((data: WarningData[]) => {
         const unacked = data.filter((w) => !w.userAcknowledged && w.senderUserId !== userId);
         setWarnings(unacked);
@@ -81,7 +81,7 @@ export default function WarningPopup({ userRole, userId }: { userRole: string; u
     if (!activeWarning) return;
     setAcknowledging(true);
     try {
-      await fetch(`/api/warnings/${activeWarning.id}/acknowledge`, { method: "POST" });
+      await acknowledgeWarning(activeWarning.id);
       setWarnings((prev) => prev.filter((w) => w.id !== activeWarning.id));
       const remaining = warnings.filter((w) => w.id !== activeWarning.id);
       setActiveWarning(remaining.length > 0 ? remaining[0] : null);

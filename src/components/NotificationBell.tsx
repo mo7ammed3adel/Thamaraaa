@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Bell } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { listUnreadNotifications, markNotificationRead } from "@/client/api/notifications";
 
 export default function NotificationBell({ variant = "dropdown" }: { variant?: "dropdown" | "sidebar" }) {
   const pathname = usePathname();
@@ -15,11 +16,8 @@ export default function NotificationBell({ variant = "dropdown" }: { variant?: "
     const fetchNotifications = async () => {
       if (typeof document !== "undefined" && document.hidden) return;
       try {
-        const res = await fetch("/api/notifications");
-        if (res.ok) {
-          const { data } = await res.json();
-          setNotifications(data || []);
-        }
+        const { data } = await listUnreadNotifications();
+        setNotifications(data || []);
       } catch (err) {
         console.error("Failed to fetch notifications");
       }
@@ -43,7 +41,7 @@ export default function NotificationBell({ variant = "dropdown" }: { variant?: "
   const markAsRead = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await fetch(`/api/notifications/${id}`, { method: "PATCH" });
+      await markNotificationRead(id);
       setNotifications(prev => prev.filter(n => n.id !== id));
     } catch (err) {
       console.error(err);

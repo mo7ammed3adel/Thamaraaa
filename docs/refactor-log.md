@@ -564,6 +564,25 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 4 Slice: Client Transport and Shared Fetch Replacement
+
+Scope:
+
+- Added `src/client/transport/http.ts` with JSON helpers, shared non-2xx error handling, and query-string construction.
+- Added domain client API modules for warnings, notifications, notes, projects, tasks, finance, HR, users, leads, and analytics.
+- Replaced direct fetch calls in `NotificationBell`, `NotesPanel`, `WarningPopup`, and `GlobalWarningAlert`.
+
+Smell -> principle -> fix:
+
+- Shared UI components owned HTTP details and repeated fetch/JSON boilerplate -> client transport boundary -> moved endpoint details into typed client modules and left components focused on state/UI.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+- `npm run lint`: passed with the same baseline React hook dependency warnings.
+- `rg "fetch\\("` on the four shared components: no matches.
+
 ## 2026-06-27 - Phase 3 Slice: Lead Import Boundary
 
 Scope:

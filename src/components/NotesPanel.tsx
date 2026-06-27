@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { MessageSquare, Send } from "lucide-react";
+import { createNote, listNotes } from "@/client/api/notes";
 
 interface Note {
   id: string;
@@ -38,14 +39,8 @@ export default function NotesPanel({ projectId, currentUserRole }: NotesPanelPro
   const fetchNotes = async () => {
     setLoading(true);
     try {
-      const qs = new URLSearchParams({ projectId });
-      if (filterCategory !== "all") qs.append("category", filterCategory);
-      
-      const res = await fetch(`/api/notes?${qs.toString()}`);
-      if (res.ok) {
-        const data = await res.json();
-        setNotes(data.notes || []);
-      }
+      const data = await listNotes({ projectId, category: filterCategory !== "all" ? filterCategory : undefined });
+      setNotes(data.notes || []);
     } catch (e) {
       console.error("Failed to load notes", e);
     } finally {
@@ -63,21 +58,13 @@ export default function NotesPanel({ projectId, currentUserRole }: NotesPanelPro
 
     setSubmitting(true);
     try {
-      const res = await fetch("/api/notes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          projectId,
-          content: newNote,
-          category: determineCategory(currentUserRole)
-        })
+      const { note } = await createNote({
+        projectId,
+        content: newNote,
+        category: determineCategory(currentUserRole)
       });
-
-      if (res.ok) {
-        const { note } = await res.json();
-        setNotes([note, ...notes]);
-        setNewNote("");
-      }
+      setNotes([note, ...notes]);
+      setNewNote("");
     } catch (e) {
       alert("Failed to add note");
     } finally {

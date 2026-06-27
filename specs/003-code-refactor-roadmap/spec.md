@@ -189,9 +189,9 @@ npm run build
 - [ ] R0310 إنشاء `src/server/repositories/userRepository.ts`.
 - [x] R0311 إنشاء `src/server/repositories/projectRepository.ts`.
 - [x] R0312 إنشاء `src/server/repositories/taskRepository.ts`.
-- [ ] R0313 إنشاء `src/server/repositories/warningRepository.ts`.
-- [ ] R0314 إنشاء `src/server/repositories/leadRepository.ts`.
-- [ ] R0315 إنشاء `src/server/repositories/dealRepository.ts`.
+- [x] R0313 إنشاء `src/server/repositories/warningRepository.ts`.
+- [x] R0314 إنشاء `src/server/repositories/leadRepository.ts`.
+- [x] R0315 إنشاء `src/server/repositories/dealRepository.ts`.
 - [x] R0316 إنشاء `src/server/repositories/financeRepository.ts`.
 - [x] R0317 إنشاء `src/server/repositories/hrRepository.ts`.
 
@@ -232,26 +232,26 @@ npm run build
 
 ### 4.1 Transport
 
-- [ ] R0401 إنشاء `src/client/transport/http.ts` فيه `getJson`, `postJson`, `patchJson`, `deleteJson`.
-- [ ] R0402 توحيد error handling للـ non-2xx responses.
-- [ ] R0403 دعم query params helper.
+- [x] R0401 إنشاء `src/client/transport/http.ts` فيه `getJson`, `postJson`, `patchJson`, `deleteJson`.
+- [x] R0402 توحيد error handling للـ non-2xx responses.
+- [x] R0403 دعم query params helper.
 
 ### 4.2 Domain API modules
 
-- [ ] R0410 إنشاء `src/client/api/warnings.ts`.
-- [ ] R0411 إنشاء `src/client/api/notifications.ts`.
-- [ ] R0412 إنشاء `src/client/api/notes.ts`.
-- [ ] R0413 إنشاء `src/client/api/projects.ts`.
-- [ ] R0414 إنشاء `src/client/api/tasks.ts`.
-- [ ] R0415 إنشاء `src/client/api/finance.ts`.
-- [ ] R0416 إنشاء `src/client/api/hr.ts`.
-- [ ] R0417 إنشاء `src/client/api/users.ts`.
-- [ ] R0418 إنشاء `src/client/api/leads.ts`.
-- [ ] R0419 إنشاء `src/client/api/analytics.ts`.
+- [x] R0410 إنشاء `src/client/api/warnings.ts`.
+- [x] R0411 إنشاء `src/client/api/notifications.ts`.
+- [x] R0412 إنشاء `src/client/api/notes.ts`.
+- [x] R0413 إنشاء `src/client/api/projects.ts`.
+- [x] R0414 إنشاء `src/client/api/tasks.ts`.
+- [x] R0415 إنشاء `src/client/api/finance.ts`.
+- [x] R0416 إنشاء `src/client/api/hr.ts`.
+- [x] R0417 إنشاء `src/client/api/users.ts`.
+- [x] R0418 إنشاء `src/client/api/leads.ts`.
+- [x] R0419 إنشاء `src/client/api/analytics.ts`.
 
 ### 4.3 Replacement order
 
-- [ ] R0420 Replace fetch in shared components: `NotificationBell`, `NotesPanel`, `WarningPopup`, `GlobalWarningAlert`.
+- [x] R0420 Replace fetch in shared components: `NotificationBell`, `NotesPanel`, `WarningPopup`, `GlobalWarningAlert`.
 - [ ] R0421 Replace fetch in operations components: `TaskWorkspaceModal`, `TaskAssignmentForm`, `TaskReassignModal`, `TaskFlagModal`, `DistributeModal`.
 - [ ] R0422 Replace fetch in finance dashboard.
 - [ ] R0423 Replace fetch in HR dashboard.
