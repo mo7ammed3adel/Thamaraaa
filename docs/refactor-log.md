@@ -40,6 +40,21 @@ Behavior preserved by:
 
 - `npx tsc --noEmit`: passed.
 
+## 2026-06-27 - Phase 5 Slice: Account Manager Derived Data Hook
+
+Scope:
+
+- Extracted account-manager project/task filtering into `useAccountManagerDerivedData`.
+- Completed R0520 with `AccountManagerClient.tsx` reduced to 225 lines and focused on page state, actions, and composition.
+
+Smell -> principle -> fix:
+
+- The account-manager page mixed rendering orchestration with derived list filtering and task ordering -> SRP / hook boundary -> moved derived data logic into a focused hook without changing filter conditions or sort order.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+
 ## 2026-06-27 - Phase 5 Slice: Account Manager Clients Table
 
 Scope:
