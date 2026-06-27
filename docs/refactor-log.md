@@ -475,6 +475,25 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: HR Employees Boundary
+
+Scope:
+
+- Moved `/api/hr/employees` list/create/update workflows into `hrService` and `hrRepository`.
+- Preserved HR/super_admin authorization, super_admin protection rules, duplicate email/phone behavior, password hashing, user + HrRecord creation transaction, welcome notification, HrRecord upsert on edit, and response messages/status codes.
+- Closed roadmap items R0327 and R0336.
+
+Smell -> principle -> fix:
+
+- Employee route mixed HTTP/session handling, HR policy, password hashing, duplicate checks, Prisma transactions, and HrRecord syncing -> controller-service-repository boundary -> route now maps employee service outcomes to HTTP.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+- `npm run lint`: passed with the same pre-existing React hook dependency warnings recorded in the baseline.
+- `npm run build`: passed.
+
 ## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
 
 Scope:

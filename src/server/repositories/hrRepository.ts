@@ -1,5 +1,19 @@
 import { prisma } from "@/lib/prisma";
 
+type CreateEmployeeInput = {
+  name: string;
+  email: string;
+  phone?: string | null;
+  passwordHash: string;
+  role: string;
+  level: string;
+  company?: string | null;
+  status: string;
+  directManagerId?: string | null;
+  baseSalary: number;
+  monthlyTarget: number;
+};
+
 export function createLeaveRequest(input: {
   userId: string;
   type: string;
@@ -176,5 +190,97 @@ export function clearEmployeeWarnings(userId: string) {
   return prisma.hrRecord.update({
     where: { userId },
     data: { warningCount: 0, terminationFlag: false, promotionEligible: false },
+  });
+}
+
+export function findEmployeesForHrDashboard() {
+  return prisma.user.findMany({
+    include: {
+      hrRecord: true,
+      attendances: {
+        take: 5,
+        orderBy: { date: "desc" },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export function findUserConflict(input: { email: string; phone?: string | null }) {
+  const orClauses: Array<Record<string, string>> = [{ email: input.email }];
+  if (input.phone) orClauses.push({ phone: input.phone });
+  return prisma.user.findFirst({ where: { OR: orClauses } });
+}
+
+export function createEmployeeWithHrRecord(input: CreateEmployeeInput) {
+  return prisma.$transaction(async (tx) => {
+    const created = await tx.user.create({
+      data: {
+        name: input.name,
+        email: input.email,
+        phone: input.phone || null,
+        passwordHash: input.passwordHash,
+        role: input.role,
+        level: input.level,
+        company: input.company || null,
+        status: input.status,
+        directManagerId: input.directManagerId || null,
+      },
+      select: { id: true, name: true, email: true, role: true, level: true, status: true },
+    });
+
+    await tx.hrRecord.create({
+      data: {
+        userId: created.id,
+        baseSalary: input.baseSalary,
+        level: input.level,
+        monthlyTarget: input.monthlyTarget,
+        performanceHistory: "[]",
+      },
+    });
+
+    await tx.notification.create({
+      data: {
+        userId: created.id,
+        title: "Welcome to Thamara",
+        message: "Your account has been created. You can now sign in.",
+        link: "/dashboard",
+      },
+    });
+
+    return created;
+  });
+}
+
+export function findEmployeeRole(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  });
+}
+
+export function updateEmployeeUser(input: { id: string; data: any }) {
+  return prisma.user.update({
+    where: { id: input.id },
+    data: input.data,
+    select: { id: true, name: true, role: true, status: true, level: true },
+  });
+}
+
+export function upsertEmployeeHrRecord(input: {
+  userId: string;
+  data: any;
+  fallbackLevel?: string | null;
+}) {
+  return prisma.hrRecord.upsert({
+    where: { userId: input.userId },
+    update: input.data,
+    create: {
+      userId: input.userId,
+      baseSalary: input.data.baseSalary || 0,
+      level: input.data.level || input.fallbackLevel || "Junior",
+      monthlyTarget: input.data.monthlyTarget || 0,
+      performanceHistory: "[]",
+    },
   });
 }

@@ -14,15 +14,30 @@ import {
   updateJobApplicant,
   updateHrRecord,
   clearEmployeeWarnings,
+  createEmployeeWithHrRecord,
   findHrRecordByUserId,
+  findEmployeeRole,
+  findEmployeesForHrDashboard,
+  findUserConflict,
   promoteEmployee,
   terminateEmployee,
+  updateEmployeeUser,
+  upsertEmployeeHrRecord,
   warnEmployee,
 } from "@/server/repositories/hrRepository";
 import { normalizeWebUrl } from "@/lib/safe-url";
 import { evaluateAllEmployees } from "@/lib/promotion";
+import bcrypt from "bcryptjs";
 
 const HR_ROLES = ["super_admin", "hr_manager"];
+
+function isHrManager(role?: string | null) {
+  return role === "hr_manager" || role === "super_admin";
+}
+
+function canManageSuperAdmin(actorRole?: string | null) {
+  return actorRole === "super_admin";
+}
 
 export async function submitLeaveRequest(input: {
   userId: string;
@@ -49,6 +64,98 @@ export async function submitLeaveRequest(input: {
   }
 
   return request;
+}
+
+export function listEmployees() {
+  return findEmployeesForHrDashboard();
+}
+
+export async function createEmployee(input: { actorRole?: string | null; body: any }) {
+  if (!isHrManager(input.actorRole)) {
+    return { status: "unauthorized" as const };
+  }
+
+  const data = input.body;
+  if (!data.name || !data.email || !data.password || !data.role) {
+    return { status: "missing_fields" as const };
+  }
+
+  if (data.role === "super_admin" && !canManageSuperAdmin(input.actorRole)) {
+    return { status: "super_admin_create_forbidden" as const };
+  }
+
+  const existing = await findUserConflict({ email: data.email, phone: data.phone });
+  if (existing) {
+    const conflict = existing.email === data.email ? "email" : "phone";
+    return { status: "conflict" as const, conflict };
+  }
+
+  const level = data.level || "Junior";
+  const user = await createEmployeeWithHrRecord({
+    name: data.name,
+    email: data.email,
+    phone: data.phone || null,
+    passwordHash: await bcrypt.hash(data.password, 10),
+    role: data.role,
+    level,
+    company: data.company || null,
+    status: data.status || "Active",
+    directManagerId: data.directManagerId || null,
+    baseSalary: Number(data.baseSalary) || 0,
+    monthlyTarget: Number(data.monthlyTarget) || 0,
+  });
+
+  return { status: "ok" as const, user };
+}
+
+export async function updateEmployee(input: { actorRole?: string | null; body: any }) {
+  if (!isHrManager(input.actorRole)) {
+    return { status: "unauthorized" as const };
+  }
+
+  const data = input.body;
+  if (!data.id) {
+    return { status: "missing_id" as const };
+  }
+
+  const target = await findEmployeeRole(data.id);
+  if (!target) {
+    return { status: "not_found" as const };
+  }
+
+  if (!canManageSuperAdmin(input.actorRole) && target.role === "super_admin") {
+    return { status: "super_admin_edit_forbidden" as const };
+  }
+
+  if (!canManageSuperAdmin(input.actorRole) && data.role === "super_admin") {
+    return { status: "super_admin_grant_forbidden" as const };
+  }
+
+  const userData: any = {};
+  if (data.name !== undefined) userData.name = data.name;
+  if (data.role !== undefined) userData.role = data.role;
+  if (data.phone !== undefined) userData.phone = data.phone || null;
+  if (data.status !== undefined) userData.status = data.status;
+  if (data.level !== undefined) userData.level = data.level;
+  if (data.company !== undefined) userData.company = data.company || null;
+  if (data.directManagerId !== undefined) userData.directManagerId = data.directManagerId || null;
+
+  const updated = await updateEmployeeUser({ id: data.id, data: userData });
+
+  const hrData: any = {};
+  if (data.baseSalary !== undefined) hrData.baseSalary = Number(data.baseSalary) || 0;
+  if (data.monthlyTarget !== undefined) hrData.monthlyTarget = Number(data.monthlyTarget) || 0;
+  if (data.level !== undefined) hrData.level = data.level;
+
+  if (Object.keys(hrData).length > 0) {
+    await upsertEmployeeHrRecord({
+      userId: data.id,
+      data: hrData,
+      fallbackLevel: updated.level,
+    });
+  }
+
+  return { status: "ok" as const, user: updated };
 }
 
 export function listLeaveRequests(input: { userId: string; userRole?: string | null }) {

@@ -1,38 +1,21 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import bcrypt from "bcryptjs";
+import { getSessionUser } from "@/server/auth/session";
+import { errorJson, successJson } from "@/server/http/responses";
+import { createEmployee, listEmployees, updateEmployee } from "@/server/services/hrService";
 
-function isHrManager(role?: string) {
+function isHrManager(role?: string | null) {
   return role === "hr_manager" || role === "super_admin";
 }
 
-function canManageSuperAdmin(actorRole?: string) {
-  return actorRole === "super_admin";
-}
-
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user?.role !== "hr_manager" && session.user?.role !== "super_admin")) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await getSessionUser();
+  if (!isHrManager(user?.role)) {
+    return errorJson("Unauthorized", 401);
   }
 
   try {
-    const employees = await prisma.user.findMany({
-      include: {
-        hrRecord: true,
-        attendances: {
-          take: 5,
-          orderBy: { date: "desc" }
-        }
-      },
-      orderBy: { createdAt: "desc" }
-    });
-
-    return NextResponse.json({ employees });
+    return successJson({ employees: await listEmployees() });
   } catch (error) {
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return errorJson("Server error", 500);
   }
 }
 
@@ -42,78 +25,30 @@ export async function GET(req: Request) {
  * the financial/performance fields (baseSalary, monthlyTarget, level).
  */
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  const actorRole = (session?.user as any)?.role;
-  if (!isHrManager(actorRole)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const actor = await getSessionUser();
 
   try {
-    const data = await req.json();
-    if (!data.name || !data.email || !data.password || !data.role) {
-      return NextResponse.json({ error: "Name, email, password and role are required" }, { status: 400 });
-    }
-
-    if (data.role === "super_admin" && !canManageSuperAdmin(actorRole)) {
-      return NextResponse.json({ error: "Only super_admin can create another super_admin" }, { status: 403 });
-    }
-
-    const orClauses: Array<Record<string, string>> = [{ email: data.email }];
-    if (data.phone) orClauses.push({ phone: data.phone });
-    const existing = await prisma.user.findFirst({ where: { OR: orClauses } });
-    if (existing) {
-      const conflict = existing.email === data.email ? "email" : "phone";
-      return NextResponse.json({ error: `A user with this ${conflict} already exists` }, { status: 400 });
-    }
-
-    const level = data.level || "Junior";
-    const baseSalary = Number(data.baseSalary) || 0;
-    const monthlyTarget = Number(data.monthlyTarget) || 0;
-    const hashedPassword = await bcrypt.hash(data.password, 10);
-
-    const user = await prisma.$transaction(async (tx) => {
-      const created = await tx.user.create({
-        data: {
-          name: data.name,
-          email: data.email,
-          phone: data.phone || null,
-          passwordHash: hashedPassword,
-          role: data.role,
-          level,
-          company: data.company || null,
-          status: data.status || "Active",
-          directManagerId: data.directManagerId || null,
-        },
-        select: { id: true, name: true, email: true, role: true, level: true, status: true },
-      });
-
-      await tx.hrRecord.create({
-        data: {
-          userId: created.id,
-          baseSalary,
-          level,
-          monthlyTarget,
-          performanceHistory: "[]",
-        },
-      });
-
-      await tx.notification.create({
-        data: {
-          userId: created.id,
-          title: "Welcome to Thamara",
-          message: "Your account has been created. You can now sign in.",
-          link: "/dashboard",
-        },
-      });
-
-      return created;
+    const result = await createEmployee({
+      actorRole: actor?.role,
+      body: await req.json(),
     });
 
-    return NextResponse.json({ user }, { status: 201 });
+    if (result.status === "unauthorized") return errorJson("Unauthorized", 401);
+    if (result.status === "missing_fields") {
+      return errorJson("Name, email, password and role are required", 400);
+    }
+    if (result.status === "super_admin_create_forbidden") {
+      return errorJson("Only super_admin can create another super_admin", 403);
+    }
+    if (result.status === "conflict") {
+      return errorJson(`A user with this ${result.conflict} already exists`, 400);
+    }
+
+    return successJson({ user: result.user }, 201);
   } catch (error: any) {
     console.error("Error creating employee:", error);
     const msg = error?.code === "P2002" ? "A user with this email or phone already exists" : "Internal Server Error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return errorJson(msg, 500);
   }
 }
 
@@ -123,72 +58,27 @@ export async function POST(req: Request) {
  * Also used for the Active/Inactive toggle.
  */
 export async function PATCH(req: Request) {
-  const session = await getServerSession(authOptions);
-  const actorRole = (session?.user as any)?.role;
-  if (!isHrManager(actorRole)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const actor = await getSessionUser();
 
   try {
-    const data = await req.json();
-    if (!data.id) {
-      return NextResponse.json({ error: "Employee id is required" }, { status: 400 });
-    }
-
-    const target = await prisma.user.findUnique({
-      where: { id: data.id },
-      select: { role: true },
-    });
-    if (!target) {
-      return NextResponse.json({ error: "Employee not found" }, { status: 404 });
-    }
-
-    if (!canManageSuperAdmin(actorRole) && target.role === "super_admin") {
-      return NextResponse.json({ error: "HR cannot edit super_admin users" }, { status: 403 });
-    }
-
-    if (!canManageSuperAdmin(actorRole) && data.role === "super_admin") {
-      return NextResponse.json({ error: "Only super_admin can grant super_admin role" }, { status: 403 });
-    }
-
-    const userData: any = {};
-    if (data.name !== undefined) userData.name = data.name;
-    if (data.role !== undefined) userData.role = data.role;
-    if (data.phone !== undefined) userData.phone = data.phone || null;
-    if (data.status !== undefined) userData.status = data.status;
-    if (data.level !== undefined) userData.level = data.level;
-    if (data.company !== undefined) userData.company = data.company || null;
-    if (data.directManagerId !== undefined) userData.directManagerId = data.directManagerId || null;
-
-    const updated = await prisma.user.update({
-      where: { id: data.id },
-      data: userData,
-      select: { id: true, name: true, role: true, status: true, level: true },
+    const result = await updateEmployee({
+      actorRole: actor?.role,
+      body: await req.json(),
     });
 
-    // Sync HrRecord fields if any were provided
-    const hrData: any = {};
-    if (data.baseSalary !== undefined) hrData.baseSalary = Number(data.baseSalary) || 0;
-    if (data.monthlyTarget !== undefined) hrData.monthlyTarget = Number(data.monthlyTarget) || 0;
-    if (data.level !== undefined) hrData.level = data.level;
-
-    if (Object.keys(hrData).length > 0) {
-      await prisma.hrRecord.upsert({
-        where: { userId: data.id },
-        update: hrData,
-        create: {
-          userId: data.id,
-          baseSalary: hrData.baseSalary || 0,
-          level: hrData.level || updated.level || "Junior",
-          monthlyTarget: hrData.monthlyTarget || 0,
-          performanceHistory: "[]",
-        },
-      });
+    if (result.status === "unauthorized") return errorJson("Unauthorized", 401);
+    if (result.status === "missing_id") return errorJson("Employee id is required", 400);
+    if (result.status === "not_found") return errorJson("Employee not found", 404);
+    if (result.status === "super_admin_edit_forbidden") {
+      return errorJson("HR cannot edit super_admin users", 403);
+    }
+    if (result.status === "super_admin_grant_forbidden") {
+      return errorJson("Only super_admin can grant super_admin role", 403);
     }
 
-    return NextResponse.json({ user: updated });
+    return successJson({ user: result.user });
   } catch (error: any) {
     console.error("Error updating employee:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return errorJson("Internal Server Error", 500);
   }
 }
