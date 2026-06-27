@@ -219,8 +219,8 @@ npm run build
 - [x] R0335 Finance routes.
 - [x] R0336 HR routes.
 - [x] R0337 Analytics routes.
-- [ ] R0338 Leads/deals routes بعد تثبيت كل ما سبق.
-- [ ] R0339 Sales/TeleSales touched only through shared service calls, no UI rewrite.
+- [x] R0338 Leads/deals routes بعد تثبيت كل ما سبق.
+- [x] R0339 Sales/TeleSales touched only through shared service calls, no UI rewrite.
 
 **لا ننتقل من cluster للتالي إلا إذا**: route files أصبحت رفيعة، نفس API contract محفوظ، وtypecheck/test/build أو narrow tests تمر.
 

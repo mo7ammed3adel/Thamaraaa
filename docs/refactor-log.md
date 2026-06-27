@@ -564,6 +564,26 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Lead Import Boundary
+
+Scope:
+
+- Migrated Excel lead import parsing, column mapping, deduplication, auto-assignment, row-level validation, and assignment notifications into `src/server/services/leadService.ts`.
+- Extended `src/server/repositories/leadRepository.ts` with import-specific persistence helpers.
+- Reduced `/api/leads/import` to auth, form parsing, service call, and response shaping.
+- Hardened explicit import assignment so TeleSales managers can only import to active agents in their own team, while super admins can import to any active TeleSales agent.
+
+Smell -> principle -> fix:
+
+- The import route mixed file parsing, row normalization, deduplication, assignment, persistence, and notification side effects -> SRP / least privilege -> moved import workflow into the service and added manager-scoped assignee validation.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+- `npm run lint`: passed with the same baseline React hook dependency warnings.
+- `npm run build`: passed.
+
 ## 2026-06-27 - Phase 3 Slice: Lead Bulk and Distribution Boundary
 
 Scope:

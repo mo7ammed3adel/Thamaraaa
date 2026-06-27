@@ -169,3 +169,34 @@ export function deleteDraftLeads(input: { leadIds: string[]; draftScope: any }) 
     },
   });
 }
+
+export function findExistingLeadPhones() {
+  return prisma.lead.findMany({
+    select: { phone: true },
+  });
+}
+
+export function findActiveTeleSalesAgents() {
+  return prisma.user.findMany({
+    where: { role: "tele_sales_agent", status: "Active" },
+    select: { id: true, specialization: true },
+  });
+}
+
+export function createImportedLead(input: {
+  name: string;
+  phone: string;
+  source: string | null;
+  nationality: string | null;
+  gender: string | null;
+  customerType: string | null;
+  storeLink: string | null;
+  hasStore: boolean;
+  classification: string;
+  status: string;
+  assignedTeleAgentId: string | null;
+}) {
+  return prisma.lead.create({
+    data: input,
+  });
+}

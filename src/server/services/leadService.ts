@@ -2,12 +2,16 @@ import { resolveManualLeadAssigneeId } from "@/lib/manualLeadAssignment";
 import { autoAssignLead } from "@/lib/autoAssign";
 import { canManuallyDistributeMeeting } from "@/lib/meetingDistribution";
 import { normalizeWebUrl } from "@/lib/safe-url";
+import * as XLSX from "xlsx";
 import {
   createLeadCallLog,
   createLeadNotification,
+  createImportedLead,
   createManualLeadRecord,
   deleteLeadRecord,
   deleteDraftLeads,
+  findActiveTeleSalesAgents,
+  findExistingLeadPhones,
   findActiveLeadPhones,
   findDistributedLead,
   findDraftLeadsForBulk,
@@ -27,6 +31,68 @@ type LeadUser = {
   role: string;
   name?: string | null;
 };
+
+const IMPORT_COLUMN_MAP: Record<string, string> = {
+  name: "name",
+  "الاسم": "name",
+  "اسم العميل": "name",
+  "client name": "name",
+  "customer name": "name",
+  "full name": "name",
+  "lead name": "name",
+  phone: "phone",
+  "الهاتف": "phone",
+  "رقم الهاتف": "phone",
+  mobile: "phone",
+  "الموبايل": "phone",
+  "phone number": "phone",
+  "رقم الموبايل": "phone",
+  tel: "phone",
+  source: "source",
+  "المصدر": "source",
+  campaign: "source",
+  "الحملة": "source",
+  "ad source": "source",
+  "مصدر الحملة": "source",
+  classification: "classification",
+  "التصنيف": "classification",
+  type: "classification",
+  "النوع": "classification",
+  "lead type": "classification",
+  nationality: "nationality",
+  "الجنسية": "nationality",
+  gender: "gender",
+  "الجنس": "gender",
+  "النوع الاجتماعي": "gender",
+  "customer type": "customerType",
+  "نوع العميل": "customerType",
+  customer_type: "customerType",
+  "store link": "storeLink",
+  "رابط المتجر": "storeLink",
+  "store url": "storeLink",
+  store_link: "storeLink",
+};
+
+function normalizeImportHeader(header: string) {
+  return header.trim().toLowerCase().replace(/[_\-]+/g, " ");
+}
+
+function cleanImportPhone(raw: unknown) {
+  if (!raw) return "";
+  return String(raw).replace(/[^\d+]/g, "").trim();
+}
+
+function normalizeImportClassification(value: string) {
+  const map: Record<string, string> = {
+    hot: "Hot",
+    warm: "Warm",
+    cold: "Cold",
+    ساخن: "Hot",
+    دافئ: "Warm",
+    بارد: "Cold",
+  };
+  return map[value.toLowerCase()] || "Cold";
+}
 
 export async function createManualLead(input: { user: LeadUser; body: any }) {
   const { name, phone, storeLink, niche, classification, assignedTeleAgentId, status } = input.body;
@@ -393,4 +459,170 @@ export async function bulkDeleteLeads(input: { user: LeadUser; body: any }) {
   });
 
   return { status: "ok" as const, deletedCount: result.count };
+}
+
+export async function importLeadsFromExcel(input: {
+  user: LeadUser;
+  file: File | null;
+  assignToAgentId: string | null;
+}) {
+  if (!input.file) {
+    return { status: "no_file" as const };
+  }
+
+  if (input.assignToAgentId) {
+    const targetAgent = await findLeadAssigneeForManualCreate(input.assignToAgentId);
+    const invalidForSuperAdmin =
+      input.user.role === "super_admin" &&
+      (!targetAgent || targetAgent.role !== "tele_sales_agent" || targetAgent.status !== "Active");
+    const invalidForManager =
+      input.user.role === "tele_sales_manager" &&
+      (!targetAgent ||
+        targetAgent.role !== "tele_sales_agent" ||
+        targetAgent.status !== "Active" ||
+        targetAgent.directManagerId !== input.user.id);
+
+    if (invalidForSuperAdmin || invalidForManager) {
+      return { status: "invalid_tele_assignee" as const };
+    }
+  }
+
+  const arrayBuffer = await input.file.arrayBuffer();
+  const workbook = XLSX.read(arrayBuffer, { type: "array" });
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  const rawRows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+  if (rawRows.length === 0) {
+    return { status: "empty_file" as const };
+  }
+
+  const excelHeaders = Object.keys(rawRows[0]);
+  const fieldMapping: Record<string, string> = {};
+  for (const header of excelHeaders) {
+    const normalized = normalizeImportHeader(header);
+    if (IMPORT_COLUMN_MAP[normalized]) {
+      fieldMapping[header] = IMPORT_COLUMN_MAP[normalized];
+    }
+  }
+
+  const mappedFields = Object.values(fieldMapping);
+  if (!mappedFields.includes("name") || !mappedFields.includes("phone")) {
+    return { status: "missing_required_columns" as const, detectedHeaders: excelHeaders };
+  }
+
+  const existingLeads = await findExistingLeadPhones();
+  const existingPhones = new Set(existingLeads.map((lead) => lead.phone));
+
+  let hotAgents: { id: string; specialization: string | null }[] = [];
+  let coldAgents: { id: string; specialization: string | null }[] = [];
+  let hotIndex = 0;
+  let coldIndex = 0;
+
+  if (!input.assignToAgentId) {
+    const allAgents = await findActiveTeleSalesAgents();
+    hotAgents = allAgents.filter((agent) => agent.specialization === "Hot");
+    coldAgents = allAgents.filter(
+      (agent) => agent.specialization === "Cold" || agent.specialization === "Warm" || !agent.specialization
+    );
+    if (hotAgents.length === 0) hotAgents = [...coldAgents];
+    if (coldAgents.length === 0) coldAgents = [...hotAgents];
+  }
+
+  let imported = 0;
+  let skipped = 0;
+  const errors: string[] = [];
+  const agentAssignCounts: Record<string, number> = {};
+
+  for (let i = 0; i < rawRows.length; i++) {
+    const row = rawRows[i];
+    const rowNum = i + 2;
+
+    try {
+      const mapped: Record<string, string> = {};
+      for (const [excelColumn, fieldName] of Object.entries(fieldMapping)) {
+        mapped[fieldName] = String(row[excelColumn] ?? "").trim();
+      }
+
+      const name = mapped.name;
+      const phone = cleanImportPhone(mapped.phone);
+      if (!name || !phone) {
+        errors.push(`Row ${rowNum}: Missing name or phone`);
+        continue;
+      }
+
+      if (existingPhones.has(phone)) {
+        skipped++;
+        continue;
+      }
+
+      const classification = mapped.classification ? normalizeImportClassification(mapped.classification) : "Cold";
+      let finalAgentId = input.assignToAgentId;
+
+      if (!finalAgentId) {
+        if (classification === "Hot" && hotAgents.length > 0) {
+          finalAgentId = hotAgents[hotIndex % hotAgents.length].id;
+          hotIndex++;
+        } else if (coldAgents.length > 0) {
+          finalAgentId = coldAgents[coldIndex % coldAgents.length].id;
+          coldIndex++;
+        }
+      }
+
+      const safeStoreLink = mapped.storeLink ? normalizeWebUrl(mapped.storeLink) : null;
+      if (mapped.storeLink && !safeStoreLink) {
+        errors.push(`Row ${rowNum}: invalid store link`);
+        continue;
+      }
+
+      await createImportedLead({
+        name,
+        phone,
+        source: mapped.source || null,
+        nationality: mapped.nationality || null,
+        gender: mapped.gender || null,
+        customerType: mapped.customerType || null,
+        storeLink: safeStoreLink,
+        hasStore: !!safeStoreLink,
+        classification,
+        status: "New",
+        assignedTeleAgentId: finalAgentId || null,
+      });
+
+      if (finalAgentId && !input.assignToAgentId) {
+        agentAssignCounts[finalAgentId] = (agentAssignCounts[finalAgentId] || 0) + 1;
+      }
+
+      existingPhones.add(phone);
+      imported++;
+    } catch (rowError) {
+      errors.push(`Row ${rowNum}: ${(rowError as Error).message}`);
+    }
+  }
+
+  if (input.assignToAgentId && imported > 0) {
+    await createLeadNotification({
+      userId: input.assignToAgentId,
+      title: "New Leads Assigned",
+      message: `You have been assigned ${imported} new leads from the latest Excel import.`,
+      link: "/dashboard/telesales",
+    });
+  } else if (!input.assignToAgentId && Object.keys(agentAssignCounts).length > 0) {
+    for (const [agentId, count] of Object.entries(agentAssignCounts)) {
+      await createLeadNotification({
+        userId: agentId,
+        title: "New Leads Auto-Assigned",
+        message: `You have been automatically assigned ${count} new leads from the latest Excel import.`,
+        link: "/dashboard/telesales",
+      });
+    }
+  }
+
+  return {
+    status: "ok" as const,
+    imported,
+    skipped,
+    totalRows: rawRows.length,
+    errors: errors.slice(0, 20),
+  };
 }
