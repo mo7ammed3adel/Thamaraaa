@@ -76,6 +76,24 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
+
+Scope:
+
+- Added `src/server/repositories/projectRepository.ts`.
+- Added `src/server/services/projectLifecycleService.ts`.
+- Reduced `/api/projects/lifecycle` to request parsing, service call, and response mapping.
+- Left project status/setup routes for later slices.
+
+Smell -> principle -> fix:
+
+- Lifecycle route mixed state-machine policy, persistence, audit logging, and realtime notification -> service/repository boundary -> moved lifecycle workflow into `projectLifecycleService`.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Notes Service Boundary
 
 Scope:

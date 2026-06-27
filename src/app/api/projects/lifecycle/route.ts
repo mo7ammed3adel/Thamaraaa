@@ -1,9 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { validateLifecycleTransition, canChangeLifecycle } from "@/lib/lifecycle";
-import { safeTrigger } from "@/lib/pusher";
+import { NextRequest } from "next/server";
+import { getSessionUser } from "@/server/auth/session";
+import { errorJson, successJson, unauthorizedJson } from "@/server/http/responses";
+import { changeProjectLifecycle } from "@/server/services/projectLifecycleService";
 
 /**
  * PATCH /api/projects/lifecycle
@@ -13,84 +11,39 @@ import { safeTrigger } from "@/lib/pusher";
  */
 export async function PATCH(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const user = session.user as { id: string; role: string; name: string };
+    const user = await getSessionUser();
+    if (!user) return unauthorizedJson();
 
     const body = await req.json();
     const { projectId, newState } = body;
 
     if (!projectId || !newState) {
-      return NextResponse.json(
-        { error: "projectId and newState are required" },
-        { status: 400 }
-      );
+      return errorJson("projectId and newState are required", 400);
     }
 
-    // Fetch the project with current lifecycle state
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { id: true, lifecycleState: true, accountManagerId: true },
-    });
-
-    if (!project) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
-    }
-
-    // Authorization check
-    if (!canChangeLifecycle(user.role, user.id, project.accountManagerId)) {
-      return NextResponse.json(
-        { error: "You are not authorized to change this project's lifecycle state" },
-        { status: 403 }
-      );
-    }
-
-    // State machine validation
-    const validation = validateLifecycleTransition(project.lifecycleState, newState);
-    if (!validation.valid) {
-      return NextResponse.json({ error: validation.error }, { status: 422 });
-    }
-
-    // Perform the update + audit log in a transaction
-    const [updatedProject] = await prisma.$transaction([
-      prisma.project.update({
-        where: { id: projectId },
-        data: { lifecycleState: newState },
-      }),
-      prisma.projectLog.create({
-        data: {
-          projectId,
-          action: "lifecycle_changed",
-          details: JSON.stringify({
-            from: project.lifecycleState,
-            to: newState,
-            changedBy: user.name,
-            changedByRole: user.role,
-          }),
-          userId: user.id,
-        },
-      }),
-    ]);
-
-    // Trigger real-time notification
-    await safeTrigger("projects-channel", "lifecycle-changed", {
+    const result = await changeProjectLifecycle({
       projectId,
       newState,
-      changedBy: user.name,
+      userId: user.id,
+      userRole: user.role as string,
+      userName: user.name as string,
     });
 
-    return NextResponse.json({
+    if (result.status === "not_found") return errorJson("Project not found", 404);
+    if (result.status === "forbidden") {
+      return errorJson("You are not authorized to change this project's lifecycle state", 403);
+    }
+    if (result.status === "invalid_transition") return errorJson(result.error || "Invalid transition", 422);
+
+    return successJson({
       success: true,
       project: {
-        id: updatedProject.id,
-        lifecycleState: updatedProject.lifecycleState,
+        id: result.project.id,
+        lifecycleState: result.project.lifecycleState,
       },
     });
   } catch (error: unknown) {
     console.error("Lifecycle update error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return errorJson("Internal server error", 500);
   }
 }
