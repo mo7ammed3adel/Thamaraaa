@@ -6,8 +6,11 @@ import {
   findEmployeeDocuments,
   findAllLeaveRequests,
   findFirstHrManager,
+  findJobApplicants,
   findLeaveRequestsForUser,
+  createJobApplicant,
   updateLeaveRequestDecision,
+  updateJobApplicant,
 } from "@/server/repositories/hrRepository";
 import { normalizeWebUrl } from "@/lib/safe-url";
 
@@ -110,4 +113,26 @@ export async function uploadEmployeeDocument(input: {
 export async function removeEmployeeDocument(id: string) {
   await deleteEmployeeDocument(id);
   return { success: true };
+}
+
+export function listJobApplicants() {
+  return findJobApplicants();
+}
+
+export function addJobApplicant(body: any) {
+  return createJobApplicant({
+    name: body.name,
+    email: body.email,
+    phone: body.phone,
+    roleApplied: body.roleApplied,
+    notes: body.notes || null,
+  });
+}
+
+export function editJobApplicant(id: string, body: any) {
+  const updateData: any = {};
+  if (body.status !== undefined) updateData.status = body.status;
+  if (body.notes !== undefined) updateData.notes = body.notes;
+
+  return updateJobApplicant(id, updateData);
 }

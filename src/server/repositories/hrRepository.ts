@@ -70,3 +70,32 @@ export function createEmployeeDocument(input: { userId: string; name: string; fi
 export function deleteEmployeeDocument(id: string) {
   return prisma.employeeDocument.delete({ where: { id } });
 }
+
+export function findJobApplicants() {
+  return prisma.jobApplicant.findMany({
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export function createJobApplicant(data: {
+  name: string;
+  email: string;
+  phone: string;
+  roleApplied: string;
+  notes?: string | null;
+}) {
+  return prisma.jobApplicant.create({
+    data: {
+      ...data,
+      notes: data.notes || null,
+      status: "New",
+    },
+  });
+}
+
+export function updateJobApplicant(id: string, data: any) {
+  return prisma.jobApplicant.update({
+    where: { id },
+    data,
+  });
+}

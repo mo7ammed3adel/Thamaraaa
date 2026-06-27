@@ -427,6 +427,22 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: HR Applicants Boundary
+
+Scope:
+
+- Moved `/api/hr/applicants` list/create and `/api/hr/applicants/[id]` update workflows into `hrService` and `hrRepository`.
+- Preserved HR authorization, response shapes/status codes, and current validation behavior.
+
+Smell -> principle -> fix:
+
+- Applicant routes mixed HR access checks with Prisma CRUD -> controller-service-repository boundary -> routes now map HR applicant service calls to HTTP.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
 
 Scope:
