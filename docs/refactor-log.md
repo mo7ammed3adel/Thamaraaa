@@ -182,6 +182,22 @@ Behavior preserved by:
 
 - `npx tsc --noEmit`: passed.
 
+## 2026-06-27 - Phase 5 Slice: Client Journey Tasks Tab
+
+Scope:
+
+- Extracted task creation, task filters, task assignment controls, status buttons, progress controls, and subtasks rendering into `ClientTasksTab`.
+- Added typed task and team-member props without introducing new `any` usage in the extracted component.
+- Kept the parent page as the owner of state and handlers so workflow behavior remains unchanged.
+
+Smell -> principle -> fix:
+
+- `ClientFullJourneyClient.tsx` embedded a large task-management view inline -> component decomposition / state lifted to orchestrator -> moved task UI into a focused tab component while passing existing handlers through props.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+
 ## 2026-06-27 - Phase 3 Slice: Project Status Boundary
 
 Scope:

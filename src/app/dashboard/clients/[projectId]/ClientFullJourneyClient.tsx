@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import ProjectLogsPanel from "@/components/ProjectLogsPanel";
 import { buildClientJourneyTimeline } from "@/lib/clientJourneyTimeline";
+import ClientTasksTab from "./ClientTasksTab";
 import ClientTimelineTab from "./ClientTimelineTab";
 
 const TABS = [
@@ -508,298 +509,33 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
 
       {/* ═══ SECTION 5: Tasks ═══ */}
       {activeTab === "tasks" && (
-        <div className="space-y-4">
-          <div className="bg-white rounded-xl border shadow-sm p-6">
-            <h2 className="text-lg font-bold text-slate-800 mb-3">Assign New Task</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
-              <select value={newTaskType} onChange={(e) => setNewTaskType(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white">
-                <option value="seo">SEO</option>
-                <option value="content_seo">Content SEO</option>
-                <option value="social_media">Social Media</option>
-                <option value="media_buyer">Media Buyer</option>
-                <option value="graphic_design">Graphic Design</option>
-                <option value="motion_graphic">Motion Graphic</option>
-                <option value="ui_design">UI/UX Design</option>
-                <option value="technical">Technical (Web)</option>
-              </select>
-              <select value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white">
-                <option value="Low">Low Priority</option>
-                <option value="Medium">Medium Priority</option>
-                <option value="High">High Priority</option>
-              </select>
-              <input type="date" value={newTaskDeadline} onChange={(e) => setNewTaskDeadline(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white" />
-            </div>
-            <div className="space-y-3">
-              <textarea value={newTaskBrief} onChange={(e) => setNewTaskBrief(e.target.value)} placeholder="Task details and instructions..." className="w-full border rounded-lg px-3 py-2 text-sm resize-none h-20" />
-              <div className="flex gap-3">
-                <div className="flex-1 relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔗</div>
-                  <input
-                    type="url"
-                    value={newTaskLink}
-                    onChange={(e) => setNewTaskLink(e.target.value)}
-                    placeholder="Paste link here (Google Drive, Sheets, etc.)..."
-                    className="w-full border rounded-lg pl-8 pr-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition"
-                  />
-                </div>
-                <button onClick={handleCreateTask} disabled={!newTaskBrief.trim() || creatingTask} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition whitespace-nowrap">
-                  {creatingTask ? "Sending..." : "Create Task"}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl border shadow-sm p-6">
-            <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-              <h2 className="text-lg font-bold text-slate-800">Tasks & Tracking</h2>
-              <span className="text-xs text-slate-400 font-medium">
-                {(() => {
-                  const filtered = (project.tasks || []).filter((t: any) => {
-                    if (taskFilterTeam !== "all" && t.taskType !== taskFilterTeam) return false;
-                    if (taskFilterStatus !== "all" && t.status !== taskFilterStatus) return false;
-                    if (taskFilterCreator !== "all" && t.leaderId !== taskFilterCreator) return false;
-                    return true;
-                  });
-                  return `Showing ${filtered.length} of ${project.tasks?.length || 0} tasks`;
-                })()}
-              </span>
-            </div>
-
-            {/* ── Filter Bar ── */}
-            <div className="flex flex-wrap gap-3 mb-5 p-3 bg-slate-50 rounded-xl border border-slate-100">
-              {/* Team Filter */}
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Team</label>
-                <select
-                  value={taskFilterTeam}
-                  onChange={(e) => setTaskFilterTeam(e.target.value)}
-                  className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-white min-w-[140px] focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition"
-                >
-                  <option value="all">All Teams</option>
-                  <option value="seo">SEO</option>
-                  <option value="content_seo">Content SEO</option>
-                  <option value="social_media">Social Media</option>
-                  <option value="media_buyer">Media Buyer</option>
-                  <option value="graphic_design">Graphic Design</option>
-                  <option value="motion_graphic">Motion Graphic</option>
-                  <option value="ui_design">UI/UX Design</option>
-                  <option value="technical">Technical (Web)</option>
-                </select>
-              </div>
-
-              {/* Status Filter */}
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Status</label>
-                <select
-                  value={taskFilterStatus}
-                  onChange={(e) => setTaskFilterStatus(e.target.value)}
-                  className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-white min-w-[130px] focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition"
-                >
-                  <option value="all">All Statuses</option>
-                  <option value="pending">Pending</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="review">In Review</option>
-                  <option value="done">Done</option>
-                </select>
-              </div>
-
-              {/* Creator Filter */}
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Assigned By</label>
-                <select
-                  value={taskFilterCreator}
-                  onChange={(e) => setTaskFilterCreator(e.target.value)}
-                  className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-white min-w-[140px] focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition"
-                >
-                  <option value="all">All Creators</option>
-                  {/* Build unique creators from tasks */}
-                  {Array.from(
-                    new Map(
-                      (project.tasks || []).filter((t: any) => t.leader).map((t: any) => [t.leaderId, t.leader.name])
-                    ).entries()
-                  ).map(([id, name]: any) => (
-                    <option key={id} value={id}>{name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Reset */}
-              {(taskFilterTeam !== "all" || taskFilterStatus !== "all" || taskFilterCreator !== "all") && (
-                <div className="flex items-end">
-                  <button
-                    onClick={() => { setTaskFilterTeam("all"); setTaskFilterStatus("all"); setTaskFilterCreator("all"); }}
-                    className="px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition"
-                  >
-                    ✕ Reset Filters
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {project.tasks?.length === 0 ? (
-            <p className="text-sm text-slate-400 italic py-4">No tasks created yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {project.tasks
-                .filter((t: any) => {
-                  if (taskFilterTeam !== "all" && t.taskType !== taskFilterTeam) return false;
-                  if (taskFilterStatus !== "all" && t.status !== taskFilterStatus) return false;
-                  if (taskFilterCreator !== "all" && t.leaderId !== taskFilterCreator) return false;
-                  return true;
-                })
-                .map((t: any) => {
-                const isTaskLeader = t.leaderId === userId;
-                const taskCanAssignLeader = isAdmin;
-                const taskCanAssignAgent = isAdmin || isTaskLeader;
-
-                // ── Task-type to department role mapping ──
-                const taskTypeRoleMap: Record<string, { leaders: string[]; agents: string[] }> = {
-                  "SEO": { leaders: ["team_leader_seo"], agents: ["agent_seo", "agent_content_seo"] },
-                  "seo": { leaders: ["team_leader_seo"], agents: ["agent_seo", "agent_content_seo"] },
-                  "content_seo": { leaders: ["team_leader_seo"], agents: ["agent_seo", "agent_content_seo"] },
-                  "Social_Media": { leaders: ["team_leader_social_media"], agents: ["agent_social_media"] },
-                  "social_media": { leaders: ["team_leader_social_media"], agents: ["agent_social_media"] },
-                  "Media_Buyer": { leaders: ["team_leader_media_buyer"], agents: ["agent_media_buyer"] },
-                  "media_buyer": { leaders: ["team_leader_media_buyer"], agents: ["agent_media_buyer"] },
-                  "media_buying": { leaders: ["team_leader_media_buyer"], agents: ["agent_media_buyer"] },
-                  "graphic_design": { leaders: ["leader_graphic_designer"], agents: ["agent_graphic_designer"] },
-                  "motion_graphic": { leaders: ["leader_motion_graphic"], agents: ["agent_motion_graphic"] },
-                  "ui_design": { leaders: ["leader_ui"], agents: ["agent_ui"] },
-                  "technical": { leaders: ["head_technical"], agents: ["agent_technical"] },
-                };
-                const ttRoles = taskTypeRoleMap[t.taskType] || { leaders: [], agents: [] };
-                const taskLeaders = teamMembers?.filter((u: any) => ttRoles.leaders.includes(u.role)) || [];
-                const taskAgents = teamMembers?.filter((u: any) => ttRoles.agents.includes(u.role)) || [];
-
-                const canUpdateTask = isAdmin || isTaskLeader || t.agentId === userId;
-                const isSelfManaged = t.leaderId && t.agentId && t.leaderId === t.agentId;
-
-                return (
-                 <div key={t.id} className="border rounded-lg p-4 hover:shadow-sm transition">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-slate-800 capitalize">{t.taskType.replace(/_/g, " ")}</span>
-                      <span className={`px-2 py-0.5 text-xs font-bold rounded ${t.status === "done" ? "bg-emerald-100 text-emerald-700" : t.status === "in_progress" ? "bg-amber-100 text-amber-700" : t.status === "review" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"}`}>{t.status}</span>
-                      <span className={`px-2 py-0.5 text-xs font-medium rounded ${t.priority === "High" ? "bg-red-100 text-red-700" : t.priority === "Low" ? "bg-slate-100 text-slate-500" : "bg-amber-100 text-amber-600"}`}>{t.priority}</span>
-                      {isSelfManaged && (
-                         <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-50 text-emerald-600 border border-emerald-200 uppercase tracking-wide">🔓 Self-Managed</span>
-                       )}
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs text-slate-400">
-                        Created: {new Date(t.createdAt).toLocaleDateString()} {t.completedAt && `• Completed: ${new Date(t.completedAt).toLocaleDateString()}`}
-                      </span>
-                      {/* ── Status Buttons ── */}
-                      {canUpdateTask && t.status !== "done" && (
-                        <div className="flex gap-1">
-                          {t.status === "pending" && (
-                            <button onClick={() => handleUpdateStatus(t.id, "in_progress")} className="px-3 py-1 bg-amber-100 text-amber-700 rounded-lg text-xs font-bold hover:bg-amber-200 transition">▶ Start</button>
-                          )}
-                          {t.status === "in_progress" && (
-                            <button onClick={() => handleUpdateStatus(t.id, "review")} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-bold hover:bg-blue-200 transition">📋 Review</button>
-                          )}
-                          {t.status === "review" && (
-                            <button onClick={() => handleUpdateStatus(t.id, "done")} className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold hover:bg-emerald-200 transition">✓ Done</button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex gap-6 mt-2 text-xs text-slate-500 flex-wrap items-center">
-                    <span className="flex items-center gap-2">
-                      Assigned By: 
-                      {taskCanAssignLeader ? (
-                        <select 
-                          onChange={(e) => handleAssignUser(t.id, "leaderId", e.target.value)}
-                          className="bg-slate-50 border rounded px-1 py-0.5 max-w-[120px]"
-                          defaultValue=""
-                        >
-                          <option value="" disabled>{t.leader?.name || "Unassigned"}</option>
-                          {taskLeaders.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
-                        </select>
-                      ) : (
-                        <strong>{t.leader?.name || "—"}</strong>
-                      )}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      Assigned To: 
-                      {taskCanAssignAgent ? (
-                        <select 
-                          onChange={(e) => handleAssignUser(t.id, "agentId", e.target.value)}
-                          className="bg-slate-50 border rounded px-1 py-0.5 max-w-[120px]"
-                          defaultValue=""
-                        >
-                          <option value="" disabled>{t.agent?.name || "Unassigned"}</option>
-                          {taskAgents.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
-                        </select>
-                      ) : (
-                        <strong>{t.agent?.name || "Unassigned"}</strong>
-                      )}
-                    </span>
-                    {t.brief && <span>Brief: {t.brief}</span>}
-                    {t.taskLink && (
-                      <a href={t.taskLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 hover:underline font-medium">
-                        🔗 Link
-                      </a>
-                    )}
-                  </div>
-
-                  {/* ── Progress Slider ── */}
-                  {canUpdateTask && t.status !== "done" ? (
-                    <div className="mt-3 flex items-center gap-3">
-                      <span className="text-xs font-semibold text-slate-500 w-16">Progress</span>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        step="5"
-                        defaultValue={t.progressPct}
-                        onMouseUp={(e) => handleUpdateProgress(t.id, Number((e.target as HTMLInputElement).value))}
-                        onTouchEnd={(e) => handleUpdateProgress(t.id, Number((e.target as HTMLInputElement).value))}
-                        className="flex-1 h-2 accent-indigo-600 cursor-pointer"
-                      />
-                      <span className="text-xs font-bold text-indigo-600 w-10 text-right">{t.progressPct}%</span>
-                    </div>
-                  ) : (
-                    <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2">
-                      <div className="bg-indigo-500 h-1.5 rounded-full transition-all" style={{ width: `${t.progressPct}%` }} />
-                    </div>
-                  )}
-
-                  {t.subTasks?.length > 0 && (
-                    <div className="mt-2 pl-4 border-l-2 border-indigo-200 space-y-1">
-                      {t.subTasks.map((st: any) => (
-                        <div key={st.id} className="flex items-center justify-between text-xs text-slate-500 py-1">
-                          <span>↳ {st.taskType.replace(/_/g, " ")}: <strong>{st.status}</strong> ({st.progressPct}%)</span>
-                          <span>{st.agent?.name || "Unassigned"}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                 </div>
-                );
-              })}
-              {/* No results after filtering */}
-              {project.tasks.filter((t: any) => {
-                if (taskFilterTeam !== "all" && t.taskType !== taskFilterTeam) return false;
-                if (taskFilterStatus !== "all" && t.status !== taskFilterStatus) return false;
-                if (taskFilterCreator !== "all" && t.leaderId !== taskFilterCreator) return false;
-                return true;
-              }).length === 0 && (
-                <div className="text-center py-8">
-                  <p className="text-sm text-slate-400 italic">No tasks match the selected filters.</p>
-                  <button
-                    onClick={() => { setTaskFilterTeam("all"); setTaskFilterStatus("all"); setTaskFilterCreator("all"); }}
-                    className="mt-2 text-xs text-indigo-600 hover:underline font-medium"
-                  >
-                    Clear all filters
-                  </button>
-                </div>
-              )}
-            </div>
-            )}
-          </div>
-        </div>
+        <ClientTasksTab
+          project={project}
+          teamMembers={teamMembers}
+          userId={userId}
+          isAdmin={isAdmin}
+          newTaskType={newTaskType}
+          setNewTaskType={setNewTaskType}
+          newTaskBrief={newTaskBrief}
+          setNewTaskBrief={setNewTaskBrief}
+          newTaskPriority={newTaskPriority}
+          setNewTaskPriority={setNewTaskPriority}
+          newTaskDeadline={newTaskDeadline}
+          setNewTaskDeadline={setNewTaskDeadline}
+          newTaskLink={newTaskLink}
+          setNewTaskLink={setNewTaskLink}
+          creatingTask={creatingTask}
+          handleCreateTask={handleCreateTask}
+          taskFilterTeam={taskFilterTeam}
+          setTaskFilterTeam={setTaskFilterTeam}
+          taskFilterStatus={taskFilterStatus}
+          setTaskFilterStatus={setTaskFilterStatus}
+          taskFilterCreator={taskFilterCreator}
+          setTaskFilterCreator={setTaskFilterCreator}
+          handleAssignUser={handleAssignUser}
+          handleUpdateStatus={handleUpdateStatus}
+          handleUpdateProgress={handleUpdateProgress}
+        />
       )}
 
       {/* ═══ SECTION 6: Progress ═══ */}
