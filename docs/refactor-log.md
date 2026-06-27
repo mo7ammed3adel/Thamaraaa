@@ -76,6 +76,23 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Notification Service Boundary
+
+Scope:
+
+- Added `src/server/repositories/notificationRepository.ts`.
+- Added `src/server/services/notificationService.ts`.
+- Reduced notification routes to session lookup, service call, and response shaping.
+
+Smell -> principle -> fix:
+
+- Notification API routes mixed delivery with Prisma access -> controller/service/repository boundary -> moved queries to a repository and workflow ownership checks to a service.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 1 Slice: Shared Formatters
 
 Scope:
