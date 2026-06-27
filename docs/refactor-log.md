@@ -76,6 +76,24 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Warning Create Boundary
+
+Scope:
+
+- Moved warning creation, authorization, receipt creation, pusher delivery, and email delivery marking into `src/server/services/warningService.ts`.
+- Reduced POST `/api/warnings` to request parsing, service call, and response mapping.
+- Completed the warning service coverage for create/list/acknowledge/resolve flows.
+
+Smell -> principle -> fix:
+
+- `src/app/api/warnings/route.ts` handled business authorization, transaction orchestration, realtime delivery, and email side effects inline -> SRP / service boundary -> moved the workflow into `warningService`.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+- `npm run lint`: passed with the same pre-existing React hook dependency warnings recorded in the baseline.
+
 ## 2026-06-27 - Phase 3 Slice: Warning Resolve Boundary
 
 Scope:

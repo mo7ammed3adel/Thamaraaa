@@ -197,7 +197,7 @@ npm run build
 
 ### 3.3 Services by domain
 
-- [ ] R0320 إنشاء `src/server/services/warningService.ts` ونقل create/list/ack/resolve warning flows.
+- [x] R0320 إنشاء `src/server/services/warningService.ts` ونقل create/list/ack/resolve warning flows.
 - [ ] R0321 إنشاء `src/server/services/notificationService.ts` ونقل create/createMany/email fallback logic.
 - [ ] R0322 إنشاء `src/server/services/taskWorkflowService.ts` ونقل update/reassign/flag/generate task flows.
 - [ ] R0323 إنشاء `src/server/services/projectDistributionService.ts` ونقل project distribute/assign-agent/team-assignment flows.
