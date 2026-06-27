@@ -40,6 +40,21 @@ Behavior preserved by:
 
 - `npx tsc --noEmit`: passed.
 
+## 2026-06-27 - Phase 5 Slice: Head Account Manager KPI Grid
+
+Scope:
+
+- Extracted the Head Account Manager KPI cards into `HeadAccountManagerKpiGrid`.
+- Kept KPI ids, disabled average card behavior, labels, colors, and toggle semantics unchanged.
+
+Smell -> principle -> fix:
+
+- `HeadAccountManagerClient.tsx` mixed page composition with repeated KPI card rendering -> SRP / presentation component boundary -> moved KPI rendering into a focused child component.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+
 ## 2026-06-27 - Phase 5 Slice: Account Manager Derived Data Hook
 
 Scope:
