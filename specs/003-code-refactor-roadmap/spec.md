@@ -150,7 +150,7 @@ npm run build
 
 ### 2.1 Session helpers
 
-- [ ] R0201 مراجعة `src/lib/activeSessionUser.ts` وتحويله إلى `src/server/auth/session.ts` أو إعادة تصديره من المكان الجديد.
+- [x] R0201 مراجعة `src/lib/activeSessionUser.ts` وتحويله إلى `src/server/auth/session.ts` أو إعادة تصديره من المكان الجديد.
 - [ ] R0202 إنشاء `requireUser()` للـ API routes يرجع user typed أو يرمي unauthorized response helper.
 - [ ] R0203 إنشاء `requireRole(user, allowedRoles)` بدون تغيير الصلاحيات الحالية.
 
@@ -180,7 +180,7 @@ npm run build
 
 ### 3.1 Shared response and validation helpers
 
-- [ ] R0301 إنشاء `src/server/http/responses.ts` لتوحيد JSON success/error responses.
+- [x] R0301 إنشاء `src/server/http/responses.ts` لتوحيد JSON success/error responses.
 - [ ] R0302 إنشاء `src/server/http/request.ts` لدوال قراءة body/query params بأمان.
 - [ ] R0303 إنشاء validators بدون مكتبة جديدة حالياً، أو استخدام دوال typed بسيطة.
 

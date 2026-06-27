@@ -91,3 +91,21 @@ Behavior preserved by:
 
 - `npx tsc --noEmit`: passed.
 - `npm run lint`: passed with the same pre-existing React hook dependency warnings recorded in the baseline.
+
+## 2026-06-27 - Phase 2/3 Slice: Session and Response Helpers
+
+Scope:
+
+- Added `src/server/auth/session.ts` as the server-side session helper home.
+- Kept `src/lib/activeSessionUser.ts` as a compatibility re-export.
+- Added `src/server/http/responses.ts` for common JSON response helpers.
+- Migrated notifications GET/PATCH routes to the new helpers without changing response shapes.
+
+Smell -> principle -> fix:
+
+- API routes repeated `getServerSession` and `NextResponse.json` boilerplate -> controller thinness / SRP -> extracted reusable auth and response helpers.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
