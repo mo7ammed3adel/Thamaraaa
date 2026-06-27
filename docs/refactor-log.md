@@ -112,6 +112,26 @@ Behavior preserved by:
 - `rg "fetch\\("` over Sales/TeleSales analytics, my-team, my-progress, and chief-sales paths: no matches.
 - `npx tsc --noEmit`: passed.
 
+## 2026-06-27 - Phase 4 Slice: Sales and TeleSales Core API Clients
+
+Scope:
+
+- Replaced direct `fetch` calls in the main Sales and TeleSales workspaces, Sales recycle bin, TeleSales recycle, and cold-leads screen.
+- Added client API modules for call logs, custom columns, niches, and deals.
+- Added `putJson` to the shared client transport for custom-column value updates.
+- Reused existing lead, user status, and notification API clients in Sales/TeleSales flows.
+
+Smell -> principle -> fix:
+
+- Core Sales/TeleSales screens mixed workflow state with raw HTTP details -> client transport boundary / behavior-preserving extraction -> moved network calls behind small domain API helpers while leaving local state transitions and UI behavior intact.
+
+Behavior preserved by:
+
+- `rg "fetch\\("` over `src/app/dashboard/sales` and `src/app/dashboard/telesales`: no matches.
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+- `npm run lint`: passed with the same pre-existing React hook dependency warnings recorded in the baseline.
+
 ## 2026-06-27 - Phase 3 Slice: Project Status Boundary
 
 Scope:

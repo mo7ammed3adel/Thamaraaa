@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Plus, Link as LinkIcon, PhoneCall, User as UserIcon, Tag, Store } from "lucide-react";
+import { bulkDeleteLeads, bulkPromoteLeads, createLead } from "@/client/api/leads";
+import { createNiche, listNiches } from "@/client/api/niches";
 
 interface ColdLead {
   id: string;
@@ -42,8 +44,7 @@ export default function ColdLeadsClient({
   const [availableNiches, setAvailableNiches] = useState<{ id: string, name: string }[]>([]);
 
   useEffect(() => {
-    fetch("/api/niches")
-      .then(res => res.json())
+    listNiches()
       .then(data => {
         if (Array.isArray(data)) setAvailableNiches(data);
       })
@@ -59,19 +60,12 @@ export default function ColdLeadsClient({
       // If a niche is provided, standardize & ensure it gets created in global list
       let finalNiche = niche;
       if (niche) {
-        const nicheRes = await fetch("/api/niches", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: niche })
-        });
-        if (nicheRes.ok) {
-          const nicheData = await nicheRes.json();
-          finalNiche = nicheData.niche.name;
-          
-          // Optimistically update dropdown if it was new
-          if (!availableNiches.find(n => n.name.toLowerCase() === finalNiche.toLowerCase())) {
-            setAvailableNiches(prev => [...prev, nicheData.niche].sort((a,b) => a.name.localeCompare(b.name)));
-          }
+        const nicheData = await createNiche({ name: niche }) as any;
+        finalNiche = nicheData.niche.name;
+        
+        // Optimistically update dropdown if it was new
+        if (!availableNiches.find(n => n.name.toLowerCase() === finalNiche.toLowerCase())) {
+          setAvailableNiches(prev => [...prev, nicheData.niche].sort((a,b) => a.name.localeCompare(b.name)));
         }
       }
 
@@ -88,16 +82,7 @@ export default function ColdLeadsClient({
         payload.assignedTeleAgentId = agentId;
       }
 
-      const res = await fetch("/api/leads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const responseBody = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(responseBody?.error || "Failed to add lead");
-
-      const newLead = responseBody;
+      const newLead = await createLead(payload) as ColdLead;
       setLeads([newLead, ...leads]);
       setShowForm(false);
       setName("");
@@ -115,16 +100,7 @@ export default function ColdLeadsClient({
     if (selected.length === 0) return;
     setPromoting(true);
     try {
-      const res = await fetch("/api/leads/bulk/promote", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadIds: selected })
-      });
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to promote leads");
-      }
+      const data = await bulkPromoteLeads({ leadIds: selected }) as any;
 
       alert(data.message || `Successfully added ${data.promotedCount} to Leads!`);
       
@@ -142,13 +118,7 @@ export default function ColdLeadsClient({
     if (selected.length === 0 || !confirm("Are you sure you want to delete these draft leads?")) return;
     setPromoting(true);
     try {
-      const res = await fetch("/api/leads/bulk/delete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadIds: selected })
-      });
-      
-      if (!res.ok) throw new Error("Failed to delete leads");
+      await bulkDeleteLeads({ leadIds: selected });
 
       setLeads(leads.filter(l => !selected.includes(l.id)));
       setSelected([]);

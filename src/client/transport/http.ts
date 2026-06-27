@@ -72,6 +72,15 @@ export function patchJson<T>(url: string, body?: unknown, init?: RequestInit) {
   });
 }
 
+export function putJson<T>(url: string, body?: unknown, init?: RequestInit) {
+  return requestJson<T>(url, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+    ...init,
+  });
+}
+
 export function deleteJson<T>(url: string, init?: RequestInit) {
   return requestJson<T>(url, { method: "DELETE", ...init });
 }

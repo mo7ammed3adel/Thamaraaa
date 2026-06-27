@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Calendar, PhoneCall, ChevronDown, ChevronUp, CheckCircle2, XCircle, FileText, Send, X, Clock, AlertTriangle, ExternalLink } from "lucide-react";
 import CreateWarningModal from "@/components/CreateWarningModal";
+import { createDeal } from "@/client/api/deals";
+import { updateLead } from "@/client/api/leads";
+import { sendNotification } from "@/client/api/notifications";
+import { updateUserStatus } from "@/client/api/users";
 
 export default function SalesClient({ initialLeads, userRole, userId, initialStatus, postSaleProjects = [] }: { initialLeads: any[], userRole: string, userId: string, initialStatus: string, postSaleProjects?: any[] }) {
   const router = useRouter();
@@ -88,11 +92,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
       }));
     } else {
       setStatus("Active");
-      fetch(`/api/users/${userId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "Active" }),
-      }).catch(() => {});
+      updateUserStatus(userId, { status: "Active" }).catch(() => {});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -171,11 +171,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     const newStatus = status === "Active" ? "Busy" : "Active";
     setStatus(newStatus);
     setLastActivityTime(new Date());
-    await fetch(`/api/users/${userId}/status`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: newStatus })
-    });
+    await updateUserStatus(userId, { status: newStatus });
   };
 
   const startTask = async (lead: any) => {
@@ -197,17 +193,9 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     setLeads(prev => prev.map(l =>
       l.id === lead.id ? { ...l, meetingStartedAt: startedAt, meetingEndedAt: null } : l
     ));
-    await fetch(`/api/leads/${lead.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ meetingStartedAt: startedAt, meetingEndedAt: null }),
-    });
+    await updateLead(lead.id, { meetingStartedAt: startedAt, meetingEndedAt: null });
 
-    await fetch(`/api/users/${userId}/status`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "In_Call" })
-    });
+    await updateUserStatus(userId, { status: "In_Call" });
   };
 
   const endTask = () => {
@@ -232,11 +220,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
 
     if (feedback.outcome === "won") {
       // For won deal, update the lead with the store details & timer first.
-      await fetch("/api/leads/" + activeLead.id, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...payloadStartEnd, notes: feedback.notes })
-      });
+      await updateLead(activeLead.id, { ...payloadStartEnd, notes: feedback.notes });
       setShowFeedbackForm(false);
       setShowClosingForm(true);
     } else {
@@ -251,22 +235,14 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         extraData = { meetingDate: feedback.meetingDate, meetingTime: feedback.meetingTime };
       }
 
-      await fetch("/api/leads/" + activeLead.id, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          status: finalStatus, 
-          notes: feedback.notes,
-          ...payloadStartEnd,
-          ...extraData
-        })
+      await updateLead(activeLead.id, { 
+        status: finalStatus, 
+        notes: feedback.notes,
+        ...payloadStartEnd,
+        ...extraData
       });
       
-      await fetch(`/api/users/${userId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "Active" })
-      });
+      await updateUserStatus(userId, { status: "Active" });
       
       setStatus("Active");
       setShowFeedbackForm(false);
@@ -303,28 +279,19 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
       payload.installments = [];
     }
 
-    const res = await fetch("/api/deals", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        leadId: activeLead.id,
-        ...payload
-      })
-    });
-
-    if (!res.ok) {
-      const errData = await res.json();
-      alert(`Failed to close deal: ${errData.error || "Unknown error"}`);
+    try {
+      await createDeal({
+          leadId: activeLead.id,
+          ...payload
+      });
+    } catch (error) {
+      alert(`Failed to close deal: ${error instanceof Error ? error.message : "Unknown error"}`);
       return;
     }
     // The Operations project is created atomically by POST /api/deals — no
     // separate setup call is needed, so the deal can never be left without one.
     
-    await fetch(`/api/users/${userId}/status`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "Active" })
-    });
+    await updateUserStatus(userId, { status: "Active" });
     setStatus("Active");
     setShowClosingForm(false);
     setFeedbackDraft(false);
@@ -346,15 +313,11 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
 
     setSendingLink(true);
     try {
-      await fetch("/api/notifications/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: linkLead.teleAgent.id,
-          title: "Meeting Link Added",
-          message: `Sales Agent added meeting link for lead ${linkLead.name}: ${meetingLink}`,
-          link: meetingLink
-        })
+      await sendNotification({
+        userId: linkLead.teleAgent.id,
+        title: "Meeting Link Added",
+        message: `Sales Agent added meeting link for lead ${linkLead.name}: ${meetingLink}`,
+        link: meetingLink
       });
       alert("Link sent to TeleSales Agent!");
       setLinkLead(null);

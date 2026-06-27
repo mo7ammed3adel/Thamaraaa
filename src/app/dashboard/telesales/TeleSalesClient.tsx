@@ -3,6 +3,9 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, X, Pencil, Check, PhoneCall, CheckCircle2, PhoneOff, XCircle, CalendarDays, Send } from "lucide-react";
 import { canManuallyDistributeMeeting } from "@/lib/meetingDistribution";
+import { createCallLog } from "@/client/api/callLogs";
+import { createCustomColumn, deleteCustomColumn, saveCustomColumnValue } from "@/client/api/customColumns";
+import { deleteLead, distributeLeadMeeting, updateLead } from "@/client/api/leads";
 
 interface CustomColumn {
   id: string;
@@ -61,34 +64,22 @@ export default function TeleSalesClient({
   const handleDeleteLead = async (leadId: string) => {
     if (!confirm("Are you sure you want to delete this lead?")) return;
     try {
-      const res = await fetch(`/api/leads/${leadId}`, { method: "DELETE" });
-      if (res.ok) {
-        setLeads(leads.filter((l) => l.id !== leadId));
-        router.refresh();
-      } else {
-        alert("Failed to delete lead");
-      }
-    } catch {
-      alert("Network error");
+      await deleteLead(leadId);
+      setLeads(leads.filter((l) => l.id !== leadId));
+      router.refresh();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Network error");
     }
   };
 
   const handleReassignLead = async (leadId: string, newAgentId: string) => {
     try {
-      const res = await fetch(`/api/leads/${leadId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ assignedTeleAgentId: newAgentId || null })
-      });
-      if (res.ok) {
-        const newlyAssignedAgent = activeAgents.find(a => a.id === newAgentId);
-        setLeads(leads.map(l => l.id === leadId ? { ...l, assignedTeleAgentId: newAgentId, teleAgent: newlyAssignedAgent || null } : l));
-        router.refresh();
-      } else {
-        alert("Failed to reassign lead");
-      }
-    } catch {
-      alert("Network err");
+      await updateLead(leadId, { assignedTeleAgentId: newAgentId || null });
+      const newlyAssignedAgent = activeAgents.find(a => a.id === newAgentId);
+      setLeads(leads.map(l => l.id === leadId ? { ...l, assignedTeleAgentId: newAgentId, teleAgent: newlyAssignedAgent || null } : l));
+      router.refresh();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Network err");
     }
   };
 
@@ -97,30 +88,20 @@ export default function TeleSalesClient({
     setLoading(true);
 
     try {
-      const res = await fetch("/api/call-logs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          leadId: selectedLead.id,
-          classification: selectedLead.classification,
-          ...logData,
-        }),
+      const updatedLead = await createCallLog({
+        leadId: selectedLead.id,
+        classification: selectedLead.classification,
+        ...logData,
       });
 
-      if (res.ok) {
-        const updatedLead = await res.json();
-        // Update local state first with the full lead data (includes callLogs)
-        setLeads(leads.map((l) => (l.id === updatedLead.id ? updatedLead : l)));
-        setSelectedLead(null);
-        setLogData({ callStatus: "Accept but lost", notes: "", meetingDate: "", meetingTime: "" });
-        // Then refresh server data in the background
-        router.refresh();
-      } else {
-        const errData = await res.json();
-        alert(`Error logging call: ${errData.error || "Unknown error"}`);
-      }
-    } catch {
-      alert("Network error. Please try again.");
+      // Update local state first with the full lead data (includes callLogs)
+      setLeads(leads.map((l) => (l.id === (updatedLead as any).id ? updatedLead : l)));
+      setSelectedLead(null);
+      setLogData({ callStatus: "Accept but lost", notes: "", meetingDate: "", meetingTime: "" });
+      // Then refresh server data in the background
+      router.refresh();
+    } catch (error) {
+      alert(error instanceof Error ? `Error logging call: ${error.message}` : "Network error. Please try again.");
     }
     setLoading(false);
   };
@@ -129,23 +110,15 @@ export default function TeleSalesClient({
     setDistributingLeadId(leadId);
 
     try {
-      const res = await fetch(`/api/leads/${leadId}/distribute-meeting`, {
-        method: "POST",
-      });
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        alert(data.error || "Failed to distribute meeting");
-        router.refresh();
-        return;
-      }
+      const data = await distributeLeadMeeting(leadId) as any;
 
       if (data.lead) {
         setLeads(leads.map((l) => (l.id === leadId ? data.lead : l)));
       }
       router.refresh();
-    } catch {
-      alert("Network error. Please try again.");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Network error. Please try again.");
+      router.refresh();
     } finally {
       setDistributingLeadId(null);
     }
@@ -156,21 +129,12 @@ export default function TeleSalesClient({
     if (!newColumnName.trim()) return;
     setAddingColumn(true);
     try {
-      const res = await fetch("/api/custom-columns", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newColumnName.trim() }),
-      });
-      if (res.ok) {
-        const col = await res.json();
-        setCustomColumns([...customColumns, col]);
-        setNewColumnName("");
-        setShowAddColumn(false);
-      } else {
-        alert("Failed to add column");
-      }
-    } catch {
-      alert("Network error");
+      const col = await createCustomColumn({ name: newColumnName.trim() });
+      setCustomColumns([...customColumns, col as CustomColumn]);
+      setNewColumnName("");
+      setShowAddColumn(false);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Network error");
     }
     setAddingColumn(false);
   };
@@ -178,22 +142,16 @@ export default function TeleSalesClient({
   const handleDeleteColumn = async (colId: string) => {
     if (!confirm("Are you sure you want to delete this column?")) return;
     try {
-      const res = await fetch(`/api/custom-columns?id=${colId}`, { method: "DELETE" });
-      if (res.ok) {
-        setCustomColumns(customColumns.filter((c) => c.id !== colId));
-      }
-    } catch {
+      await deleteCustomColumn(colId);
+      setCustomColumns(customColumns.filter((c) => c.id !== colId));
+    } catch (error) {
       alert("Failed to delete column");
     }
   };
 
   const handleSaveCellValue = async (columnId: string, leadId: string) => {
     try {
-      await fetch("/api/custom-columns/values", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ columnId, leadId, value: editValue }),
-      });
+      await saveCustomColumnValue({ columnId, leadId, value: editValue });
       // Update local state
       setCustomColumns(
         customColumns.map((col) => {

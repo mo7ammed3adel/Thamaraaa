@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { RotateCcw } from "lucide-react";
+import { updateLead } from "@/client/api/leads";
 
 export default function RecycleBinClient({ leads, salesAgents }: { leads: any[], salesAgents: any[] }) {
   const router = useRouter();
@@ -14,16 +15,12 @@ export default function RecycleBinClient({ leads, salesAgents }: { leads: any[],
 
     setLoadingId(leadId);
     try {
-      await fetch("/api/leads/" + leadId, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        // Transfer back to the queue (Waiting or In_Sales)
-        body: JSON.stringify({ 
-          status: "In_Sales", 
-          assignedSalesAgentId: newAgentId,
-          notes: "Re-assigned from Recycle Bin",
-          incrementRecycle: true
-        })
+      // Transfer back to the queue (Waiting or In_Sales)
+      await updateLead(leadId, { 
+        status: "In_Sales", 
+        assignedSalesAgentId: newAgentId,
+        notes: "Re-assigned from Recycle Bin",
+        incrementRecycle: true
       });
       router.refresh();
     } catch (e) {
@@ -37,15 +34,11 @@ export default function RecycleBinClient({ leads, salesAgents }: { leads: any[],
     if (!confirm("Are you sure you want to permanently archive this lead?")) return;
     setLoadingId(leadId);
     try {
-      await fetch("/api/leads/" + leadId, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        // Set archivedAt to current date
-        body: JSON.stringify({ 
-          status: "Archived",
-          archived: true,
-          notes: "Moved to final archive after max attempts."
-        })
+      // Set archivedAt to current date
+      await updateLead(leadId, { 
+        status: "Archived",
+        archived: true,
+        notes: "Moved to final archive after max attempts."
       });
       router.refresh();
     } catch (e) {

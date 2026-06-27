@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { RotateCcw, CheckSquare, Square, Users } from "lucide-react";
+import { updateLead } from "@/client/api/leads";
 
 interface Lead {
   id: string;
@@ -52,20 +53,12 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
     setLoading(true);
     try {
       const promises = Array.from(selectedLeads).map(async leadId => {
-        const res = await fetch(`/api/leads/${leadId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            status: "New",
-            assignedTeleAgentId: assignToAgent,
-            notes: "Recycled from lost leads",
-            incrementRecycle: true
-          }),
+        await updateLead(leadId, {
+          status: "New",
+          assignedTeleAgentId: assignToAgent,
+          notes: "Recycled from lost leads",
+          incrementRecycle: true
         });
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => ({}));
-          throw new Error(errorData.error || `HTTP Error ${res.status}`);
-        }
       });
       await Promise.all(promises);
       // Remove redistributed leads from local state
