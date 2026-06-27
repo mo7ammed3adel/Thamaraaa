@@ -192,6 +192,15 @@ export const TEAM_LEADER_ROLES = [
   "leader_ui",
 ] as const;
 
+// Roles that can be selected as an employee's direct manager in HR/User Management.
+export const DIRECT_MANAGER_ROLES = [
+  ...MANAGEMENT_ROLES,
+  "hr_manager",
+  "tele_sales_manager",
+  "sales_manager",
+  ...TEAM_LEADER_ROLES,
+] as const;
+
 // ── All agent distribution roles (Team Leaders that can assign to agents) ──
 export const AGENT_ASSIGNER_ROLES = [
   "team_leader_social_media",

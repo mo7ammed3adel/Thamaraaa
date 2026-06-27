@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { DIRECT_MANAGER_ROLES } from "@/lib/constants";
 import UserListClient from "./UserListClient";
 
 export default async function UsersPage() {
@@ -31,7 +32,7 @@ export default async function UsersPage() {
   // Fetch managers for assignment
   const managers = await prisma.user.findMany({
     where: {
-      role: { in: ["tele_sales_manager", "sales_manager", "head_account_manager", "head_technical", "head_seo", "leader_ui"] },
+      role: { in: [...DIRECT_MANAGER_ROLES] },
       status: "Active"
     },
     select: { id: true, name: true, role: true },
