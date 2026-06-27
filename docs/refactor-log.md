@@ -245,6 +245,22 @@ Behavior preserved by:
 
 - `npx tsc --noEmit`: passed.
 
+## 2026-06-27 - Phase 5 Slice: Client Journey Files Tab
+
+Scope:
+
+- Extracted task-linked files, project file upload form, project file list, and drive/store links into `ClientFilesTab`.
+- Added typed task-file and uploaded-file props.
+- Kept upload state and submit handler owned by the parent page.
+
+Smell -> principle -> fix:
+
+- File and task-link rendering made the journey page too broad -> component decomposition / typed props -> moved file UI to a focused component while preserving upload behavior.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+
 ## 2026-06-27 - Phase 3 Slice: Project Status Boundary
 
 Scope:

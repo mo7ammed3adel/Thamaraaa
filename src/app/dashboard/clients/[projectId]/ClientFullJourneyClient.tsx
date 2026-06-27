@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import ProjectLogsPanel from "@/components/ProjectLogsPanel";
 import { buildClientJourneyTimeline } from "@/lib/clientJourneyTimeline";
+import ClientFilesTab from "./ClientFilesTab";
 import ClientNotesTab from "./ClientNotesTab";
 import ClientTasksTab from "./ClientTasksTab";
 import ClientTeamTab from "./ClientTeamTab";
@@ -493,151 +494,16 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
 
       {/* ═══ SECTION 8: Files ═══ */}
       {activeTab === "files" && (
-        <div className="space-y-4">
-          {/* ── Task-Linked Files (Auto-synced from Tasks) ── */}
-          {(() => {
-            const taskLinks = (project.tasks || []).filter((t: any) => t.taskLink);
-            if (taskLinks.length > 0) return (
-              <div className="bg-white rounded-xl border shadow-sm p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <h2 className="text-lg font-bold text-slate-800">📎 Task Links</h2>
-                  <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-full">{taskLinks.length}</span>
-                  <span className="text-xs text-slate-400 ml-auto">Auto-synced from Tasks</span>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-slate-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Type</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Link</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Sent By</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Role</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Sent Date</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Deadline</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {taskLinks.map((t: any) => {
-                        // Detect link type for icon
-                        const url = (t.taskLink || "").toLowerCase();
-                        let icon = "🔗";
-                        let label = "Link";
-                        if (url.includes("drive.google")) { icon = "📁"; label = "Google Drive"; }
-                        else if (url.includes("docs.google.com/spreadsheets") || url.includes("sheets.google")) { icon = "📊"; label = "Google Sheet"; }
-                        else if (url.includes("docs.google.com/document")) { icon = "📝"; label = "Google Doc"; }
-                        else if (url.includes("docs.google.com/presentation")) { icon = "📽️"; label = "Google Slides"; }
-                        else if (url.includes("figma.com")) { icon = "🎨"; label = "Figma"; }
-                        else if (url.includes("canva.com")) { icon = "🖼️"; label = "Canva"; }
-                        else if (url.includes("notion.")) { icon = "📓"; label = "Notion"; }
-                        else if (url.includes("trello.")) { icon = "📋"; label = "Trello"; }
-
-                        const isOverdue = t.deadline && new Date(t.deadline) < new Date() && t.status !== "done";
-
-                        return (
-                          <tr key={t.id} className="hover:bg-slate-50/50">
-                            <td className="px-4 py-3">
-                              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-700 capitalize">
-                                {icon} {t.taskType.replace(/_/g, " ")}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3">
-                              <a href={t.taskLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition max-w-[200px] truncate">
-                                {label} ↗
-                              </a>
-                            </td>
-                            <td className="px-4 py-3 text-sm font-medium text-slate-700">{t.leader?.name || "—"}</td>
-                            <td className="px-4 py-3">
-                              <span className="text-xs text-slate-500 capitalize">{(t.requesterRole || t.leader?.role || "—").replace(/_/g, " ")}</span>
-                            </td>
-                            <td className="px-4 py-3 text-xs text-slate-500">{new Date(t.createdAt).toLocaleDateString("en-GB")}</td>
-                            <td className="px-4 py-3">
-                              {t.deadline ? (
-                                <span className={`text-xs font-semibold ${isOverdue ? "text-red-600" : "text-slate-600"}`}>
-                                  {new Date(t.deadline).toLocaleDateString("en-GB")}
-                                  {isOverdue && " ⚠️"}
-                                </span>
-                              ) : (
-                                <span className="text-xs text-slate-400">—</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className={`px-2 py-0.5 rounded text-xs font-bold capitalize ${t.status === "done" ? "bg-emerald-100 text-emerald-700" : t.status === "in_progress" ? "bg-amber-100 text-amber-700" : t.status === "review" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"}`}>
-                                {t.status.replace(/_/g, " ")}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            );
-            return null;
-          })()}
-
-          {/* ── Uploaded Project Files ── */}
-          <div className="bg-white rounded-xl border shadow-sm p-6">
-            <h2 className="text-lg font-bold text-slate-800 mb-4">Project Files</h2>
-            {canUploadProjectFiles && (
-              <form onSubmit={handleUploadProjectFile} className="grid grid-cols-1 md:grid-cols-[160px_1fr_auto] gap-3 mb-5 p-4 bg-slate-50 border rounded-xl">
-                <select
-                  value={fileType}
-                  onChange={(e) => setFileType(e.target.value)}
-                  className="border rounded-lg px-3 py-2 text-sm bg-white outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="contract">Contract</option>
-                  <option value="screenshot">Screenshot</option>
-                  <option value="report">Report</option>
-                  <option value="brief">Brief</option>
-                  <option value="other">Other</option>
-                </select>
-                <input
-                  type="url"
-                  value={fileUrl}
-                  onChange={(e) => setFileUrl(e.target.value)}
-                  placeholder="https://drive.google.com/..."
-                  className="border rounded-lg px-3 py-2 text-sm bg-white outline-none focus:ring-2 focus:ring-indigo-500"
-                  required
-                />
-                <button
-                  type="submit"
-                  disabled={uploadingFile || !fileUrl.trim()}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  {uploadingFile ? "Adding..." : "Add File"}
-                </button>
-              </form>
-            )}
-            {project.files?.length === 0 ? (
-              <p className="text-sm text-slate-400 italic py-4">No files uploaded yet.</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {project.files.map((f: any) => (
-                  <a key={f.id} href={f.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 border rounded-lg p-4 hover:bg-slate-50 hover:shadow-sm transition">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white text-lg ${f.fileType === "contract" ? "bg-red-500" : f.fileType === "screenshot" ? "bg-blue-500" : "bg-slate-500"}`}>
-                      {f.fileType === "contract" ? "📄" : f.fileType === "screenshot" ? "📸" : "📎"}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800 capitalize">{f.fileType}</p>
-                      <p className="text-xs text-slate-400">{new Date(f.createdAt).toLocaleDateString()}</p>
-                    </div>
-                  </a>
-                ))}
-              </div>
-            )}
-            {/* Drive/Store Links */}
-            <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4">
-              {project.driveLink && (
-                <a href={project.driveLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-indigo-600 hover:underline">📁 Google Drive Folder</a>
-              )}
-              {project.storeUrl && (
-                <a href={project.storeUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-indigo-600 hover:underline">🛒 Store Link</a>
-              )}
-            </div>
-          </div>
-        </div>
+        <ClientFilesTab
+          project={project}
+          canUploadProjectFiles={canUploadProjectFiles}
+          fileType={fileType}
+          setFileType={setFileType}
+          fileUrl={fileUrl}
+          setFileUrl={setFileUrl}
+          uploadingFile={uploadingFile}
+          handleUploadProjectFile={handleUploadProjectFile}
+        />
       )}
 
       {/* ═══ SECTION 9: System Logs ═══ */}
