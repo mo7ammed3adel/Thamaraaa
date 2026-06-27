@@ -2,12 +2,16 @@ import { backfillReceiptsForNewMember, canDistributeTo } from "@/lib/distributio
 import { safeTrigger } from "@/lib/pusher";
 import {
   assignDepartmentAgent,
+  createDistributionTeamAssignmentWithLog,
+  createProjectAssignmentNotification,
   createProjectLog,
   findActiveUserForAssignment,
   findProjectAgentAssignmentScope,
   findProjectTeamAssignmentScope,
   findProjectStatusAuth,
+  findProjectTeamAssignment,
   replaceProjectTeamAssignment,
+  updateProjectDistributionWithLog,
   updateProjectFields,
 } from "@/server/repositories/projectRepository";
 
@@ -109,6 +113,22 @@ const DEPARTMENT_AGENT_CONFIG: Record<
     agentRoles: ["agent_ui"],
     dashboardLink: "/dashboard/design",
   },
+};
+
+const ROLE_TO_DEPARTMENT: Record<string, string> = {
+  team_leader_social_media: "social_media",
+  agent_social_media: "social_media",
+  team_leader_media_buyer: "media_buyer",
+  agent_media_buyer: "media_buyer",
+  team_leader_seo: "seo",
+  agent_seo: "seo",
+  agent_content_seo: "content_seo",
+  leader_graphic_designer: "graphic_design",
+  agent_graphic_designer: "graphic_design",
+  leader_motion_graphic: "motion_graphic",
+  agent_motion_graphic: "motion_graphic",
+  leader_ui: "ui_design",
+  agent_ui: "ui_design",
 };
 
 export async function assignProjectRole(input: {
@@ -337,4 +357,151 @@ export async function assignProjectAgent(input: {
   });
 
   return { status: "ok" as const, assignment: result.assignment, tasksUpdated: result.tasksUpdated };
+}
+
+export async function distributeProject(input: {
+  projectId?: string;
+  targetUserId?: string;
+  userId: string;
+  userRole: string;
+  userName?: string | null;
+  taskGenerationUrl: string;
+  cookie: string;
+}) {
+  if (!input.projectId || !input.targetUserId) {
+    return { status: "missing_fields" as const };
+  }
+
+  const targetUser = await findActiveUserForAssignment(input.targetUserId);
+  if (!targetUser || targetUser.status !== "Active") {
+    return { status: "target_not_found" as const };
+  }
+
+  if (!canDistributeTo(input.userRole, targetUser.role)) {
+    return { status: "cannot_distribute" as const, targetRole: targetUser.role };
+  }
+
+  const project = await findProjectStatusAuth(input.projectId);
+  if (!project) return { status: "project_not_found" as const };
+
+  if (input.userRole === "account_manager" && project.accountManagerId !== input.userId) {
+    return { status: "own_account_manager_forbidden" as const };
+  }
+  if (input.userRole === "head_technical" && project.headTechnicalId !== input.userId) {
+    return { status: "own_head_technical_forbidden" as const };
+  }
+  if (input.userRole === "head_seo" && project.headSeoId !== input.userId) {
+    return { status: "own_head_seo_forbidden" as const };
+  }
+
+  const userName = input.userName || input.userId;
+
+  const updateData: Record<string, unknown> = {};
+  let assignmentDescription = "";
+
+  if (targetUser.role === "account_manager") {
+    updateData.accountManagerId = targetUser.id;
+    assignmentDescription = `Account Manager assigned: ${targetUser.name}`;
+  } else if (targetUser.role === "head_technical") {
+    updateData.headTechnicalId = targetUser.id;
+    assignmentDescription = `Head Technical assigned: ${targetUser.name}`;
+  } else if (targetUser.role === "head_seo") {
+    updateData.headSeoId = targetUser.id;
+    assignmentDescription = `Head SEO assigned: ${targetUser.name}`;
+  } else {
+    const existingAssignment = await findProjectTeamAssignment(input.projectId, targetUser.id);
+    if (existingAssignment) {
+      return { status: "duplicate_assignment" as const, targetUserName: targetUser.name };
+    }
+
+    const department = ROLE_TO_DEPARTMENT[targetUser.role] || "general";
+
+    await createDistributionTeamAssignmentWithLog({
+      projectId: input.projectId,
+      userId: input.userId,
+      userName,
+      targetUserId: targetUser.id,
+      targetUserName: targetUser.name,
+      targetUserRole: targetUser.role,
+      department,
+    });
+
+    await backfillReceiptsForNewMember(input.projectId, targetUser.id);
+
+    if (targetUser.role.includes("leader") || targetUser.role.includes("head")) {
+      try {
+        await fetch(input.taskGenerationUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            cookie: input.cookie,
+          },
+          body: JSON.stringify({
+            projectId: input.projectId,
+            packageType:
+              department === "social_media" || department === "media_buyer" ? department : "general",
+            socialLeaderId: department === "social_media" ? targetUser.id : undefined,
+            mediaLeaderId: department === "media_buyer" ? targetUser.id : undefined,
+            seoLeaderId: department === "seo" ? targetUser.id : undefined,
+          }),
+        });
+      } catch (e) {
+        console.error("Auto task generation failed:", e);
+      }
+    }
+
+    await safeTrigger("projects-channel", "team-assigned", {
+      projectId: input.projectId,
+      userId: targetUser.id,
+      role: targetUser.role,
+      assignedBy: userName,
+    });
+
+    await createProjectAssignmentNotification({
+      userId: targetUser.id,
+      title: "New Project Assignment",
+      message: `You have been assigned to a project by ${userName}`,
+      type: "project_assigned",
+      link: `/dashboard/operations`,
+    });
+
+    return {
+      status: "team_assigned" as const,
+      assignment: { projectId: input.projectId, userId: targetUser.id, department },
+    };
+  }
+
+  if (Object.keys(updateData).length > 0) {
+    updateData.assignedAt = new Date();
+
+    await updateProjectDistributionWithLog({
+      projectId: input.projectId,
+      updateData,
+      assignmentDescription,
+      userId: input.userId,
+      userName,
+      userRole: input.userRole,
+    });
+
+    await backfillReceiptsForNewMember(input.projectId, targetUser.id);
+
+    await createProjectAssignmentNotification({
+      userId: targetUser.id,
+      title: "New Project Assigned",
+      message: `${assignmentDescription} by ${userName}`,
+      type: "project_assigned",
+      link: `/dashboard/operations`,
+    });
+
+    await safeTrigger("projects-channel", "project-distributed", {
+      projectId: input.projectId,
+      assignedTo: targetUser.name,
+      assignedToRole: targetUser.role,
+      assignedBy: userName,
+    });
+
+    return { status: "project_assigned" as const, project: { id: input.projectId, ...updateData } };
+  }
+
+  return { status: "no_distribution_rule" as const };
 }

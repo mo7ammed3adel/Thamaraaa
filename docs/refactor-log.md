@@ -166,6 +166,26 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Project Distribution Boundary
+
+Scope:
+
+- Moved `/api/projects/distribute` target validation, distribution permission checks, project scope checks, manager/head assignment, team assignment, audit logging, warning receipt backfill, notification creation, realtime triggers, and auto task generation into `projectDistributionService` plus project repository helpers.
+- Kept route-level request/session handling and HTTP response mapping only.
+- Preserved the existing auto task generation URL/cookie behavior and response shapes for manager/head assignment and team assignment.
+- Closed roadmap items R0323 and R0333.
+
+Smell -> principle -> fix:
+
+- General distribution route combined RBAC, project IDOR checks, role-to-department mapping, multi-table writes, notifications, realtime events, and route delivery -> SRP / service-repository boundary -> moved workflow and persistence into server domain layers.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+- `npm run lint`: passed with the same pre-existing React hook dependency warnings recorded in the baseline.
+- `npm run build`: passed.
+
 ## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
 
 Scope:

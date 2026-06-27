@@ -327,3 +327,82 @@ export function assignDepartmentAgent(input: {
     return { assignment, tasksUpdated: updateResult.count };
   });
 }
+
+export function findProjectTeamAssignment(projectId: string, userId: string) {
+  return prisma.teamAssignment.findUnique({
+    where: { projectId_userId: { projectId, userId } },
+  });
+}
+
+export function createDistributionTeamAssignmentWithLog(input: {
+  projectId: string;
+  userId: string;
+  userName: string;
+  targetUserId: string;
+  targetUserName: string;
+  targetUserRole: string;
+  department: string;
+}) {
+  return prisma.$transaction(async (tx) => {
+    const assignment = await tx.teamAssignment.create({
+      data: {
+        projectId: input.projectId,
+        userId: input.targetUserId,
+        assignedByUserId: input.userId,
+        role: input.targetUserRole,
+        department: input.department,
+      },
+    });
+
+    await tx.projectLog.create({
+      data: {
+        projectId: input.projectId,
+        action: "team_assigned",
+        details: JSON.stringify({
+          assignedUser: input.targetUserName,
+          assignedRole: input.targetUserRole,
+          department: input.department,
+          assignedBy: input.userName,
+        }),
+        userId: input.userId,
+      },
+    });
+
+    return assignment;
+  });
+}
+
+export function updateProjectDistributionWithLog(input: {
+  projectId: string;
+  updateData: Record<string, unknown>;
+  assignmentDescription: string;
+  userId: string;
+  userName: string;
+  userRole: string;
+}) {
+  return prisma.$transaction([
+    prisma.project.update({ where: { id: input.projectId }, data: input.updateData }),
+    prisma.projectLog.create({
+      data: {
+        projectId: input.projectId,
+        action: "assigned",
+        details: JSON.stringify({
+          description: input.assignmentDescription,
+          assignedBy: input.userName,
+          assignedByRole: input.userRole,
+        }),
+        userId: input.userId,
+      },
+    }),
+  ]);
+}
+
+export function createProjectAssignmentNotification(input: {
+  userId: string;
+  title: string;
+  message: string;
+  type: string;
+  link: string;
+}) {
+  return prisma.notification.create({ data: input });
+}
