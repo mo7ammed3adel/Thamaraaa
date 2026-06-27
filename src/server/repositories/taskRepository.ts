@@ -84,12 +84,83 @@ export function createTaskProjectLog(input: {
 
 export function createTaskNotification(input: {
   userId: string;
-  type: string;
+  type?: string;
   title: string;
   message: string;
   link?: string | null;
+  relatedId?: string | null;
 }) {
   return prisma.notification.create({ data: input });
+}
+
+export function createTaskNotifications(data: any[]) {
+  return prisma.notification.createMany({ data });
+}
+
+export function findTaskForUpdate(taskId: string) {
+  return prisma.task.findUnique({
+    where: { id: taskId },
+    select: {
+      id: true,
+      leaderId: true,
+      agentId: true,
+      projectId: true,
+      taskType: true,
+      startedAt: true,
+      project: { select: { accountManagerId: true, headTechnicalId: true, headSeoId: true } },
+    },
+  });
+}
+
+export function findAgentForTaskUpdate(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true, status: true },
+  });
+}
+
+export function upsertTaskAgentAssignment(input: {
+  projectId: string;
+  userId: string;
+  assignedByUserId: string;
+  role: string;
+  department: string;
+}) {
+  return prisma.teamAssignment.upsert({
+    where: { projectId_userId: { projectId: input.projectId, userId: input.userId } },
+    update: { status: "active" },
+    create: input,
+  });
+}
+
+export function updateTaskWithProject(taskId: string, data: any) {
+  return prisma.task.update({
+    where: { id: taskId },
+    data,
+    include: { project: true },
+  });
+}
+
+export function findProjectTasksForProgress(projectId: string) {
+  return prisma.task.findMany({ where: { projectId } });
+}
+
+export function updateProjectProgress(input: {
+  projectId: string;
+  seoProgress: number;
+  socialMediaProgress: number;
+  mediaBuyerProgress: number;
+  projectStatus: string;
+}) {
+  return prisma.project.update({
+    where: { id: input.projectId },
+    data: {
+      seoProgress: input.seoProgress,
+      socialMediaProgress: input.socialMediaProgress,
+      mediaBuyerProgress: input.mediaBuyerProgress,
+      projectStatus: input.projectStatus,
+    },
+  });
 }
 
 export function flagTaskWithNotificationAndLog(input: {

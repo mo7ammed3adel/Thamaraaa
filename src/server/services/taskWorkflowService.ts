@@ -3,6 +3,7 @@ import {
   canDistributeTo,
   canFlagTask,
   canReassignTask,
+  checkProjectBlockers,
   userCanAccessProject,
 } from "@/lib/distribution";
 import { getDefaultChecklistForTaskType } from "@/lib/constants";
@@ -16,21 +17,30 @@ import {
 import { findTeamLeaderRoleForTaskType } from "@/lib/distribution";
 import { normalizeWebUrl } from "@/lib/safe-url";
 import { safeTrigger } from "@/lib/pusher";
+import { computeDepartmentProgress } from "@/lib/progress";
+import { normalizeDeliverableFiles } from "@/server/parsers/task";
 import {
   createTaskNotification,
+  createTaskNotifications,
   createTaskProjectLog,
   createTaskRecord,
   createSelfAssignedTaskWithLog,
+  findAgentForTaskUpdate,
   findActiveTeamAssignmentByRole,
   findFirstActiveUserByRoles,
   findProjectNameForTask,
+  findProjectTasksForProgress,
   findTasksForList,
   findTaskForFlag,
   findTaskForReassign,
+  findTaskForUpdate,
   findProjectForSelfTask,
   findUserForTaskAssignment,
   flagTaskWithNotificationAndLog,
   reassignTaskWithNotificationsAndLog,
+  updateProjectProgress,
+  updateTaskWithProject,
+  upsertTaskAgentAssignment,
 } from "@/server/repositories/taskRepository";
 
 const TASK_AGENT_ROLE_MAP: Record<string, string[]> = {
@@ -398,4 +408,234 @@ export async function createProjectTask(input: {
   }
 
   return { status: "ok" as const, task };
+}
+
+export async function updateTask(input: {
+  taskId: string;
+  userId: string;
+  userName?: string | null;
+  userRole: string;
+  body: any;
+}) {
+  const existingTask = await findTaskForUpdate(input.taskId);
+  if (!existingTask) return { status: "not_found" as const };
+
+  const isAdmin =
+    ["super_admin", "head_account_manager"].includes(input.userRole) ||
+    (input.userRole === "head_technical" && existingTask.project?.headTechnicalId === input.userId) ||
+    (input.userRole === "head_seo" && existingTask.project?.headSeoId === input.userId);
+  const isTeamLeader = existingTask.leaderId === input.userId;
+  const isAssignedAgent = existingTask.agentId === input.userId;
+  const isProjectAM = existingTask.project?.accountManagerId === input.userId;
+
+  if (!isAdmin && !isTeamLeader && !isAssignedAgent && !isProjectAM) {
+    return { status: "forbidden" as const };
+  }
+
+  const body = input.body;
+  const updateData: any = {};
+
+  if (body.agentId !== undefined) {
+    if (!isTeamLeader && !isAdmin) {
+      return { status: "agent_reassign_forbidden" as const };
+    }
+    updateData.agentId = body.agentId;
+
+    if (body.agentId !== null) {
+      const agent = await findAgentForTaskUpdate(body.agentId);
+      if (agent) {
+        if (agent.status !== "Active") {
+          return { status: "agent_inactive" as const };
+        }
+
+        const allowedRoles = TASK_AGENT_ROLE_MAP[existingTask.taskType] || [];
+        if (allowedRoles.length > 0 && !allowedRoles.includes(agent.role)) {
+          return { status: "agent_role_invalid" as const, role: agent.role, taskType: existingTask.taskType };
+        }
+
+        const dept = AGENT_DEPARTMENT_MAP[agent.role];
+        if (dept) {
+          await upsertTaskAgentAssignment({
+            projectId: existingTask.projectId,
+            userId: body.agentId,
+            assignedByUserId: input.userId,
+            role: agent.role,
+            department: dept,
+          });
+          await backfillReceiptsForNewMember(existingTask.projectId, body.agentId);
+        }
+      }
+    }
+  }
+
+  if (body.leaderId !== undefined) {
+    if (!isAdmin) {
+      return { status: "leader_reassign_forbidden" as const };
+    }
+    updateData.leaderId = body.leaderId;
+  }
+
+  if (body.progressPct !== undefined) {
+    const pct = Number(body.progressPct);
+    if (isNaN(pct) || pct < 0 || pct > 100) {
+      return { status: "invalid_progress" as const };
+    }
+    updateData.progressPct = pct;
+  }
+
+  if (body.checklistItems !== undefined) updateData.checklistItems = body.checklistItems;
+  if (body.status !== undefined) {
+    const validStatuses = ["pending", "in_progress", "review", "done"];
+    if (!validStatuses.includes(body.status)) {
+      return { status: "invalid_status" as const, taskStatus: body.status };
+    }
+
+    if (body.status === "done" && isAssignedAgent && !isTeamLeader && !isAdmin && !isProjectAM) {
+      return { status: "agent_done_forbidden" as const };
+    }
+
+    if (["in_progress", "review", "done"].includes(body.status)) {
+      const blockers = await checkProjectBlockers(existingTask.projectId);
+      if (blockers.isBlocked) {
+        return { status: "blocked" as const, warnings: blockers.warnings };
+      }
+    }
+
+    updateData.status = body.status;
+    if (body.status === "in_progress" && !existingTask.startedAt) {
+      updateData.startedAt = new Date();
+    }
+    if (body.status === "done" && body.completedAt === undefined) {
+      updateData.completedAt = new Date();
+    }
+  }
+  if (body.priority !== undefined) updateData.priority = body.priority;
+  if (body.brief !== undefined) updateData.brief = body.brief;
+  if (body.deadline !== undefined) updateData.deadline = body.deadline ? new Date(body.deadline) : null;
+  if (body.files !== undefined) {
+    const normalizedFiles = normalizeDeliverableFiles(body.files);
+    if ("error" in normalizedFiles) {
+      return { status: "invalid_files" as const, error: normalizedFiles.error };
+    }
+    updateData.files = normalizedFiles.value;
+  }
+  if (body.completedAt !== undefined) updateData.completedAt = body.completedAt ? new Date(body.completedAt) : null;
+
+  const updatedTask = await updateTaskWithProject(input.taskId, updateData);
+
+  if (body.agentId !== undefined && body.agentId !== null) {
+    await createTaskNotification({
+      userId: body.agentId,
+      title: "New Task Assigned",
+      message: `A team leader assigned a new project task to your queue.`,
+      link: "/dashboard/operations",
+    });
+    await createTaskProjectLog({
+      projectId: existingTask.projectId,
+      action: "task_assigned",
+      details: `${existingTask.taskType.replace(/_/g, " ")} task assigned to an agent.`,
+      userId: input.userId,
+    });
+  }
+
+  if (body.progressPct !== undefined) {
+    const allProjectTasks = await findProjectTasksForProgress(updatedTask.projectId);
+    const { seo: avgSeo, social: avgSocial, media: avgMedia, overall: overallProgress } =
+      computeDepartmentProgress(
+        allProjectTasks.map((task) => ({
+          id: task.id,
+          taskType: task.taskType,
+          parentTaskId: task.parentTaskId,
+          progressPct: task.progressPct,
+        }))
+      );
+
+    let newStatus = updatedTask.project.projectStatus;
+
+    if (overallProgress === 100) {
+      newStatus = "completed";
+    } else if (
+      updatedTask.project.finalDeadline &&
+      new Date() > new Date(updatedTask.project.finalDeadline) &&
+      overallProgress < 100
+    ) {
+      newStatus = "delayed";
+    } else if (updatedTask.project.projectStatus === "setup" || updatedTask.project.projectStatus === "new") {
+      newStatus = "in_progress";
+    }
+
+    await updateProjectProgress({
+      projectId: updatedTask.projectId,
+      seoProgress: avgSeo,
+      socialMediaProgress: avgSocial,
+      mediaBuyerProgress: avgMedia,
+      projectStatus: newStatus,
+    });
+
+    if (body.progressPct === 100) {
+      await createTaskProjectLog({
+        projectId: updatedTask.projectId,
+        action: "progress_updated",
+        details: `Task "${updatedTask.taskType}" completed by ${input.userName || input.userId}.`,
+        userId: input.userId,
+      });
+
+      const notificationTargets = [
+        updatedTask.project.accountManagerId && {
+          userId: updatedTask.project.accountManagerId,
+          title: "Task Completed",
+          message: `Task "${updatedTask.taskType}" completed. Overall: ${overallProgress.toFixed(0)}%`,
+          type: "task_progress",
+          link: "/dashboard/operations",
+        },
+        updatedTask.leaderId && {
+          userId: updatedTask.leaderId,
+          title: "Task Completed",
+          message: `Agent completed task "${updatedTask.taskType}".`,
+          type: "task_progress",
+          link: "/dashboard/operations",
+        },
+      ].filter(Boolean);
+
+      if (notificationTargets.length > 0) {
+        await createTaskNotifications(notificationTargets as any[]);
+      }
+    }
+  }
+
+  if (body.status === "review") {
+    const reviewTargets = [
+      updatedTask.leaderId &&
+        updatedTask.leaderId !== input.userId && {
+          userId: updatedTask.leaderId,
+          title: "Task Ready for Review",
+          message: `Task "${updatedTask.taskType.replace(/_/g, " ")}" was submitted for your review.`,
+          type: "task_review",
+          link: "/dashboard/operations",
+        },
+      updatedTask.project?.accountManagerId &&
+        updatedTask.project.accountManagerId !== input.userId && {
+          userId: updatedTask.project.accountManagerId,
+          title: "Task Ready for Review",
+          message: `Task "${updatedTask.taskType.replace(/_/g, " ")}" was submitted for review.`,
+          type: "task_review",
+          link: "/dashboard/operations",
+        },
+    ].filter(Boolean);
+    if (reviewTargets.length > 0) {
+      await createTaskNotifications(reviewTargets as any[]);
+    }
+  }
+
+  if (body.status === "done" && updatedTask.project?.accountManagerId) {
+    await createTaskNotification({
+      userId: updatedTask.project.accountManagerId,
+      title: "Task Completed",
+      message: `Task "${updatedTask.taskType}" has been marked as done.`,
+      type: "task_progress",
+      link: "/dashboard/operations",
+    });
+  }
+
+  return { status: "ok" as const, task: updatedTask };
 }

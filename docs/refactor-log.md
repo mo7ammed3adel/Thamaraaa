@@ -270,6 +270,23 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Task Update Boundary
+
+Scope:
+
+- Moved PATCH `/api/tasks/[id]` task authorization, agent/leader reassignment validation, progress validation, status validation, blocker checks, file normalization, task update, assignment notifications, progress rollup, review/done notifications, and project logs into `taskWorkflowService` and `taskRepository`.
+- Kept route response messages/status codes and warning/file error shapes aligned with the existing API.
+
+Smell -> principle -> fix:
+
+- Task update route mixed controller delivery, IDOR checks, business validation, Prisma mutations, project progress aggregation, warning blockers, and notifications -> controller-service-repository boundary -> route now maps service outcomes to HTTP.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+- `npm run lint`: passed with the same pre-existing React hook dependency warnings recorded in the baseline.
+
 ## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
 
 Scope:

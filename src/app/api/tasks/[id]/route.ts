@@ -1,24 +1,6 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { checkProjectBlockers, backfillReceiptsForNewMember } from "@/lib/distribution";
-import { computeDepartmentProgress } from "@/lib/progress";
-import { normalizeDeliverableFiles } from "@/server/parsers/task";
-
-const TASK_AGENT_ROLE_MAP: Record<string, string[]> = {
-  SEO: ["agent_seo"],
-  seo: ["agent_seo"],
-  content_seo: ["agent_content_seo"],
-  Social_Media: ["agent_social_media"],
-  social_media: ["agent_social_media"],
-  Media_Buyer: ["agent_media_buyer"],
-  media_buyer: ["agent_media_buyer"],
-  media_buying: ["agent_media_buyer"],
-  graphic_design: ["agent_graphic_designer"],
-  motion_graphic: ["agent_motion_graphic"],
-  ui_design: ["agent_ui"],
-};
+import { getSessionUser } from "@/server/auth/session";
+import { errorJson, successJson, unauthorizedJson } from "@/server/http/responses";
+import { updateTask } from "@/server/services/taskWorkflowService";
 
 /**
  * PATCH /api/tasks/[id]
@@ -29,285 +11,46 @@ const TASK_AGENT_ROLE_MAP: Record<string, string[]> = {
  */
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
-    const user = session?.user as any;
-    if (!user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const user = await getSessionUser();
+    if (!user?.id || !user.role) return unauthorizedJson();
 
-    const taskId = params.id;
-
-    // ── Ownership / Role Check ──
-    const existingTask = await prisma.task.findUnique({
-      where: { id: taskId },
-      select: {
-        id: true,
-        leaderId: true,
-        agentId: true,
-        projectId: true,
-        taskType: true,
-        startedAt: true,
-        project: { select: { accountManagerId: true, headTechnicalId: true, headSeoId: true } },
-      },
+    const result = await updateTask({
+      taskId: params.id,
+      userId: user.id,
+      userName: user.name,
+      userRole: user.role,
+      body: await req.json(),
     });
 
-    if (!existingTask) {
-      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    if (result.status === "not_found") return errorJson("Task not found", 404);
+    if (result.status === "forbidden") {
+      return errorJson("Forbidden: You are not authorized to modify this task.", 403);
     }
-
-    const isAdmin =
-      ["super_admin", "head_account_manager"].includes(user.role) ||
-      (user.role === "head_technical" && existingTask.project?.headTechnicalId === user.id) ||
-      (user.role === "head_seo" && existingTask.project?.headSeoId === user.id);
-    const isTeamLeader = existingTask.leaderId === user.id;
-    const isAssignedAgent = existingTask.agentId === user.id;
-    const isProjectAM = existingTask.project?.accountManagerId === user.id;
-
-    if (!isAdmin && !isTeamLeader && !isAssignedAgent && !isProjectAM) {
-      return NextResponse.json({ error: "Forbidden: You are not authorized to modify this task." }, { status: 403 });
+    if (result.status === "agent_reassign_forbidden") {
+      return errorJson("Only team leaders or admins can reassign agents.", 403);
     }
-
-    // ── Build update payload with validation ──
-    const body = await req.json();
-    const updateData: any = {};
-
-    // Only leaders and admins can reassign agents
-    if (body.agentId !== undefined) {
-      if (!isTeamLeader && !isAdmin) {
-        return NextResponse.json({ error: "Only team leaders or admins can reassign agents." }, { status: 403 });
-      }
-      updateData.agentId = body.agentId;
-
-      if (body.agentId !== null) {
-        const agent = await prisma.user.findUnique({ where: { id: body.agentId }, select: { role: true, status: true } });
-        if (agent) {
-          if (agent.status !== "Active") {
-            return NextResponse.json({ error: "Selected agent is inactive." }, { status: 400 });
-          }
-
-          const allowedRoles = TASK_AGENT_ROLE_MAP[existingTask.taskType] || [];
-          if (allowedRoles.length > 0 && !allowedRoles.includes(agent.role)) {
-            return NextResponse.json(
-              { error: `${agent.role} cannot receive ${existingTask.taskType.replace(/_/g, " ")} tasks.` },
-              { status: 400 }
-            );
-          }
-
-          const deptMap: Record<string, string> = {
-            agent_seo: "seo", agent_content_seo: "content_seo",
-            agent_social_media: "social_media", agent_media_buyer: "media_buyer",
-            agent_graphic_designer: "graphic_design", agent_motion_graphic: "motion_graphic",
-            agent_ui: "ui_design",
-          };
-          const dept = deptMap[agent.role];
-          if (dept) {
-            await prisma.teamAssignment.upsert({
-              where: { projectId_userId: { projectId: existingTask.projectId, userId: body.agentId } },
-              update: { status: "active" },
-              create: {
-                projectId: existingTask.projectId,
-                userId: body.agentId,
-                assignedByUserId: user.id,
-                role: agent.role,
-                department: dept,
-              },
-            });
-            // Backfill any unresolved warnings so the new agent sees the blocking popup
-            await backfillReceiptsForNewMember(existingTask.projectId, body.agentId);
-          }
-        }
-      }
+    if (result.status === "agent_inactive") return errorJson("Selected agent is inactive.", 400);
+    if (result.status === "agent_role_invalid") {
+      return errorJson(`${result.role} cannot receive ${result.taskType.replace(/_/g, " ")} tasks.`, 400);
     }
-
-    // Only admins can reassign leaders
-    if (body.leaderId !== undefined) {
-      if (!isAdmin) {
-        return NextResponse.json({ error: "Only admins can reassign team leaders." }, { status: 403 });
-      }
-      updateData.leaderId = body.leaderId;
+    if (result.status === "leader_reassign_forbidden") {
+      return errorJson("Only admins can reassign team leaders.", 403);
     }
-
-    if (body.progressPct !== undefined) {
-      const pct = Number(body.progressPct);
-      if (isNaN(pct) || pct < 0 || pct > 100) {
-        return NextResponse.json({ error: "progressPct must be between 0 and 100" }, { status: 400 });
-      }
-      updateData.progressPct = pct;
+    if (result.status === "invalid_progress") return errorJson("progressPct must be between 0 and 100", 400);
+    if (result.status === "invalid_status") return errorJson(`Invalid status: ${result.taskStatus}`, 400);
+    if (result.status === "agent_done_forbidden") {
+      return errorJson("Submit the task for review before it can be marked done.", 403);
     }
-
-    if (body.checklistItems !== undefined) updateData.checklistItems = body.checklistItems;
-    if (body.status !== undefined) {
-      const validStatuses = ["pending", "in_progress", "review", "done"];
-      if (!validStatuses.includes(body.status)) {
-        return NextResponse.json({ error: `Invalid status: ${body.status}` }, { status: 400 });
-      }
-
-      if (body.status === "done" && isAssignedAgent && !isTeamLeader && !isAdmin && !isProjectAM) {
-        return NextResponse.json({ error: "Submit the task for review before it can be marked done." }, { status: 403 });
-      }
-
-      if (["in_progress", "review", "done"].includes(body.status)) {
-        const blockers = await checkProjectBlockers(existingTask.projectId);
-        if (blockers.isBlocked) {
-          return NextResponse.json({ 
-            error: "Action blocked by unresolved project warnings.", 
-            warnings: blockers.warnings 
-          }, { status: 403 });
-        }
-      }
-
-      updateData.status = body.status;
-      // Record when the agent actually started working
-      if (body.status === "in_progress" && !existingTask.startedAt) {
-        updateData.startedAt = new Date();
-      }
-      if (body.status === "done" && body.completedAt === undefined) {
-        updateData.completedAt = new Date();
-      }
-    }
-    if (body.priority !== undefined) updateData.priority = body.priority;
-    if (body.brief !== undefined) updateData.brief = body.brief;
-    if (body.deadline !== undefined) updateData.deadline = body.deadline ? new Date(body.deadline) : null;
-    if (body.files !== undefined) {
-      const normalizedFiles = normalizeDeliverableFiles(body.files);
-      if ("error" in normalizedFiles) {
-        return NextResponse.json({ error: normalizedFiles.error }, { status: 400 });
-      }
-      updateData.files = normalizedFiles.value;
-    }
-    if (body.completedAt !== undefined) updateData.completedAt = body.completedAt ? new Date(body.completedAt) : null;
-
-    const updatedTask = await prisma.task.update({
-      where: { id: taskId },
-      data: updateData,
-      include: { project: true },
-    });
-
-    // ── Notify agent + log the assignment ──
-    if (body.agentId !== undefined && body.agentId !== null) {
-      await prisma.notification.create({
-        data: {
-          userId: body.agentId,
-          title: "New Task Assigned",
-          message: `A team leader assigned a new project task to your queue.`,
-          link: "/dashboard/operations",
-        },
-      });
-      await prisma.projectLog.create({
-        data: {
-          projectId: existingTask.projectId,
-          action: "task_assigned",
-          details: `${existingTask.taskType.replace(/_/g, " ")} task assigned to an agent.`,
-          userId: user.id,
-        },
+    if (result.status === "blocked") {
+      return errorJson("Action blocked by unresolved project warnings.", 403, {
+        warnings: result.warnings,
       });
     }
+    if (result.status === "invalid_files") return errorJson(result.error, 400);
 
-    // ── If progress is updated, recalculate project progress ──
-    if (body.progressPct !== undefined) {
-      const allProjectTasks = await prisma.task.findMany({ where: { projectId: updatedTask.projectId } });
-
-      // Roll task progress up into the three department fields. Cross-team creative
-      // sub-tasks (graphic/motion/ui) and content_seo are bucketed into their owning
-      // department so their work is reflected in project progress (spec §11).
-      const { seo: avgSeo, social: avgSocial, media: avgMedia, overall: overallProgress } =
-        computeDepartmentProgress(
-          allProjectTasks.map((t) => ({
-            id: t.id,
-            taskType: t.taskType,
-            parentTaskId: t.parentTaskId,
-            progressPct: t.progressPct,
-          }))
-        );
-
-      let newStatus = updatedTask.project.projectStatus;
-
-      if (overallProgress === 100) {
-        newStatus = "completed";
-      } else if (updatedTask.project.finalDeadline && new Date() > new Date(updatedTask.project.finalDeadline) && overallProgress < 100) {
-        newStatus = "delayed";
-      } else if (updatedTask.project.projectStatus === "setup" || updatedTask.project.projectStatus === "new") {
-        newStatus = "in_progress";
-      }
-
-      await prisma.project.update({
-        where: { id: updatedTask.projectId },
-        data: { seoProgress: avgSeo, socialMediaProgress: avgSocial, mediaBuyerProgress: avgMedia, projectStatus: newStatus },
-      });
-
-      // Notify on 100% completion
-      if (body.progressPct === 100) {
-        await prisma.projectLog.create({
-          data: {
-            projectId: updatedTask.projectId,
-            action: "progress_updated",
-            details: `Task "${updatedTask.taskType}" completed by ${user.name || user.id}.`,
-            userId: user.id,
-          },
-        });
-
-        const notificationTargets = [
-          updatedTask.project.accountManagerId && {
-            userId: updatedTask.project.accountManagerId,
-            title: "Task Completed",
-            message: `Task "${updatedTask.taskType}" completed. Overall: ${overallProgress.toFixed(0)}%`,
-            type: "task_progress",
-            link: "/dashboard/operations",
-          },
-          updatedTask.leaderId && {
-            userId: updatedTask.leaderId,
-            title: "Task Completed",
-            message: `Agent completed task "${updatedTask.taskType}".`,
-            type: "task_progress",
-            link: "/dashboard/operations",
-          },
-        ].filter(Boolean);
-
-        if (notificationTargets.length > 0) {
-          await prisma.notification.createMany({ data: notificationTargets as any });
-        }
-      }
-    }
-
-    // ── Notify the team leader (and AM) when a task is submitted for review ──
-    if (body.status === "review") {
-      const reviewTargets = [
-        updatedTask.leaderId && updatedTask.leaderId !== user.id && {
-          userId: updatedTask.leaderId,
-          title: "Task Ready for Review",
-          message: `Task "${updatedTask.taskType.replace(/_/g, " ")}" was submitted for your review.`,
-          type: "task_review",
-          link: "/dashboard/operations",
-        },
-        updatedTask.project?.accountManagerId && updatedTask.project.accountManagerId !== user.id && {
-          userId: updatedTask.project.accountManagerId,
-          title: "Task Ready for Review",
-          message: `Task "${updatedTask.taskType.replace(/_/g, " ")}" was submitted for review.`,
-          type: "task_review",
-          link: "/dashboard/operations",
-        },
-      ].filter(Boolean);
-      if (reviewTargets.length > 0) {
-        await prisma.notification.createMany({ data: reviewTargets as any });
-      }
-    }
-
-    // ── Notify AM when status changes to "done" ──
-    if (body.status === "done" && updatedTask.project?.accountManagerId) {
-      await prisma.notification.create({
-        data: {
-          userId: updatedTask.project.accountManagerId,
-          title: "Task Completed",
-          message: `Task "${updatedTask.taskType}" has been marked as done.`,
-          type: "task_progress",
-          link: "/dashboard/operations",
-        },
-      });
-    }
-
-    return NextResponse.json(updatedTask, { status: 200 });
+    return successJson(result.task, 200);
   } catch (error) {
     console.error("Failed to update task:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return errorJson("Internal Server Error", 500);
   }
 }
