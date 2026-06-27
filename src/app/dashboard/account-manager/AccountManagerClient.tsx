@@ -10,7 +10,7 @@ import LifecycleChangeModal from "@/components/LifecycleChangeModal";
 import DistributeModal from "@/components/DistributeModal";
 import TeamOverview from "@/components/TeamOverview";
 
-export default function AccountManagerClient({ userId, projects, kpis, headSeoUsers, teamLeaders }: any) {
+export default function AccountManagerClient({ userId, projects, kpis, headTechnicalUsers, headSeoUsers, teamLeaders }: any) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
@@ -30,6 +30,7 @@ export default function AccountManagerClient({ userId, projects, kpis, headSeoUs
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   // Distribute & Lifecycle Modals
+  const [technicalModalProject, setTechnicalModalProject] = useState<any>(null);
   const [distributeModalProject, setDistributeModalProject] = useState<any>(null);
   const [lifecycleModalProject, setLifecycleModalProject] = useState<any>(null);
   const [setupModalProject, setSetupModalProject] = useState<any>(null);
@@ -347,9 +348,22 @@ export default function AccountManagerClient({ userId, projects, kpis, headSeoUs
                                 <div className="flex justify-between items-center">
                                   <span className="text-xs text-slate-500 font-medium">Head Technical:</span>
                                   {p.headTechnicalId ? (
-                                    <span className="text-sm font-semibold text-slate-700">{p.headTechnical?.name}</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm font-semibold text-slate-700">{p.headTechnical?.name}</span>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); setTechnicalModalProject(p); }}
+                                        className="text-[10px] font-bold px-2 py-1 bg-slate-100 text-slate-600 border rounded hover:bg-slate-200 transition"
+                                      >
+                                        Change
+                                      </button>
+                                    </div>
                                   ) : (
-                                    <span className="text-xs italic text-slate-400">Not assigned</span>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); setTechnicalModalProject(p); }}
+                                      className="text-xs font-bold px-3 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded hover:bg-indigo-100 transition"
+                                    >
+                                      Assign Head Technical
+                                    </button>
                                   )}
                                 </div>
                                 
@@ -691,6 +705,21 @@ export default function AccountManagerClient({ userId, projects, kpis, headSeoUs
           actionLabel="Assign Head SEO"
           onDistributed={() => {
             setDistributeModalProject(null);
+            router.refresh();
+          }}
+        />
+      )}
+
+      {technicalModalProject && (
+        <DistributeModal
+          isOpen={!!technicalModalProject}
+          onClose={() => setTechnicalModalProject(null)}
+          projectId={technicalModalProject.id}
+          projectName={technicalModalProject.deal?.lead?.name || "Client"}
+          availableUsers={headTechnicalUsers || []}
+          actionLabel="Assign Head Technical"
+          onDistributed={() => {
+            setTechnicalModalProject(null);
             router.refresh();
           }}
         />

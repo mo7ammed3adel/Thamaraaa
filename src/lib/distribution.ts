@@ -8,7 +8,7 @@ import { prisma } from "./prisma";
 const DISTRIBUTION_MAP: Record<string, string[]> = {
   head_account_manager: ["account_manager", "head_technical", "head_seo"],
   head_technical: ["team_leader_social_media", "team_leader_media_buyer"],
-  account_manager: ["head_seo"],
+  account_manager: ["head_technical", "head_seo"],
   head_seo: ["team_leader_seo"],
   team_leader_social_media: ["agent_social_media"],
   team_leader_media_buyer: ["agent_media_buyer"],
