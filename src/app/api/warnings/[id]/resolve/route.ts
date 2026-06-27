@@ -1,8 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { canResolveWarning } from "@/lib/distribution";
+import { NextRequest } from "next/server";
+import { getSessionUser } from "@/server/auth/session";
+import { errorJson, successJson, unauthorizedJson } from "@/server/http/responses";
+import { resolveWarningForUser } from "@/server/services/warningService";
 
 /**
  * POST /api/warnings/[id]/resolve
@@ -24,68 +23,24 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const user = session.user as { id: string; name: string; role: string };
+    const user = await getSessionUser();
+    if (!user) return unauthorizedJson();
 
-    const warning = await prisma.warning.findUnique({
-      where: { id: params.id },
+    const result = await resolveWarningForUser({
+      warningId: params.id,
+      userId: user.id,
+      userName: user.name || user.id,
     });
 
-    if (!warning) {
-      return NextResponse.json({ error: "Warning not found" }, { status: 404 });
-    }
+    if (result.status === "not_found") return errorJson("Warning not found", 404);
+    if (result.status === "already_resolved") return errorJson("Warning is already resolved", 400);
+    if (result.status === "forbidden") return errorJson("Only the warning creator can resolve this warning", 403);
 
-    if (warning.status === "Resolved") {
-      return NextResponse.json(
-        { error: "Warning is already resolved" },
-        { status: 400 }
-      );
-    }
-
-    if (!canResolveWarning(user.id, warning.senderUserId)) {
-      return NextResponse.json(
-        { error: "Only the warning creator can resolve this warning" },
-        { status: 403 }
-      );
-    }
-
-    const now = new Date();
-
-    const updatedWarning = await prisma.$transaction(async (tx) => {
-      const updated = await tx.warning.update({
-        where: { id: params.id },
-        data: {
-          status: "Resolved",
-          resolvedAt: now,
-          resolvedByUserId: user.id,
-        },
-      });
-
-      if (warning.projectId) {
-        await tx.projectLog.create({
-          data: {
-            projectId: warning.projectId,
-            userId: user.id,
-            action: "warning_resolved",
-            details: `Warning "${warning.subject}" resolved by ${user.name}`,
-          },
-        });
-      }
-
-      return updated;
-    });
-
-    return NextResponse.json({ success: true, warning: updatedWarning });
+    return successJson({ success: true, warning: result.warning });
   } catch (error: unknown) {
     const message =
       error instanceof Error ? error.message : "Unknown error occurred";
     console.error("Resolve Warning Error:", message);
-    return NextResponse.json(
-      { error: "Internal Server Error", details: message },
-      { status: 500 }
-    );
+    return errorJson("Internal Server Error", 500, { details: message });
   }
 }

@@ -1,8 +1,11 @@
 import {
   acknowledgeWarningReceipt,
+  findWarningById,
   findUnreadWarningReceiptsForUser,
   findWarningReceiptForUser,
+  resolveWarningWithLog,
 } from "@/server/repositories/warningRepository";
+import { canResolveWarning } from "@/lib/distribution";
 
 export async function listUnreadWarnings(userId: string) {
   const receipts = await findUnreadWarningReceiptsForUser(userId);
@@ -53,4 +56,29 @@ export async function acknowledgeWarningForUser(input: {
   });
 
   return { status: "ok" as const, receipt: updated };
+}
+
+export async function resolveWarningForUser(input: {
+  warningId: string;
+  userId: string;
+  userName: string;
+}) {
+  const warning = await findWarningById(input.warningId);
+  if (!warning) return { status: "not_found" as const };
+  if (warning.status === "Resolved") return { status: "already_resolved" as const };
+  if (!canResolveWarning(input.userId, warning.senderUserId)) {
+    return { status: "forbidden" as const };
+  }
+
+  const resolvedAt = new Date();
+  const updatedWarning = await resolveWarningWithLog({
+    warningId: input.warningId,
+    projectId: warning.projectId,
+    subject: warning.subject,
+    userId: input.userId,
+    userName: input.userName,
+    resolvedAt,
+  });
+
+  return { status: "ok" as const, warning: updatedWarning };
 }

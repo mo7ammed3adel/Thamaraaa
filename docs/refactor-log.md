@@ -76,6 +76,23 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Warning Resolve Boundary
+
+Scope:
+
+- Moved warning resolve authorization and transaction workflow into `src/server/services/warningService.ts`.
+- Moved warning lookup/update/log persistence into `src/server/repositories/warningRepository.ts`.
+- Reduced `/api/warnings/[id]/resolve` to controller responsibilities.
+
+Smell -> principle -> fix:
+
+- Resolve route mixed request delivery, authorization, persistence, and audit logging -> SRP / controller-service-repository boundary -> moved workflow and data access into server layers.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Warning Read/Acknowledge Boundary
 
 Scope:

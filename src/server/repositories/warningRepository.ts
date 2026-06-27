@@ -42,3 +42,42 @@ export function acknowledgeWarningReceipt(input: {
     return receipt;
   });
 }
+
+export function findWarningById(warningId: string) {
+  return prisma.warning.findUnique({
+    where: { id: warningId },
+  });
+}
+
+export function resolveWarningWithLog(input: {
+  warningId: string;
+  projectId: string | null;
+  subject: string;
+  userId: string;
+  userName: string;
+  resolvedAt: Date;
+}) {
+  return prisma.$transaction(async (tx) => {
+    const warning = await tx.warning.update({
+      where: { id: input.warningId },
+      data: {
+        status: "Resolved",
+        resolvedAt: input.resolvedAt,
+        resolvedByUserId: input.userId,
+      },
+    });
+
+    if (input.projectId) {
+      await tx.projectLog.create({
+        data: {
+          projectId: input.projectId,
+          userId: input.userId,
+          action: "warning_resolved",
+          details: `Warning "${input.subject}" resolved by ${input.userName}`,
+        },
+      });
+    }
+
+    return warning;
+  });
+}
