@@ -166,6 +166,22 @@ Behavior preserved by:
 
 - `npx tsc --noEmit`: passed.
 
+## 2026-06-27 - Phase 5 Slice: Client Journey Timeline Tab
+
+Scope:
+
+- Extracted the timeline rendering block into `ClientTimelineTab`.
+- Typed the tab props with `ClientJourneyTimelineEntry[]`.
+- Kept timeline markup, labels, dates, and colors behavior-compatible.
+
+Smell -> principle -> fix:
+
+- The journey page rendered tab content inline inside the orchestrator -> component decomposition / typed props -> moved the timeline tab to a focused component.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+
 ## 2026-06-27 - Phase 3 Slice: Project Status Boundary
 
 Scope:

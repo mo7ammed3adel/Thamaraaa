@@ -277,7 +277,7 @@ npm run build
 ### 5.2 Client journey page
 
 - [x] R0510 استخراج timeline builder من `ClientFullJourneyClient.tsx` إلى pure helper.
-- [ ] R0511 استخراج `ClientTimelineTab`.
+- [x] R0511 استخراج `ClientTimelineTab`.
 - [ ] R0512 استخراج `ClientTasksTab`.
 - [ ] R0513 استخراج `ClientTeamTab`.
 - [ ] R0514 استخراج `ClientWarningsTab`.
