@@ -4,9 +4,12 @@ import {
   canFlagTask,
   canReassignTask,
 } from "@/lib/distribution";
+import { getDefaultChecklistForTaskType } from "@/lib/constants";
 import {
+  createSelfAssignedTaskWithLog,
   findTaskForFlag,
   findTaskForReassign,
+  findProjectForSelfTask,
   findUserForTaskAssignment,
   flagTaskWithNotificationAndLog,
   reassignTaskWithNotificationsAndLog,
@@ -35,6 +38,25 @@ const AGENT_DEPARTMENT_MAP: Record<string, string> = {
   agent_motion_graphic: "motion_graphic",
   agent_ui: "ui_design",
 };
+
+const SELF_TASK_ALLOWED_ROLES = [
+  "agent_media_buyer",
+  "agent_social_media",
+  "agent_seo",
+  "agent_content_seo",
+  "agent_graphic_designer",
+  "agent_motion_graphic",
+  "agent_ui",
+  "team_leader_media_buyer",
+  "team_leader_social_media",
+  "team_leader_seo",
+  "head_seo",
+  "leader_graphic_designer",
+  "leader_motion_graphic",
+  "leader_ui",
+  "head_technical",
+  "super_admin",
+];
 
 export async function flagTask(input: {
   taskId: string;
@@ -119,4 +141,53 @@ export async function reassignTask(input: {
   await backfillReceiptsForNewMember(task.projectId, newAgentId);
 
   return { status: "ok" as const, task: updatedTask };
+}
+
+export async function createSelfTask(input: {
+  userId: string;
+  userName?: string | null;
+  userRole: string;
+  body: any;
+}) {
+  if (!SELF_TASK_ALLOWED_ROLES.includes(input.userRole)) {
+    return { status: "role_forbidden" as const };
+  }
+
+  const { projectId, brief, priority, deadline, taskType } = input.body;
+
+  if (!projectId || !brief?.trim()) {
+    return { status: "missing_project_or_brief" as const };
+  }
+
+  if (!taskType) {
+    return { status: "missing_task_type" as const };
+  }
+
+  const project = await findProjectForSelfTask(projectId, input.userId);
+  if (!project) return { status: "project_not_found" as const };
+
+  const hasAccess =
+    input.userRole === "super_admin" ||
+    project.teamAssignments.length > 0 ||
+    project.tasks.length > 0;
+
+  if (!hasAccess) {
+    return { status: "project_forbidden" as const };
+  }
+
+  const trimmedBrief = brief.trim();
+  const task = await createSelfAssignedTaskWithLog({
+    projectId,
+    userId: input.userId,
+    userName: input.userName || input.userId,
+    userRole: input.userRole,
+    taskType,
+    brief: trimmedBrief,
+    priority,
+    deadline,
+    checklistItems: getDefaultChecklistForTaskType(taskType),
+    projectName: project.deal?.lead?.name || "Unknown Project",
+  });
+
+  return { status: "ok" as const, task };
 }

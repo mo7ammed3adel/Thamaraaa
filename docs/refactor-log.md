@@ -221,6 +221,22 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Self Task Boundary
+
+Scope:
+
+- Moved `/api/tasks/self` role checks, required-field validation, project access check, task creation, checklist selection, and project log creation into `taskWorkflowService` and `taskRepository`.
+- Preserved the same self-task payload, default priority/status/progress values, and response messages/status codes.
+
+Smell -> principle -> fix:
+
+- Self-task route mixed request handling, role policy, project visibility, task creation, checklist selection, and audit logging -> controller-service-repository boundary -> route now only maps session/body and service outcomes.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
 
 Scope:

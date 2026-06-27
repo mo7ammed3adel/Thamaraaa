@@ -21,6 +21,17 @@ export function findUserForTaskAssignment(userId: string) {
   });
 }
 
+export function findProjectForSelfTask(projectId: string, userId: string) {
+  return prisma.project.findUnique({
+    where: { id: projectId },
+    include: {
+      deal: { include: { lead: { select: { name: true } } } },
+      teamAssignments: { where: { userId, status: "active" } },
+      tasks: { where: { agentId: userId }, select: { id: true } },
+    },
+  });
+}
+
 export function flagTaskWithNotificationAndLog(input: {
   taskId: string;
   projectId: string | null;
@@ -151,5 +162,53 @@ export function reassignTaskWithNotificationsAndLog(input: {
     }
 
     return updated;
+  });
+}
+
+export function createSelfAssignedTaskWithLog(input: {
+  projectId: string;
+  userId: string;
+  userName: string;
+  userRole: string;
+  taskType: string;
+  brief: string;
+  priority?: string;
+  deadline?: string | null;
+  checklistItems: string;
+  projectName: string;
+}) {
+  return prisma.$transaction(async (tx) => {
+    const task = await tx.task.create({
+      data: {
+        projectId: input.projectId,
+        leaderId: input.userId,
+        agentId: input.userId,
+        taskType: input.taskType,
+        brief: input.brief,
+        priority: input.priority || "Medium",
+        deadline: input.deadline ? new Date(input.deadline) : null,
+        checklistItems: input.checklistItems,
+        requesterRole: input.userRole,
+        assignedRole: input.userRole,
+        status: "pending",
+        progressPct: 0,
+      },
+    });
+
+    await tx.projectLog.create({
+      data: {
+        projectId: input.projectId,
+        action: "task_created",
+        details: JSON.stringify({
+          description: `Self-task created by ${input.userName}: "${input.brief.substring(0, 60)}" for ${input.projectName}`,
+          taskType: input.taskType,
+          priority: input.priority || "Medium",
+          selfAssigned: true,
+        }),
+        userId: input.userId,
+      },
+    });
+
+    return task;
   });
 }
