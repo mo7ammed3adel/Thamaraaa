@@ -306,6 +306,25 @@ Behavior preserved by:
 - `npm run lint`: passed with the same pre-existing React hook dependency warnings recorded in the baseline.
 - `npm run build`: passed.
 
+## 2026-06-27 - Phase 3 Slice: Finance Overview Boundary
+
+Scope:
+
+- Added `src/server/repositories/financeRepository.ts`.
+- Added `src/server/services/financeService.ts`.
+- Moved `/api/finance/overview` deal/installment queries and aggregate calculations into the finance service/repository boundary.
+- Preserved accountant/super_admin authorization and response payload shape.
+- Closed roadmap item R0316.
+
+Smell -> principle -> fix:
+
+- Finance overview route mixed authorization, Prisma reads, and aggregate calculations -> controller-service-repository boundary -> route now handles auth and maps the service payload.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
 
 Scope:
