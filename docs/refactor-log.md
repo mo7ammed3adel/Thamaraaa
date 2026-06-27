@@ -76,6 +76,24 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Project Status Boundary
+
+Scope:
+
+- Moved project status update authorization, validation, blocker checks, audit logs, and account-manager backfill into `src/server/services/projectLifecycleService.ts`.
+- Added project status repository helpers in `src/server/repositories/projectRepository.ts`.
+- Reduced `/api/projects/[id]/status` to session lookup, request parsing, service dispatch, and response mapping.
+- Left setup routes for a later slice before closing roadmap item R0324.
+
+Smell -> principle -> fix:
+
+- Project status route mixed delivery, authorization, workflow rules, Prisma writes, audit logs, and distribution side effects -> SRP / controller-service-repository boundary -> moved workflow decisions to the service and persistence calls to the repository.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
 
 Scope:

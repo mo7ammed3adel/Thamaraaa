@@ -35,3 +35,35 @@ export function updateProjectLifecycleWithLog(input: {
     }),
   ]);
 }
+
+export function findProjectStatusAuth(projectId: string) {
+  return prisma.project.findUnique({
+    where: { id: projectId },
+    select: { id: true, accountManagerId: true, headTechnicalId: true },
+  });
+}
+
+export function findActiveAccountManager(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true, status: true },
+  });
+}
+
+export function updateProjectFields(projectId: string, data: Record<string, unknown>) {
+  return prisma.project.update({
+    where: { id: projectId },
+    data,
+  });
+}
+
+export function createProjectLog(input: {
+  projectId: string;
+  action: string;
+  details: string;
+  userId: string;
+}) {
+  return prisma.projectLog.create({
+    data: input,
+  });
+}
