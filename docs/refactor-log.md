@@ -198,6 +198,22 @@ Behavior preserved by:
 
 - `npx tsc --noEmit`: passed.
 
+## 2026-06-27 - Phase 5 Slice: Client Journey Team Tab
+
+Scope:
+
+- Extracted team assignment table rendering into `ClientTeamTab`.
+- Moved department-to-role mapping for team assignment selects into the focused tab component.
+- Kept team-grid building and assignment handler ownership in the parent page.
+
+Smell -> principle -> fix:
+
+- Team assignment rendering and role option mapping were embedded inline in the journey page -> component decomposition / typed props -> moved the tab to a focused component while preserving assignment behavior.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+
 ## 2026-06-27 - Phase 3 Slice: Project Status Boundary
 
 Scope:
