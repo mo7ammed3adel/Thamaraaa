@@ -459,6 +459,22 @@ Behavior preserved by:
 - `npm test`: passed, 7 files and 30 tests.
 - `npx tsc --noEmit`: passed.
 
+## 2026-06-27 - Phase 3 Slice: HR Promotion Engine Boundary
+
+Scope:
+
+- Moved `/api/hr/promotion-engine` evaluation listing and promote/warn/terminate/clear action workflows into `hrService` and `hrRepository`.
+- Preserved HR authorization, JSON validation, action validation, response shapes/status codes, and notification side effects.
+
+Smell -> principle -> fix:
+
+- Promotion engine route mixed controller delivery, HR action validation, multi-table mutations, and notifications -> controller-service-repository boundary -> route now maps promotion service outcomes to HTTP.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
 
 Scope:

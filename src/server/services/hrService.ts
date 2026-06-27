@@ -13,8 +13,14 @@ import {
   updateLeaveRequestDecision,
   updateJobApplicant,
   updateHrRecord,
+  clearEmployeeWarnings,
+  findHrRecordByUserId,
+  promoteEmployee,
+  terminateEmployee,
+  warnEmployee,
 } from "@/server/repositories/hrRepository";
 import { normalizeWebUrl } from "@/lib/safe-url";
+import { evaluateAllEmployees } from "@/lib/promotion";
 
 const HR_ROLES = ["super_admin", "hr_manager"];
 
@@ -181,4 +187,65 @@ export async function evaluateHrRecords() {
     success: true,
     message: `Evaluation complete. ${promotions} new promotions eligible, ${warnings} new warnings issued.`,
   };
+}
+
+export function listPromotionEvaluations() {
+  return evaluateAllEmployees();
+}
+
+export async function applyPromotionAction(input: {
+  userId?: string;
+  action?: string;
+  nextLevel?: string;
+  nextRole?: string;
+}) {
+  if (!input.userId || !input.action) {
+    return { status: "missing_fields" as const };
+  }
+
+  const validActions = ["promote", "warn", "terminate", "clear"] as const;
+  if (!validActions.includes(input.action as any)) {
+    return { status: "invalid_action" as const, action: input.action };
+  }
+
+  const hr = await findHrRecordByUserId(input.userId);
+  if (!hr) {
+    return { status: "hr_not_found" as const };
+  }
+
+  if (input.action === "promote") {
+    const userUpdate: { level?: string; role?: string } = {};
+    if (input.nextLevel) userUpdate.level = input.nextLevel;
+    if (input.nextRole) userUpdate.role = input.nextRole;
+    if (Object.keys(userUpdate).length === 0) {
+      return { status: "promote_missing_fields" as const };
+    }
+
+    await promoteEmployee({
+      userId: input.userId,
+      userUpdate,
+      hrLevel: input.nextLevel || hr.level,
+    });
+
+    return { status: "ok" as const, action: input.action, userId: input.userId };
+  }
+
+  if (input.action === "warn") {
+    const warningCount = hr.warningCount + 1;
+    const terminationFlag = warningCount >= 3;
+    await warnEmployee({ userId: input.userId, warningCount, terminationFlag });
+    return { status: "warned" as const, action: input.action, userId: input.userId, warningCount, terminationFlag };
+  }
+
+  if (input.action === "terminate") {
+    await terminateEmployee(input.userId);
+    return { status: "ok" as const, action: input.action, userId: input.userId };
+  }
+
+  if (input.action === "clear") {
+    await clearEmployeeWarnings(input.userId);
+    return { status: "ok" as const, action: input.action, userId: input.userId };
+  }
+
+  return { status: "unhandled" as const };
 }

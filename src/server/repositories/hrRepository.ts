@@ -112,3 +112,69 @@ export function updateHrRecord(id: string, data: any) {
     data,
   });
 }
+
+export function findHrRecordByUserId(userId: string) {
+  return prisma.hrRecord.findUnique({
+    where: { userId },
+    include: { user: { select: { id: true, name: true, role: true, level: true } } },
+  });
+}
+
+export function promoteEmployee(input: { userId: string; userUpdate: any; hrLevel: string }) {
+  return prisma.$transaction([
+    prisma.user.update({ where: { id: input.userId }, data: input.userUpdate }),
+    prisma.hrRecord.update({
+      where: { userId: input.userId },
+      data: { promotionEligible: false, level: input.hrLevel },
+    }),
+    prisma.notification.create({
+      data: {
+        userId: input.userId,
+        title: "Promotion",
+        message: `Congratulations! You have been promoted${
+          input.userUpdate.level ? ` to ${input.userUpdate.level}` : ""
+        }${input.userUpdate.role ? ` (${input.userUpdate.role.replace(/_/g, " ")})` : ""}.`,
+        type: "promotion",
+      },
+    }),
+  ]);
+}
+
+export function warnEmployee(input: { userId: string; warningCount: number; terminationFlag: boolean }) {
+  return prisma.$transaction([
+    prisma.hrRecord.update({
+      where: { userId: input.userId },
+      data: { warningCount: input.warningCount, terminationFlag: input.terminationFlag },
+    }),
+    prisma.notification.create({
+      data: {
+        userId: input.userId,
+        title: "Performance Warning",
+        message: `You have received a performance warning (count: ${input.warningCount}). Please discuss with HR.`,
+        type: "hr_warning",
+      },
+    }),
+  ]);
+}
+
+export function terminateEmployee(userId: string) {
+  return prisma.$transaction([
+    prisma.hrRecord.update({ where: { userId }, data: { terminationFlag: true } }),
+    prisma.user.update({ where: { id: userId }, data: { status: "Inactive" } }),
+    prisma.notification.create({
+      data: {
+        userId,
+        title: "Account Inactive",
+        message: "Your account has been marked inactive. Contact HR for details.",
+        type: "hr_termination",
+      },
+    }),
+  ]);
+}
+
+export function clearEmployeeWarnings(userId: string) {
+  return prisma.hrRecord.update({
+    where: { userId },
+    data: { warningCount: 0, terminationFlag: false, promotionEligible: false },
+  });
+}
