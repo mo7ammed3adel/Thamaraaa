@@ -564,6 +564,24 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 4 Slice: HR Dashboard Fetch Replacement
+
+Scope:
+
+- Replaced direct fetch calls in `HrClient`, `HiringClient`, and `hr/requests/page`.
+- Extended `src/client/api/hr.ts` for attendance, employees, promotion engine, evaluations, documents, applicants, and HR requests.
+
+Smell -> principle -> fix:
+
+- HR client screens repeated endpoint URLs and JSON request setup -> client API boundary -> moved HR HTTP calls into `src/client/api/hr.ts`.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+- `npm run lint`: passed with the same baseline React hook dependency warnings.
+- `rg "fetch\\("` on `src/app/dashboard/hr`: no matches.
+
 ## 2026-06-27 - Phase 4 Slice: Finance Dashboard Fetch Replacement
 
 Scope:

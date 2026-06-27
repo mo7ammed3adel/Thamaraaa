@@ -1,22 +1,18 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Check, X, Clock } from "lucide-react";
+import { listHrRequests, updateHrRequest } from "@/client/api/hr";
 
 export default function HRRequestsPage() {
   const [requests, setRequests] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch("/api/hr/requests")
-      .then(res => res.json())
+    listHrRequests()
       .then(data => setRequests(data || []));
   }, []);
 
   const handleDecision = async (id: string, decision: string) => {
-    await fetch(`/api/hr/requests/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: decision })
-    });
+    await updateHrRequest(id, { status: decision });
     setRequests(requests.map(r => r.id === id ? { ...r, status: decision } : r));
   };
 

@@ -254,7 +254,7 @@ npm run build
 - [x] R0420 Replace fetch in shared components: `NotificationBell`, `NotesPanel`, `WarningPopup`, `GlobalWarningAlert`.
 - [x] R0421 Replace fetch in operations components: `TaskWorkspaceModal`, `TaskAssignmentForm`, `TaskReassignModal`, `TaskFlagModal`, `DistributeModal`.
 - [x] R0422 Replace fetch in finance dashboard.
-- [ ] R0423 Replace fetch in HR dashboard.
+- [x] R0423 Replace fetch in HR dashboard.
 - [ ] R0424 Replace fetch in account/technical/SEO/social/media/design dashboards.
 - [ ] R0425 Replace fetch in Sales/TeleSales only after smoke test baseline.
 

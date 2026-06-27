@@ -3,6 +3,19 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Users, Briefcase, Calendar, CheckSquare, Plus, X, Search, Edit2, UserX, UserCheck, TrendingUp, FileText, Trash2, AlertTriangle, Award } from "lucide-react";
+import { HttpError } from "@/client/transport/http";
+import {
+  createDocument,
+  createEmployee,
+  deleteDocument,
+  listDocuments,
+  listPromotionEvaluations,
+  runAutoEvaluations,
+  runPromotionAction,
+  submitAttendance,
+  updateAttendance,
+  updateEmployee,
+} from "@/client/api/hr";
 
 const ALL_ROLES = [
   { value: "super_admin", label: "Super Admin", dept: "Administration" },
@@ -59,11 +72,7 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
 
   const handleAttendance = async (action: "checkIn" | "checkOut") => {
     setLoading(true);
-    await fetch("/api/attendance", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action })
-    });
+    await submitAttendance({ action });
     setLoading(false);
     router.refresh();
   };
@@ -72,22 +81,18 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
     e.preventDefault();
     setLoading(true);
     const form = new FormData(e.target as HTMLFormElement);
-    await fetch("/api/hr/employees", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: form.get("name"),
-        email: form.get("email"),
-        password: form.get("password"),
-        role: form.get("role"),
-        phone: form.get("phone") || null,
-        level: form.get("level") || "Junior",
-        directManagerId: form.get("directManagerId") || null,
-        company: form.get("company") || null,
-        baseSalary: form.get("baseSalary") || 0,
-        monthlyTarget: form.get("monthlyTarget") || 0,
-        status: form.get("status") || "Active",
-      })
+    await createEmployee({
+      name: form.get("name"),
+      email: form.get("email"),
+      password: form.get("password"),
+      role: form.get("role"),
+      phone: form.get("phone") || null,
+      level: form.get("level") || "Junior",
+      directManagerId: form.get("directManagerId") || null,
+      company: form.get("company") || null,
+      baseSalary: form.get("baseSalary") || 0,
+      monthlyTarget: form.get("monthlyTarget") || 0,
+      status: form.get("status") || "Active",
     });
     setLoading(false);
     setShowAddForm(false);
@@ -96,11 +101,7 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
 
   const handleDeduction = async (attendanceId: string, action: "approve" | "reject") => {
     setLoading(true);
-    await fetch("/api/attendance", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: attendanceId, action }),
-    });
+    await updateAttendance({ id: attendanceId, action });
     setLoading(false);
     router.refresh();
   };
@@ -109,11 +110,7 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
     const newStatus = currentStatus === "Active" ? "Inactive" : "Active";
     if (!confirm(`Are you sure you want to mark this employee as ${newStatus}?`)) return;
     setLoading(true);
-    await fetch(`/api/hr/employees`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: empId, status: newStatus })
-    });
+    await updateEmployee({ id: empId, status: newStatus });
     setLoading(false);
     router.refresh();
   };
@@ -122,20 +119,16 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
     e.preventDefault();
     setLoading(true);
     const form = new FormData(e.target as HTMLFormElement);
-    await fetch("/api/hr/employees", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: editEmployee.id,
-        name: form.get("name"),
-        role: form.get("role"),
-        phone: form.get("phone") || null,
-        level: form.get("level") || undefined,
-        directManagerId: form.get("directManagerId") || null,
-        company: form.get("company") || null,
-        baseSalary: form.get("baseSalary") ?? undefined,
-        monthlyTarget: form.get("monthlyTarget") ?? undefined,
-      })
+    await updateEmployee({
+      id: editEmployee.id,
+      name: form.get("name"),
+      role: form.get("role"),
+      phone: form.get("phone") || null,
+      level: form.get("level") || undefined,
+      directManagerId: form.get("directManagerId") || null,
+      company: form.get("company") || null,
+      baseSalary: form.get("baseSalary") ?? undefined,
+      monthlyTarget: form.get("monthlyTarget") ?? undefined,
     });
     setLoading(false);
     setEditEmployee(null);
@@ -576,9 +569,8 @@ function PromotionEngineTab() {
 
   const load = useCallback(() => {
     setLoading(true);
-    fetch("/api/hr/promotion-engine")
-      .then((r) => r.json())
-      .then((d) => setEvaluations(d.evaluations || []))
+    listPromotionEvaluations()
+      .then((d: any) => setEvaluations(d.evaluations || []))
       .catch(() => setEvaluations([]))
       .finally(() => setLoading(false));
   }, []);
@@ -589,24 +581,20 @@ function PromotionEngineTab() {
     if (action === "terminate" && !confirm(`Terminate ${e.userName}? This will mark the account inactive.`)) return;
     if (action === "promote" && !confirm(`Promote ${e.userName} to ${e.nextLevel || ""} ${e.nextRole ? `(${e.nextRole.replace(/_/g, " ")})` : ""}?`)) return;
     setBusy(e.userId);
-    const res = await fetch("/api/hr/promotion-engine", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: e.userId, action, nextLevel: e.nextLevel, nextRole: e.nextRole }),
-    });
-    setBusy(null);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      alert(err.error || "Action failed");
-      return;
+    try {
+      await runPromotionAction({ userId: e.userId, action, nextLevel: e.nextLevel, nextRole: e.nextRole });
+      load();
+      router.refresh();
+    } catch (error) {
+      alert(error instanceof HttpError ? error.message : "Action failed");
+    } finally {
+      setBusy(null);
     }
-    load();
-    router.refresh();
   };
 
   const runAutoEval = async () => {
     if (!confirm("Run the auto-evaluation against all HrRecords? This updates promotionEligible / warningCount / terminationFlag.")) return;
-    await fetch("/api/hr/evaluations", { method: "POST" });
+    await runAutoEvaluations();
     load();
   };
 
@@ -710,10 +698,8 @@ function DocumentsTab({ employees }: { employees: any[] }) {
 
   const load = useCallback(() => {
     setLoading(true);
-    const url = selectedUser === "all" ? "/api/hr/documents" : `/api/hr/documents?userId=${selectedUser}`;
-    fetch(url)
-      .then((r) => r.json())
-      .then((d) => setDocs(d.documents || []))
+    listDocuments(selectedUser === "all" ? {} : { userId: selectedUser })
+      .then((d: any) => setDocs(d.documents || []))
       .catch(() => setDocs([]))
       .finally(() => setLoading(false));
   }, [selectedUser]);
@@ -724,24 +710,20 @@ function DocumentsTab({ employees }: { employees: any[] }) {
     e.preventDefault();
     const form = new FormData(e.target as HTMLFormElement);
     setUploading(true);
-    const res = await fetch("/api/hr/documents", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: form.get("userId"), name: form.get("name"), fileUrl: form.get("fileUrl") }),
-    });
-    setUploading(false);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      alert(err.error || "Upload failed");
-      return;
+    try {
+      await createDocument({ userId: form.get("userId"), name: form.get("name"), fileUrl: form.get("fileUrl") });
+      setShowUpload(false);
+      load();
+    } catch (error) {
+      alert(error instanceof HttpError ? error.message : "Upload failed");
+    } finally {
+      setUploading(false);
     }
-    setShowUpload(false);
-    load();
   };
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Delete document "${name}"?`)) return;
-    await fetch(`/api/hr/documents?id=${id}`, { method: "DELETE" });
+    await deleteDocument(id);
     load();
   };
 

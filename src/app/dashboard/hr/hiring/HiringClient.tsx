@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, GripVertical } from "lucide-react";
+import { createApplicant, updateApplicant } from "@/client/api/hr";
 
 const STAGES = ["New", "HR_Interview", "Department_Interview", "Offer", "Hired", "Rejected"];
 
@@ -14,28 +15,18 @@ export default function HiringClient({ initialApplicants }: { initialApplicants:
 
   const handleAddApplicant = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch("/api/hr/applicants", {
-      method: "POST",
-      body: JSON.stringify(newApp),
-    });
-    if (res.ok) {
-      const { data } = await res.json();
-      setApplicants([data, ...applicants]);
-      setShowAddModal(false);
-      setNewApp({ name: "", email: "", phone: "", roleApplied: "", notes: "" });
-      router.refresh();
-    }
+    const { data }: any = await createApplicant(newApp);
+    setApplicants([data, ...applicants]);
+    setShowAddModal(false);
+    setNewApp({ name: "", email: "", phone: "", roleApplied: "", notes: "" });
+    router.refresh();
   };
 
   const updateStatus = async (id: string, newStatus: string) => {
     // Optimistic UI update
     setApplicants(prev => prev.map(a => a.id === id ? { ...a, status: newStatus } : a));
 
-    await fetch(`/api/hr/applicants/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: newStatus })
-    });
+    await updateApplicant(id, { status: newStatus });
     router.refresh();
   };
 
