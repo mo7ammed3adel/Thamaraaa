@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, TrendingUp, CheckCircle, Clock, UserPlus, Bell } from "lucide-react";
 import ClientDetailModal from "@/components/ClientDetailModal";
@@ -12,6 +12,7 @@ import CreateWarningModal from "@/components/CreateWarningModal";
 import { distributeProject as distributeProjectRequest, updateProjectStatus } from "@/client/api/projects";
 import HeadAccountManagerKpiGrid from "./HeadAccountManagerKpiGrid";
 import HeadAccountManagerWorkload from "./HeadAccountManagerWorkload";
+import { useHeadAccountManagerDerivedData } from "./useHeadAccountManagerDerivedData";
 
 export default function HeadAccountManagerClient({ projects, accountManagers, headTechnicals, headSeoUsers, kpis, userId }: any) {
   const router = useRouter();
@@ -32,41 +33,16 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
   const [warningProject, setWarningProject] = useState<any>(null);
   const [taskFilter, setTaskFilter] = useState("all");
 
-  const allTasks = useMemo(() => projects.flatMap((p: any) => p.tasks || []), [projects]);
-
-  const filteredProjects = useMemo(() => {
-    return projects.filter((p: any) => {
-      const matchesAM = filterAM === "all" ? true : filterAM === "unassigned" ? !p.accountManagerId : p.accountManagerId === filterAM;
-      const matchesSearch = !searchQuery || (p.deal?.lead?.name?.toLowerCase().includes(searchQuery.toLowerCase()) || p.deal?.lead?.phone?.includes(searchQuery));
-      const matchesStatus = filterStatus === "all" ? true : p.projectStatus === filterStatus;
-      const hasWarnings = p.warnings && p.warnings.length > 0;
-      const matchesWarning = filterWarning === "all" ? true : filterWarning === "yes" ? hasWarnings : filterWarning === "no" ? !hasWarnings : true;
-      
-      // Check if any tasks are delayed or project is delayed
-      const isDelayed = p.projectStatus === "delayed" || (p.tasks && p.tasks.some((t:any) => t.status !== "done" && t.deadline && new Date(t.deadline) < new Date()));
-      const matchesDelay = filterDelay === "all" ? true : filterDelay === "yes" ? isDelayed : true;
-
-      let matchesKpi = true;
-      if (activeKpi === "newToday") {
-         const today = new Date().toLocaleDateString();
-         matchesKpi = new Date(p.createdAt).toLocaleDateString() === today;
-      } else if (activeKpi === "active") {
-         matchesKpi = ["in_progress", "setup", "assigned"].includes(p.projectStatus);
-      } else if (activeKpi === "unassigned") {
-         matchesKpi = !p.accountManagerId;
-      } else if (activeKpi === "delayed") {
-         matchesKpi = isDelayed;
-      } else if (activeKpi === "completed") {
-         matchesKpi = p.projectStatus === "completed";
-      } else if (activeKpi === "warnings") {
-         matchesKpi = hasWarnings;
-      }
-
-      const matchesLifecycle = filterLifecycle === "all" ? true : p.lifecycleState === filterLifecycle;
-
-      return matchesAM && matchesSearch && matchesStatus && matchesWarning && matchesDelay && matchesKpi && matchesLifecycle;
-    });
-  }, [projects, filterAM, searchQuery, filterStatus, filterWarning, filterDelay, activeKpi, filterLifecycle]);
+  const { allTasks, filteredProjects } = useHeadAccountManagerDerivedData({
+    projects,
+    filterAM,
+    searchQuery,
+    filterStatus,
+    filterWarning,
+    filterDelay,
+    activeKpi,
+    filterLifecycle,
+  });
 
   const handleAssignAM = async (projectId: string, amId: string) => {
     if (amId) {

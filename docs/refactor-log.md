@@ -40,6 +40,21 @@ Behavior preserved by:
 
 - `npx tsc --noEmit`: passed.
 
+## 2026-06-27 - Phase 5 Slice: Head Account Manager Derived Data
+
+Scope:
+
+- Extracted Head Account Manager `allTasks` and `filteredProjects` derivation into `useHeadAccountManagerDerivedData`.
+- Kept AM/status/warning/delay/KPI/lifecycle filter conditions unchanged.
+
+Smell -> principle -> fix:
+
+- `HeadAccountManagerClient.tsx` mixed page orchestration with derived list filtering -> SRP / hook boundary -> moved derived data logic into a focused hook.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+
 ## 2026-06-27 - Phase 5 Slice: Head Account Manager Workload
 
 Scope:
