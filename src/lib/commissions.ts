@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { parseJsonArray, parseJsonOr, stringifyJson } from "@/server/parsers/json";
 import {
   computeTelesalesBonusItems,
   mergeAutoBonuses,
@@ -62,12 +63,8 @@ export async function loadCommissionConfig(): Promise<{ tiers: CommissionTier[];
 
   let tiers: CommissionTier[] = DEFAULT_TIERS;
   if (tiersConfig?.value) {
-    try {
-      const parsed = JSON.parse(tiersConfig.value);
-      if (Array.isArray(parsed) && parsed.length > 0) tiers = parsed;
-    } catch {
-      // keep defaults
-    }
+    const parsed = parseJsonArray<CommissionTier>(tiersConfig.value);
+    if (parsed.length > 0) tiers = parsed;
   }
 
   let gatewayFeePct = DEFAULT_GATEWAY_FEE_PCT;
@@ -115,13 +112,8 @@ export function achievementMultiplier(achievementPct: number): number {
  */
 export function sumLineItems(json: string | null): number {
   if (!json) return 0;
-  try {
-    const items = JSON.parse(json);
-    if (!Array.isArray(items)) return 0;
-    return items.reduce((sum: number, it: any) => sum + (Number(it.amount) || 0), 0);
-  } catch {
-    return 0;
-  }
+  const items = parseJsonArray<{ amount?: unknown }>(json);
+  return items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
 }
 
 /**
@@ -221,11 +213,7 @@ function round2(n: number): number {
 export async function loadTelesalesBonusConfig(): Promise<TelesalesBonusRules> {
   const cfg = await prisma.systemConfig.findUnique({ where: { key: "telesales_bonus_rules" } });
   if (!cfg?.value) return DEFAULT_TELESALES_BONUS_RULES;
-  try {
-    return normalizeTelesalesBonusRules(JSON.parse(cfg.value));
-  } catch {
-    return DEFAULT_TELESALES_BONUS_RULES;
-  }
+  return normalizeTelesalesBonusRules(parseJsonOr<unknown>(cfg.value, null));
 }
 
 /**
@@ -284,7 +272,7 @@ export async function recomputeTelesalesBonuses(month: string) {
     }
 
     const mergedBonuses = mergeAutoBonuses(existing?.bonuses ?? null, autoItems);
-    const bonusesJson = JSON.stringify(mergedBonuses);
+    const bonusesJson = stringifyJson(mergedBonuses);
     const baseSalary = agent.hrRecord?.baseSalary ?? 0;
     const bonusesSum = sumLineItems(bonusesJson);
     const deductionsSum = sumLineItems(existing?.deductions ?? null);

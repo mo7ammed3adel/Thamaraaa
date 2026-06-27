@@ -22,3 +22,22 @@ Baseline decision:
 
 - Proceed with Phase 1 from `specs/003-code-refactor-roadmap/spec.md`.
 - Existing lint warnings are recorded as baseline noise and should not be mixed into unrelated refactor commits.
+
+## 2026-06-27 - Phase 1 Slice: Roles Contract and JSON Parser
+
+Scope:
+
+- Added `src/contracts/roles.ts` as the first shared contract surface for stored user role values and labels.
+- Added `src/server/parsers/json.ts` for safe JSON parsing/stringifying at server boundaries.
+- Replaced local JSON parsing in `src/lib/commissions.ts` with the shared parser helpers.
+
+Smell -> principle -> fix:
+
+- Repeated local `JSON.parse` try/catch in `src/lib/commissions.ts` -> SRP / boundary parsing -> moved parsing mechanics into `src/server/parsers/json.ts`.
+- Role strings had no central contract -> precise types / naming -> added `UserRole`, `isUserRole`, and `getRoleLabel` in `src/contracts/roles.ts`.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test -- --run src/lib/__tests__/telesalesBonus.test.ts`: passed, 8 tests.
+- `npm test`: passed, 7 files and 30 tests.

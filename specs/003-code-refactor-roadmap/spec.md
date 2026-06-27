@@ -118,7 +118,7 @@ npm run build
 
 ### 1.1 Shared contracts
 
-- [ ] R0101 إنشاء `src/contracts/roles.ts` وفيه `UserRole` union مبني على الأدوار الحالية.
+- [x] R0101 إنشاء `src/contracts/roles.ts` وفيه `UserRole` union مبني على الأدوار الحالية.
 - [ ] R0102 إنشاء `src/contracts/project.ts` وفيه DTOs للـ project/client journey.
 - [ ] R0103 إنشاء `src/contracts/task.ts` وفيه DTOs للمهام والـ checklist والـ task status.
 - [ ] R0104 إنشاء `src/contracts/warning.ts` وفيه DTOs للتحذيرات والـ receipts.
@@ -127,12 +127,12 @@ npm run build
 
 ### 1.2 Safe JSON parsers
 
-- [ ] R0110 إنشاء `src/server/parsers/json.ts` لدوال safe parse عامة.
+- [x] R0110 إنشاء `src/server/parsers/json.ts` لدوال safe parse عامة.
 - [ ] R0111 إنشاء parser typed للـ task checklist بدلاً من تكرار `JSON.parse` في `TaskWorkspaceModal` و `ProjectLogsPanel` و routes.
 - [ ] R0112 إنشاء parser typed للـ task files/deliverables.
 - [ ] R0113 إنشاء parser typed للـ commission bonuses/deductions.
 - [ ] R0114 إنشاء parser typed للـ HR performance history.
-- [ ] R0115 استبدال parsing في `src/lib/commissions.ts` بدون تغيير الناتج.
+- [x] R0115 استبدال parsing في `src/lib/commissions.ts` بدون تغيير الناتج.
 
 ### 1.3 Formatting utilities
 
