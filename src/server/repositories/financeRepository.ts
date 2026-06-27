@@ -37,3 +37,14 @@ export function findCommissionsByMonth(month: string) {
     orderBy: { netPayout: "desc" },
   });
 }
+
+export function findCommissionForEdit(id: string) {
+  return prisma.commission.findUnique({
+    where: { id },
+    include: { user: { include: { hrRecord: true } } },
+  });
+}
+
+export function updateCommission(id: string, data: any) {
+  return prisma.commission.update({ where: { id }, data });
+}

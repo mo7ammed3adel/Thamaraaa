@@ -341,6 +341,22 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Finance Commission Edit Boundary
+
+Scope:
+
+- Moved `/api/finance/commissions/[id]` commission lookup, finalized-lock validation, editable-field validation, bonus/deduction serialization, net payout recomputation, and update call into `financeService` and `financeRepository`.
+- Preserved finance role authorization, JSON validation, response messages/status codes, and error logging.
+
+Smell -> principle -> fix:
+
+- Commission edit route mixed controller delivery, finance workflow validation, payout calculation, and Prisma mutation -> controller-service-repository boundary -> route now maps edit service outcomes to HTTP.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
 
 Scope:

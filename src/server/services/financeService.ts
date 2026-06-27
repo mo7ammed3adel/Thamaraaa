@@ -1,8 +1,15 @@
-import { loadCommissionConfig, recomputeMonth, recomputeTelesalesBonuses } from "@/lib/commissions";
+import {
+  loadCommissionConfig,
+  recomputeMonth,
+  recomputeTelesalesBonuses,
+  sumLineItems,
+} from "@/lib/commissions";
 import {
   findCommissionsByMonth,
+  findCommissionForEdit,
   findFinanceOverviewDeals,
   findPendingInstallments,
+  updateCommission,
 } from "@/server/repositories/financeRepository";
 
 export async function getFinanceOverview() {
@@ -55,4 +62,33 @@ export async function recomputeCommissions(month: string) {
     salesCount: salesResults.length,
     telesalesCount: telesalesResults.length,
   };
+}
+
+export async function editCommission(input: { id: string; body: any }) {
+  const existing = await findCommissionForEdit(input.id);
+  if (!existing) return { status: "not_found" as const };
+
+  if (existing.finalized && (input.body.bonuses !== undefined || input.body.deductions !== undefined)) {
+    return { status: "finalized_locked" as const };
+  }
+
+  const data: any = {};
+  if (Array.isArray(input.body.bonuses)) data.bonuses = JSON.stringify(input.body.bonuses);
+  if (Array.isArray(input.body.deductions)) data.deductions = JSON.stringify(input.body.deductions);
+  if (input.body.finalized === true) data.finalized = true;
+
+  if (data.bonuses !== undefined || data.deductions !== undefined) {
+    const baseSalary = existing.user.hrRecord?.baseSalary || 0;
+    const bonusesSum = sumLineItems(data.bonuses ?? existing.bonuses);
+    const deductionsSum = sumLineItems(data.deductions ?? existing.deductions);
+    data.netPayout =
+      Math.round((baseSalary + existing.commissionAmount + bonusesSum - deductionsSum) * 100) / 100;
+  }
+
+  if (Object.keys(data).length === 0) {
+    return { status: "no_fields" as const };
+  }
+
+  const commission = await updateCommission(input.id, data);
+  return { status: "ok" as const, commission };
 }
