@@ -443,6 +443,22 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: HR Evaluations Boundary
+
+Scope:
+
+- Moved `/api/hr/evaluations` HR record evaluation loop, performance history parsing, promotion eligibility, warning count, and termination flag updates into `hrService` and `hrRepository`.
+- Preserved HR authorization and response message format.
+
+Smell -> principle -> fix:
+
+- Evaluation route mixed HTTP authorization with batch HR business logic and Prisma updates -> controller-service-repository boundary -> route now delegates evaluation workflow to HR service.
+
+Behavior preserved by:
+
+- `npm test`: passed, 7 files and 30 tests.
+- `npx tsc --noEmit`: passed.
+
 ## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
 
 Scope:

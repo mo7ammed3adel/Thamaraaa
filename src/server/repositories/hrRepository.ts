@@ -99,3 +99,16 @@ export function updateJobApplicant(id: string, data: any) {
     data,
   });
 }
+
+export function findHrRecordsForEvaluation() {
+  return prisma.hrRecord.findMany({
+    include: { user: true },
+  });
+}
+
+export function updateHrRecord(id: string, data: any) {
+  return prisma.hrRecord.update({
+    where: { id },
+    data,
+  });
+}

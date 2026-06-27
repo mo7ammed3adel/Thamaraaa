@@ -6,11 +6,13 @@ import {
   findEmployeeDocuments,
   findAllLeaveRequests,
   findFirstHrManager,
+  findHrRecordsForEvaluation,
   findJobApplicants,
   findLeaveRequestsForUser,
   createJobApplicant,
   updateLeaveRequestDecision,
   updateJobApplicant,
+  updateHrRecord,
 } from "@/server/repositories/hrRepository";
 import { normalizeWebUrl } from "@/lib/safe-url";
 
@@ -135,4 +137,48 @@ export function editJobApplicant(id: string, body: any) {
   if (body.notes !== undefined) updateData.notes = body.notes;
 
   return updateJobApplicant(id, updateData);
+}
+
+export async function evaluateHrRecords() {
+  const records = await findHrRecordsForEvaluation();
+
+  let promotions = 0;
+  let warnings = 0;
+
+  for (const record of records) {
+    let history: { month: string; hitTarget: boolean }[] = [];
+    try {
+      history = JSON.parse(record.performanceHistory || "[]");
+    } catch (e) {
+      continue;
+    }
+
+    if (history.length < 3) continue;
+
+    const last3 = history.slice(-3);
+    const consecutiveHits = last3.every((item) => item.hitTarget === true);
+    const consecutiveMisses = last3.every((item) => item.hitTarget === false);
+
+    const updates: any = {};
+
+    if (consecutiveHits && !record.promotionEligible) {
+      updates.promotionEligible = true;
+      promotions++;
+    } else if (consecutiveMisses) {
+      updates.warningCount = record.warningCount + 1;
+      if (updates.warningCount >= 3) {
+        updates.terminationFlag = true;
+      }
+      warnings++;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await updateHrRecord(record.id, updates);
+    }
+  }
+
+  return {
+    success: true,
+    message: `Evaluation complete. ${promotions} new promotions eligible, ${warnings} new warnings issued.`,
+  };
 }
