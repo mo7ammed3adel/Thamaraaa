@@ -8,8 +8,10 @@ import {
   findCommissionsByMonth,
   findCommissionForEdit,
   findFinanceOverviewDeals,
+  findInstallmentForUpdate,
   findPendingInstallments,
   updateCommission,
+  updateInstallmentPaidWithLog,
 } from "@/server/repositories/financeRepository";
 
 export async function getFinanceOverview() {
@@ -91,4 +93,24 @@ export async function editCommission(input: { id: string; body: any }) {
 
   const commission = await updateCommission(input.id, data);
   return { status: "ok" as const, commission };
+}
+
+export async function updateInstallmentPayment(input: { id: string; userId: string; body: any }) {
+  const { isPaid } = input.body;
+  if (typeof isPaid !== "boolean") {
+    return { status: "invalid_is_paid" as const };
+  }
+
+  const existing = await findInstallmentForUpdate(input.id);
+  if (!existing) return { status: "not_found" as const };
+
+  const installment = await updateInstallmentPaidWithLog({
+    id: input.id,
+    isPaid,
+    userId: input.userId,
+    projectId: existing.deal.projects[0]?.id,
+    amount: existing.amount,
+  });
+
+  return { status: "ok" as const, installment };
 }

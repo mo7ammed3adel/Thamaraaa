@@ -357,6 +357,22 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Finance Installment Boundary
+
+Scope:
+
+- Moved `/api/finance/installments/[id]` payment-state validation, installment lookup, update transaction, and project log creation into `financeService` and `financeRepository`.
+- Preserved accountant/super_admin authorization and response messages/status codes.
+
+Smell -> principle -> fix:
+
+- Installment route mixed request handling, finance authorization, Prisma transaction, and project audit logging -> controller-service-repository boundary -> route now maps finance service outcomes to HTTP.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
 
 Scope:

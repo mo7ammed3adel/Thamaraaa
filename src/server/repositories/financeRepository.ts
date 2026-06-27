@@ -48,3 +48,41 @@ export function findCommissionForEdit(id: string) {
 export function updateCommission(id: string, data: any) {
   return prisma.commission.update({ where: { id }, data });
 }
+
+export function findInstallmentForUpdate(id: string) {
+  return prisma.installment.findUnique({
+    where: { id },
+    include: { deal: { include: { projects: { select: { id: true } } } } },
+  });
+}
+
+export function updateInstallmentPaidWithLog(input: {
+  id: string;
+  isPaid: boolean;
+  userId: string;
+  projectId?: string;
+  amount: number;
+}) {
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.installment.update({
+      where: { id: input.id },
+      data: { isPaid: input.isPaid },
+      include: { deal: true },
+    });
+
+    if (input.projectId) {
+      await tx.projectLog.create({
+        data: {
+          projectId: input.projectId,
+          userId: input.userId,
+          action: "installment_updated",
+          details: `Installment ${input.id} marked as ${
+            input.isPaid ? "paid" : "unpaid"
+          }. Amount: ${input.amount} SAR`,
+        },
+      });
+    }
+
+    return updated;
+  });
+}
