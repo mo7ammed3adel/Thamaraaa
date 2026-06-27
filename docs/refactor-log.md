@@ -564,6 +564,25 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 4 Slice: Finance Dashboard Fetch Replacement
+
+Scope:
+
+- Replaced direct fetch calls in `src/app/dashboard/finance/FinanceClient.tsx`.
+- Reused the finance client API module for overview, installments, commission recompute, and commission updates.
+- Left XLSX export as browser navigation because it is a file download endpoint rather than a JSON request.
+
+Smell -> principle -> fix:
+
+- Finance UI mixed dashboard state with endpoint details and JSON parsing -> client API boundary -> moved HTTP details into `src/client/api/finance.ts`.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+- `npm run lint`: passed with the same baseline React hook dependency warnings.
+- `rg "fetch\\("` on `FinanceClient.tsx`: no matches.
+
 ## 2026-06-27 - Phase 4 Slice: Operations Component Fetch Replacement
 
 Scope:

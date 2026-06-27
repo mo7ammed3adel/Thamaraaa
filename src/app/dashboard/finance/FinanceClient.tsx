@@ -4,6 +4,14 @@ import { useState, useEffect, useCallback } from "react";
 import { DollarSign, AlertCircle, FileText, CheckCircle2, Calculator, Download, Plus, X, Trash2, Lock } from "lucide-react";
 import { formatSar } from "@/shared/formatters/currency";
 import { formatDate } from "@/shared/formatters/date";
+import { HttpError } from "@/client/transport/http";
+import {
+  getFinanceOverview,
+  listCommissions,
+  recomputeCommissions,
+  updateCommission,
+  updateInstallment,
+} from "@/client/api/finance";
 
 export default function FinanceClient() {
   const [data, setData] = useState<any>(null);
@@ -13,11 +21,7 @@ export default function FinanceClient() {
 
   const loadData = useCallback(() => {
     setLoading(true);
-    fetch("/api/finance/overview")
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
+    getFinanceOverview()
       .then(d => { setData(d); setLoading(false); })
       .catch(() => { setData(null); setLoading(false); });
   }, []);
@@ -27,11 +31,7 @@ export default function FinanceClient() {
   const handleMarkInstallmentPaid = async (id: string) => {
     if (!confirm("Are you sure you want to mark this installment as Paid?")) return;
     
-    await fetch(`/api/finance/installments/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isPaid: true })
-    });
+    await updateInstallment(id, { isPaid: true });
     
     // Refresh Data
     loadData();
@@ -198,11 +198,11 @@ function CommissionsTab() {
 
   const load = useCallback(() => {
     setLoading(true);
-    fetch(`/api/finance/commissions?month=${month}`)
-      .then((r) => r.json())
+    listCommissions(month)
       .then((d) => {
-        setCommissions(d.commissions || []);
-        setConfig(d.config || null);
+        const payload = d as any;
+        setCommissions(payload.commissions || []);
+        setConfig(payload.config || null);
       })
       .catch(() => setCommissions([]))
       .finally(() => setLoading(false));
@@ -236,28 +236,20 @@ function CommissionsTab() {
 
   const recompute = async () => {
     setBusy("recompute");
-    const res = await fetch("/api/finance/commissions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ month }),
-    });
-    setBusy(null);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      alert(err.error || "Recompute failed");
-      return;
+    try {
+      await recomputeCommissions({ month });
+      load();
+    } catch (error) {
+      alert(error instanceof HttpError ? error.message : "Recompute failed");
+    } finally {
+      setBusy(null);
     }
-    load();
   };
 
   const finalize = async (c: any) => {
     if (!confirm(`Finalize ${c.user.name}'s ${month} commission? This payout becomes immutable.`)) return;
     setBusy(c.id);
-    await fetch(`/api/finance/commissions/${c.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ finalized: true }),
-    });
+    await updateCommission(c.id, { finalized: true });
     setBusy(null);
     load();
   };
@@ -392,19 +384,15 @@ function BonusDeductionModal({ commission, onClose, onSaved }: { commission: any
 
   const save = async () => {
     setSaving(true);
-    const res = await fetch(`/api/finance/commissions/${commission.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bonuses, deductions }),
-    });
-    setSaving(false);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      alert(err.error || "Save failed");
-      return;
+    try {
+      await updateCommission(commission.id, { bonuses, deductions });
+      onSaved();
+      onClose();
+    } catch (error) {
+      alert(error instanceof HttpError ? error.message : "Save failed");
+    } finally {
+      setSaving(false);
     }
-    onSaved();
-    onClose();
   };
 
   return (
