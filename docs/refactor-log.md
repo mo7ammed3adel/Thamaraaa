@@ -149,6 +149,23 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Project Agent Assignment Boundary
+
+Scope:
+
+- Moved `/api/projects/[id]/assign-agent` leader authorization, department validation, target-agent validation, and project-management scope checks into `projectDistributionService`.
+- Moved agent assignment replacement, task assignment update, audit log, and notification creation into `projectRepository`.
+- Preserved warning receipt backfill and realtime trigger behavior after successful assignment.
+
+Smell -> principle -> fix:
+
+- Assign-agent route mixed request handling, leader RBAC, department/task config, project scope checks, multi-table writes, notifications, and realtime delivery -> SRP / service boundary -> route now maps service outcomes to the existing HTTP contract.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
 
 Scope:

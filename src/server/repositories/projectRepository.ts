@@ -221,3 +221,109 @@ export function replaceProjectTeamAssignment(input: {
     return { assignment, tasksUpdated: updateResult.count };
   });
 }
+
+export function findProjectAgentAssignmentScope(projectId: string, userId: string) {
+  return prisma.project.findUnique({
+    where: { id: projectId },
+    select: {
+      id: true,
+      headTechnicalId: true,
+      headSeoId: true,
+      teamAssignments: {
+        where: { userId, status: "active" },
+        select: { id: true },
+      },
+      tasks: {
+        where: { leaderId: userId },
+        select: { id: true },
+        take: 1,
+      },
+    },
+  });
+}
+
+export function assignDepartmentAgent(input: {
+  projectId: string;
+  userId: string;
+  userName: string;
+  agentUserId: string;
+  agentUserName: string;
+  agentRole: string;
+  department: string;
+  taskTypes: string[];
+  agentRoles: string[];
+  dashboardLink: string;
+}) {
+  return prisma.$transaction(async (tx) => {
+    await tx.teamAssignment.deleteMany({
+      where: {
+        projectId: input.projectId,
+        department: input.department,
+        status: "active",
+        role: { in: input.agentRoles },
+        userId: { not: input.agentUserId },
+      },
+    });
+
+    const existingAssignment = await tx.teamAssignment.findUnique({
+      where: { projectId_userId: { projectId: input.projectId, userId: input.agentUserId } },
+    });
+
+    const assignment = existingAssignment
+      ? await tx.teamAssignment.update({
+          where: { id: existingAssignment.id },
+          data: {
+            assignedByUserId: input.userId,
+            role: input.agentRole,
+            department: input.department,
+            status: "active",
+            removedAt: null,
+          },
+        })
+      : await tx.teamAssignment.create({
+          data: {
+            projectId: input.projectId,
+            userId: input.agentUserId,
+            assignedByUserId: input.userId,
+            role: input.agentRole,
+            department: input.department,
+          },
+        });
+
+    const updateResult = await tx.task.updateMany({
+      where: {
+        projectId: input.projectId,
+        taskType: { in: input.taskTypes },
+      },
+      data: { agentId: input.agentUserId },
+    });
+
+    await tx.projectLog.create({
+      data: {
+        projectId: input.projectId,
+        action: "team_assigned",
+        details: JSON.stringify({
+          assignedUser: input.agentUserName,
+          assignedRole: input.agentRole,
+          department: input.department,
+          assignedBy: input.userName,
+          taskTypes: input.taskTypes,
+          tasksUpdated: updateResult.count,
+        }),
+        userId: input.userId,
+      },
+    });
+
+    await tx.notification.create({
+      data: {
+        userId: input.agentUserId,
+        type: "task_assigned",
+        message: `You have been assigned ${input.department.replace(/_/g, " ")} work by ${input.userName}`,
+        title: "New Assignment",
+        link: input.dashboardLink,
+      },
+    });
+
+    return { assignment, tasksUpdated: updateResult.count };
+  });
+}

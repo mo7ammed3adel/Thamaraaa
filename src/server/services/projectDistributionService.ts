@@ -1,7 +1,10 @@
 import { backfillReceiptsForNewMember, canDistributeTo } from "@/lib/distribution";
+import { safeTrigger } from "@/lib/pusher";
 import {
+  assignDepartmentAgent,
   createProjectLog,
   findActiveUserForAssignment,
+  findProjectAgentAssignmentScope,
   findProjectTeamAssignmentScope,
   findProjectStatusAuth,
   replaceProjectTeamAssignment,
@@ -66,6 +69,47 @@ function canAssignDepartment(userRole: string, department: string, assignedRoleT
   }
   return false;
 }
+
+const DEPARTMENT_AGENT_CONFIG: Record<
+  string,
+  { taskTypes: string[]; agentRoles: string[]; dashboardLink: string }
+> = {
+  seo: {
+    taskTypes: ["SEO", "seo"],
+    agentRoles: ["agent_seo"],
+    dashboardLink: "/dashboard/seo",
+  },
+  content_seo: {
+    taskTypes: ["content_seo"],
+    agentRoles: ["agent_content_seo"],
+    dashboardLink: "/dashboard/seo",
+  },
+  social_media: {
+    taskTypes: ["Social_Media", "social_media"],
+    agentRoles: ["agent_social_media"],
+    dashboardLink: "/dashboard/social-media",
+  },
+  media_buyer: {
+    taskTypes: ["Media_Buyer", "media_buyer", "media_buying"],
+    agentRoles: ["agent_media_buyer"],
+    dashboardLink: "/dashboard/media-buyer",
+  },
+  graphic_design: {
+    taskTypes: ["graphic_design"],
+    agentRoles: ["agent_graphic_designer"],
+    dashboardLink: "/dashboard/design",
+  },
+  motion_graphic: {
+    taskTypes: ["motion_graphic"],
+    agentRoles: ["agent_motion_graphic"],
+    dashboardLink: "/dashboard/design",
+  },
+  ui_design: {
+    taskTypes: ["ui_design"],
+    agentRoles: ["agent_ui"],
+    dashboardLink: "/dashboard/design",
+  },
+};
 
 export async function assignProjectRole(input: {
   projectId: string;
@@ -214,4 +258,83 @@ export async function assignProjectTeamSlot(input: {
     department,
     tasksUpdated: result.tasksUpdated,
   };
+}
+
+export async function assignProjectAgent(input: {
+  projectId: string;
+  userId: string;
+  userRole: string;
+  userName?: string | null;
+  body: any;
+}) {
+  const allowedRoles = [
+    "team_leader_social_media",
+    "team_leader_media_buyer",
+    "team_leader_seo",
+    "leader_graphic_designer",
+    "leader_motion_graphic",
+    "leader_ui",
+    "super_admin",
+  ];
+  if (!allowedRoles.includes(input.userRole)) {
+    return { status: "role_not_allowed" as const };
+  }
+
+  const { agentUserId, department } = input.body;
+  if (!agentUserId || !department) {
+    return { status: "missing_fields" as const };
+  }
+
+  const deptConfig = DEPARTMENT_AGENT_CONFIG[department];
+  if (!deptConfig) {
+    return { status: "unknown_department" as const, department };
+  }
+
+  const targetUser = await findActiveUserForAssignment(agentUserId);
+  if (!targetUser || targetUser.status !== "Active") {
+    return { status: "target_not_found" as const };
+  }
+
+  if (!canDistributeTo(input.userRole, targetUser.role)) {
+    return { status: "cannot_distribute" as const, targetRole: targetUser.role };
+  }
+
+  if (!deptConfig.agentRoles.includes(targetUser.role)) {
+    return { status: "cannot_receive_department" as const, targetRole: targetUser.role, department };
+  }
+
+  const project = await findProjectAgentAssignmentScope(input.projectId, input.userId);
+  if (!project) return { status: "project_not_found" as const };
+
+  const canManageThisProject =
+    input.userRole === "super_admin" ||
+    project.headTechnicalId === input.userId ||
+    project.headSeoId === input.userId ||
+    project.teamAssignments.length > 0 ||
+    project.tasks.length > 0;
+
+  if (!canManageThisProject) {
+    return { status: "project_manage_forbidden" as const };
+  }
+
+  const result = await assignDepartmentAgent({
+    projectId: input.projectId,
+    userId: input.userId,
+    userName: input.userName || input.userId,
+    agentUserId,
+    agentUserName: targetUser.name,
+    agentRole: targetUser.role,
+    department,
+    taskTypes: deptConfig.taskTypes,
+    agentRoles: deptConfig.agentRoles,
+    dashboardLink: deptConfig.dashboardLink,
+  });
+
+  await backfillReceiptsForNewMember(input.projectId, agentUserId);
+
+  await safeTrigger(`private-user-${agentUserId}`, "team-distributed", {
+    projectId: input.projectId,
+  });
+
+  return { status: "ok" as const, assignment: result.assignment, tasksUpdated: result.tasksUpdated };
 }
