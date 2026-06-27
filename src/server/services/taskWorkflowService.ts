@@ -24,10 +24,16 @@ import {
   createTaskNotifications,
   createTaskProjectLog,
   createTaskRecord,
+  createGeneratedTasks,
   createSelfAssignedTaskWithLog,
+  createSubTaskWithNotification,
   findAgentForTaskUpdate,
   findActiveTeamAssignmentByRole,
+  findExistingTaskTypes,
   findFirstActiveUserByRoles,
+  findPackageByName,
+  findParentTaskForSubTask,
+  findProjectForTaskGeneration,
   findProjectNameForTask,
   findProjectTasksForProgress,
   findTasksForList,
@@ -39,6 +45,7 @@ import {
   flagTaskWithNotificationAndLog,
   reassignTaskWithNotificationsAndLog,
   updateProjectProgress,
+  updateProjectStatus,
   updateTaskWithProject,
   upsertTaskAgentAssignment,
 } from "@/server/repositories/taskRepository";
@@ -95,6 +102,114 @@ const TASK_CREATOR_ROLES = [
   "agent_seo",
   "agent_content_seo",
 ] as const;
+
+const STANDARD_GENERATOR_ROLES = new Set([
+  "super_admin",
+  "head_account_manager",
+  "account_manager",
+  "head_technical",
+  "head_seo",
+]);
+
+const SUB_TASK_TYPES: Record<string, { leaderKeys: string[]; leaderRoles: string[]; label: string }> = {
+  graphic_design: {
+    leaderKeys: ["graphicLeaderId"],
+    leaderRoles: ["leader_graphic_designer"],
+    label: "Graphic Design",
+  },
+  motion_graphic: {
+    leaderKeys: ["motionLeaderId"],
+    leaderRoles: ["leader_motion_graphic"],
+    label: "Motion Graphic",
+  },
+  ui_design: {
+    leaderKeys: ["uiLeaderId"],
+    leaderRoles: ["leader_ui"],
+    label: "UI/UX",
+  },
+  content_seo: {
+    leaderKeys: ["seoLeaderId"],
+    leaderRoles: ["team_leader_seo"],
+    label: "Content SEO",
+  },
+};
+
+const SERVICE_CONFIG = {
+  seo: {
+    services: ["seo"],
+    taskTypes: ["SEO", "seo"],
+    assignedRole: "seo",
+    bodyKeys: ["seoLeaderId"],
+    leaderRoles: ["team_leader_seo", "head_seo"],
+    dashboardLink: "/dashboard/seo",
+    title: "SEO tasks generated for project.",
+    checklist: [
+      { id: "seo1", title: "Keyword Research & Strategy", completed: false },
+      { id: "seo2", title: "On-Page Optimization", completed: false },
+      { id: "seo3", title: "Technical Audit & Fixes", completed: false },
+      { id: "seo4", title: "Backlink Setup", completed: false },
+    ],
+  },
+  social: {
+    services: ["social", "social_media"],
+    taskTypes: ["Social_Media", "social_media"],
+    assignedRole: "social_media",
+    bodyKeys: ["socialLeaderId"],
+    leaderRoles: ["team_leader_social_media"],
+    dashboardLink: "/dashboard/social-media",
+    title: "Social tasks generated for project.",
+    checklist: [
+      { id: "sm1", title: "Competitor Analysis", completed: false },
+      { id: "sm2", title: "Content Calendar Creation", completed: false },
+      { id: "sm3", title: "Prepare Design Assets", completed: false },
+      { id: "sm4", title: "Schedule Initial Posts", completed: false },
+    ],
+  },
+  media: {
+    services: ["media", "media_buyer", "media_buying"],
+    taskTypes: ["Media_Buyer", "media_buyer", "media_buying"],
+    assignedRole: "media_buying",
+    bodyKeys: ["mediaLeaderId", "mediaBuyerLeaderId"],
+    leaderRoles: ["team_leader_media_buyer"],
+    dashboardLink: "/dashboard/media-buyer",
+    title: "Media tasks generated for project.",
+    checklist: [
+      { id: "mb1", title: "Audience Targeting Research", completed: false },
+      { id: "mb2", title: "Pixel & Tracking Setup", completed: false },
+      { id: "mb3", title: "Ad Campaign Launch", completed: false },
+      { id: "mb4", title: "A/B Testing & Optimization", completed: false },
+    ],
+  },
+} as const;
+
+function getBodyLeaderId(body: any, keys: readonly string[]) {
+  for (const key of keys) {
+    if (typeof body[key] === "string" && body[key].trim()) return body[key].trim();
+  }
+  return null;
+}
+
+async function resolveGenerationLeader(candidateId: string | null, allowedRoles: readonly string[]) {
+  if (candidateId) {
+    const leader = await findUserForTaskAssignment(candidateId);
+    if (!leader || leader.status !== "Active" || !allowedRoles.includes(leader.role)) {
+      return null;
+    }
+    return leader.id;
+  }
+
+  const leader = await findFirstActiveUserByRoles([...allowedRoles]);
+  return leader?.id || null;
+}
+
+function parseServices(servicesJson: string) {
+  try {
+    const parsed = JSON.parse(servicesJson);
+    return Array.isArray(parsed) ? parsed.filter((service): service is string => typeof service === "string") : [];
+  } catch {
+    return [];
+  }
+}
 
 export async function listTasksForUser(input: {
   userId: string;
@@ -638,4 +753,163 @@ export async function updateTask(input: {
   }
 
   return { status: "ok" as const, task: updatedTask };
+}
+
+export async function generateProjectTasks(input: {
+  userId: string;
+  userRole: string;
+  body: any;
+}) {
+  const { projectId, packageType, parentTaskId, brief, deadline, priority } = input.body;
+
+  if (!projectId) {
+    return { status: "missing_project_id" as const };
+  }
+
+  const projectAllowed = await userCanAccessProject(input.userId, input.userRole, projectId);
+  if (!projectAllowed) {
+    return { status: "project_forbidden" as const };
+  }
+
+  if (parentTaskId) {
+    const taskType = packageType || "graphic_design";
+    const subTaskConfig = SUB_TASK_TYPES[taskType];
+    if (!subTaskConfig) {
+      return { status: "unsupported_sub_task_type" as const };
+    }
+
+    const parentTask = await findParentTaskForSubTask(parentTaskId);
+    if (!parentTask || parentTask.projectId !== projectId) {
+      return { status: "parent_task_invalid" as const };
+    }
+
+    const canCreateSubTask =
+      input.userRole === "super_admin" ||
+      input.userRole === "head_account_manager" ||
+      input.userRole === "account_manager" ||
+      parentTask.leaderId === input.userId ||
+      parentTask.agentId === input.userId;
+
+    if (!canCreateSubTask) {
+      return { status: "sub_task_forbidden" as const };
+    }
+
+    const leaderId = getBodyLeaderId(input.body, subTaskConfig.leaderKeys);
+    const resolvedLeaderId = await resolveGenerationLeader(leaderId, subTaskConfig.leaderRoles);
+    if (!resolvedLeaderId) {
+      return { status: "sub_task_leader_missing" as const, label: subTaskConfig.label };
+    }
+
+    const defaultChecklist = JSON.stringify([
+      { id: "st1", title: "Review Brief & Requirements", completed: false },
+      { id: "st2", title: "Create Initial Draft", completed: false },
+      { id: "st3", title: "Internal Review", completed: false },
+      { id: "st4", title: "Final Delivery", completed: false },
+    ]);
+
+    const subTask = await createSubTaskWithNotification({
+      projectId,
+      leaderId: resolvedLeaderId,
+      taskType,
+      checklistItems: defaultChecklist,
+      parentTaskId,
+      requesterRole: input.userRole,
+      brief,
+      deadline,
+      priority,
+      notificationTitle: "New Design Request",
+      notificationMessage: `${input.userRole.replace(/_/g, " ")} requested: ${taskType.replace(/_/g, " ")}${
+        brief ? ` - ${brief.substring(0, 50)}` : ""
+      }`,
+    });
+
+    return { status: "sub_task_created" as const, subTask };
+  }
+
+  if (!STANDARD_GENERATOR_ROLES.has(input.userRole)) {
+    return { status: "generator_role_forbidden" as const };
+  }
+
+  const project = await findProjectForTaskGeneration(projectId);
+  if (!project) return { status: "project_not_found" as const };
+
+  const pkg = await findPackageByName(project.package);
+  if (!pkg) return { status: "package_not_found" as const };
+
+  const services = parseServices(pkg.servicesJson);
+  const existingTasks = await findExistingTaskTypes(projectId);
+  const existingTaskTypes = new Set(existingTasks.map((task) => task.taskType));
+
+  const tasksToCreate: any[] = [];
+  const notificationsToCreate: any[] = [];
+  const missingLeaders: string[] = [];
+  const skippedExisting: string[] = [];
+  const defaultDeadline = project.finalDeadline || new Date(Date.now() + 7 * 86400000);
+
+  for (const [serviceName, config] of Object.entries(SERVICE_CONFIG)) {
+    const serviceIncluded = config.services.some((service) => services.includes(service));
+    if (!serviceIncluded) continue;
+
+    const hasExistingTask = config.taskTypes.some((taskType) => existingTaskTypes.has(taskType));
+    if (hasExistingTask) {
+      skippedExisting.push(serviceName);
+      continue;
+    }
+
+    const requestedLeaderId = getBodyLeaderId(input.body, config.bodyKeys);
+    const leaderId = await resolveGenerationLeader(requestedLeaderId, config.leaderRoles);
+    if (!leaderId) {
+      missingLeaders.push(serviceName);
+      continue;
+    }
+
+    tasksToCreate.push({
+      projectId,
+      leaderId,
+      taskType: config.taskTypes[0],
+      checklistItems: JSON.stringify(config.checklist),
+      deadline: defaultDeadline,
+      requesterRole: input.userRole,
+      assignedRole: config.assignedRole,
+      status: "pending",
+      priority: "Medium",
+    });
+    notificationsToCreate.push({
+      userId: leaderId,
+      title: "New Assignment",
+      message: config.title,
+      type: "task_assigned",
+      link: config.dashboardLink,
+    });
+  }
+
+  if (tasksToCreate.length === 0) {
+    if (skippedExisting.length > 0) {
+      return { status: "none_created_existing" as const, skippedExisting };
+    }
+    return { status: "none_created" as const, missingLeaders };
+  }
+
+  await createGeneratedTasks(tasksToCreate);
+  if (notificationsToCreate.length > 0) {
+    await createTaskNotifications(notificationsToCreate);
+  }
+
+  await updateProjectStatus(projectId, "assigned");
+
+  await createTaskProjectLog({
+    projectId,
+    action: "assigned",
+    details: `Services assigned to ${tasksToCreate.length} leaders.${
+      missingLeaders.length ? ` Missing leaders: ${missingLeaders.join(", ")}` : ""
+    }`,
+    userId: input.userId,
+  });
+
+  return {
+    status: "generated" as const,
+    count: tasksToCreate.length,
+    skippedExisting,
+    missingLeaders,
+  };
 }

@@ -199,7 +199,7 @@ npm run build
 
 - [x] R0320 إنشاء `src/server/services/warningService.ts` ونقل create/list/ack/resolve warning flows.
 - [ ] R0321 إنشاء `src/server/services/notificationService.ts` ونقل create/createMany/email fallback logic.
-- [ ] R0322 إنشاء `src/server/services/taskWorkflowService.ts` ونقل update/reassign/flag/generate task flows.
+- [x] R0322 إنشاء `src/server/services/taskWorkflowService.ts` ونقل update/reassign/flag/generate task flows.
 - [x] R0323 إنشاء `src/server/services/projectDistributionService.ts` ونقل project distribute/assign-agent/team-assignment flows.
 - [x] R0324 إنشاء `src/server/services/projectLifecycleService.ts` ونقل lifecycle/status/setup flows.
 - [x] R0325 إنشاء `src/server/services/notesService.ts` ونقل notes list/create.
@@ -215,7 +215,7 @@ npm run build
 - [x] R0331 Notes routes.
 - [x] R0332 Project lifecycle/setup/status routes.
 - [x] R0333 Project distribution/team assignment/assign-agent routes.
-- [ ] R0334 Task routes.
+- [x] R0334 Task routes.
 - [ ] R0335 Finance routes.
 - [ ] R0336 HR routes.
 - [ ] R0337 Analytics routes.

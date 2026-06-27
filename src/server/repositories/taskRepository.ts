@@ -163,6 +163,86 @@ export function updateProjectProgress(input: {
   });
 }
 
+export function findParentTaskForSubTask(parentTaskId: string) {
+  return prisma.task.findUnique({
+    where: { id: parentTaskId },
+    select: { id: true, projectId: true, leaderId: true, agentId: true },
+  });
+}
+
+export function createSubTaskWithNotification(input: {
+  projectId: string;
+  leaderId: string;
+  taskType: string;
+  checklistItems: string;
+  parentTaskId: string;
+  requesterRole: string;
+  brief?: string | null;
+  deadline?: string | null;
+  priority?: string;
+  notificationTitle: string;
+  notificationMessage: string;
+}) {
+  return prisma.$transaction(async (tx) => {
+    const subTask = await tx.task.create({
+      data: {
+        projectId: input.projectId,
+        leaderId: input.leaderId,
+        taskType: input.taskType,
+        checklistItems: input.checklistItems,
+        parentTaskId: input.parentTaskId,
+        requesterRole: input.requesterRole,
+        assignedRole: input.taskType,
+        brief: input.brief || null,
+        deadline: input.deadline ? new Date(input.deadline) : null,
+        priority: input.priority || "Medium",
+        status: "pending",
+      },
+    });
+
+    await tx.notification.create({
+      data: {
+        userId: input.leaderId,
+        title: input.notificationTitle,
+        message: input.notificationMessage,
+        type: "task_assigned",
+        link: "/dashboard/design",
+      },
+    });
+
+    return subTask;
+  });
+}
+
+export function findProjectForTaskGeneration(projectId: string) {
+  return prisma.project.findUnique({
+    where: { id: projectId },
+    include: { accountManager: true },
+  });
+}
+
+export function findPackageByName(name: string) {
+  return prisma.package.findUnique({ where: { name } });
+}
+
+export function findExistingTaskTypes(projectId: string) {
+  return prisma.task.findMany({
+    where: { projectId },
+    select: { taskType: true },
+  });
+}
+
+export function createGeneratedTasks(data: any[]) {
+  return prisma.task.createMany({ data });
+}
+
+export function updateProjectStatus(projectId: string, projectStatus: string) {
+  return prisma.project.update({
+    where: { id: projectId },
+    data: { projectStatus },
+  });
+}
+
 export function flagTaskWithNotificationAndLog(input: {
   taskId: string;
   projectId: string | null;

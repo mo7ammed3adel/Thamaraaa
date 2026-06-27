@@ -287,6 +287,25 @@ Behavior preserved by:
 - `npm test`: passed, 7 files and 30 tests.
 - `npm run lint`: passed with the same pre-existing React hook dependency warnings recorded in the baseline.
 
+## 2026-06-27 - Phase 3 Slice: Task Generate Boundary
+
+Scope:
+
+- Moved POST `/api/tasks/generate` project access checks, sub-task generation, standard package task generation, leader resolution, duplicate task skipping, task creation, notification creation, project status update, and project log creation into `taskWorkflowService` and `taskRepository`.
+- Preserved existing response shapes/status codes for sub-task creation, existing-task skips, missing leaders, and package mapping failures.
+- Closed roadmap items R0322 and R0334.
+
+Smell -> principle -> fix:
+
+- Task generation route mixed request delivery, project IDOR checks, service/package parsing, leader lookup, task creation, notifications, and audit logging -> controller-service-repository boundary -> route now maps service outcomes to HTTP.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+- `npm run lint`: passed with the same pre-existing React hook dependency warnings recorded in the baseline.
+- `npm run build`: passed.
+
 ## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
 
 Scope:
