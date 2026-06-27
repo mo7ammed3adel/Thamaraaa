@@ -205,6 +205,22 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Task Reassign Boundary
+
+Scope:
+
+- Moved `/api/tasks/[id]/reassign` leader permission checks, task ownership checks, new-agent validation, task-type role validation, reassignment mutation, team-assignment upsert, notifications, warning receipt backfill, and audit log creation into `taskWorkflowService` and `taskRepository`.
+- Kept response messages/status codes and error details unchanged.
+
+Smell -> principle -> fix:
+
+- Task reassign route mixed request delivery, role policy, task scope check, user lookup, mutation, notifications, and audit logging -> controller-service-repository boundary -> route now maps service outcomes to HTTP.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
 
 Scope:
