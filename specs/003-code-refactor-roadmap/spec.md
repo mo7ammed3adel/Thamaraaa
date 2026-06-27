@@ -187,7 +187,7 @@ npm run build
 ### 3.2 Repositories
 
 - [ ] R0310 إنشاء `src/server/repositories/userRepository.ts`.
-- [ ] R0311 إنشاء `src/server/repositories/projectRepository.ts`.
+- [x] R0311 إنشاء `src/server/repositories/projectRepository.ts`.
 - [ ] R0312 إنشاء `src/server/repositories/taskRepository.ts`.
 - [ ] R0313 إنشاء `src/server/repositories/warningRepository.ts`.
 - [ ] R0314 إنشاء `src/server/repositories/leadRepository.ts`.
@@ -201,7 +201,7 @@ npm run build
 - [ ] R0321 إنشاء `src/server/services/notificationService.ts` ونقل create/createMany/email fallback logic.
 - [ ] R0322 إنشاء `src/server/services/taskWorkflowService.ts` ونقل update/reassign/flag/generate task flows.
 - [ ] R0323 إنشاء `src/server/services/projectDistributionService.ts` ونقل project distribute/assign-agent/team-assignment flows.
-- [ ] R0324 إنشاء `src/server/services/projectLifecycleService.ts` ونقل lifecycle/status/setup flows.
+- [x] R0324 إنشاء `src/server/services/projectLifecycleService.ts` ونقل lifecycle/status/setup flows.
 - [x] R0325 إنشاء `src/server/services/notesService.ts` ونقل notes list/create.
 - [ ] R0326 إنشاء `src/server/services/financeService.ts` حول overview/installments/commissions.
 - [ ] R0327 إنشاء `src/server/services/hrService.ts` حول employees/attendance/documents/evaluations.
@@ -213,7 +213,7 @@ npm run build
 
 - [ ] R0330 Warnings & notifications routes.
 - [x] R0331 Notes routes.
-- [ ] R0332 Project lifecycle/setup/status routes.
+- [x] R0332 Project lifecycle/setup/status routes.
 - [ ] R0333 Project distribution/team assignment/assign-agent routes.
 - [ ] R0334 Task routes.
 - [ ] R0335 Finance routes.

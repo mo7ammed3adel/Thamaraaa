@@ -94,6 +94,25 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Project Setup Boundary
+
+Scope:
+
+- Moved existing-project setup authorization, link validation, project updates, and setup logging into `src/server/services/projectLifecycleService.ts`.
+- Moved project-from-deal recovery workflow into `projectLifecycleService`, while preserving duplicate-deal checks, sales-agent ownership checks, project log creation, and Head AM notifications.
+- Added setup-focused repository helpers in `src/server/repositories/projectRepository.ts`.
+- Reduced `/api/projects/[id]/setup` and `/api/projects/setup` to request/session handling and response mapping.
+- Closed roadmap items R0311, R0324, and R0332.
+
+Smell -> principle -> fix:
+
+- Setup routes mixed controller code with authorization, URL sanitization, transaction orchestration, and notification side effects -> SRP / service-repository boundary -> moved decisions to service functions and Prisma calls into project repository helpers.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
 
 Scope:

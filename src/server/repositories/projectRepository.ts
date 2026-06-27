@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { buildNewProjectData, projectSetupLogDetails } from "@/lib/projectSetup";
 
 export function findProjectLifecycleAuth(projectId: string) {
   return prisma.project.findUnique({
@@ -65,5 +66,46 @@ export function createProjectLog(input: {
 }) {
   return prisma.projectLog.create({
     data: input,
+  });
+}
+
+export function findProjectSetupAuth(projectId: string) {
+  return prisma.project.findUnique({
+    where: { id: projectId },
+    select: { accountManagerId: true },
+  });
+}
+
+export function findProjectByDealId(dealId: string) {
+  return prisma.project.findFirst({ where: { dealId } });
+}
+
+export function findDealForProjectSetup(dealId: string) {
+  return prisma.deal.findUnique({
+    where: { id: dealId },
+    include: { lead: { select: { name: true } } },
+  });
+}
+
+export function createProjectFromDealWithLog(input: {
+  deal: Parameters<typeof buildNewProjectData>[0];
+  niche: string | null;
+  deadline: Date | null;
+  packageName: string;
+  userId: string;
+}) {
+  return prisma.$transaction(async (tx) => {
+    const project = await tx.project.create({
+      data: buildNewProjectData(input.deal, input.niche, input.deadline),
+    });
+    await tx.projectLog.create({
+      data: {
+        projectId: project.id,
+        action: "setup",
+        details: projectSetupLogDetails(input.packageName),
+        userId: input.userId,
+      },
+    });
+    return project;
   });
 }

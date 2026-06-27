@@ -1,12 +1,6 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import {
-  buildNewProjectData,
-  projectSetupLogDetails,
-  notifyHeadAccountManagersOfNewProject,
-} from "@/lib/projectSetup";
+import { getSessionUser } from "@/server/auth/session";
+import { errorJson, successJson } from "@/server/http/responses";
+import { createProjectSetupFromDeal } from "@/server/services/projectLifecycleService";
 
 /**
  * POST /api/projects/setup
@@ -19,62 +13,31 @@ import {
  */
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    const user = session?.user as any;
-    const userId = user?.id;
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-    if (!["sales_agent", "super_admin"].includes(user.role)) {
-      return NextResponse.json({ error: "Forbidden: only the closing Sales Agent can create a project from a deal" }, { status: 403 });
-    }
+    const user = await getSessionUser();
+    if (!user?.id) return errorJson("Unauthorized", 403);
 
-    const { dealId, niche, deadline } = await request.json();
-    if (!dealId) {
-      return NextResponse.json({ error: "Deal ID is required" }, { status: 400 });
-    }
-
-    // Prevent duplicate projects for the same deal
-    const existingProject = await prisma.project.findFirst({ where: { dealId } });
-    if (existingProject) {
-      return NextResponse.json({ error: "A project already exists for this deal", project: existingProject }, { status: 409 });
-    }
-
-    // Fetch the deal to get package info
-    const dealData = await prisma.deal.findUnique({
-      where: { id: dealId },
-      include: { lead: { select: { name: true } } },
-    });
-    if (!dealData) {
-      return NextResponse.json({ error: "Deal not found" }, { status: 404 });
-    }
-    if (user.role === "sales_agent" && dealData.salesAgentId !== user.id) {
-      return NextResponse.json({ error: "Forbidden: this deal is not assigned to you" }, { status: 403 });
-    }
-
-    const packageName = dealData.package;
-    const clientName = dealData.lead?.name || "Unknown Client";
-
-    const newProject = await prisma.$transaction(async (tx) => {
-      const project = await tx.project.create({
-        data: buildNewProjectData(dealData, niche || null, deadline ? new Date(deadline) : null),
-      });
-      await tx.projectLog.create({
-        data: {
-          projectId: project.id,
-          action: "setup",
-          details: projectSetupLogDetails(packageName),
-          userId,
-        },
-      });
-      return project;
+    const result = await createProjectSetupFromDeal({
+      userId: user.id,
+      userRole: user.role,
+      body: await request.json(),
     });
 
-    // Notify ALL Head Account Managers so they can pick it up (best-effort)
-    await notifyHeadAccountManagersOfNewProject(clientName, packageName);
+    if (result.status === "forbidden") {
+      return errorJson("Forbidden: only the closing Sales Agent can create a project from a deal", 403);
+    }
+    if (result.status === "missing_deal_id") return errorJson("Deal ID is required", 400);
+    if (result.status === "duplicate") {
+      return errorJson("A project already exists for this deal", 409, { project: result.project });
+    }
+    if (result.status === "deal_not_found") return errorJson("Deal not found", 404);
+    if (result.status === "deal_forbidden") {
+      return errorJson("Forbidden: this deal is not assigned to you", 403);
+    }
 
-    return NextResponse.json(newProject, { status: 201 });
+    return successJson(result.project, 201);
   } catch (error) {
     console.error("Failed to setup project:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return errorJson("Internal Server Error", 500);
   }
 }
 

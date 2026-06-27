@@ -1,10 +1,16 @@
 import { canChangeLifecycle, validateLifecycleTransition } from "@/lib/lifecycle";
 import { safeTrigger } from "@/lib/pusher";
 import { backfillReceiptsForNewMember, checkProjectBlockers } from "@/lib/distribution";
+import { normalizeWebUrl } from "@/lib/safe-url";
+import { notifyHeadAccountManagersOfNewProject } from "@/lib/projectSetup";
 import {
   createProjectLog,
+  createProjectFromDealWithLog,
   findActiveAccountManager,
+  findDealForProjectSetup,
+  findProjectByDealId,
   findProjectLifecycleAuth,
+  findProjectSetupAuth,
   findProjectStatusAuth,
   updateProjectFields,
   updateProjectLifecycleWithLog,
@@ -45,6 +51,106 @@ export async function changeProjectLifecycle(input: {
   });
 
   return { status: "ok" as const, project: updatedProject };
+}
+
+export async function setupExistingProject(input: {
+  projectId: string;
+  userId: string;
+  userRole: string;
+  body: any;
+}) {
+  if (!input.projectId) return { status: "missing_project_id" as const };
+
+  if (!["super_admin", "head_account_manager", "account_manager"].includes(input.userRole)) {
+    return { status: "forbidden" as const };
+  }
+
+  if (input.userRole === "account_manager") {
+    const project = await findProjectSetupAuth(input.projectId);
+    if (!project || project.accountManagerId !== input.userId) {
+      return { status: "not_your_project" as const };
+    }
+  }
+
+  const { niche, storeUrl, driveLink, technicalDeadline, finalDeadline, notes, projectStatus } =
+    input.body;
+
+  const safeStoreUrl = storeUrl ? normalizeWebUrl(storeUrl) : null;
+  const safeDriveLink = driveLink ? normalizeWebUrl(driveLink) : null;
+  if ((storeUrl && !safeStoreUrl) || (driveLink && !safeDriveLink)) {
+    return { status: "invalid_links" as const };
+  }
+
+  const updateData: Record<string, unknown> = {};
+  if (niche !== undefined) updateData.niche = niche;
+  if (storeUrl !== undefined) updateData.storeUrl = safeStoreUrl;
+  if (driveLink !== undefined) updateData.driveLink = safeDriveLink;
+  if (technicalDeadline !== undefined) {
+    updateData.technicalDeadline = technicalDeadline ? new Date(technicalDeadline) : null;
+  }
+  if (finalDeadline !== undefined) {
+    updateData.finalDeadline = finalDeadline ? new Date(finalDeadline) : null;
+  }
+  if (notes !== undefined) updateData.notes = notes;
+  if (projectStatus !== undefined) {
+    if (projectStatus !== "setup") {
+      return { status: "invalid_setup_status" as const };
+    }
+    updateData.projectStatus = "setup";
+  }
+
+  const project = await updateProjectFields(input.projectId, updateData);
+
+  await createProjectLog({
+    projectId: input.projectId,
+    action: "project_setup",
+    details: `Initial setup completed by Account Manager. Technical Deadline: ${
+      technicalDeadline ? new Date(technicalDeadline).toLocaleDateString() : "None"
+    }, Final Deadline: ${finalDeadline ? new Date(finalDeadline).toLocaleDateString() : "None"}`,
+    userId: input.userId,
+  });
+
+  return { status: "ok" as const, project };
+}
+
+export async function createProjectSetupFromDeal(input: {
+  userId: string;
+  userRole?: string | null;
+  body: any;
+}) {
+  if (!["sales_agent", "super_admin"].includes(input.userRole || "")) {
+    return { status: "forbidden" as const };
+  }
+
+  const { dealId, niche, deadline } = input.body;
+  if (!dealId) return { status: "missing_deal_id" as const };
+
+  const existingProject = await findProjectByDealId(dealId);
+  if (existingProject) {
+    return { status: "duplicate" as const, project: existingProject };
+  }
+
+  const dealData = await findDealForProjectSetup(dealId);
+  if (!dealData) return { status: "deal_not_found" as const };
+
+  if (input.userRole === "sales_agent" && dealData.salesAgentId !== input.userId) {
+    return { status: "deal_forbidden" as const };
+  }
+
+  const packageName = dealData.package;
+  const clientName = dealData.lead?.name || "Unknown Client";
+
+  const project = await createProjectFromDealWithLog({
+    deal: dealData,
+    niche: niche || null,
+    deadline: deadline ? new Date(deadline) : null,
+    packageName,
+    userId: input.userId,
+  });
+
+  await notifyHeadAccountManagersOfNewProject(clientName, packageName);
+
+  return { status: "ok" as const, project };
 }
 
 const VALID_PROJECT_STATUSES = [
