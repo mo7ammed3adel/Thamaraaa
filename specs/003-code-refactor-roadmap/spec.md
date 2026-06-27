@@ -119,10 +119,10 @@ npm run build
 ### 1.1 Shared contracts
 
 - [x] R0101 إنشاء `src/contracts/roles.ts` وفيه `UserRole` union مبني على الأدوار الحالية.
-- [ ] R0102 إنشاء `src/contracts/project.ts` وفيه DTOs للـ project/client journey.
-- [ ] R0103 إنشاء `src/contracts/task.ts` وفيه DTOs للمهام والـ checklist والـ task status.
-- [ ] R0104 إنشاء `src/contracts/warning.ts` وفيه DTOs للتحذيرات والـ receipts.
-- [ ] R0105 إنشاء `src/contracts/finance.ts` وفيه DTOs للعمولات والأقساط والمبالغ.
+- [x] R0102 إنشاء `src/contracts/project.ts` وفيه DTOs للـ project/client journey.
+- [x] R0103 إنشاء `src/contracts/task.ts` وفيه DTOs للمهام والـ checklist والـ task status.
+- [x] R0104 إنشاء `src/contracts/warning.ts` وفيه DTOs للتحذيرات والـ receipts.
+- [x] R0105 إنشاء `src/contracts/finance.ts` وفيه DTOs للعمولات والأقساط والمبالغ.
 - [ ] R0106 نقل الثوابت المشتركة من `src/lib/constants.ts` تدريجياً أو إعادة تصديرها بدون كسر imports القديمة.
 
 ### 1.2 Safe JSON parsers

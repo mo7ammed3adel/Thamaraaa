@@ -41,3 +41,18 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test -- --run src/lib/__tests__/telesalesBonus.test.ts`: passed, 8 tests.
 - `npm test`: passed, 7 files and 30 tests.
+
+## 2026-06-27 - Phase 1 Slice: DTO Contracts
+
+Scope:
+
+- Added type-only DTO contracts for projects, tasks, warnings, and finance records.
+- Did not migrate runtime call sites yet; this creates the shared contract surface for later route and UI extraction.
+
+Smell -> principle -> fix:
+
+- Frontend and backend data shapes were implicit in components/routes -> API boundary contract -> added explicit DTO files under `src/contracts`.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
