@@ -113,6 +113,24 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Project Assign Boundary
+
+Scope:
+
+- Added `src/server/services/projectDistributionService.ts` for project assignment workflows.
+- Moved `/api/projects/[id]/assign` validation, distribution permission checks, project scope checks, assignment update, warning receipt backfill, and audit log creation into the service.
+- Added a shared active-user assignment repository helper.
+- Kept response messages and status codes aligned with the existing route.
+
+Smell -> principle -> fix:
+
+- The assign route mixed request handling, RBAC, project ownership checks, Prisma mutation, warning receipt side effect, and audit logging -> controller-service-repository boundary -> route now maps service results to the same HTTP contract.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
 
 Scope:

@@ -40,7 +40,7 @@ export function updateProjectLifecycleWithLog(input: {
 export function findProjectStatusAuth(projectId: string) {
   return prisma.project.findUnique({
     where: { id: projectId },
-    select: { id: true, accountManagerId: true, headTechnicalId: true },
+    select: { id: true, accountManagerId: true, headTechnicalId: true, headSeoId: true },
   });
 }
 
@@ -48,6 +48,13 @@ export function findActiveAccountManager(userId: string) {
   return prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, role: true, status: true },
+  });
+}
+
+export function findActiveUserForAssignment(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true, status: true, name: true },
   });
 }
 

@@ -1,95 +1,38 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { canDistributeTo, backfillReceiptsForNewMember } from "@/lib/distribution";
+import { NextRequest } from "next/server";
+import { getSessionUser } from "@/server/auth/session";
+import { errorJson, successJson, unauthorizedJson } from "@/server/http/responses";
+import { assignProjectRole } from "@/server/services/projectDistributionService";
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = session.user as { id: string; role: string };
+  const user = await getSessionUser();
+  if (!user?.id || !user.role) return unauthorizedJson();
 
   try {
-    const body = await req.json();
-    const { targetRole, assigneeId } = body;
-
-    if (!targetRole || !assigneeId) {
-      return NextResponse.json({ error: "targetRole and assigneeId required" }, { status: 400 });
-    }
-
-    // Authorization: caller's role must be allowed to distribute to targetRole per DISTRIBUTION_MAP.
-    if (!canDistributeTo(user.role, targetRole)) {
-      return NextResponse.json(
-        { error: `Your role (${user.role}) cannot assign ${targetRole}` },
-        { status: 403 }
-      );
-    }
-
-    // Verify the assignee actually has the target role and is active.
-    const assignee = await prisma.user.findUnique({
-      where: { id: assigneeId },
-      select: { id: true, role: true, status: true },
-    });
-    if (!assignee || assignee.status !== "Active" || assignee.role !== targetRole) {
-      return NextResponse.json({ error: "Invalid assignee for this role" }, { status: 400 });
-    }
-
-    const existingProject = await prisma.project.findUnique({
-      where: { id: params.id },
-      select: { id: true, accountManagerId: true, headTechnicalId: true, headSeoId: true },
-    });
-    if (!existingProject) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
-    }
-    if (user.role === "account_manager" && existingProject.accountManagerId !== user.id) {
-      return NextResponse.json({ error: "You can only assign your own projects" }, { status: 403 });
-    }
-    if (user.role === "head_technical" && existingProject.headTechnicalId !== user.id) {
-      return NextResponse.json({ error: "You can only assign projects assigned to you as Head Technical" }, { status: 403 });
-    }
-    if (user.role === "head_seo" && existingProject.headSeoId !== user.id) {
-      return NextResponse.json({ error: "You can only assign projects assigned to you as Head SEO" }, { status: 403 });
-    }
-
-    const updateData: { accountManagerId?: string; headTechnicalId?: string; headSeoId?: string; projectStatus?: string; assignedAt?: Date } = {};
-    let notificationMsg = "";
-
-    if (targetRole === "account_manager") {
-      updateData.accountManagerId = assigneeId;
-      updateData.projectStatus = "assigned";
-      updateData.assignedAt = new Date();
-      notificationMsg = "assigned as Account Manager";
-    } else if (targetRole === "head_technical") {
-      updateData.headTechnicalId = assigneeId;
-      notificationMsg = "assigned as Head Technical";
-    } else if (targetRole === "head_seo") {
-      updateData.headSeoId = assigneeId;
-      notificationMsg = "assigned as Head SEO";
-    } else {
-      return NextResponse.json({ error: "Unsupported targetRole" }, { status: 400 });
-    }
-
-    const project = await prisma.project.update({
-      where: { id: params.id },
-      data: updateData
+    const result = await assignProjectRole({
+      projectId: params.id,
+      userId: user.id,
+      userRole: user.role,
+      body: await req.json(),
     });
 
-    // The newly-assigned manager should see any unresolved warnings on the project.
-    await backfillReceiptsForNewMember(params.id, assigneeId);
+    if (result.status === "missing_fields") return errorJson("targetRole and assigneeId required", 400);
+    if (result.status === "cannot_assign") {
+      return errorJson(`Your role (${user.role}) cannot assign ${result.targetRole}`, 403);
+    }
+    if (result.status === "invalid_assignee") return errorJson("Invalid assignee for this role", 400);
+    if (result.status === "project_not_found") return errorJson("Project not found", 404);
+    if (result.status === "own_account_manager_forbidden") return errorJson("You can only assign your own projects", 403);
+    if (result.status === "own_head_technical_forbidden") {
+      return errorJson("You can only assign projects assigned to you as Head Technical", 403);
+    }
+    if (result.status === "own_head_seo_forbidden") {
+      return errorJson("You can only assign projects assigned to you as Head SEO", 403);
+    }
+    if (result.status === "unsupported_role") return errorJson("Unsupported targetRole", 400);
 
-    // Log the assignment
-    await prisma.projectLog.create({
-      data: {
-        projectId: project.id,
-        action: "assigned",
-        details: `${targetRole.replace(/_/g, " ").toUpperCase()} assigned to ${assigneeId}`,
-        userId: user.id
-      }
-    });
-
-    return NextResponse.json({ success: true, project });
+    return successJson({ success: true, project: result.project });
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return errorJson("Server error", 500);
   }
 }
