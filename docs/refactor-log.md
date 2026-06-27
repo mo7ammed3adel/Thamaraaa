@@ -186,6 +186,25 @@ Behavior preserved by:
 - `npm run lint`: passed with the same pre-existing React hook dependency warnings recorded in the baseline.
 - `npm run build`: passed.
 
+## 2026-06-27 - Phase 3 Slice: Task Flag Boundary
+
+Scope:
+
+- Added `src/server/repositories/taskRepository.ts`.
+- Added `src/server/services/taskWorkflowService.ts`.
+- Moved `/api/tasks/[id]/flag` task lookup, assigned-agent permission check, reason validation, task update, notification, and project log creation into the service/repository boundary.
+- Kept route response messages/status codes and error details unchanged.
+- Closed roadmap item R0312.
+
+Smell -> principle -> fix:
+
+- Task flag route mixed request handling, ownership/IDOR check, mutation, notification, and audit logging -> controller-service-repository boundary -> moved workflow and persistence out of the route.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Project Lifecycle Boundary
 
 Scope:

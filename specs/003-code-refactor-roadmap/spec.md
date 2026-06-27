@@ -188,7 +188,7 @@ npm run build
 
 - [ ] R0310 إنشاء `src/server/repositories/userRepository.ts`.
 - [x] R0311 إنشاء `src/server/repositories/projectRepository.ts`.
-- [ ] R0312 إنشاء `src/server/repositories/taskRepository.ts`.
+- [x] R0312 إنشاء `src/server/repositories/taskRepository.ts`.
 - [ ] R0313 إنشاء `src/server/repositories/warningRepository.ts`.
 - [ ] R0314 إنشاء `src/server/repositories/leadRepository.ts`.
 - [ ] R0315 إنشاء `src/server/repositories/dealRepository.ts`.
