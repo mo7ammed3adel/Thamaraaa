@@ -564,6 +564,24 @@ Behavior preserved by:
 - `npx tsc --noEmit`: passed.
 - `npm test`: passed, 7 files and 30 tests.
 
+## 2026-06-27 - Phase 3 Slice: Lead Bulk and Distribution Boundary
+
+Scope:
+
+- Extended `src/server/repositories/leadRepository.ts`.
+- Extended `src/server/services/leadService.ts`.
+- Migrated lead bulk promote, bulk delete, and manual meeting distribution routes to the service boundary.
+- Centralized draft-lead scoping, duplicate-phone promotion checks, and TeleSales-manager meeting distribution ownership checks.
+
+Smell -> principle -> fix:
+
+- Bulk/distribution routes repeated draft scopes and lead ownership checks inline -> SRP / IDOR protection locality -> moved scoping and workflow decisions into the lead service.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+- `npm test`: passed, 7 files and 30 tests.
+
 ## 2026-06-27 - Phase 3 Slice: Lead Mutation Service Boundary
 
 Scope:

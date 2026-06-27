@@ -1,15 +1,23 @@
 import { resolveManualLeadAssigneeId } from "@/lib/manualLeadAssignment";
+import { autoAssignLead } from "@/lib/autoAssign";
+import { canManuallyDistributeMeeting } from "@/lib/meetingDistribution";
 import { normalizeWebUrl } from "@/lib/safe-url";
 import {
   createLeadCallLog,
   createLeadNotification,
   createManualLeadRecord,
   deleteLeadRecord,
+  deleteDraftLeads,
+  findActiveLeadPhones,
+  findDistributedLead,
+  findDraftLeadsForBulk,
   findLatestLeadMeeting,
   findLeadAssigneeForManualCreate,
   findLeadAssigneeForUpdate,
+  findLeadForMeetingDistribution,
   findLeadForDelete,
   findLeadForUpdate,
+  promoteDraftLeads,
   updateLeadMeeting,
   updateLeadRecord,
 } from "@/server/repositories/leadRepository";
@@ -274,4 +282,115 @@ export async function deleteLead(input: { id: string; user: LeadUser }) {
 
   await deleteLeadRecord(input.id);
   return { status: "ok" as const };
+}
+
+export async function distributeLeadMeeting(input: { id: string; user: LeadUser }) {
+  const lead = await findLeadForMeetingDistribution(input.id);
+  if (!lead) {
+    return { status: "not_found" as const };
+  }
+
+  const isAuthorized =
+    lead.assignedTeleAgentId === input.user.id ||
+    input.user.role === "super_admin" ||
+    (input.user.role === "tele_sales_manager" &&
+      (!lead.assignedTeleAgentId || lead.teleAgent?.directManagerId === input.user.id));
+
+  if (!isAuthorized) {
+    return { status: "forbidden" as const };
+  }
+
+  const latestMeeting = lead.meetings[0];
+  if (!latestMeeting || !lead.meetingDate) {
+    return { status: "no_booked_meeting" as const };
+  }
+
+  if (!canManuallyDistributeMeeting(lead)) {
+    return { status: "not_ready" as const };
+  }
+
+  if (lead.assignedSalesAgentId || latestMeeting.salesAgentId) {
+    return { status: "already_distributed" as const };
+  }
+
+  const result = await autoAssignLead(input.id);
+  if (!result.assigned) {
+    return { status: "auto_assign_failed" as const, result };
+  }
+
+  const leadAfterDistribution = await findDistributedLead(input.id);
+  return { status: "ok" as const, result, lead: leadAfterDistribution };
+}
+
+function buildDraftScope(user: LeadUser) {
+  if (user.role === "tele_sales_agent") {
+    return { OR: [{ createdById: user.id }, { assignedTeleAgentId: user.id }] };
+  }
+
+  if (user.role === "tele_sales_manager") {
+    return {
+      OR: [
+        { createdById: user.id },
+        { assignedTeleAgentId: null },
+        { teleAgent: { is: { directManagerId: user.id } } },
+      ],
+    };
+  }
+
+  return {};
+}
+
+export async function bulkPromoteLeads(input: { user: LeadUser; body: any }) {
+  const { leadIds } = input.body;
+  if (!leadIds || !Array.isArray(leadIds) || leadIds.length === 0) {
+    return { status: "no_leads_selected" as const };
+  }
+
+  const draftLeads = await findDraftLeadsForBulk({
+    leadIds,
+    draftScope: buildDraftScope(input.user),
+  });
+  const draftPhones = draftLeads.map((lead) => lead.phone);
+
+  const existingDuplicates = await findActiveLeadPhones(draftPhones);
+  const duplicatePhones = existingDuplicates.map((lead) => lead.phone);
+  const validLeadIdsToPromote = draftLeads
+    .filter((lead) => !duplicatePhones.includes(lead.phone))
+    .map((lead) => lead.id);
+
+  if (validLeadIdsToPromote.length > 0) {
+    await promoteDraftLeads({
+      leadIds: validLeadIdsToPromote,
+      assignedTeleAgentId: input.user.id,
+    });
+  }
+
+  if (duplicatePhones.length > 0 && validLeadIdsToPromote.length === 0) {
+    return { status: "all_duplicates" as const };
+  }
+
+  let message = `Successfully promoted ${validLeadIdsToPromote.length} to Active Leads!`;
+  if (duplicatePhones.length > 0) {
+    message += ` (Skipped ${duplicatePhones.length} because their phone number already exists)`;
+  }
+
+  return {
+    status: "ok" as const,
+    promotedCount: validLeadIdsToPromote.length,
+    message,
+  };
+}
+
+export async function bulkDeleteLeads(input: { user: LeadUser; body: any }) {
+  const { leadIds } = input.body;
+  if (!leadIds || !Array.isArray(leadIds) || leadIds.length === 0) {
+    return { status: "no_leads_selected" as const };
+  }
+
+  const result = await deleteDraftLeads({
+    leadIds,
+    draftScope: buildDraftScope(input.user),
+  });
+
+  return { status: "ok" as const, deletedCount: result.count };
 }

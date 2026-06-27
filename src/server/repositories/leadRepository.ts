@@ -104,3 +104,68 @@ export function deleteLeadRecord(id: string) {
     where: { id },
   });
 }
+
+export function findLeadForMeetingDistribution(id: string) {
+  return prisma.lead.findUnique({
+    where: { id },
+    include: {
+      teleAgent: { select: { directManagerId: true } },
+      meetings: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { id: true, salesAgentId: true },
+      },
+    },
+  });
+}
+
+export function findDistributedLead(id: string) {
+  return prisma.lead.findUnique({
+    where: { id },
+    include: {
+      teleAgent: { select: { name: true } },
+      salesAgent: { select: { name: true } },
+      callLogs: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+      },
+    },
+  });
+}
+
+export function findDraftLeadsForBulk(input: { leadIds: string[]; draftScope: any }) {
+  return prisma.lead.findMany({
+    where: { id: { in: input.leadIds }, status: "Draft", ...input.draftScope },
+    select: { id: true, phone: true },
+  });
+}
+
+export function findActiveLeadPhones(phones: string[]) {
+  return prisma.lead.findMany({
+    where: {
+      phone: { in: phones },
+      status: { not: "Draft" },
+    },
+    select: { phone: true },
+  });
+}
+
+export function promoteDraftLeads(input: { leadIds: string[]; assignedTeleAgentId: string }) {
+  return prisma.lead.updateMany({
+    where: { id: { in: input.leadIds } },
+    data: {
+      status: "New",
+      assignedTeleAgentId: input.assignedTeleAgentId,
+    },
+  });
+}
+
+export function deleteDraftLeads(input: { leadIds: string[]; draftScope: any }) {
+  return prisma.lead.deleteMany({
+    where: {
+      id: { in: input.leadIds },
+      status: "Draft",
+      ...input.draftScope,
+    },
+  });
+}
