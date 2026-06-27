@@ -39,6 +39,21 @@ Smell -> principle -> fix:
 Behavior preserved by:
 
 - `npx tsc --noEmit`: passed.
+
+## 2026-06-27 - Phase 5 Slice: Account Manager KPI Grid
+
+Scope:
+
+- Extracted the account-manager KPI cards into `AccountManagerKpiGrid`.
+- Kept KPI toggle behavior, labels, colors, and counts unchanged.
+
+Smell -> principle -> fix:
+
+- `AccountManagerClient.tsx` mixed page orchestration with repeated KPI card rendering -> SRP / presentation component extraction -> moved KPI rendering into a focused child component.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
 - `npm run lint`: passed with the same pre-existing React hook dependency warnings recorded in the baseline.
 - `npm test -- --run src/lib/__tests__/telesalesBonus.test.ts`: passed, 8 tests.
 - `npm test`: passed, 7 files and 30 tests.
