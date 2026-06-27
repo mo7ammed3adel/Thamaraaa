@@ -40,6 +40,21 @@ Behavior preserved by:
 
 - `npx tsc --noEmit`: passed.
 
+## 2026-06-27 - Phase 5 Slice: Head Account Manager Master List
+
+Scope:
+
+- Extracted Head Account Manager global master list filters and table into `HeadAccountManagerMasterList`.
+- Completed R0521 with `HeadAccountManagerClient.tsx` reduced to 170 lines and focused on state, actions, modals, and composition.
+
+Smell -> principle -> fix:
+
+- `HeadAccountManagerClient.tsx` embedded KPI/workload/master/tasks rendering plus derived filtering -> SRP / component and hook boundaries -> split dashboard presentation into focused components and derived data into a hook.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed.
+
 ## 2026-06-27 - Phase 5 Slice: Head Account Manager Tasks Panel
 
 Scope:
