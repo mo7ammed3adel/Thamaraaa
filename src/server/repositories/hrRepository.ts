@@ -252,6 +252,38 @@ export function createEmployeeWithHrRecord(input: CreateEmployeeInput) {
   });
 }
 
+export async function sumApprovedDeductions(userId: string, start: Date, end: Date) {
+  const result = await prisma.attendance.aggregate({
+    where: { userId, deductionApproved: true, date: { gte: start, lt: end } },
+    _sum: { deductionDraft: true },
+  });
+  return result._sum.deductionDraft || 0;
+}
+
+export async function aggregateApprovedDeductionsByUser(start: Date, end: Date) {
+  const rows = await prisma.attendance.groupBy({
+    by: ["userId"],
+    where: { deductionApproved: true, date: { gte: start, lt: end } },
+    _sum: { deductionDraft: true },
+  });
+  return new Map(rows.map((row) => [row.userId, row._sum.deductionDraft || 0]));
+}
+
+export function findCommissionForUserMonth(userId: string, month: string) {
+  return prisma.commission.findFirst({ where: { userId, month } });
+}
+
+export async function findCommissionsByUserForMonth(month: string) {
+  const rows = await prisma.commission.findMany({ where: { month } });
+  return new Map(rows.map((row) => [row.userId, row.commissionAmount || 0]));
+}
+
+export function findActiveHrRecordsWithUser() {
+  return prisma.hrRecord.findMany({
+    include: { user: { select: { id: true, name: true, role: true, status: true } } },
+  });
+}
+
 export function findEmployeeRole(userId: string) {
   return prisma.user.findUnique({
     where: { id: userId },

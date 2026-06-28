@@ -60,6 +60,14 @@ export function submitLeaveRequest(body: unknown) {
   return postJson("/api/hr/requests", body);
 }
 
+export function getPayslip(params: Record<string, string | number | boolean | null | undefined> = {}) {
+  return getJson(`/api/hr/payslip${buildQueryString(params)}`);
+}
+
+export function listPayroll(params: Record<string, string | number | boolean | null | undefined> = {}) {
+  return getJson(`/api/hr/payroll${buildQueryString(params)}`);
+}
+
 export function listHrRequests() {
   return getJson<any[]>("/api/hr/requests");
 }

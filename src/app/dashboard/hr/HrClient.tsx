@@ -3,17 +3,20 @@
 import { useState, useEffect, useCallback } from "react";
 import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
-import { Users, Briefcase, Calendar, CheckSquare, Plus, X, Search, Edit2, UserX, UserCheck, TrendingUp, FileText, Trash2, AlertTriangle, Award, Clock, Check, CalendarDays } from "lucide-react";
+import { Users, Briefcase, Calendar, CheckSquare, Plus, X, Search, Edit2, UserX, UserCheck, TrendingUp, FileText, Trash2, AlertTriangle, Award, Clock, Check, CalendarDays, DollarSign } from "lucide-react";
 import { HttpError } from "@/client/transport/http";
 import { computeLeaveBalance } from "@/lib/leaveBalance";
+import { currentMonth } from "@/lib/payslip";
 import {
   createApplicant,
   createDocument,
   createEmployee,
   deleteDocument,
+  getPayslip,
   listApplicants,
   listDocuments,
   listHrRequests,
+  listPayroll,
   listPromotionEvaluations,
   runAutoEvaluations,
   runPromotionAction,
@@ -200,6 +203,9 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
           <button onClick={() => setActiveTab("recruitment")} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "recruitment" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500"}`}>
             🧑‍💼 Recruitment
           </button>
+          <button onClick={() => setActiveTab("payroll")} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "payroll" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500"}`}>
+            💵 Payroll
+          </button>
           <button onClick={() => setActiveTab("promotion")} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "promotion" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500"}`}>
             🏆 Promotion Engine
           </button>
@@ -214,6 +220,9 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
 
       {/* RECRUITMENT TAB */}
       {isManager && activeTab === "recruitment" && <RecruitmentTab />}
+
+      {/* PAYROLL TAB */}
+      {isManager && activeTab === "payroll" && <PayrollTab />}
 
       {/* PROMOTION ENGINE TAB */}
       {isManager && activeTab === "promotion" && <PromotionEngineTab />}
@@ -1062,6 +1071,7 @@ function RecruitmentTab() {
 function SelfServiceSection() {
   const [requests, setRequests] = useState<any[]>([]);
   const [docs, setDocs] = useState<any[]>([]);
+  const [payslip, setPayslip] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ type: "Leave", date: "", duration: "1 Day", reason: "" });
@@ -1071,9 +1081,11 @@ function SelfServiceSection() {
     Promise.all([
       listHrRequests().then((d: any) => (Array.isArray(d) ? d : [])).catch(() => []),
       listDocuments().then((d: any) => d?.documents || []).catch(() => []),
-    ]).then(([reqs, documents]) => {
+      getPayslip().then((d: any) => d).catch(() => null),
+    ]).then(([reqs, documents, slip]) => {
       setRequests(reqs);
       setDocs(documents);
+      setPayslip(slip);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -1138,8 +1150,27 @@ function SelfServiceSection() {
         </form>
       </div>
 
-      {/* Leave Balance + My Requests + My Documents */}
+      {/* Payslip + Leave Balance + My Requests + My Documents */}
       <div className="space-y-6">
+        <div className="bg-gradient-to-br from-slate-900 to-slate-700 text-white p-6 rounded-xl shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold flex items-center gap-2"><DollarSign className="w-5 h-5" /> My Payslip</h2>
+            <span className="text-xs text-slate-300">{payslip?.month || currentMonth()}</span>
+          </div>
+          {payslip?.status === "ok" ? (
+            <>
+              <p className="text-3xl font-black">{payslip.payslip.net.toLocaleString()} <span className="text-sm font-medium text-slate-300">SAR net</span></p>
+              <div className="grid grid-cols-3 gap-2 mt-4 text-center text-xs">
+                <div><p className="text-slate-300">Base</p><p className="font-bold">{payslip.payslip.baseSalary.toLocaleString()}</p></div>
+                <div><p className="text-emerald-300">Bonus</p><p className="font-bold text-emerald-300">+{payslip.payslip.bonuses.toLocaleString()}</p></div>
+                <div><p className="text-red-300">Deduct.</p><p className="font-bold text-red-300">−{payslip.payslip.deductions.toLocaleString()}</p></div>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-slate-300 italic">{loading ? "Loading…" : "No salary record on file yet."}</p>
+          )}
+        </div>
+
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2"><CalendarDays className="w-5 h-5 text-emerald-600" /> Annual Leave Balance <span className="text-xs font-normal text-gray-400">({new Date().getFullYear()})</span></h2>
           <div className="grid grid-cols-3 gap-3 text-center">
@@ -1190,6 +1221,77 @@ function SelfServiceSection() {
             </ul>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Payroll Tab — computed monthly payslips for all employees (HR view).
+// ─────────────────────────────────────────────────────────────────────
+function PayrollTab() {
+  const [month, setMonth] = useState(currentMonth());
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    listPayroll({ month })
+      .then((d: any) => setData(d))
+      .catch(() => setData(null))
+      .finally(() => setLoading(false));
+  }, [month]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const rows = data?.rows || [];
+  const totals = data?.totals;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl border p-4 shadow-sm">
+        <DollarSign className="w-5 h-5 text-slate-500" />
+        <label className="text-sm font-semibold text-gray-600">Month</label>
+        <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="border rounded-lg px-3 py-2 text-sm" />
+        <span className="text-xs text-gray-400 ml-auto">Net = base + bonus − approved attendance deductions</span>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
+            <tr>
+              <th className="px-6 py-3 text-left">Employee</th>
+              <th className="px-6 py-3 text-left">Role</th>
+              <th className="px-6 py-3 text-right">Base</th>
+              <th className="px-6 py-3 text-right">Bonus</th>
+              <th className="px-6 py-3 text-right">Deductions</th>
+              <th className="px-6 py-3 text-right">Net (SAR)</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200 text-sm">
+            {loading && <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-400">Loading payroll…</td></tr>}
+            {!loading && rows.length === 0 && <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-400 italic">No salary records found.</td></tr>}
+            {!loading && rows.map((r: any) => (
+              <tr key={r.userId} className="hover:bg-gray-50">
+                <td className="px-6 py-3 font-bold text-gray-900">{r.name}{r.status === "Inactive" && <span className="ml-2 text-[10px] text-red-500 font-bold uppercase">Inactive</span>}</td>
+                <td className="px-6 py-3 text-gray-500 capitalize">{(r.role || "").replace(/_/g, " ")}</td>
+                <td className="px-6 py-3 text-right text-gray-700">{r.baseSalary.toLocaleString()}</td>
+                <td className="px-6 py-3 text-right text-emerald-700">{r.bonuses ? `+${r.bonuses.toLocaleString()}` : "—"}</td>
+                <td className="px-6 py-3 text-right text-red-600">{r.deductions ? `−${r.deductions.toLocaleString()}` : "—"}</td>
+                <td className="px-6 py-3 text-right font-black text-gray-900">{r.net.toLocaleString()}</td>
+              </tr>
+            ))}
+            {!loading && totals && rows.length > 0 && (
+              <tr className="bg-slate-50 font-bold">
+                <td className="px-6 py-3" colSpan={2}>Totals ({rows.length})</td>
+                <td className="px-6 py-3 text-right">{totals.baseSalary.toLocaleString()}</td>
+                <td className="px-6 py-3 text-right text-emerald-700">+{totals.bonuses.toLocaleString()}</td>
+                <td className="px-6 py-3 text-right text-red-600">−{totals.deductions.toLocaleString()}</td>
+                <td className="px-6 py-3 text-right text-gray-900">{totals.net.toLocaleString()}</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

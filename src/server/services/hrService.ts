@@ -24,12 +24,19 @@ import {
   updateEmployeeUser,
   upsertEmployeeHrRecord,
   warnEmployee,
+  sumApprovedDeductions,
+  aggregateApprovedDeductionsByUser,
+  findCommissionForUserMonth,
+  findCommissionsByUserForMonth,
+  findActiveHrRecordsWithUser,
 } from "@/server/repositories/hrRepository";
 import { normalizeWebUrl } from "@/lib/safe-url";
 import { evaluateAllEmployees } from "@/lib/promotion";
+import { computePayslip, currentMonth, monthRange } from "@/lib/payslip";
 import bcrypt from "bcryptjs";
 
 const HR_ROLES = ["super_admin", "hr_manager"];
+const MONTH_RE = /^\d{4}-\d{2}$/;
 
 function isHrManager(role?: string | null) {
   return role === "hr_manager" || role === "super_admin";
@@ -298,6 +305,83 @@ export async function evaluateHrRecords() {
 
 export function listPromotionEvaluations() {
   return evaluateAllEmployees();
+}
+
+export async function getPayslip(input: {
+  sessionUserId: string;
+  sessionUserRole?: string | null;
+  targetUserId?: string | null;
+  month?: string | null;
+}) {
+  const isHr = HR_ROLES.includes(input.sessionUserRole || "");
+  const targetUserId = input.targetUserId || input.sessionUserId;
+  if (!isHr && targetUserId !== input.sessionUserId) {
+    return { status: "forbidden" as const };
+  }
+
+  const month = input.month && MONTH_RE.test(input.month) ? input.month : currentMonth();
+
+  const record = await findHrRecordByUserId(targetUserId);
+  if (!record) {
+    return { status: "no_record" as const, month };
+  }
+
+  const { start, end } = monthRange(month);
+  const deductions = await sumApprovedDeductions(targetUserId, start, end);
+  const commission = await findCommissionForUserMonth(targetUserId, month);
+
+  const payslip = computePayslip({
+    baseSalary: record.baseSalary,
+    bonuses: commission?.commissionAmount || 0,
+    deductions,
+  });
+
+  return {
+    status: "ok" as const,
+    month,
+    employee: { id: record.user.id, name: record.user.name, role: record.user.role },
+    payslip,
+  };
+}
+
+export async function listPayroll(input: { month?: string | null }) {
+  const month = input.month && MONTH_RE.test(input.month) ? input.month : currentMonth();
+  const { start, end } = monthRange(month);
+
+  const [records, deductionsByUser, commissionsByUser] = await Promise.all([
+    findActiveHrRecordsWithUser(),
+    aggregateApprovedDeductionsByUser(start, end),
+    findCommissionsByUserForMonth(month),
+  ]);
+
+  const rows = records.map((record) => {
+    const payslip = computePayslip({
+      baseSalary: record.baseSalary,
+      bonuses: commissionsByUser.get(record.userId) || 0,
+      deductions: deductionsByUser.get(record.userId) || 0,
+    });
+    return {
+      userId: record.userId,
+      name: record.user.name,
+      role: record.user.role,
+      status: record.user.status,
+      ...payslip,
+    };
+  });
+
+  rows.sort((a, b) => a.name.localeCompare(b.name));
+
+  const totals = rows.reduce(
+    (acc, row) => ({
+      baseSalary: acc.baseSalary + row.baseSalary,
+      bonuses: acc.bonuses + row.bonuses,
+      deductions: acc.deductions + row.deductions,
+      net: acc.net + row.net,
+    }),
+    { baseSalary: 0, bonuses: 0, deductions: 0, net: 0 }
+  );
+
+  return { month, rows, totals };
 }
 
 export async function applyPromotionAction(input: {
