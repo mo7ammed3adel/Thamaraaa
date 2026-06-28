@@ -30,19 +30,12 @@ export async function POST(req: Request) {
       if (record) return NextResponse.json({ error: "Already checked in today" }, { status: 400 });
       
       const checkInTime = new Date();
-      // Calculate delay based on 9 AM shift start (example standard)
       const shiftStart = new Date();
       shiftStart.setHours(9, 0, 0, 0);
       
       const lateMinutes = Math.max(0, Math.floor((checkInTime.getTime() - shiftStart.getTime()) / 60000));
-
-      // Draft a deduction for lateness beyond a 15-minute grace window.
-      // HR must approve before it ever affects payroll (see PATCH below).
-      const GRACE_MINUTES = 15;
-      const PER_MINUTE_FEE = 1; // SAR per late minute past the grace window
-      const deductionDraft = lateMinutes > GRACE_MINUTES
-        ? Math.round((lateMinutes - GRACE_MINUTES) * PER_MINUTE_FEE)
-        : null;
+      const deductionHours = lateDeductionHours(lateMinutes);
+      const deductionDraft = await draftAttendanceDeduction(userId, deductionHours);
 
       record = await prisma.attendance.create({
         data: {
@@ -50,7 +43,9 @@ export async function POST(req: Request) {
           date: new Date(),
           checkIn: checkInTime,
           lateMinutes,
+          deductionHours,
           deductionDraft,
+          status: lateMinutes > 18 ? "late" : "on_time",
         }
       });
       return NextResponse.json(record, { status: 201 });
@@ -59,9 +54,23 @@ export async function POST(req: Request) {
       if (!record || record.checkOut) {
         return NextResponse.json({ error: "No active check-in or already checked out" }, { status: 400 });
       }
+      const checkOut = new Date();
+      const shiftEnd = new Date();
+      shiftEnd.setHours(17, 0, 0, 0);
+      const earlyLeaveMinutes = Math.max(0, Math.floor((shiftEnd.getTime() - checkOut.getTime()) / 60000));
+      const earlyHours = earlyLeaveMinutes >= 60 ? 4 : 0;
+      const deductionHours = (record.deductionHours || 0) + earlyHours;
+      const deductionDraft = await draftAttendanceDeduction(userId, deductionHours);
+
       record = await prisma.attendance.update({
         where: { id: record.id },
-        data: { checkOut: new Date() }
+        data: {
+          checkOut,
+          earlyLeaveMinutes,
+          deductionHours,
+          deductionDraft,
+          status: earlyHours > 0 ? "early_leave" : record.status,
+        }
       });
       return NextResponse.json(record, { status: 200 });
     }
@@ -71,6 +80,22 @@ export async function POST(req: Request) {
     console.error(error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
+}
+
+function lateDeductionHours(lateMinutes: number) {
+  if (lateMinutes <= 18) return 0;
+  if (lateMinutes <= 35) return 2;
+  if (lateMinutes <= 90) return 4;
+  return 6;
+}
+
+async function draftAttendanceDeduction(userId: string, deductionHours: number) {
+  if (deductionHours <= 0) return null;
+  const hr = await prisma.hrRecord.findUnique({ where: { userId } });
+  const baseSalary = hr?.currentSalary || hr?.baseSalary || 0;
+  const workingHours = hr?.workingHoursPerDay || 8;
+  const hourlyRate = baseSalary > 0 ? baseSalary / 26 / workingHours : 0;
+  return Math.round(hourlyRate * deductionHours * 100) / 100;
 }
 
 /**

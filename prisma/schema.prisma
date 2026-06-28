@@ -272,6 +272,25 @@ model HrRecord {
   promotionEligible  Boolean @default(false)
   warningCount       Int     @default(0)
   terminationFlag    Boolean @default(false)
+  employeeCode       String? @unique
+  personalEmail      String?
+  nationalId         String?
+  dateOfBirth        DateTime?
+  gender             String?
+  address            String?
+  department         String?
+  jobTitle           String?
+  hiringDate         DateTime?
+  employmentType     String?
+  employmentStatus   String  @default("active")
+  resignationDate    DateTime?
+  startingSalary     Float?
+  currentSalary      Float?
+  documentChecklist  String  @default("{}")
+  fingerprintCode    String?
+  allowances         Float   @default(0)
+  workingHoursPerDay Float   @default(8)
+  bankAccount        String?
 }
 
 model Attendance {
@@ -284,6 +303,13 @@ model Attendance {
   lateMinutes       Int       @default(0)
   deductionDraft    Float?
   deductionApproved Boolean   @default(false)
+  earlyLeaveMinutes Int       @default(0)
+  status            String    @default("on_time")
+  exemptionType     String?
+  exemptionRef      String?
+  payrollPeriod     String?
+  deductionHours    Float     @default(0)
+  importedBatchId   String?
 }
 
 model Commission {
@@ -352,6 +378,12 @@ model LeaveRequest {
   status        String   @default("Pending") // Pending, Approved, Rejected
   reason        String?
   feedbackNotes String?
+  startDate     DateTime?
+  endDate       DateTime?
+  days          Float?
+  attachmentUrl String?
+  approverId    String?
+  approverNotes String?
   createdAt     DateTime @default(now())
 }
 
@@ -395,6 +427,272 @@ model OnboardingTask {
   completedAt DateTime?
   orderIndex  Int       @default(0)
   createdAt   DateTime  @default(now())
+}
+
+model HrDepartment {
+  id        String         @id @default(uuid())
+  name      String         @unique
+  parentId  String?
+  parent    HrDepartment?  @relation("HrDepartmentTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children  HrDepartment[] @relation("HrDepartmentTree")
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model SalaryHistory {
+  id             String    @id @default(uuid())
+  userId         String
+  effectiveDate  DateTime
+  previousSalary Float
+  newSalary      Float
+  increaseAmount Float
+  increasePct    Float
+  changeType     String
+  nextReviewDate DateTime?
+  reviewStatus   String    @default("pending")
+  notes          String?
+  createdAt      DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model HrPayrollPeriod {
+  id                      String           @id @default(uuid())
+  month                   String           @unique
+  status                  String           @default("Draft")
+  generatedById           String?
+  generatedAt             DateTime?
+  approvedById            String?
+  approvedAt              DateTime?
+  publishedById           String?
+  publishedAt             DateTime?
+  lockedById              String?
+  lockedAt                DateTime?
+  reopenedById            String?
+  reopenedAt              DateTime?
+  reopenedReason          String?
+  bonusSubmissionDeadline DateTime?
+  notes                   String?
+  entries                 HrPayrollEntry[]
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+}
+
+model HrPayrollEntry {
+  id                      String          @id @default(uuid())
+  periodId                String
+  period                  HrPayrollPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  userId                  String
+  employeeCode            String?
+  employeeName            String
+  department              String?
+  position                String?
+  fingerprintCode         String?
+  baseSalary              Float           @default(0)
+  allowances              Float           @default(0)
+  hourlyRate              Float           @default(0)
+  workingHoursPerDay      Float           @default(8)
+  workingDays             Int             @default(26)
+  daysPresent             Float           @default(0)
+  daysAbsent              Float           @default(0)
+  unexcusedAbsenceDays    Float           @default(0)
+  lateArrivals            Int             @default(0)
+  earlyLeaves             Int             @default(0)
+  approvedLeaveDays       Float           @default(0)
+  approvedRemoteDays      Float           @default(0)
+  approvedPermissionHours Float           @default(0)
+  totalDeductionHours     Float           @default(0)
+  attendanceDeduction     Float           @default(0)
+  absenceDeduction        Float           @default(0)
+  warningDeduction        Float           @default(0)
+  advanceDeduction        Float           @default(0)
+  manualDeduction         Float           @default(0)
+  manualDeductionNote     String?
+  bonus                   Float           @default(0)
+  commission              Float           @default(0)
+  achievementPct          Float           @default(0)
+  performanceNotes        String?
+  manualBonus             Float           @default(0)
+  manualBonusNote         String?
+  manuallyModified        Boolean         @default(false)
+  attendanceException     Boolean         @default(false)
+  warningRecommended      Boolean         @default(false)
+  bonusSubmittedById      String?
+  bonusSubmittedAt        DateTime?
+  netSalary               Float           @default(0)
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+
+  @@unique([periodId, userId])
+  @@index([userId])
+}
+
+model SalaryAdvance {
+  id                       String    @id @default(uuid())
+  userId                   String
+  amount                   Float
+  reason                   String
+  status                   String    @default("pending_dept_head")
+  deptHeadApprovedById     String?
+  deptHeadApprovedAt       DateTime?
+  accountantApprovedById   String?
+  accountantApprovedAt     DateTime?
+  paidAt                   DateTime?
+  deductedPayrollPeriodId  String?
+  rejectionReason          String?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model RecruitmentRequest {
+  id                String    @id @default(uuid())
+  departmentId      String?
+  departmentName    String?
+  positionTitle     String
+  level             String
+  minExperience     String?
+  requiredStartDate DateTime?
+  vacancies         Int       @default(1)
+  notes             String?
+  status            String    @default("pending")
+  assignedHrId      String?
+  requestedById     String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([status])
+}
+
+model KpiTemplate {
+  id             String    @id @default(uuid())
+  name           String
+  departmentId   String?
+  departmentName String?
+  targetRole     String
+  active         Boolean   @default(true)
+  items          KpiItem[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model KpiItem {
+  id          String      @id @default(uuid())
+  templateId  String
+  template    KpiTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  name        String
+  weight      Float
+  description String?
+  createdAt   DateTime    @default(now())
+}
+
+model EmployeeExit {
+  id                    String    @id @default(uuid())
+  userId                String
+  exitType              String
+  submissionDate        DateTime
+  notificationDate      DateTime?
+  lastWorkingDay        DateTime?
+  requiredNoticeDays    Int       @default(0)
+  noticeStatus          String    @default("pending")
+  clearanceStatus       String    @default("pending")
+  finalSalaryStatus     String    @default("pending")
+  assetChecklist        String    @default("{}")
+  exitInterviewNotes    String?
+  hrOverride            Boolean   @default(false)
+  hrOverrideReason      String?
+  archiveStatus         String    @default("open")
+  archivedById          String?
+  archivedAt            DateTime?
+  initiatedById         String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model HrComplaint {
+  id            String            @id @default(uuid())
+  userId        String
+  subject       String
+  details       String
+  attachmentUrl String?
+  visibility    String            @default("hr_only")
+  status        String            @default("open")
+  assignedHrId  String?
+  notes         HrComplaintNote[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model HrComplaintNote {
+  id          String      @id @default(uuid())
+  complaintId String
+  complaint   HrComplaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  authorId    String
+  note        String
+  createdAt   DateTime    @default(now())
+}
+
+model HrWarning {
+  id               String   @id @default(uuid())
+  userId           String
+  type             String
+  date             DateTime
+  description      String
+  issuedById       String
+  attachmentUrl    String?
+  payrollDeduction Float    @default(0)
+  createdAt        DateTime @default(now())
+
+  @@index([userId])
+  @@index([type])
+}
+
+model HrContract {
+  id        String    @id @default(uuid())
+  userId    String
+  title     String
+  startDate DateTime
+  endDate   DateTime?
+  notes     String?
+  fileUrl   String?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model EmployeeFolder {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model EmployeeAsset {
+  id        String   @id @default(uuid())
+  userId    String
+  assetType String
+  returned  Boolean  @default(false)
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model HrSystemSetting {
+  key         String   @id
+  value       String
+  updatedById String?
+  updatedAt   DateTime @default(now()) @updatedAt
 }
 
 model Package {

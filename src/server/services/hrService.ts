@@ -42,6 +42,7 @@ import {
 import { normalizeWebUrl } from "@/lib/safe-url";
 import { evaluateAllEmployees } from "@/lib/promotion";
 import { computePayslip, currentMonth, monthRange } from "@/lib/payslip";
+import { computeLeaveBalance, leaveDaysFromDuration } from "@/lib/leaveBalance";
 import bcrypt from "bcryptjs";
 
 const HR_ROLES = ["super_admin", "hr_manager"];
@@ -60,26 +61,69 @@ export async function submitLeaveRequest(input: {
   userName?: string | null;
   body: any;
 }) {
-  const { type, date, duration, reason } = input.body;
+  const { type, date, startDate, endDate, duration, reason, attachmentUrl } = input.body;
+  const requestType = type || "Leave";
+  const requestDate = parseDateOrNull(date || startDate) || new Date();
+  const days = Number(input.body.days) || leaveDaysFromDuration(duration);
+
+  const record = await findHrRecordByUserId(input.userId);
+  const hiringDate = record?.hiringDate;
+  if ((requestType === "Leave" || requestType === "annual") && hiringDate) {
+    const serviceDays = Math.floor((Date.now() - hiringDate.getTime()) / 86400000);
+    if (serviceDays < 90) {
+      return { status: "not_eligible" as const };
+    }
+    const requests = await findLeaveRequestsForUser(input.userId);
+    const balance = computeLeaveBalance(requests, requestDate.getFullYear(), 21);
+    if (days > balance.remaining) {
+      return { status: "insufficient_balance" as const, balance };
+    }
+  }
+
+  if (requestType === "Permission") {
+    const hours = hoursFromDuration(duration);
+    if (hours > 6) return { status: "permission_limit" as const };
+    const requests = await findLeaveRequestsForUser(input.userId);
+    const monthHours = requests
+      .filter(
+        (req) =>
+          req.type === "Permission" &&
+          req.status !== "Rejected" &&
+          req.date.getFullYear() === requestDate.getFullYear() &&
+          req.date.getMonth() === requestDate.getMonth()
+      )
+      .reduce((sum, req) => sum + hoursFromDuration(req.duration), 0);
+    if (monthHours + hours > 6) return { status: "permission_limit" as const };
+  }
+
   const request = await createLeaveRequest({
     userId: input.userId,
-    type,
-    date: new Date(date),
+    type: requestType,
+    date: requestDate,
+    startDate: parseDateOrNull(startDate) || requestDate,
+    endDate: parseDateOrNull(endDate) || parseDateOrNull(startDate) || requestDate,
+    days,
     duration,
     reason,
+    attachmentUrl: attachmentUrl ? normalizeWebUrl(attachmentUrl) : null,
   });
 
   const hr = await findFirstHrManager();
   if (hr) {
     await createHrNotification({
       userId: hr.id,
-      title: `New ${type} Request`,
-      message: `${input.userName} has requested a ${type} for ${date}`,
+      title: `New ${requestType} Request`,
+      message: `${input.userName} has requested a ${requestType} for ${requestDate.toLocaleDateString()}`,
       link: `/dashboard/hr/requests`,
     });
   }
 
-  return request;
+  return { status: "ok" as const, request };
+}
+
+function hoursFromDuration(duration?: string | null) {
+  const match = String(duration || "").match(/(\d+(?:\.\d+)?)/);
+  return match ? Number(match[1]) || 0 : 0;
 }
 
 export function listEmployees() {
@@ -119,6 +163,23 @@ export async function createEmployee(input: { actorRole?: string | null; body: a
     directManagerId: data.directManagerId || null,
     baseSalary: Number(data.baseSalary) || 0,
     monthlyTarget: Number(data.monthlyTarget) || 0,
+    personalEmail: data.personalEmail || null,
+    nationalId: data.nationalId || null,
+    dateOfBirth: parseDateOrNull(data.dateOfBirth),
+    gender: data.gender || null,
+    address: data.address || null,
+    department: data.department || null,
+    jobTitle: data.jobTitle || null,
+    hiringDate: parseDateOrNull(data.hiringDate),
+    employmentType: data.employmentType || "full-time",
+    employmentStatus: data.employmentStatus || "active",
+    startingSalary: Number(data.startingSalary ?? data.baseSalary) || 0,
+    currentSalary: Number(data.currentSalary ?? data.baseSalary) || 0,
+    documentChecklist: JSON.stringify(normalizeDocumentChecklist(data.documentChecklist)),
+    fingerprintCode: data.fingerprintCode || null,
+    allowances: Number(data.allowances) || 0,
+    workingHoursPerDay: Number(data.workingHoursPerDay) || 8,
+    bankAccount: data.bankAccount || null,
   });
 
   return { status: "ok" as const, user };
@@ -162,6 +223,26 @@ export async function updateEmployee(input: { actorRole?: string | null; body: a
   if (data.baseSalary !== undefined) hrData.baseSalary = Number(data.baseSalary) || 0;
   if (data.monthlyTarget !== undefined) hrData.monthlyTarget = Number(data.monthlyTarget) || 0;
   if (data.level !== undefined) hrData.level = data.level;
+  if (data.personalEmail !== undefined) hrData.personalEmail = data.personalEmail || null;
+  if (data.nationalId !== undefined) hrData.nationalId = data.nationalId || null;
+  if (data.dateOfBirth !== undefined) hrData.dateOfBirth = parseDateOrNull(data.dateOfBirth);
+  if (data.gender !== undefined) hrData.gender = data.gender || null;
+  if (data.address !== undefined) hrData.address = data.address || null;
+  if (data.department !== undefined) hrData.department = data.department || null;
+  if (data.jobTitle !== undefined) hrData.jobTitle = data.jobTitle || null;
+  if (data.hiringDate !== undefined) hrData.hiringDate = parseDateOrNull(data.hiringDate);
+  if (data.employmentType !== undefined) hrData.employmentType = data.employmentType || null;
+  if (data.employmentStatus !== undefined) hrData.employmentStatus = data.employmentStatus || "active";
+  if (data.resignationDate !== undefined) hrData.resignationDate = parseDateOrNull(data.resignationDate);
+  if (data.startingSalary !== undefined) hrData.startingSalary = Number(data.startingSalary) || 0;
+  if (data.currentSalary !== undefined) hrData.currentSalary = Number(data.currentSalary) || 0;
+  if (data.documentChecklist !== undefined) {
+    hrData.documentChecklist = JSON.stringify(normalizeDocumentChecklist(data.documentChecklist));
+  }
+  if (data.fingerprintCode !== undefined) hrData.fingerprintCode = data.fingerprintCode || null;
+  if (data.allowances !== undefined) hrData.allowances = Number(data.allowances) || 0;
+  if (data.workingHoursPerDay !== undefined) hrData.workingHoursPerDay = Number(data.workingHoursPerDay) || 8;
+  if (data.bankAccount !== undefined) hrData.bankAccount = data.bankAccount || null;
 
   if (Object.keys(hrData).length > 0) {
     await upsertEmployeeHrRecord({
@@ -172,6 +253,36 @@ export async function updateEmployee(input: { actorRole?: string | null; body: a
   }
 
   return { status: "ok" as const, user: updated };
+}
+
+function parseDateOrNull(value: unknown) {
+  if (!value) return null;
+  const parsed = new Date(String(value));
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function normalizeDocumentChecklist(value: unknown) {
+  const defaults = {
+    nationalId: false,
+    resume: false,
+    employmentContract: false,
+    graduationCertificate: false,
+    militaryDocument: false,
+    socialInsurance: false,
+    otherDocuments: false,
+  };
+  if (!value) return defaults;
+  if (typeof value === "string") {
+    try {
+      return { ...defaults, ...JSON.parse(value) };
+    } catch {
+      return defaults;
+    }
+  }
+  if (typeof value === "object") {
+    return { ...defaults, ...(value as Record<string, boolean>) };
+  }
+  return defaults;
 }
 
 export function listLeaveRequests(input: { userId: string; userRole?: string | null }) {

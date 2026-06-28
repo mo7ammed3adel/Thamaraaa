@@ -12,6 +12,23 @@ type CreateEmployeeInput = {
   directManagerId?: string | null;
   baseSalary: number;
   monthlyTarget: number;
+  personalEmail?: string | null;
+  nationalId?: string | null;
+  dateOfBirth?: Date | null;
+  gender?: string | null;
+  address?: string | null;
+  department?: string | null;
+  jobTitle?: string | null;
+  hiringDate?: Date | null;
+  employmentType?: string | null;
+  employmentStatus?: string | null;
+  startingSalary?: number | null;
+  currentSalary?: number | null;
+  documentChecklist?: string | null;
+  fingerprintCode?: string | null;
+  allowances?: number;
+  workingHoursPerDay?: number;
+  bankAccount?: string | null;
 };
 
 export function createLeaveRequest(input: {
@@ -20,6 +37,10 @@ export function createLeaveRequest(input: {
   date: Date;
   duration: string;
   reason: string;
+  startDate?: Date | null;
+  endDate?: Date | null;
+  days?: number | null;
+  attachmentUrl?: string | null;
 }) {
   return prisma.leaveRequest.create({
     data: {
@@ -214,6 +235,7 @@ export function findUserConflict(input: { email: string; phone?: string | null }
 
 export function createEmployeeWithHrRecord(input: CreateEmployeeInput) {
   return prisma.$transaction(async (tx) => {
+    const employeeCode = await nextEmployeeCode(tx);
     const created = await tx.user.create({
       data: {
         name: input.name,
@@ -236,7 +258,46 @@ export function createEmployeeWithHrRecord(input: CreateEmployeeInput) {
         level: input.level,
         monthlyTarget: input.monthlyTarget,
         performanceHistory: "[]",
+        employeeCode,
+        personalEmail: input.personalEmail || null,
+        nationalId: input.nationalId || null,
+        dateOfBirth: input.dateOfBirth || null,
+        gender: input.gender || null,
+        address: input.address || null,
+        department: input.department || null,
+        jobTitle: input.jobTitle || null,
+        hiringDate: input.hiringDate || new Date(),
+        employmentType: input.employmentType || "full-time",
+        employmentStatus: input.employmentStatus || "active",
+        startingSalary: input.startingSalary ?? input.baseSalary,
+        currentSalary: input.currentSalary ?? input.baseSalary,
+        documentChecklist: input.documentChecklist || "{}",
+        fingerprintCode: input.fingerprintCode || null,
+        allowances: input.allowances || 0,
+        workingHoursPerDay: input.workingHoursPerDay || 8,
+        bankAccount: input.bankAccount || null,
       },
+    });
+
+    await tx.salaryHistory.create({
+      data: {
+        userId: created.id,
+        effectiveDate: input.hiringDate || new Date(),
+        previousSalary: 0,
+        newSalary: input.currentSalary ?? input.baseSalary,
+        increaseAmount: input.currentSalary ?? input.baseSalary,
+        increasePct: 0,
+        changeType: "hire",
+        reviewStatus: "completed",
+      },
+    });
+
+    await tx.employeeFolder.createMany({
+      data: ["Contracts", "Identity", "Payroll", "Reviews", "Assets"].map((name) => ({
+        userId: created.id,
+        name,
+      })),
+      skipDuplicates: true,
     });
 
     await tx.notification.create({
@@ -250,6 +311,16 @@ export function createEmployeeWithHrRecord(input: CreateEmployeeInput) {
 
     return created;
   });
+}
+
+async function nextEmployeeCode(tx: any) {
+  const count = await tx.hrRecord.count();
+  for (let offset = 1; offset < 10000; offset++) {
+    const code = `VRL-${String(count + offset).padStart(4, "0")}`;
+    const exists = await tx.hrRecord.findUnique({ where: { employeeCode: code } });
+    if (!exists) return code;
+  }
+  return `VRL-${Date.now().toString().slice(-4)}`;
 }
 
 export async function sumApprovedDeductions(userId: string, start: Date, end: Date) {

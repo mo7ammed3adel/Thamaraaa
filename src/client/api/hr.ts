@@ -99,3 +99,19 @@ export function listHrRequests() {
 export function updateHrRequest(id: string, body: unknown) {
   return patchJson(`/api/hr/requests/${id}`, body);
 }
+
+export function getViralHrm(params: Record<string, string | number | boolean | null | undefined> = {}) {
+  return getJson(`/api/hr/viral${buildQueryString(params)}`);
+}
+
+export function createViralHrmResource(body: unknown) {
+  return postJson("/api/hr/viral", body);
+}
+
+export function updateViralHrmResource(body: unknown) {
+  return patchJson("/api/hr/viral", body);
+}
+
+export function deleteViralHrmResource(resource: string, id: string) {
+  return deleteJson(`/api/hr/viral?resource=${encodeURIComponent(resource)}&id=${encodeURIComponent(id)}`);
+}

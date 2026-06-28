@@ -14,6 +14,16 @@ export async function POST(req: Request) {
       body: await req.json(),
     });
 
+    if (requestOut.status === "not_eligible") {
+      return errorJson("Leave eligibility begins 90 days after hiring date", 400);
+    }
+    if (requestOut.status === "insufficient_balance") {
+      return errorJson("Requested leave exceeds available balance", 400, { balance: requestOut.balance });
+    }
+    if (requestOut.status === "permission_limit") {
+      return errorJson("Permission allowance is 6 hours per month and max 6 hours per request", 400);
+    }
+
     return successJson(requestOut, 201);
   } catch (error: any) {
     return errorJson(error.message, 500);

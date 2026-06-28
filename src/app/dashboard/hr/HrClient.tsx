@@ -33,6 +33,7 @@ import {
   updateEmployee,
   updateHrRequest,
 } from "@/client/api/hr";
+import ViralHrmClient from "./ViralHrmClient";
 
 const ALL_ROLES = [
   { value: "super_admin", label: "Super Admin", dept: "Administration" },
@@ -63,6 +64,15 @@ const ALL_ROLES = [
 ];
 
 const DEPARTMENTS = ["Administration", "Sales", "TeleSales", "Account Management", "Technical", "SEO", "Social Media", "Media Buying", "Design", "HR", "Finance"];
+const DOCUMENT_CHECKLIST = [
+  ["nationalId", "National ID"],
+  ["contract", "Contract"],
+  ["socialInsurance", "Social insurance"],
+  ["bankAccount", "Bank account"],
+  ["photo", "Photo"],
+  ["graduationCertificate", "Graduation certificate"],
+  ["militaryStatus", "Military status"],
+];
 
 function getRoleLabel(roleValue: string) {
   return ALL_ROLES.find(r => r.value === roleValue)?.label || roleValue.replace(/_/g, " ");
@@ -70,6 +80,42 @@ function getRoleLabel(roleValue: string) {
 
 function getRoleDept(roleValue: string) {
   return ALL_ROLES.find(r => r.value === roleValue)?.dept || "Other";
+}
+
+function getEmployeeDept(employee: any) {
+  return employee?.hrRecord?.department || getRoleDept(employee?.role || "");
+}
+
+function formatDateInput(value?: string | Date | null) {
+  if (!value) return "";
+  return new Date(value).toISOString().slice(0, 10);
+}
+
+function readEmployeeProfileForm(form: FormData) {
+  const documentChecklist = Object.fromEntries(
+    DOCUMENT_CHECKLIST.map(([key]) => [key, form.get(`doc_${key}`) === "on"])
+  );
+
+  return {
+    personalEmail: form.get("personalEmail") || null,
+    nationalId: form.get("nationalId") || null,
+    dateOfBirth: form.get("dateOfBirth") || null,
+    gender: form.get("gender") || null,
+    address: form.get("address") || null,
+    department: form.get("department") || null,
+    jobTitle: form.get("jobTitle") || null,
+    hiringDate: form.get("hiringDate") || null,
+    employmentType: form.get("employmentType") || "full-time",
+    employmentStatus: form.get("employmentStatus") || "active",
+    resignationDate: form.get("resignationDate") || null,
+    startingSalary: form.get("startingSalary") || form.get("baseSalary") || 0,
+    currentSalary: form.get("currentSalary") || form.get("baseSalary") || 0,
+    fingerprintCode: form.get("fingerprintCode") || null,
+    allowances: form.get("allowances") || 0,
+    workingHoursPerDay: form.get("workingHoursPerDay") || 8,
+    bankAccount: form.get("bankAccount") || null,
+    documentChecklist,
+  };
 }
 
 export default function HrClient({ isManager, myTodayAttendance, history, employees }: any) {
@@ -110,6 +156,7 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
       baseSalary: form.get("baseSalary") || 0,
       monthlyTarget: form.get("monthlyTarget") || 0,
       status: form.get("status") || "Active",
+      ...readEmployeeProfileForm(form),
     });
     setLoading(false);
     setShowAddForm(false);
@@ -144,8 +191,10 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
       level: form.get("level") || undefined,
       directManagerId: form.get("directManagerId") || null,
       company: form.get("company") || null,
+      status: form.get("status") || undefined,
       baseSalary: form.get("baseSalary") ?? undefined,
       monthlyTarget: form.get("monthlyTarget") ?? undefined,
+      ...readEmployeeProfileForm(form),
     });
     setLoading(false);
     setEditEmployee(null);
@@ -155,7 +204,7 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
   // Filter employees
   const filteredEmployees = (employees || []).filter((emp: any) => {
     const matchSearch = !searchQuery || emp.name.toLowerCase().includes(searchQuery.toLowerCase()) || emp.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchDept = deptFilter === "all" || getRoleDept(emp.role) === deptFilter;
+    const matchDept = deptFilter === "all" || getEmployeeDept(emp) === deptFilter;
     const matchStatus = statusFilter === "all" || emp.status === statusFilter;
     return matchSearch && matchDept && matchStatus;
   });
@@ -163,8 +212,8 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
   // Department stats
   const deptStats = DEPARTMENTS.map(dept => ({
     name: dept,
-    count: (employees || []).filter((e: any) => getRoleDept(e.role) === dept).length,
-    active: (employees || []).filter((e: any) => getRoleDept(e.role) === dept && e.status === "Active").length,
+    count: (employees || []).filter((e: any) => getEmployeeDept(e) === dept).length,
+    active: (employees || []).filter((e: any) => getEmployeeDept(e) === dept && e.status === "Active").length,
   })).filter(d => d.count > 0);
 
   return (
@@ -193,7 +242,10 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
 
       {/* Tabs */}
       {isManager && (
-        <div className="flex border-b border-gray-200">
+        <div className="flex flex-wrap border-b border-gray-200">
+          <button onClick={() => setActiveTab("viral-hrm")} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "viral-hrm" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500"}`}>
+            HRM Suite
+          </button>
           <button onClick={() => setActiveTab("attendance")} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "attendance" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500"}`}>
             📅 Attendance
           </button>
@@ -226,6 +278,9 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
           </button>
         </div>
       )}
+
+      {/* VIRAL HRM SUITE TAB */}
+      {isManager && activeTab === "viral-hrm" && <ViralHrmClient />}
 
       {/* LEAVE REQUESTS TAB */}
       {isManager && activeTab === "leave" && <LeaveRequestsTab />}
@@ -381,13 +436,19 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
               <tbody className="divide-y divide-gray-200 text-sm">
                 {filteredEmployees.map((emp: any) => (
                   <tr key={emp.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-bold text-gray-900">{emp.name}</td>
+                    <td className="px-6 py-4">
+                      <div className="font-bold text-gray-900">{emp.name}</div>
+                      {emp.hrRecord?.employeeCode && <div className="text-xs text-gray-500">{emp.hrRecord.employeeCode}</div>}
+                    </td>
                     <td className="px-6 py-4">
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-600">
-                        {getRoleDept(emp.role)}
+                        {getEmployeeDept(emp)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-gray-600">{getRoleLabel(emp.role)}</td>
+                    <td className="px-6 py-4 text-gray-600">
+                      <div>{getRoleLabel(emp.role)}</div>
+                      {emp.hrRecord?.jobTitle && <div className="text-xs text-gray-400">{emp.hrRecord.jobTitle}</div>}
+                    </td>
                     <td className="px-6 py-4 text-gray-500">{emp.email}</td>
                     <td className="px-6 py-4 text-center">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${emp.status === "Active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{emp.status}</span>
@@ -449,7 +510,7 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
       {/* ═══ Add Employee Modal ═══ */}
       {showAddForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-4 p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-bold text-gray-900">Add New Employee</h3>
               <button onClick={() => setShowAddForm(false)} className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200"><X className="w-4 h-4" /></button>
@@ -478,6 +539,7 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Phone</label>
                 <input name="phone" className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Optional" />
               </div>
+              <EmployeeProfileFields />
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Level</label>
@@ -535,7 +597,7 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
       {/* ═══ Edit Employee Modal ═══ */}
       {editEmployee && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-4 p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-bold text-gray-900">Edit Employee</h3>
               <button onClick={() => setEditEmployee(null)} className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200"><X className="w-4 h-4" /></button>
@@ -559,6 +621,7 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Phone</label>
                 <input name="phone" defaultValue={editEmployee.phone || ""} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
               </div>
+              <EmployeeProfileFields employee={editEmployee} />
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Level</label>
@@ -566,6 +629,13 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
                     <option value="Junior">Junior</option>
                     <option value="Mid">Mid</option>
                     <option value="Senior">Senior</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Status</label>
+                  <select name="status" defaultValue={editEmployee.status || "Active"} className="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
                   </select>
                 </div>
                 <div>
@@ -602,6 +672,137 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function EmployeeProfileFields({ employee }: { employee?: any }) {
+  const hr = employee?.hrRecord || {};
+  const checklist = (() => {
+    try {
+      return typeof hr.documentChecklist === "string" ? JSON.parse(hr.documentChecklist || "{}") : hr.documentChecklist || {};
+    } catch {
+      return {};
+    }
+  })();
+
+  return (
+    <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <div>
+        <h4 className="text-sm font-bold text-slate-900">HR Profile</h4>
+        <p className="text-xs text-slate-500">Core employee details used by payroll, attendance, leaves, and documents.</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">Department</label>
+          <input name="department" defaultValue={hr.department || ""} className="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sales" />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">Job Title</label>
+          <input name="jobTitle" defaultValue={hr.jobTitle || ""} className="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sales Specialist" />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">Hiring Date</label>
+          <input name="hiringDate" type="date" defaultValue={formatDateInput(hr.hiringDate)} className="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">Employment Type</label>
+          <select name="employmentType" defaultValue={hr.employmentType || "full-time"} className="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+            <option value="full-time">Full-time</option>
+            <option value="part-time">Part-time</option>
+            <option value="internship">Internship</option>
+            <option value="contractor">Contractor</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">Employment Status</label>
+          <select name="employmentStatus" defaultValue={hr.employmentStatus || "active"} className="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+            <option value="active">Active</option>
+            <option value="probation">Probation</option>
+            <option value="suspended">Suspended</option>
+            <option value="resigned">Resigned</option>
+            <option value="terminated">Terminated</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">Resignation Date</label>
+          <input name="resignationDate" type="date" defaultValue={formatDateInput(hr.resignationDate)} className="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">Personal Email</label>
+          <input name="personalEmail" type="email" defaultValue={hr.personalEmail || ""} className="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">National ID</label>
+          <input name="nationalId" defaultValue={hr.nationalId || ""} className="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">Date of Birth</label>
+          <input name="dateOfBirth" type="date" defaultValue={formatDateInput(hr.dateOfBirth)} className="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">Gender</label>
+          <select name="gender" defaultValue={hr.gender || ""} className="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+            <option value="">Select</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">Fingerprint Code</label>
+          <input name="fingerprintCode" defaultValue={hr.fingerprintCode || ""} className="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">Bank Account</label>
+          <input name="bankAccount" defaultValue={hr.bankAccount || ""} className="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-1">Address</label>
+        <input name="address" defaultValue={hr.address || ""} className="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">Starting Salary</label>
+          <input name="startingSalary" type="number" min="0" step="0.01" defaultValue={hr.startingSalary ?? ""} className="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">Current Salary</label>
+          <input name="currentSalary" type="number" min="0" step="0.01" defaultValue={hr.currentSalary ?? ""} className="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">Allowances</label>
+          <input name="allowances" type="number" min="0" step="0.01" defaultValue={hr.allowances ?? 0} className="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">Hours/Day</label>
+          <input name="workingHoursPerDay" type="number" min="1" step="0.5" defaultValue={hr.workingHoursPerDay ?? 8} className="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" />
+        </div>
+      </div>
+
+      <div>
+        <p className="text-sm font-semibold text-gray-700 mb-2">Document Checklist</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+          {DOCUMENT_CHECKLIST.map(([key, label]) => (
+            <label key={key} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
+              <input type="checkbox" name={`doc_${key}`} defaultChecked={Boolean(checklist[key])} className="rounded border-slate-300 text-blue-600" />
+              {label}
+            </label>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
