@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Fragment, useState, useEffect, useCallback } from "react";
 import { notify } from "@/components/toast";
-import { DollarSign, AlertCircle, FileText, CheckCircle2, Calculator, Download, Plus, X, Trash2, Lock } from "lucide-react";
+import { CheckCircle2, Calculator, Download, Plus, X, Trash2, Lock, ChevronDown, ChevronUp, ReceiptText } from "lucide-react";
 import { formatSar } from "@/shared/formatters/currency";
 import { formatDate } from "@/shared/formatters/date";
 import { HttpError } from "@/client/transport/http";
 import {
   getFinanceOverview,
+  listFinancePayroll,
   listCommissions,
   recomputeCommissions,
   updateCommission,
@@ -88,9 +89,13 @@ export default function FinanceClient() {
         <button onClick={() => { setActiveTab("commissions"); setActiveFilter("all"); }} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "commissions" ? "border-green-600 text-green-600" : "border-transparent text-gray-500"}`}>
           🧮 Commissions
         </button>
+        <button onClick={() => { setActiveTab("payroll"); setActiveFilter("all"); }} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "payroll" ? "border-green-600 text-green-600" : "border-transparent text-gray-500"}`}>
+          Payroll
+        </button>
       </div>
 
       {activeTab === "commissions" && <CommissionsTab />}
+      {activeTab === "payroll" && <PayrollTab />}
 
       {activeTab === "overview" && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -192,10 +197,11 @@ function CommissionsTab() {
   const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
   const [month, setMonth] = useState<string>(defaultMonth);
   const [commissions, setCommissions] = useState<any[]>([]);
-  const [config, setConfig] = useState<{ tiers: any[]; gatewayFeePct: number } | null>(null);
+  const [config, setConfig] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [editing, setEditing] = useState<any | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -261,6 +267,7 @@ function CommissionsTab() {
 
   const totalPayout = commissions.reduce((s, c) => s + c.netPayout, 0);
   const totalNet = commissions.reduce((s, c) => s + c.netTarget, 0);
+  const totalGross = commissions.reduce((s, c) => s + (c.breakdown?.grossFund || 0), 0);
   const finalizedCount = commissions.filter((c) => c.finalized).length;
 
   return (
@@ -280,27 +287,29 @@ function CommissionsTab() {
       {/* Formula reminder */}
       {config && (
         <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-xs text-slate-700 leading-relaxed">
-          <div className="font-bold text-slate-900 mb-1">Net Target Formula (per spec)</div>
-          <code className="block bg-white p-2 rounded border">Net = Cash × 1.0 + (Tabby/Tamara × {(1 - config.gatewayFeePct).toFixed(2)})</code>
-          <div className="mt-2">Tiers: {config.tiers.map((t, i) => (
-            <span key={i} className="inline-block bg-white border rounded px-2 py-0.5 mr-1.5 mb-1">{t.minNet.toLocaleString()}–{t.maxNet ? t.maxNet.toLocaleString() : "∞"}: {(t.pct * 100).toFixed(2)}%</span>
-          ))}</div>
+          <div className="font-bold text-slate-900 mb-2">Commission rules applied for accountant payroll</div>
+          <code className="block bg-white p-2 rounded border">Gateway net base = gross deal value minus Tabby/Tamara fee ({(config.gatewayFeePct * 100).toFixed(2)}%)</code>
+          <RuleChips title="Sales Agent" tiers={config.rules?.salesAgentTiers || []} />
+          <RuleChips title="Sales Team Leader" tiers={config.rules?.salesTeamLeaderTiers || []} />
+          <RuleChips title="TeleSales Cold Count" tiers={config.rules?.telesalesColdTiers || []} />
+          <RuleChips title="TeleSales Manager" tiers={config.rules?.telesalesManagerRates || []} />
         </div>
       )}
 
       {/* Summary KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white p-5 rounded-2xl border shadow-sm">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Net Achieved (Total)</p>
-          <p className="text-3xl font-black text-gray-900">SAR {totalNet.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Gross Fund</p>
+          <p className="text-3xl font-black text-gray-900">{formatSar(totalGross, { maximumFractionDigits: 2 })}</p>
         </div>
         <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-200 shadow-sm">
-          <p className="text-xs font-bold text-emerald-700 uppercase tracking-widest mb-2">Total Payout</p>
-          <p className="text-3xl font-black text-emerald-700">SAR {totalPayout.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+          <p className="text-xs font-bold text-emerald-700 uppercase tracking-widest mb-2">Net Commission Base</p>
+          <p className="text-3xl font-black text-emerald-700">{formatSar(totalNet, { maximumFractionDigits: 2 })}</p>
         </div>
         <div className="bg-blue-50 p-5 rounded-2xl border border-blue-200 shadow-sm">
-          <p className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-2">Finalized</p>
-          <p className="text-3xl font-black text-blue-700">{finalizedCount} / {commissions.length}</p>
+          <p className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-2">Total Payout</p>
+          <p className="text-3xl font-black text-blue-700">{formatSar(totalPayout, { maximumFractionDigits: 2 })}</p>
+          <p className="text-xs font-semibold text-blue-700 mt-1">Finalized {finalizedCount} / {commissions.length}</p>
         </div>
       </div>
 
@@ -308,54 +317,81 @@ function CommissionsTab() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
             <tr>
-              <th className="px-4 py-3 text-left">Agent</th>
-              <th className="px-4 py-3 text-right">Monthly Target</th>
-              <th className="px-4 py-3 text-right">Net Achieved</th>
-              <th className="px-4 py-3 text-center">Achievement %</th>
+              <th className="px-4 py-3 text-left">Employee</th>
+              <th className="px-4 py-3 text-right">Gross Fund</th>
+              <th className="px-4 py-3 text-right">Net Base</th>
+              <th className="px-4 py-3 text-left">Tier / Rate</th>
               <th className="px-4 py-3 text-right">Commission</th>
+              <th className="px-4 py-3 text-right">Salary</th>
               <th className="px-4 py-3 text-right">Bonus / Deduct</th>
               <th className="px-4 py-3 text-right">Net Payout</th>
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 text-sm">
-            {loading && (<tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">Loading…</td></tr>)}
+            {loading && (<tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">Loading…</td></tr>)}
             {!loading && commissions.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400 italic">No commissions for {month}. Click "Recompute Month".</td></tr>
+              <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400 italic">No commissions for {month}. Click "Recompute Month".</td></tr>
             )}
             {!loading && commissions.map((c) => {
               const target = c.user.hrRecord?.monthlyTarget || 0;
-              const pct = target > 0 ? (c.netTarget / target) * 100 : 0;
               const bonusesSum = sumJson(c.bonuses);
               const deductionsSum = sumJson(c.deductions);
+              const baseSalary = c.user.hrRecord?.baseSalary || 0;
+              const breakdown = c.breakdown;
+              const expanded = expandedId === c.id;
               return (
-                <tr key={c.id} className={`hover:bg-gray-50 ${c.finalized ? "bg-emerald-50/40" : ""}`}>
-                  <td className="px-4 py-3"><div className="font-bold text-gray-900">{c.user.name}</div><div className="text-xs text-gray-500">{c.user.level || "—"}</div></td>
-                  <td className="px-4 py-3 text-right">SAR {target.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right font-bold">SAR {c.netTarget.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={`font-bold ${pct >= 100 ? "text-emerald-700" : pct >= 50 ? "text-amber-700" : "text-red-600"}`}>
-                      {pct.toFixed(0)}%
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">SAR {c.commissionAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}<div className="text-xs text-gray-400">{(c.commissionPct * 100).toFixed(2)}%</div></td>
-                  <td className="px-4 py-3 text-right text-xs">
-                    {bonusesSum > 0 && <div className="text-emerald-600">+{bonusesSum.toLocaleString()}</div>}
-                    {deductionsSum > 0 && <div className="text-red-600">−{deductionsSum.toLocaleString()}</div>}
-                    {bonusesSum === 0 && deductionsSum === 0 && <span className="text-gray-300">—</span>}
-                  </td>
-                  <td className="px-4 py-3 text-right font-black">SAR {c.netPayout.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
-                  <td className="px-4 py-3 text-right space-x-1 whitespace-nowrap">
-                    {c.finalized ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-bold"><Lock className="w-3 h-3" /> Finalized</span>
-                    ) : (
-                      <>
-                        <button onClick={() => setEditing(c)} className="px-2 py-1 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded text-xs font-bold">Edit</button>
-                        <button disabled={busy === c.id} onClick={() => finalize(c)} className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold disabled:opacity-50">Finalize</button>
-                      </>
-                    )}
-                  </td>
-                </tr>
+                <Fragment key={c.id}>
+                  <tr className={`hover:bg-gray-50 ${c.finalized ? "bg-emerald-50/40" : ""}`}>
+                    <td className="px-4 py-3">
+                      <div className="font-bold text-gray-900">{c.user.name}</div>
+                      <div className="text-xs text-gray-500">{formatRole(c.user.role)} - {breakdown?.planLabel || c.user.level || "—"}</div>
+                      {target > 0 && <div className="text-[11px] text-gray-400 mt-0.5">Target: {formatSar(target)}</div>}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="font-bold text-gray-900">{formatSar(breakdown?.grossFund || 0, { maximumFractionDigits: 2 })}</div>
+                      {(breakdown?.gatewayFees || 0) > 0 && (
+                        <div className="text-xs text-amber-600">Fees: {formatSar(breakdown.gatewayFees, { maximumFractionDigits: 2 })}</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right font-bold">{formatSar(c.netTarget, { maximumFractionDigits: 2 })}</td>
+                    <td className="px-4 py-3">
+                      <div className="font-semibold text-gray-900">{breakdown?.tierLabel || "—"}</div>
+                      <div className="text-xs text-gray-500">{((breakdown?.tierPct || c.commissionPct || 0) * 100).toFixed(2)}%</div>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="font-bold text-gray-900">{formatSar(c.commissionAmount, { maximumFractionDigits: 2 })}</div>
+                      <div className="text-xs text-gray-400">Effective {(c.commissionPct * 100).toFixed(2)}%</div>
+                    </td>
+                    <td className="px-4 py-3 text-right">{formatSar(baseSalary, { maximumFractionDigits: 2 })}</td>
+                    <td className="px-4 py-3 text-right text-xs">
+                      {bonusesSum > 0 && <div className="text-emerald-600">+{formatSar(bonusesSum, { maximumFractionDigits: 2 })}</div>}
+                      {deductionsSum > 0 && <div className="text-red-600">-{formatSar(deductionsSum, { maximumFractionDigits: 2 })}</div>}
+                      {bonusesSum === 0 && deductionsSum === 0 && <span className="text-gray-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-right font-black">{formatSar(c.netPayout, { maximumFractionDigits: 2 })}</td>
+                    <td className="px-4 py-3 text-right space-x-1 whitespace-nowrap">
+                      <button onClick={() => setExpandedId(expanded ? null : c.id)} className="px-2 py-1 bg-white border hover:bg-gray-50 text-slate-800 rounded text-xs font-bold inline-flex items-center gap-1">
+                        {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />} Details
+                      </button>
+                      {c.finalized ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-bold"><Lock className="w-3 h-3" /> Finalized</span>
+                      ) : (
+                        <>
+                          <button onClick={() => setEditing(c)} className="px-2 py-1 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded text-xs font-bold">Edit</button>
+                          <button disabled={busy === c.id} onClick={() => finalize(c)} className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold disabled:opacity-50">Finalize</button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                  {expanded && (
+                    <tr className="bg-slate-50">
+                      <td colSpan={9} className="px-4 py-4">
+                        <CommissionBreakdownPanel breakdown={breakdown} />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               );
             })}
           </tbody>
@@ -363,6 +399,164 @@ function CommissionsTab() {
       </div>
 
       {editing && <BonusDeductionModal commission={editing} onClose={() => setEditing(null)} onSaved={load} />}
+    </div>
+  );
+}
+
+function PayrollTab() {
+  const today = new Date();
+  const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+  const [month, setMonth] = useState<string>(defaultMonth);
+  const [payroll, setPayroll] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    listFinancePayroll(month)
+      .then((d) => setPayroll(d))
+      .catch(() => setPayroll(null))
+      .finally(() => setLoading(false));
+  }, [month]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const rows = payroll?.rows || [];
+  const totals = payroll?.totals || { baseSalary: 0, commissionAmount: 0, bonuses: 0, deductions: 0, net: 0 };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl border p-4 shadow-sm">
+        <ReceiptText className="w-5 h-5 text-slate-500" />
+        <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white" />
+        <button onClick={load} className="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold rounded-lg">
+          Refresh Payroll
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <PayrollKpi label="Base Salaries" value={totals.baseSalary} />
+        <PayrollKpi label="Commissions" value={totals.commissionAmount} />
+        <PayrollKpi label="Bonuses" value={totals.bonuses} />
+        <PayrollKpi label="Net Payroll" value={totals.net} tone="green" />
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
+            <tr>
+              <th className="px-4 py-3 text-left">Employee</th>
+              <th className="px-4 py-3 text-left">Role</th>
+              <th className="px-4 py-3 text-right">Base Salary</th>
+              <th className="px-4 py-3 text-right">Commission</th>
+              <th className="px-4 py-3 text-right">Bonuses</th>
+              <th className="px-4 py-3 text-right">Deductions</th>
+              <th className="px-4 py-3 text-right">Net</th>
+              <th className="px-4 py-3 text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200 text-sm">
+            {loading && <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">Loading...</td></tr>}
+            {!loading && rows.length === 0 && <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400 italic">No payroll rows for {month}.</td></tr>}
+            {!loading && rows.map((row: any) => (
+              <tr key={row.userId} className="hover:bg-gray-50">
+                <td className="px-4 py-3">
+                  <div className="font-bold text-gray-900">{row.name}</div>
+                  <div className="text-xs text-gray-500">{row.email}</div>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="font-semibold text-gray-800">{formatRole(row.role)}</div>
+                  <div className="text-xs text-gray-400">{row.level || "—"}</div>
+                </td>
+                <td className="px-4 py-3 text-right">{formatSar(row.baseSalary, { maximumFractionDigits: 2 })}</td>
+                <td className="px-4 py-3 text-right">{formatSar(row.commissionAmount, { maximumFractionDigits: 2 })}</td>
+                <td className="px-4 py-3 text-right text-emerald-700">{formatSar(row.bonuses, { maximumFractionDigits: 2 })}</td>
+                <td className="px-4 py-3 text-right">
+                  <div className="text-red-600">{formatSar(row.deductions, { maximumFractionDigits: 2 })}</div>
+                  {(row.attendanceDeductions || row.commissionDeductions) > 0 && (
+                    <div className="text-[11px] text-gray-400">
+                      Attendance {formatSar(row.attendanceDeductions, { maximumFractionDigits: 2 })} / Manual {formatSar(row.commissionDeductions, { maximumFractionDigits: 2 })}
+                    </div>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-right font-black">{formatSar(row.net, { maximumFractionDigits: 2 })}</td>
+                <td className="px-4 py-3 text-center">
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${row.finalized ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                    {row.finalized ? "Finalized" : "Open"}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function PayrollKpi({ label, value, tone = "slate" }: { label: string; value: number; tone?: "slate" | "green" }) {
+  const cls = tone === "green" ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-white border-gray-200 text-gray-900";
+  return (
+    <div className={`p-5 rounded-2xl border shadow-sm ${cls}`}>
+      <p className="text-xs font-bold uppercase tracking-widest mb-2 opacity-70">{label}</p>
+      <p className="text-2xl font-black">{formatSar(value, { maximumFractionDigits: 2 })}</p>
+    </div>
+  );
+}
+
+function RuleChips({ title, tiers }: { title: string; tiers: any[] }) {
+  if (!tiers.length) return null;
+  return (
+    <div className="mt-2">
+      <span className="font-bold text-slate-900 mr-2">{title}:</span>
+      {tiers.map((tier, i) => (
+        <span key={`${title}-${i}`} className="inline-block bg-white border rounded px-2 py-0.5 mr-1.5 mb-1">
+          {tier.min.toLocaleString()}-{tier.max ? tier.max.toLocaleString() : "∞"}: {(tier.pct * 100).toFixed(2)}%
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function CommissionBreakdownPanel({ breakdown }: { breakdown: any }) {
+  if (!breakdown) {
+    return <div className="text-sm text-gray-500">No detailed breakdown is available for this row yet.</div>;
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="bg-white border rounded-xl p-4">
+        <h4 className="text-sm font-bold text-gray-900 mb-3">Components</h4>
+        <div className="space-y-2">
+          {(breakdown.components || []).map((component: any, index: number) => (
+            <div key={index} className="flex items-center justify-between gap-3 text-sm">
+              <span className="text-gray-600">{component.label}</span>
+              <span className="font-bold text-gray-900 whitespace-nowrap">
+                {formatSar(component.amount, { maximumFractionDigits: 2 })}
+                {component.pct !== undefined && <span className="text-xs text-gray-400 ml-1">({(component.pct * 100).toFixed(2)}%)</span>}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="bg-white border rounded-xl p-4">
+        <h4 className="text-sm font-bold text-gray-900 mb-3">Metrics</h4>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          {Object.entries(breakdown.metrics || {}).map(([key, value]) => (
+            <div key={key} className="border rounded-lg px-3 py-2">
+              <div className="text-[11px] text-gray-500 uppercase">{formatMetricLabel(key)}</div>
+              <div className="font-bold text-gray-900">{formatMetricValue(value)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="bg-white border rounded-xl p-4">
+        <h4 className="text-sm font-bold text-gray-900 mb-3">Policy Notes</h4>
+        <ul className="space-y-2 text-sm text-gray-600">
+          {(breakdown.notes || []).map((note: string, index: number) => (
+            <li key={index}>{note}</li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
@@ -376,6 +570,21 @@ function sumJson(json: string | null): number {
   } catch {
     return 0;
   }
+}
+
+function formatRole(role: string | null | undefined) {
+  return String(role || "unknown").replace(/_/g, " ");
+}
+
+function formatMetricLabel(key: string) {
+  return key.replace(/([A-Z])/g, " $1").replace(/_/g, " ").trim();
+}
+
+function formatMetricValue(value: unknown) {
+  if (typeof value === "number") {
+    return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  }
+  return String(value ?? "—");
 }
 
 function BonusDeductionModal({ commission, onClose, onSaved }: { commission: any; onClose: () => void; onSaved: () => void }) {

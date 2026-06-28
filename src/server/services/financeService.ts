@@ -1,15 +1,20 @@
 import {
+  buildCommissionBreakdownForUserMonth,
   loadCommissionConfig,
   recomputeMonth,
   recomputeTelesalesBonuses,
   sumLineItems,
 } from "@/lib/commissions";
+import { computePayslip, monthRange } from "@/lib/payslip";
 import * as XLSX from "xlsx";
 import {
+  aggregateFinanceApprovedDeductionsByUser,
   findCommissionsByMonth,
   findCommissionForEdit,
   findCommissionsForExport,
   findFinanceOverviewDeals,
+  findFinancePayrollCommissions,
+  findFinancePayrollHrRecords,
   findInstallmentForUpdate,
   findPendingInstallments,
   updateCommission,
@@ -51,7 +56,18 @@ export function getDefaultCommissionMonth(now = new Date()) {
 export async function listCommissions(month: string) {
   const commissions = await findCommissionsByMonth(month);
   const config = await loadCommissionConfig();
-  return { commissions, month, config };
+  const withBreakdown = await Promise.all(
+    commissions.map(async (commission) => ({
+      ...commission,
+      breakdown: await buildCommissionBreakdownForUserMonth({
+        userId: commission.userId,
+        role: commission.user.role,
+        month,
+      }),
+    }))
+  );
+
+  return { commissions: withBreakdown, month, config };
 }
 
 export async function recomputeCommissions(month: string) {
@@ -120,29 +136,94 @@ export async function updateInstallmentPayment(input: { id: string; userId: stri
 export async function buildCommissionsExport(month: string) {
   const commissions = await findCommissionsForExport(month);
 
-  const rows = commissions.map((commission) => ({
-    Employee: commission.user.name,
-    Email: commission.user.email,
-    Role: commission.user.role,
-    Level: commission.user.level || "",
-    "Base Salary (SAR)": commission.user.hrRecord?.baseSalary || 0,
-    "Monthly Target (SAR)": commission.user.hrRecord?.monthlyTarget || 0,
-    "Net Target Achieved (SAR)": commission.netTarget,
-    "Achievement %":
-      commission.user.hrRecord?.monthlyTarget && commission.user.hrRecord.monthlyTarget > 0
-        ? Math.round((commission.netTarget / commission.user.hrRecord.monthlyTarget) * 100)
-        : 0,
-    "Commission %": Math.round(commission.commissionPct * 10000) / 100,
-    "Commission Amount (SAR)": commission.commissionAmount,
-    "Bonuses (SAR)": sumLineItems(commission.bonuses),
-    "Deductions (SAR)": sumLineItems(commission.deductions),
-    "Net Payout (SAR)": commission.netPayout,
-    Finalized: commission.finalized ? "Yes" : "No",
-  }));
+  const rows = await Promise.all(
+    commissions.map(async (commission) => {
+      const breakdown = await buildCommissionBreakdownForUserMonth({
+        userId: commission.user.id,
+        role: commission.user.role,
+        month,
+      });
+      return {
+        Employee: commission.user.name,
+        Email: commission.user.email,
+        Role: commission.user.role,
+        Level: commission.user.level || "",
+        Plan: breakdown?.planLabel || "",
+        "Base Salary (SAR)": commission.user.hrRecord?.baseSalary || 0,
+        "Monthly Target": commission.user.hrRecord?.monthlyTarget || 0,
+        "Gross Fund (SAR)": breakdown?.grossFund ?? 0,
+        "Gateway Fees (SAR)": breakdown?.gatewayFees ?? 0,
+        "Net Commission Base (SAR)": commission.netTarget,
+        Tier: breakdown?.tierLabel || "",
+        "Tier %": breakdown ? Math.round(breakdown.tierPct * 10000) / 100 : 0,
+        "Commission %": Math.round(commission.commissionPct * 10000) / 100,
+        "Commission Amount (SAR)": commission.commissionAmount,
+        "Auto/Manual Bonuses (SAR)": sumLineItems(commission.bonuses),
+        "Deductions (SAR)": sumLineItems(commission.deductions),
+        "Net Payout (SAR)": commission.netPayout,
+        Finalized: commission.finalized ? "Yes" : "No",
+      };
+    })
+  );
 
   const workbook = XLSX.utils.book_new();
   const worksheet = XLSX.utils.json_to_sheet(rows);
   XLSX.utils.book_append_sheet(workbook, worksheet, `Commissions ${month}`);
 
   return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+}
+
+export async function listFinancePayroll(month: string) {
+  const { start, end } = monthRange(month);
+  const [records, deductionsByUser, commissionRows] = await Promise.all([
+    findFinancePayrollHrRecords(),
+    aggregateFinanceApprovedDeductionsByUser(start, end),
+    findFinancePayrollCommissions(month),
+  ]);
+
+  const commissionByUser = new Map(commissionRows.map((row) => [row.userId, row]));
+  const rows = records.map((record) => {
+    const commission = commissionByUser.get(record.userId);
+    const commissionAmount = commission?.commissionAmount || 0;
+    const commissionBonuses = sumLineItems(commission?.bonuses ?? null);
+    const commissionDeductions = sumLineItems(commission?.deductions ?? null);
+    const attendanceDeductions = deductionsByUser.get(record.userId) || 0;
+    const payslip = computePayslip({
+      baseSalary: record.baseSalary,
+      bonuses: commissionAmount + commissionBonuses,
+      deductions: commissionDeductions + attendanceDeductions,
+    });
+
+    return {
+      userId: record.userId,
+      name: record.user.name,
+      email: record.user.email,
+      role: record.user.role,
+      level: record.user.level,
+      status: record.user.status,
+      baseSalary: payslip.baseSalary,
+      commissionAmount,
+      bonuses: commissionBonuses,
+      attendanceDeductions,
+      commissionDeductions,
+      deductions: payslip.deductions,
+      net: payslip.net,
+      finalized: commission?.finalized ?? false,
+    };
+  });
+
+  rows.sort((a, b) => a.name.localeCompare(b.name));
+
+  const totals = rows.reduce(
+    (acc, row) => ({
+      baseSalary: acc.baseSalary + row.baseSalary,
+      commissionAmount: acc.commissionAmount + row.commissionAmount,
+      bonuses: acc.bonuses + row.bonuses,
+      deductions: acc.deductions + row.deductions,
+      net: acc.net + row.net,
+    }),
+    { baseSalary: 0, commissionAmount: 0, bonuses: 0, deductions: 0, net: 0 }
+  );
+
+  return { month, rows, totals };
 }

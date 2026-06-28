@@ -38,12 +38,43 @@ export function findCommissionsByMonth(month: string) {
   });
 }
 
+export function findFinancePayrollHrRecords() {
+  return prisma.hrRecord.findMany({
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          level: true,
+          status: true,
+        },
+      },
+    },
+  });
+}
+
+export async function aggregateFinanceApprovedDeductionsByUser(start: Date, end: Date) {
+  const rows = await prisma.attendance.groupBy({
+    by: ["userId"],
+    where: { deductionApproved: true, date: { gte: start, lt: end } },
+    _sum: { deductionDraft: true },
+  });
+  return new Map(rows.map((row) => [row.userId, row._sum.deductionDraft || 0]));
+}
+
+export function findFinancePayrollCommissions(month: string) {
+  return prisma.commission.findMany({ where: { month } });
+}
+
 export function findCommissionsForExport(month: string) {
   return prisma.commission.findMany({
     where: { month },
     include: {
       user: {
         select: {
+          id: true,
           name: true,
           email: true,
           role: true,

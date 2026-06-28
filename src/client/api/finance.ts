@@ -12,6 +12,10 @@ export function listCommissions(month: string) {
   return getJson(`/api/finance/commissions${buildQueryString({ month })}`);
 }
 
+export function listFinancePayroll(month: string) {
+  return getJson(`/api/finance/payroll${buildQueryString({ month })}`);
+}
+
 export function recomputeCommissions(body: unknown) {
   return postJson("/api/finance/commissions", body);
 }
