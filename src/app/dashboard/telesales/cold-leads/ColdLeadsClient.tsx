@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import { Plus, Link as LinkIcon, PhoneCall, User as UserIcon, Tag, Store } from "lucide-react";
 import { bulkDeleteLeads, bulkPromoteLeads, createLead } from "@/client/api/leads";
 import { createNiche, listNiches } from "@/client/api/niches";
+import DateRangeFilter from "@/components/dashboard/DateRangeFilter";
+import { isDateInRange } from "@/lib/dateRange";
 
 interface ColdLead {
   id: string;
@@ -131,19 +133,8 @@ export default function ColdLeadsClient({
 
   // Filter leads based on Date Range — parse YYYY-MM-DD as LOCAL day boundaries
   // (not UTC midnight) so a lead created today in the user's timezone is always included.
-  const parseLocalStartOfDay = (s: string) => {
-    const [y, m, d] = s.split("-").map(Number);
-    return new Date(y, (m || 1) - 1, d || 1, 0, 0, 0, 0);
-  };
-  const parseLocalEndOfDay = (s: string) => {
-    const [y, m, d] = s.split("-").map(Number);
-    return new Date(y, (m || 1) - 1, d || 1, 23, 59, 59, 999);
-  };
   const filteredLeads = leads.filter(l => {
-    const created = new Date(l.createdAt);
-    if (fromDate && created < parseLocalStartOfDay(fromDate)) return false;
-    if (toDate && created > parseLocalEndOfDay(toDate)) return false;
-    return true;
+    return isDateInRange(l.createdAt, { from: fromDate, to: toDate });
   });
 
   const handleSelectAll = (checked: boolean) => {
@@ -259,18 +250,15 @@ export default function ColdLeadsClient({
             <Store className="h-4 w-4 text-gray-500" /> My Added Cold Leads
           </h3>
           
-          <div className="flex items-center gap-3">
-             <div className="flex items-center gap-2 border bg-white px-2 py-1 rounded-lg">
-                <span className="text-xs text-gray-500 font-medium">From:</span>
-                <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="text-xs border-none focus:ring-0 text-gray-700 bg-transparent p-0 cursor-pointer" />
-             </div>
-             <div className="flex items-center gap-2 border bg-white px-2 py-1 rounded-lg">
-                <span className="text-xs text-gray-500 font-medium">To:</span>
-                <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="text-xs border-none focus:ring-0 text-gray-700 bg-transparent p-0 cursor-pointer" />
-             </div>
-             {(fromDate || toDate) && (
-               <button onClick={() => { setFromDate(""); setToDate(""); }} className="text-xs text-red-500 hover:text-red-700 font-medium px-2">Clear</button>
-             )}
+          <div className="w-full sm:w-auto sm:min-w-[520px]">
+            <DateRangeFilter
+              fromDate={fromDate}
+              toDate={toDate}
+              onFromDateChange={setFromDate}
+              onToDateChange={setToDate}
+              label="Added Date Range"
+              description="Filters draft cold leads by added date."
+            />
           </div>
         </div>
         

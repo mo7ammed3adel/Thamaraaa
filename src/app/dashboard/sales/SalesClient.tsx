@@ -9,6 +9,9 @@ import { createDeal } from "@/client/api/deals";
 import { updateLead } from "@/client/api/leads";
 import { sendNotification } from "@/client/api/notifications";
 import { updateUserStatus } from "@/client/api/users";
+import DateRangeFilter from "@/components/dashboard/DateRangeFilter";
+import { isDateInRange } from "@/lib/dateRange";
+import { getLeadFollowUpDisplay, getLeadMeetingDisplay } from "@/lib/leadScheduleDisplay";
 
 export default function SalesClient({ initialLeads, userRole, userId, initialStatus, postSaleProjects = [] }: { initialLeads: any[], userRole: string, userId: string, initialStatus: string, postSaleProjects?: any[] }) {
   const router = useRouter();
@@ -27,31 +30,6 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
   
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-
-  const setQuickDate = (type: string) => {
-    const today = new Date();
-    const toIso = (d: Date) => {
-      // Get local date string YYYY-MM-DD avoiding timezone offset shift
-      const offset = d.getTimezoneOffset() * 60000;
-      return new Date(d.getTime() - offset).toISOString().split('T')[0];
-    };
-    if (type === "today") {
-      setFromDate(toIso(today));
-      setToDate(toIso(today));
-    } else if (type === "yesterday") {
-      const y = new Date(today); y.setDate(y.getDate() - 1);
-      setFromDate(toIso(y));
-      setToDate(toIso(y));
-    } else if (type === "week") {
-      const w = new Date(today); w.setDate(w.getDate() - w.getDay());
-      setFromDate(toIso(w));
-      setToDate(toIso(today));
-    } else if (type === "month") {
-      const m = new Date(today.getFullYear(), today.getMonth(), 1);
-      setFromDate(toIso(m));
-      setToDate(toIso(today));
-    }
-  };
 
   // Task timer
   const [taskStartTime, setTaskStartTime] = useState<Date | null>(null);
@@ -315,6 +293,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     try {
       await sendNotification({
         userId: linkLead.teleAgent.id,
+        leadId: linkLead.id,
         title: "Meeting Link Added",
         message: `Sales Agent added meeting link for lead ${linkLead.name}: ${meetingLink}`,
         link: meetingLink
@@ -337,21 +316,12 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
 
   // Apply Date Filter FIRST to recalculate all stats accurately
   const timeFilteredLeads = leads.filter(l => {
-    if (fromDate || toDate) {
-      if (!l.meetingDate) return false;
-      const targetDate = new Date(l.meetingDate);
-      if (fromDate) {
-        const start = new Date(fromDate);
-        start.setHours(0, 0, 0, 0);
-        if (targetDate < start) return false;
-      }
-      if (toDate) {
-        const end = new Date(toDate);
-        end.setHours(23, 59, 59, 999);
-        if (targetDate > end) return false;
-      }
-    }
-    return true;
+    const scheduleDate =
+      l.status === "Follow_Up"
+        ? l.followUpDate
+        : l.meetings?.[0]?.meetingDate ?? l.meetingDate;
+
+    return isDateInRange(scheduleDate, { from: fromDate, to: toDate });
   });
 
   // KPI counts — Total Meets is the universe (all meetings in the period),
@@ -498,7 +468,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
       </div>
 
       {/* Search Input & Date Filters */}
-      <div className="mb-4 flex flex-col md:flex-row items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+      <div className="mb-4 flex flex-col xl:flex-row items-stretch xl:items-start gap-4">
         <div className="flex-1 w-full max-w-sm">
           <input
             type="text"
@@ -508,29 +478,15 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
             className="w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        
-        <div className="flex-1 flex flex-col sm:flex-row items-center gap-2">
-           <div className="flex items-center gap-2">
-             <div className="flex items-center border border-gray-300 rounded-lg px-2 bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
-               <span className="text-xs font-bold text-gray-500">From</span>
-               <input type="date" value={fromDate} onChange={e => {setFromDate(e.target.value); setCurrentPage(1);}} className="text-sm bg-transparent border-none focus:ring-0 py-2 cursor-pointer" />
-             </div>
-             <div className="flex items-center border border-gray-300 rounded-lg px-2 bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
-               <span className="text-xs font-bold text-gray-500">To</span>
-               <input type="date" value={toDate} onChange={e => {setToDate(e.target.value); setCurrentPage(1);}} className="text-sm bg-transparent border-none focus:ring-0 py-2 cursor-pointer" />
-             </div>
-           </div>
-           
-           <div className="flex items-center gap-1">
-             <button onClick={() => setQuickDate('today')} className="text-[10px] font-bold uppercase bg-blue-100 text-blue-800 px-2.5 py-1.5 rounded-md hover:bg-blue-200 transition">Today</button>
-             <button onClick={() => setQuickDate('yesterday')} className="text-[10px] font-bold uppercase bg-gray-100 text-gray-800 px-2.5 py-1.5 rounded-md hover:bg-gray-200 transition">Yesterday</button>
-             <button onClick={() => setQuickDate('week')} className="text-[10px] font-bold uppercase bg-indigo-100 text-indigo-800 px-2.5 py-1.5 rounded-md hover:bg-indigo-200 transition">This Week</button>
-             <button onClick={() => setQuickDate('month')} className="text-[10px] font-bold uppercase bg-indigo-100 text-indigo-800 px-2.5 py-1.5 rounded-md hover:bg-indigo-200 transition">This Month</button>
-             
-             {(fromDate || toDate) && (
-               <button onClick={() => { setFromDate(""); setToDate(""); setCurrentPage(1); }} className="text-xs font-bold text-red-500 hover:text-red-700 bg-red-50 px-2.5 py-1.5 rounded-md transition ml-1">Clear</button>
-             )}
-           </div>
+        <div className="flex-[2] min-w-[280px]">
+          <DateRangeFilter
+            fromDate={fromDate}
+            toDate={toDate}
+            onFromDateChange={(value) => { setFromDate(value); setCurrentPage(1); }}
+            onToDateChange={(value) => { setToDate(value); setCurrentPage(1); }}
+            label="Schedule Date Range"
+            description="Filters by meeting date, or follow-up date for follow-up clients."
+          />
         </div>
 
         <div className="text-sm font-bold text-gray-700 bg-gray-100 px-4 py-2 rounded-full whitespace-nowrap">
@@ -581,9 +537,32 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {l.meetings?.[0]?.meetingDate ? new Date(l.meetings[0].meetingDate).toLocaleDateString() : (l.meetingDate ? new Date(l.meetingDate).toLocaleDateString() : "N/A")} 
-                    <br/>
-                    <span className="text-xs text-blue-600 font-medium">{l.meetings?.[0]?.meetingTime || l.meetingTime || ""}</span>
+                    {(() => {
+                      const meetingDisplay = getLeadMeetingDisplay(l);
+                      const followUpDisplay = getLeadFollowUpDisplay(l);
+
+                      if (l.status === "Follow_Up" && followUpDisplay.hasDate) {
+                        return (
+                          <>
+                            <span className="font-semibold text-amber-700">Follow-up</span>
+                            <br />
+                            <span className="text-xs text-amber-600 font-medium">{followUpDisplay.fullLabel}</span>
+                          </>
+                        );
+                      }
+
+                      return (
+                        <>
+                          {meetingDisplay.fullLabel || "N/A"}
+                          {followUpDisplay.hasDate && (
+                            <>
+                              <br />
+                              <span className="text-xs text-amber-600 font-medium">Follow-up: {followUpDisplay.fullLabel}</span>
+                            </>
+                          )}
+                        </>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600 max-w-xs">
                     <div className="flex items-center gap-2">

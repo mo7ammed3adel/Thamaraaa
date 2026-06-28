@@ -1,11 +1,14 @@
 "use client";
-import { useState, useMemo } from "react";
+import { Fragment, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Pencil, Check, PhoneCall, CheckCircle2, PhoneOff, XCircle, CalendarDays, Send } from "lucide-react";
+import { Plus, X, Pencil, Check, PhoneCall, CheckCircle2, PhoneOff, XCircle, Send, ChevronDown, ChevronUp, ExternalLink, Trash2 } from "lucide-react";
 import { canManuallyDistributeMeeting } from "@/lib/meetingDistribution";
 import { createCallLog } from "@/client/api/callLogs";
 import { createCustomColumn, deleteCustomColumn, saveCustomColumnValue } from "@/client/api/customColumns";
 import { deleteLead, distributeLeadMeeting, updateLead } from "@/client/api/leads";
+import DateRangeFilter from "@/components/dashboard/DateRangeFilter";
+import { isDateInRange } from "@/lib/dateRange";
+import { formatDisplayDate, getLeadFollowUpDisplay, getLeadMeetingDisplay } from "@/lib/leadScheduleDisplay";
 
 interface CustomColumn {
   id: string;
@@ -49,10 +52,10 @@ export default function TeleSalesClient({
   // Filters
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterClass, setFilterClass] = useState("All");
-  const [filterDate, setFilterDate] = useState("All");
-  const [customFrom, setCustomFrom] = useState("");
-  const [customTo, setCustomTo] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [logFilter, setLogFilter] = useState("All");
+  const [expandedLeadId, setExpandedLeadId] = useState<string | null>(null);
 
   // Search & Pagination
   const [searchQuery, setSearchQuery] = useState("");
@@ -179,42 +182,12 @@ export default function TeleSalesClient({
     return val?.value || "";
   };
 
-  // Date range helper
-  const getDateRange = useMemo(() => {
-    const now = new Date();
-    const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    const ranges: Record<string, { from: Date; to: Date }> = {
-      Today: { from: startOfDay(now), to: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59) },
-      Yesterday: (() => { const y = new Date(now); y.setDate(y.getDate() - 1); return { from: startOfDay(y), to: new Date(y.getFullYear(), y.getMonth(), y.getDate(), 23, 59, 59) }; })(),
-      "This Week": (() => { const d = new Date(now); d.setDate(d.getDate() - d.getDay()); return { from: startOfDay(d), to: now }; })(),
-      "This Month": { from: new Date(now.getFullYear(), now.getMonth(), 1), to: now },
-      "Last 7 Days": (() => { const d = new Date(now); d.setDate(d.getDate() - 7); return { from: startOfDay(d), to: now }; })(),
-      "Last 30 Days": (() => { const d = new Date(now); d.setDate(d.getDate() - 30); return { from: startOfDay(d), to: now }; })(),
-    };
-    return ranges;
-  }, []);
-
   // Apply filters
   const filteredLeads = leads.filter((l) => {
     if (filterStatus !== "All" && l.status !== filterStatus) return false;
     if (filterClass !== "All" && l.classification !== filterClass) return false;
 
-    if (filterDate !== "All") {
-      const leadDate = new Date(l.createdAt);
-      if (filterDate === "Custom") {
-        if (customFrom && leadDate < new Date(customFrom)) return false;
-        if (customTo) {
-          const toEnd = new Date(customTo);
-          toEnd.setHours(23, 59, 59);
-          if (leadDate > toEnd) return false;
-        }
-      } else {
-        const range = getDateRange[filterDate];
-        if (range) {
-          if (leadDate < range.from || leadDate > range.to) return false;
-        }
-      }
-    }
+    if (!isDateInRange(l.createdAt, { from: fromDate, to: toDate })) return false;
 
     if (logFilter !== "All") {
       if (logFilter === "Accept and book meeting") {
@@ -344,31 +317,16 @@ export default function TeleSalesClient({
               <option value="Cold">Cold</option>
             </select>
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" /> Date</label>
-            <select value={filterDate} onChange={(e) => { setFilterDate(e.target.value); setCurrentPage(1); if (e.target.value !== "Custom") { setCustomFrom(""); setCustomTo(""); } }} className="border rounded-md px-3 py-1.5 text-sm">
-              <option value="All">All time</option>
-              <option value="Today">Today</option>
-              <option value="Yesterday">Yesterday</option>
-              <option value="This Week">This Week</option>
-              <option value="This Month">This Month</option>
-              <option value="Last 7 Days">Last 7 Days</option>
-              <option value="Last 30 Days">Last 30 Days</option>
-              <option value="Custom">Custom Range...</option>
-            </select>
+          <div className="w-full">
+            <DateRangeFilter
+              fromDate={fromDate}
+              toDate={toDate}
+              onFromDateChange={(value) => { setFromDate(value); setCurrentPage(1); }}
+              onToDateChange={(value) => { setToDate(value); setCurrentPage(1); }}
+              label="Created Date Range"
+              description="Filters the lead list by creation date."
+            />
           </div>
-          {filterDate === "Custom" && (
-            <>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">From</label>
-                <input type="date" value={customFrom} onChange={(e) => { setCustomFrom(e.target.value); setCurrentPage(1); }} className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">To</label>
-                <input type="date" value={customTo} onChange={(e) => { setCustomTo(e.target.value); setCurrentPage(1); }} className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500" />
-              </div>
-            </>
-          )}
           <div className="flex items-center gap-3 mt-4 w-full justify-between">
             <span className="text-sm text-gray-500">
               Showing <span className="font-bold text-gray-900">{filteredLeads.length}</span> leads
@@ -411,6 +369,7 @@ export default function TeleSalesClient({
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone & Source</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status & Class</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Meeting / Follow-up</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sales Agent</th>
                 {isManager && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Agent</th>}
                 {/* Custom Columns */}
@@ -431,14 +390,43 @@ export default function TeleSalesClient({
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {paginatedLeads.map((l) => (
-                <tr key={l.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{l.name}</td>
+                <Fragment key={l.id}>
+                <tr className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedLeadId(expandedLeadId === l.id ? null : l.id)}
+                        className="p-1 rounded-md text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+                        title="View customer details"
+                      >
+                        {expandedLeadId === l.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </button>
+                      <div>
+                        <p>{l.name}</p>
+                        {l.customerType && <p className="text-xs text-gray-400">{l.customerType}</p>}
+                      </div>
+                    </div>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {l.phone}<br /><span className="text-xs text-gray-400">{l.source || "Unknown"}</span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mb-1">{l.status}</span><br />
                     <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">{l.classification}</span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    {getLeadMeetingDisplay(l).hasDate ? (
+                      <div>
+                        <span className="font-semibold text-gray-800">{getLeadMeetingDisplay(l).dateLabel}</span>
+                        {getLeadMeetingDisplay(l).timeLabel && <span className="text-blue-600 font-medium"> {getLeadMeetingDisplay(l).timeLabel}</span>}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-xs">No meeting date</span>
+                    )}
+                    {getLeadFollowUpDisplay(l).hasDate && (
+                      <p className="text-xs text-amber-600 font-medium mt-1">Follow-up: {getLeadFollowUpDisplay(l).fullLabel}</p>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     {l.salesAgent?.name ? (
@@ -497,7 +485,8 @@ export default function TeleSalesClient({
                     );
                   })}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col items-start gap-1">
+                      <div className="flex items-center gap-2">
                       {canManuallyDistributeMeeting(l) ? (
                         <button
                           onClick={() => handleDistributeMeeting(l.id)}
@@ -528,18 +517,89 @@ export default function TeleSalesClient({
                           className="p-1.5 text-red-500 hover:bg-red-50 rounded-md transition-colors"
                           title="Delete Lead"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
+                          <Trash2 className="h-4 w-4" />
                         </button>
+                      )}
+                      </div>
+                      {getLeadMeetingDisplay(l).hasDate && (
+                        <span className="text-xs text-gray-400">{getLeadMeetingDisplay(l).fullLabel}</span>
                       )}
                     </div>
                   </td>
                 </tr>
+                {expandedLeadId === l.id && (
+                  <tr>
+                    <td colSpan={isManager ? 7 + customColumns.length : 6 + customColumns.length} className="px-6 py-4 bg-slate-50">
+                      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                        <div className="bg-white border border-gray-200 rounded-lg p-4">
+                          <h4 className="text-xs font-bold uppercase text-gray-500 mb-3">Customer Details</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                            <p><span className="text-gray-400">Name:</span> <span className="font-medium text-gray-800">{l.name}</span></p>
+                            <p><span className="text-gray-400">Phone:</span> <span className="font-medium text-gray-800">{l.phone}</span></p>
+                            <p><span className="text-gray-400">Source:</span> <span className="font-medium text-gray-800">{l.source || "-"}</span></p>
+                            <p><span className="text-gray-400">Niche:</span> <span className="font-medium text-gray-800">{l.niche || "-"}</span></p>
+                            <p><span className="text-gray-400">Customer Type:</span> <span className="font-medium text-gray-800">{l.customerType || "-"}</span></p>
+                            <p><span className="text-gray-400">Created:</span> <span className="font-medium text-gray-800">{formatDisplayDate(l.createdAt) || "-"}</span></p>
+                            <p className="sm:col-span-2">
+                              <span className="text-gray-400">Store:</span>{" "}
+                              {l.storeLink ? (
+                                <a href={l.storeLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline">
+                                  Open store <ExternalLink className="h-3.5 w-3.5" />
+                                </a>
+                              ) : (
+                                <span className="font-medium text-gray-800">-</span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="bg-white border border-gray-200 rounded-lg p-4">
+                          <h4 className="text-xs font-bold uppercase text-gray-500 mb-3">Schedule</h4>
+                          <div className="space-y-2 text-sm">
+                            <p><span className="text-gray-400">Meeting:</span> <span className="font-medium text-gray-800">{getLeadMeetingDisplay(l).fullLabel || "-"}</span></p>
+                            <p><span className="text-gray-400">Follow-up:</span> <span className="font-medium text-gray-800">{getLeadFollowUpDisplay(l).fullLabel || "-"}</span></p>
+                            <p><span className="text-gray-400">Sales Agent:</span> <span className="font-medium text-gray-800">{l.salesAgent?.name || "-"}</span></p>
+                            <p><span className="text-gray-400">Tele Agent:</span> <span className="font-medium text-gray-800">{l.teleAgent?.name || "-"}</span></p>
+                          </div>
+                          <div className="mt-4 space-y-2">
+                            <h5 className="text-xs font-bold uppercase text-gray-500">Meeting History</h5>
+                            {l.meetings?.length ? l.meetings.map((meeting: any) => (
+                              <div key={meeting.id} className="border border-purple-100 bg-purple-50 rounded-md p-2 text-xs">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="font-bold text-purple-700">{meeting.status}</span>
+                                  <span className="text-gray-500">{formatDisplayDate(meeting.meetingDate)} {meeting.meetingTime || ""}</span>
+                                </div>
+                                {meeting.salesAgent?.name && <p className="text-purple-700 mt-1">Sales: {meeting.salesAgent.name}</p>}
+                                {meeting.salesNotes && <p className="text-gray-600 mt-1">{meeting.salesNotes}</p>}
+                              </div>
+                            )) : <p className="text-xs text-gray-400">No meetings yet.</p>}
+                          </div>
+                        </div>
+
+                        <div className="bg-white border border-gray-200 rounded-lg p-4">
+                          <h4 className="text-xs font-bold uppercase text-gray-500 mb-3">Call History</h4>
+                          <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                            {l.callLogs?.length ? l.callLogs.map((log: any) => (
+                              <div key={log.id} className="border border-gray-100 rounded-md p-2 text-xs">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="font-bold text-gray-800">{log.callStatus}</span>
+                                  <span className="text-gray-400">{formatDisplayDate(log.createdAt)}</span>
+                                  {log.agent?.name && <span className="text-blue-600">by {log.agent.name}</span>}
+                                </div>
+                                <p className="text-gray-600 mt-1">{log.notes}</p>
+                              </div>
+                            )) : <p className="text-xs text-gray-400">No call logs yet.</p>}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
               {filteredLeads.length === 0 && (
                 <tr>
-                  <td colSpan={isManager ? 5 + customColumns.length : 4 + customColumns.length} className="px-6 py-8 text-center text-sm text-gray-500 font-medium">
+                  <td colSpan={isManager ? 7 + customColumns.length : 6 + customColumns.length} className="px-6 py-8 text-center text-sm text-gray-500 font-medium">
                     No leads currently available matching filters.
                   </td>
                 </tr>

@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { DollarSign, X, PhoneCall, Calendar, Handshake, ArrowRight, Clock } from "lucide-react";
+import DateRangeFilter from "@/components/dashboard/DateRangeFilter";
+import { isDateInRange } from "@/lib/dateRange";
 
 interface Deal {
   id: string;
@@ -39,35 +41,6 @@ export default function DealsClient({ userRole }: { userRole: string }) {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
-  const setQuickDate = (type: string) => {
-    const today = new Date();
-    const toIso = (d: Date) => {
-      const offset = d.getTimezoneOffset() * 60000;
-      return new Date(d.getTime() - offset).toISOString().split('T')[0];
-    };
-    if (type === "today") {
-      setFromDate(toIso(today));
-      setToDate(toIso(today));
-    } else if (type === "yesterday") {
-      const y = new Date(today); y.setDate(y.getDate() - 1);
-      setFromDate(toIso(y));
-      setToDate(toIso(y));
-    } else if (type === "week") {
-      const w = new Date(today); w.setDate(w.getDate() - w.getDay());
-      setFromDate(toIso(w));
-      setToDate(toIso(today));
-    } else if (type === "month") {
-      const m = new Date(today.getFullYear(), today.getMonth(), 1);
-      setFromDate(toIso(m));
-      setToDate(toIso(today));
-    } else if (type === "lastMonth") {
-      const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-      const end = new Date(today.getFullYear(), today.getMonth(), 0);
-      setFromDate(toIso(start));
-      setToDate(toIso(end));
-    }
-  };
-
   useEffect(() => {
     fetchDeals();
   }, []);
@@ -94,18 +67,7 @@ export default function DealsClient({ userRole }: { userRole: string }) {
   };
 
   const timeFilteredDeals = deals.filter(d => {
-    if (fromDate || toDate) {
-      const targetDate = new Date(d.createdAt);
-      if (fromDate) {
-        const start = new Date(fromDate); start.setHours(0,0,0,0);
-        if (targetDate < start) return false;
-      }
-      if (toDate) {
-        const end = new Date(toDate); end.setHours(23,59,59,999);
-        if (targetDate > end) return false;
-      }
-    }
-    return true;
+    return isDateInRange(d.createdAt, { from: fromDate, to: toDate });
   });
 
   const totalContractValue = timeFilteredDeals.reduce((sum, d) => sum + d.totalAmount, 0);
@@ -174,40 +136,15 @@ export default function DealsClient({ userRole }: { userRole: string }) {
   return (
     <div className="space-y-6">
       
-      {/* Date Filters Header */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
-        <div>
-           <h3 className="text-gray-800 font-bold flex items-center gap-2">
-             <Calendar className="h-5 w-5 text-gray-400" />
-             Financial Period Filters
-           </h3>
-           <p className="text-xs text-gray-500 mt-1">Filtering by deal closing date. All financial KPIs below update actively.</p>
-        </div>
-        
-        <div className="flex flex-col sm:flex-row items-center gap-2">
-           <div className="flex items-center gap-2">
-             <div className="flex items-center border border-gray-300 rounded-lg px-2 bg-gray-50 focus-within:ring-2 focus-within:ring-green-500">
-               <span className="text-xs font-bold text-gray-500">From</span>
-               <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="text-sm bg-transparent border-none focus:ring-0 py-2 cursor-pointer" />
-             </div>
-             <div className="flex items-center border border-gray-300 rounded-lg px-2 bg-gray-50 focus-within:ring-2 focus-within:ring-green-500">
-               <span className="text-xs font-bold text-gray-500">To</span>
-               <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="text-sm bg-transparent border-none focus:ring-0 py-2 cursor-pointer" />
-             </div>
-           </div>
-           
-           <div className="flex items-center gap-1.5 flex-wrap">
-             <button onClick={() => setQuickDate('today')} className="text-[10px] font-bold uppercase bg-green-50 text-green-700 px-2.5 py-1.5 rounded-md hover:bg-green-100 transition border border-green-200">Today</button>
-             <button onClick={() => setQuickDate('week')} className="text-[10px] font-bold uppercase bg-blue-50 text-blue-700 px-2.5 py-1.5 rounded-md hover:bg-blue-100 transition border border-blue-200">This Week</button>
-             <button onClick={() => setQuickDate('month')} className="text-[10px] font-bold uppercase bg-blue-50 text-blue-700 px-2.5 py-1.5 rounded-md hover:bg-blue-100 transition border border-blue-200">This Month</button>
-             <button onClick={() => setQuickDate('lastMonth')} className="text-[10px] font-bold uppercase bg-slate-100 text-slate-700 px-2.5 py-1.5 rounded-md hover:bg-slate-200 transition border border-slate-200">Last Month</button>
-             
-             {(fromDate || toDate) && (
-               <button onClick={() => { setFromDate(""); setToDate(""); }} className="text-[10px] font-bold uppercase text-red-600 bg-red-50 hover:bg-red-100 px-2.5 py-1.5 rounded-md transition shadow-sm border border-red-200 ml-1">Reset</button>
-             )}
-           </div>
-        </div>
-      </div>
+      <DateRangeFilter
+        fromDate={fromDate}
+        toDate={toDate}
+        onFromDateChange={setFromDate}
+        onToDateChange={setToDate}
+        includeLastMonth
+        label="Financial Period Filters"
+        description="Filtering by deal closing date. All financial KPIs below update actively."
+      />
 
       {/* Summary Area */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">

@@ -6,6 +6,7 @@ import {
   getTeleSalesTeamAnalytics,
   getTeleSalesTeamDrill,
 } from "@/client/api/analytics";
+import DateRangeFilter from "@/components/dashboard/DateRangeFilter";
 
 interface AgentAnalytics {
   id: string;
@@ -97,33 +98,14 @@ export default function TeamAnalyticsClient() {
 
   return (
     <div className="space-y-6">
-      {/* Date Filter */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm flex flex-wrap gap-4 items-end">
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">From Date</label>
-          <input
-            type="date"
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">To Date</label>
-          <input
-            type="date"
-            value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-        <button
-          onClick={() => { setFromDate(""); setToDate(""); }}
-          className="px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-        >
-          Reset Filter
-        </button>
-      </div>
+      <DateRangeFilter
+        fromDate={fromDate}
+        toDate={toDate}
+        onFromDateChange={setFromDate}
+        onToDateChange={setToDate}
+        label="Analytics Date Range"
+        description="Filters calls, meetings, deals, and revenue by the selected period."
+      />
 
       {/* Summary Cards - clickable */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">

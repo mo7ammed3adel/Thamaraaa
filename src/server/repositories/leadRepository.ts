@@ -123,11 +123,21 @@ export function findDistributedLead(id: string) {
   return prisma.lead.findUnique({
     where: { id },
     include: {
-      teleAgent: { select: { name: true } },
+      teleAgent: { select: { id: true, name: true } },
       salesAgent: { select: { name: true } },
       callLogs: {
         orderBy: { createdAt: "desc" },
-        take: 1,
+        include: {
+          agent: { select: { name: true } },
+        },
+      },
+      meetings: {
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        include: {
+          teleAgent: { select: { name: true } },
+          salesAgent: { select: { name: true } },
+        },
       },
     },
   });

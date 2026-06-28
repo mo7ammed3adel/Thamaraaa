@@ -106,11 +106,21 @@ export async function POST(req: Request) {
     const fullLead = await prisma.lead.findUnique({
       where: { id: leadId },
       include: {
-        teleAgent: { select: { name: true } },
+        teleAgent: { select: { id: true, name: true } },
         salesAgent: { select: { name: true } },
         callLogs: {
           orderBy: { createdAt: "desc" },
-          take: 1,
+          include: {
+            agent: { select: { name: true } },
+          },
+        },
+        meetings: {
+          orderBy: { createdAt: "desc" },
+          take: 5,
+          include: {
+            teleAgent: { select: { name: true } },
+            salesAgent: { select: { name: true } },
+          },
         },
       },
     });

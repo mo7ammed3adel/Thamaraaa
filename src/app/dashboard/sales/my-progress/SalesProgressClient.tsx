@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Briefcase, Calendar, Handshake, DollarSign, XCircle, TrendingUp, ChevronDown } from "lucide-react";
 import { getMyProgress } from "@/client/api/analytics";
+import DateRangeFilter from "@/components/dashboard/DateRangeFilter";
 
 interface SalesProgress {
   role: string;
@@ -15,39 +16,11 @@ interface SalesProgress {
   deals: any[];
 }
 
-type PresetRange = "today" | "yesterday" | "this_week" | "this_month" | "all" | "custom";
 type DrillDown = "leads" | "meetings" | "won" | "lost" | "revenue" | null;
-
-function getPresetDates(preset: PresetRange): { from: string; to: string } {
-  const now = new Date();
-  const fmt = (d: Date) => d.toISOString().split("T")[0];
-
-  switch (preset) {
-    case "today":
-      return { from: fmt(now), to: fmt(now) };
-    case "yesterday": {
-      const y = new Date(now);
-      y.setDate(y.getDate() - 1);
-      return { from: fmt(y), to: fmt(y) };
-    }
-    case "this_week": {
-      const start = new Date(now);
-      start.setDate(start.getDate() - start.getDay());
-      return { from: fmt(start), to: fmt(now) };
-    }
-    case "this_month": {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      return { from: fmt(start), to: fmt(now) };
-    }
-    default:
-      return { from: "", to: "" };
-  }
-}
 
 export default function SalesProgressClient() {
   const [data, setData] = useState<SalesProgress | null>(null);
   const [loading, setLoading] = useState(true);
-  const [preset, setPreset] = useState<PresetRange>("all");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [drillDown, setDrillDown] = useState<DrillDown>(null);
@@ -67,22 +40,7 @@ export default function SalesProgressClient() {
     fetchData();
   }, [fetchData]);
 
-  const handlePreset = (p: PresetRange) => {
-    setPreset(p);
-    if (p === "custom") return;
-    const { from, to } = getPresetDates(p);
-    setFromDate(from);
-    setToDate(to);
-  };
-
   const toggleDrill = (d: DrillDown) => setDrillDown(drillDown === d ? null : d);
-
-  const presetBtnClass = (p: PresetRange) =>
-    `px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-      preset === p
-        ? "bg-green-600 text-white shadow-md"
-        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-    }`;
 
   if (loading && !data) {
     return (
@@ -110,40 +68,14 @@ export default function SalesProgressClient() {
 
   return (
     <div className="space-y-6">
-      {/* Time Filter */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-        <div className="flex flex-wrap gap-2 items-center mb-3">
-          <span className="text-xs font-semibold text-gray-500 uppercase mr-2">Time Range:</span>
-          <button onClick={() => handlePreset("all")} className={presetBtnClass("all")}>All Time</button>
-          <button onClick={() => handlePreset("today")} className={presetBtnClass("today")}>Today</button>
-          <button onClick={() => handlePreset("yesterday")} className={presetBtnClass("yesterday")}>Yesterday</button>
-          <button onClick={() => handlePreset("this_week")} className={presetBtnClass("this_week")}>This Week</button>
-          <button onClick={() => handlePreset("this_month")} className={presetBtnClass("this_month")}>This Month</button>
-          <button onClick={() => handlePreset("custom")} className={presetBtnClass("custom")}>Custom</button>
-        </div>
-        {preset === "custom" && (
-          <div className="flex flex-wrap gap-4 items-end pt-2 border-t border-gray-100">
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">From</label>
-              <input
-                type="date"
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">To</label>
-              <input
-                type="date"
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-          </div>
-        )}
-      </div>
+      <DateRangeFilter
+        fromDate={fromDate}
+        toDate={toDate}
+        onFromDateChange={setFromDate}
+        onToDateChange={setToDate}
+        label="Progress Date Range"
+        description="Filters your sales progress by the selected period."
+      />
 
       {/* Summary Cards - all clickable */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">

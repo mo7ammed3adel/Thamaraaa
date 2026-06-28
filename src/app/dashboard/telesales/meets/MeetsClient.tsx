@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
 import { PhoneCall, Calendar, Handshake, DollarSign, X, Clock } from "lucide-react";
+import DateRangeFilter from "@/components/dashboard/DateRangeFilter";
+import { isDateInRange } from "@/lib/dateRange";
 
 interface Meeting {
   id: string;
@@ -63,33 +65,6 @@ export default function MeetsClient({
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
-  const setQuickDate = (type: string) => {
-    const today = new Date();
-    const toIso = (d: Date) => {
-      const offset = d.getTimezoneOffset() * 60000;
-      return new Date(d.getTime() - offset).toISOString().split('T')[0];
-    };
-    if (type === "today") {
-      setFromDate(toIso(today));
-      setToDate(toIso(today));
-    } else if (type === "yesterday") {
-      const y = new Date(today); y.setDate(y.getDate() - 1);
-      setFromDate(toIso(y));
-      setToDate(toIso(y));
-    } else if (type === "week") {
-      const w = new Date(today); w.setDate(w.getDate() - w.getDay());
-      setFromDate(toIso(w));
-      setToDate(toIso(today));
-    } else if (type === "month") {
-      const m = new Date(today.getFullYear(), today.getMonth(), 1);
-      setFromDate(toIso(m));
-      setToDate(toIso(today));
-    } else if (type === "all") {
-      setFromDate("");
-      setToDate("");
-    }
-  };
-
   // Sorting
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>({ key: "date", direction: "desc" });
 
@@ -111,11 +86,7 @@ export default function MeetsClient({
     if (statusFilter !== "All" && m.status !== statusFilter) return false;
     
     // 3. Date Filter (meetingDate)
-    if (fromDate || toDate) {
-      const ms = new Date(m.meetingDate).getTime();
-      if (fromDate && ms < new Date(`${fromDate}T00:00:00`).getTime()) return false;
-      if (toDate && ms > new Date(`${toDate}T23:59:59`).getTime()) return false;
-    }
+    if (!isDateInRange(m.meetingDate, { from: fromDate, to: toDate })) return false;
     return true;
   }).sort((a, b) => {
     if (!sortConfig) return 0;
@@ -229,19 +200,14 @@ export default function MeetsClient({
             </select>
           </div>
           <div className="lg:col-span-2">
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Meeting Date Range</label>
-            <div className="flex flex-col sm:flex-row items-center gap-2">
-              <div className="flex flex-1 items-center gap-2">
-                <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-gray-700" />
-                <span className="text-xs text-gray-400 font-bold">TO</span>
-                <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-gray-700" />
-              </div>
-              <div className="flex items-center gap-1">
-                <button onClick={() => setQuickDate('today')} className="text-[10px] font-bold uppercase bg-blue-50 text-blue-700 px-2.5 py-1.5 rounded hover:bg-blue-100 transition border border-blue-200">Today</button>
-                <button onClick={() => setQuickDate('thisWeek')} className="text-[10px] font-bold uppercase bg-blue-50 text-blue-700 px-2.5 py-1.5 rounded hover:bg-blue-100 transition border border-blue-200">Week</button>
-                <button onClick={() => setQuickDate('all')} className="text-[10px] font-bold uppercase bg-gray-100 text-gray-600 px-2.5 py-1.5 rounded hover:bg-gray-200 transition border border-gray-200">All</button>
-              </div>
-            </div>
+            <DateRangeFilter
+              fromDate={fromDate}
+              toDate={toDate}
+              onFromDateChange={setFromDate}
+              onToDateChange={setToDate}
+              label="Meeting Date Range"
+              description="Filters meetings by scheduled meeting date."
+            />
           </div>
         </div>
       </div>
