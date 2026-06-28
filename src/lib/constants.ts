@@ -150,11 +150,13 @@ export const CROSS_TEAM_TASK_TYPES = [
 ] as const;
 
 // ── Mapping from cross-team task type to the leader role that receives it ──
+// Content SEO tasks are routed to the Head SEO, who distributes them to the
+// Content SEO agents (the Head SEO is the content team's leader/manager).
 export const TASK_TYPE_TO_LEADER_ROLE: Record<string, string> = {
   graphic_design: "leader_graphic_designer",
   motion_graphic: "leader_motion_graphic",
   ui_design: "leader_ui",
-  content_seo: "team_leader_seo",
+  content_seo: "head_seo",
 };
 
 const DEFAULT_TASK_CHECKLISTS: Record<string, Array<{ id: string; title: string; completed: boolean }>> = {

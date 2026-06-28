@@ -26,10 +26,12 @@ interface CrossTeamTaskFormProps {
   projectId: string;
   onClose: () => void;
   userRole?: string;
+  /** When set, the form is locked to this single task type and the picker is hidden. */
+  lockedTaskType?: string;
 }
 
-export default function CrossTeamTaskForm({ projectId, onClose, userRole = "" }: CrossTeamTaskFormProps) {
-  const allowedTypes = getAllowedTaskTypes(userRole);
+export default function CrossTeamTaskForm({ projectId, onClose, userRole = "", lockedTaskType }: CrossTeamTaskFormProps) {
+  const allowedTypes = lockedTaskType ? [lockedTaskType] : getAllowedTaskTypes(userRole);
   const [taskType, setTaskType] = useState<string>(allowedTypes[0]);
   const [brief, setBrief] = useState("");
   const [taskLink, setTaskLink] = useState("");
@@ -66,20 +68,22 @@ export default function CrossTeamTaskForm({ projectId, onClose, userRole = "" }:
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <div className="p-2 bg-red-100 text-red-700 text-sm rounded">{error}</div>}
 
-      <div>
-        <label className="block text-sm font-bold text-slate-700 mb-1">Task Category</label>
-        <select 
-          value={taskType}
-          onChange={(e) => setTaskType(e.target.value)}
-          className="w-full border-2 border-slate-200 rounded-lg p-2 outline-none focus:border-indigo-500 font-medium bg-slate-50 relative appearance-none"
-        >
-          {allowedTypes.map(type => (
-            <option key={type} value={type}>
-              {type.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
-            </option>
-          ))}
-        </select>
-      </div>
+      {!lockedTaskType && (
+        <div>
+          <label className="block text-sm font-bold text-slate-700 mb-1">Task Category</label>
+          <select
+            value={taskType}
+            onChange={(e) => setTaskType(e.target.value)}
+            className="w-full border-2 border-slate-200 rounded-lg p-2 outline-none focus:border-indigo-500 font-medium bg-slate-50 relative appearance-none"
+          >
+            {allowedTypes.map(type => (
+              <option key={type} value={type}>
+                {type.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-bold text-slate-700 mb-1">Priority</label>

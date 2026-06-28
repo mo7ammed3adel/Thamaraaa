@@ -16,10 +16,12 @@ import TaskWorkspaceModal from "@/components/TaskWorkspaceModal";
 import { assignProjectAgent, updateProjectTeamAssignment } from "@/client/api/projects";
 import { updateTask } from "@/client/api/tasks";
 
-export default function SeoClient({ projects, teamMembers, userRole, userId }: any) {
+export default function SeoClient({ projects, teamMembers, contentAgents = [], userRole, userId }: any) {
   const router = useRouter();
   const [activeDistribution, setActiveDistribution] = useState<{ projectId: string; mode: "leader" | "seo" | "content_seo" } | null>(null);
   const [crossTeamProject, setCrossTeamProject] = useState<string | null>(null);
+  const [contentTaskProject, setContentTaskProject] = useState<string | null>(null);
+  const [assigningContentTaskId, setAssigningContentTaskId] = useState<string | null>(null);
   const [flagTask, setFlagTask] = useState<any>(null);
   const [reassignTask, setReassignTask] = useState<any>(null);
   const [workspaceTask, setWorkspaceTask] = useState<any>(null);
@@ -152,6 +154,21 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
       notify(e instanceof Error ? e.message : "An unexpected error occurred");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Head SEO distributes a pending content task to one of the content agents.
+  const handleAssignContentTask = async (taskId: string, agentId: string) => {
+    if (!agentId) return;
+    setAssigningContentTaskId(taskId);
+    try {
+      await updateTask(taskId, { agentId });
+      notify("Content task assigned to agent");
+      router.refresh();
+    } catch (e) {
+      notify(e instanceof Error ? e.message : "An unexpected error occurred");
+    } finally {
+      setAssigningContentTaskId(null);
     }
   };
 
@@ -374,10 +391,11 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
                         {currentSeoAgent ? `SEO: ${currentSeoAgent.name}` : "Assign SEO Agent"}
                       </button>
                       <button
-                        onClick={() => setActiveDistribution(activePanelMode === "content_seo" ? null : { projectId: project.id, mode: "content_seo" })}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition ${currentContentAgent ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100" : "bg-sky-600 text-white hover:bg-sky-700"}`}
+                        onClick={() => setContentTaskProject(project.id)}
+                        className="px-4 py-2 rounded-lg text-sm font-medium transition bg-sky-600 text-white hover:bg-sky-700"
+                        title="Create a Content SEO task and send it to the Head SEO to distribute"
                       >
-                        {currentContentAgent ? `Content: ${currentContentAgent.name}` : "Assign Content Agent"}
+                        {currentContentAgent ? `Send Content Task (current: ${currentContentAgent.name})` : "Send Content Task"}
                       </button>
                     </>
                   )}
@@ -464,6 +482,56 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
                       </div>
                     </div>
                   )}
+
+                  {/* Head SEO: Content Tasks awaiting distribution to content agents */}
+                  {isHead && (() => {
+                    const contentSeoTasks = projectTasks.filter((t: any) => t.taskType === "content_seo");
+                    if (contentSeoTasks.length === 0) return null;
+                    return (
+                      <div className="border border-sky-200 rounded-lg p-3 bg-sky-50/50">
+                        <h4 className="text-sm font-bold text-sky-800 uppercase tracking-wider mb-3">Content SEO Tasks — Distribute</h4>
+                        <div className="space-y-2">
+                          {contentSeoTasks.map((task: any) => (
+                            <div key={task.id} className="bg-white border rounded-lg p-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                    task.status === "done" ? "bg-emerald-100 text-emerald-700" :
+                                    task.status === "in_progress" ? "bg-amber-100 text-amber-700" :
+                                    task.status === "review" ? "bg-purple-100 text-purple-700" :
+                                    "bg-slate-200 text-slate-700"
+                                  }`}>{task.status.replace(/_/g, " ")}</span>
+                                  {task.priority && <span className="text-[10px] font-bold text-slate-400 uppercase">{task.priority}</span>}
+                                </div>
+                                {task.brief && <p className="text-xs text-slate-600 mt-1 line-clamp-2">{task.brief}</p>}
+                              </div>
+                              {task.agentId ? (
+                                <span className="shrink-0 inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium border border-emerald-200">
+                                  ✓ {task.agent?.name || "Assigned"}
+                                </span>
+                              ) : (
+                                <div className="shrink-0 flex items-center gap-2">
+                                  <select
+                                    defaultValue=""
+                                    disabled={assigningContentTaskId === task.id || contentAgents.length === 0}
+                                    onChange={(e) => handleAssignContentTask(task.id, e.target.value)}
+                                    className="border rounded-lg px-2 py-1.5 text-xs bg-white outline-none focus:ring-2 focus:ring-sky-500 disabled:opacity-50"
+                                  >
+                                    <option value="" disabled>
+                                      {contentAgents.length === 0 ? "No content agents" : assigningContentTaskId === task.id ? "Assigning..." : "Assign to content agent…"}
+                                    </option>
+                                    {contentAgents.map((agent: any) => (
+                                      <option key={agent.id} value={agent.id}>{agent.name}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Agents List */}
                   {assignedAgents.length > 0 && (
@@ -739,6 +807,27 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
                     <div className="p-6">
                       <CrossTeamTaskForm projectId={project.id} userRole={userRole} onClose={() => {
                         setCrossTeamProject(null);
+                        router.refresh();
+                      }} />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Content Task → Head SEO Modal */}
+              {contentTaskProject === project.id && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                  <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+                    <div className="p-4 border-b bg-sky-50 flex justify-between items-center">
+                      <div>
+                        <h3 className="font-bold text-lg text-slate-800">Send Content SEO Task</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">Goes to the Head SEO, who assigns it to a content agent.</p>
+                      </div>
+                      <button onClick={() => setContentTaskProject(null)} className="text-slate-400 hover:text-slate-600 font-bold">&times;</button>
+                    </div>
+                    <div className="p-6">
+                      <CrossTeamTaskForm projectId={project.id} userRole={userRole} lockedTaskType="content_seo" onClose={() => {
+                        setContentTaskProject(null);
                         router.refresh();
                       }} />
                     </div>

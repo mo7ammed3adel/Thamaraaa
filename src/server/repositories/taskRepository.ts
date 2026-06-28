@@ -62,6 +62,13 @@ export function findFirstActiveUserByRoles(roles: string[]) {
   });
 }
 
+export function findProjectHeadSeo(projectId: string) {
+  return prisma.project.findUnique({
+    where: { id: projectId },
+    select: { headSeoId: true },
+  });
+}
+
 export function findProjectNameForTask(projectId: string) {
   return prisma.project.findUnique({
     where: { id: projectId },

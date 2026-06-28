@@ -34,6 +34,7 @@ import {
   findPackageByName,
   findParentTaskForSubTask,
   findProjectForTaskGeneration,
+  findProjectHeadSeo,
   findProjectNameForTask,
   findProjectTasksForProgress,
   findTasksForList,
@@ -427,7 +428,20 @@ export async function createProjectTask(input: {
 
   if (isCrossTeam && !finalLeaderId) {
     const leaderRole = findTeamLeaderRoleForTaskType(taskType);
-    if (leaderRole) {
+    if (leaderRole === "head_seo") {
+      // Content SEO tasks are received and distributed by the project's Head SEO.
+      const projectHead = await findProjectHeadSeo(projectId);
+      if (projectHead?.headSeoId) {
+        finalLeaderId = projectHead.headSeoId;
+        finalAssignedRole = "head_seo";
+      } else {
+        const head = await findFirstActiveUserByRoles(["head_seo"]);
+        if (head) {
+          finalLeaderId = head.id;
+          finalAssignedRole = "head_seo";
+        }
+      }
+    } else if (leaderRole) {
       const projectLeader = await findActiveTeamAssignmentByRole(projectId, leaderRole);
       if (projectLeader) {
         finalLeaderId = projectLeader.userId;
@@ -507,9 +521,9 @@ export async function createProjectTask(input: {
     await createTaskNotification({
       userId: finalLeaderId,
       type: "task_assigned",
-      title: "Cross-Team Task Request",
+      title: taskType === "content_seo" ? "Content SEO Task to Distribute" : "Cross-Team Task Request",
       message: `A new ${taskType.replace(/_/g, " ")} task has been requested by ${input.userName} for ${projectName}`,
-      link: "/dashboard/operations",
+      link: taskType === "content_seo" ? "/dashboard/seo" : "/dashboard/operations",
     });
 
     await safeTrigger(`private-user-${finalLeaderId}`, "task-assigned", {

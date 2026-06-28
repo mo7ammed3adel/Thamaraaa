@@ -15,6 +15,7 @@ export default async function SeoPage() {
   // T032: Data fetching based on user role
   let projects: any[] = [];
   let teamMembers: any[] = [];
+  let contentAgents: any[] = [];
 
   if (["super_admin", "head_seo"].includes(user.role)) {
     projects = await prisma.project.findMany({
@@ -49,6 +50,12 @@ export default async function SeoPage() {
     teamMembers = await prisma.user.findMany({
       where: { role: "team_leader_seo", status: "Active" },
       include: { _count: { select: { teamAssignments: { where: { status: "active" } } } } },
+    });
+    // Content SEO agents the Head SEO distributes content tasks to.
+    contentAgents = await prisma.user.findMany({
+      where: { role: "agent_content_seo", status: "Active" },
+      select: { id: true, name: true, role: true },
+      orderBy: { name: "asc" },
     });
   } else if (user.role === "team_leader_seo") {
     projects = await prisma.project.findMany({
@@ -159,7 +166,7 @@ export default async function SeoPage() {
       <h1 className="text-2xl font-bold text-gray-900 mb-6">
         {user.role === "head_seo" ? "SEO Department" : user.role === "team_leader_seo" ? "SEO Team Leader" : "My SEO Tasks"}
       </h1>
-      <SeoClient projects={projects} teamMembers={teamMembers} userRole={user.role} userId={user.id} />
+      <SeoClient projects={projects} teamMembers={teamMembers} contentAgents={contentAgents} userRole={user.role} userId={user.id} />
     </div>
   );
 }
