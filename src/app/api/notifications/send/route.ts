@@ -6,6 +6,7 @@ import { safeTrigger } from "@/lib/pusher";
 import { hasRole, MANAGEMENT_ROLES } from "@/lib/constants";
 import { normalizeNotificationLink } from "@/lib/safe-url";
 import { canSalesAgentSendMeetingLink } from "@/lib/meetingLinkNotification";
+import { canReceiveNotification } from "@/lib/notificationPolicy";
 
 // Only managerial / admin roles may push arbitrary notifications to other users.
 // Other server-side flows create notifications directly via prisma — they don't go through this endpoint.
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
     }
 
     const sender = session.user as { id: string; role: string };
-    const { userId, title, message, link, leadId } = await req.json();
+    const { userId, title, message, link, leadId, type, relatedId } = await req.json();
 
     if (!userId || !title || !message) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -67,7 +68,7 @@ export async function POST(req: Request) {
       where: { id: userId },
       select: { id: true, status: true },
     });
-    if (!targetUser || targetUser.status !== "Active") {
+    if (!targetUser || !canReceiveNotification(targetUser.status)) {
       return NextResponse.json({ error: "Target user not found" }, { status: 404 });
     }
 
@@ -76,7 +77,9 @@ export async function POST(req: Request) {
         userId,
         title,
         message,
+        type: typeof type === "string" && type.trim() ? type.trim().slice(0, 64) : null,
         link: safeLink,
+        relatedId: typeof relatedId === "string" && relatedId.trim() ? relatedId.trim().slice(0, 128) : null,
         read: false
       }
     });

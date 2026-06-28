@@ -73,8 +73,13 @@ export default function NotificationsClient() {
                     {new Date(notif.createdAt).toLocaleString()}
                   </span>
                   {notif.link && (
-                    <a href={notif.link} className="text-xs font-semibold text-blue-600 hover:text-blue-800 underline">
-                      View Details
+                    <a
+                      href={notif.link}
+                      target={notif.link.startsWith("/") ? undefined : "_blank"}
+                      rel={notif.link.startsWith("/") ? undefined : "noopener noreferrer"}
+                      className="text-xs font-semibold text-blue-600 hover:text-blue-800 underline"
+                    >
+                      Open Link
                     </a>
                   )}
                 </div>

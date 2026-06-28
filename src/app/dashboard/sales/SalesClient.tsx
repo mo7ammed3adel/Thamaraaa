@@ -8,6 +8,7 @@ import CreateWarningModal from "@/components/CreateWarningModal";
 import { createDeal } from "@/client/api/deals";
 import { updateLead } from "@/client/api/leads";
 import { sendNotification } from "@/client/api/notifications";
+import { HttpError } from "@/client/transport/http";
 import { updateUserStatus } from "@/client/api/users";
 import DateRangeFilter from "@/components/dashboard/DateRangeFilter";
 import { isDateInRange } from "@/lib/dateRange";
@@ -296,13 +297,16 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         leadId: linkLead.id,
         title: "Meeting Link Added",
         message: `Sales Agent added meeting link for lead ${linkLead.name}: ${meetingLink}`,
-        link: meetingLink
+        link: meetingLink,
+        type: "meeting_link",
+        relatedId: linkLead.id,
       });
       alert("Link sent to TeleSales Agent!");
       setLinkLead(null);
       setMeetingLink("");
-    } catch {
-      alert("Failed to send link");
+    } catch (error) {
+      const message = error instanceof HttpError ? error.message : "Failed to send link";
+      alert(message);
     } finally {
       setSendingLink(false);
     }
@@ -999,7 +1003,9 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
             <h3 className="text-lg font-bold mb-2">Send Meeting Link</h3>
-            <p className="text-xs text-gray-500 mb-4">Send the Google Meet/Zoom link to {linkLead.teleAgent?.name} for client <span className="font-semibold">{linkLead.name}</span>.</p>
+            <p className="text-xs text-gray-500 mb-4">
+              Send the Google Meet/Zoom link to {linkLead.teleAgent?.name} for client <span className="font-semibold">{linkLead.name}</span>. It will appear in their notification bell and Notifications page.
+            </p>
             <form onSubmit={submitLink}>
               <input 
                 type="url" 

@@ -7,6 +7,21 @@ export function findUnreadNotificationsForUser(userId: string) {
   });
 }
 
+export function findMeetingLinkNotificationsForUser(userId: string) {
+  return prisma.notification.findMany({
+    where: {
+      userId,
+      link: { not: null },
+      OR: [
+        { type: "meeting_link" },
+        { title: "Meeting Link Added" },
+      ],
+    },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+  });
+}
+
 export function findNotificationOwner(notificationId: string) {
   return prisma.notification.findUnique({
     where: { id: notificationId },

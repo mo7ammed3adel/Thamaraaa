@@ -5,11 +5,16 @@ export type NotificationItem = {
   title: string;
   message: string;
   createdAt: string;
+  read?: boolean;
   link?: string | null;
 };
 
 export function listUnreadNotifications() {
   return getJson<{ data?: NotificationItem[] }>("/api/notifications");
+}
+
+export function listMeetingLinkNotifications() {
+  return getJson<{ data?: NotificationItem[] }>("/api/notifications?type=meeting_links");
 }
 
 export function markNotificationRead(id: string) {

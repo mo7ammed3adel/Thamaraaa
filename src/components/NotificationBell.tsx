@@ -101,6 +101,17 @@ export default function NotificationBell({ variant = "dropdown" }: { variant?: "
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900">{notif.title}</p>
                       <p className="text-sm text-gray-500 line-clamp-2 mt-0.5">{notif.message}</p>
+                      {notif.link && (
+                        <a
+                          href={notif.link}
+                          target={notif.link.startsWith("/") ? undefined : "_blank"}
+                          rel={notif.link.startsWith("/") ? undefined : "noopener noreferrer"}
+                          onClick={(event) => event.stopPropagation()}
+                          className="mt-2 inline-flex text-xs font-semibold text-blue-600 hover:text-blue-800 underline"
+                        >
+                          Open Link
+                        </a>
+                      )}
                       <p className="text-xs text-gray-400 mt-2">
                         {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>

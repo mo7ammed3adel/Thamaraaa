@@ -9,6 +9,7 @@ import { deleteLead, distributeLeadMeeting, updateLead } from "@/client/api/lead
 import DateRangeFilter from "@/components/dashboard/DateRangeFilter";
 import { isDateInRange } from "@/lib/dateRange";
 import { formatDisplayDate, getLeadFollowUpDisplay, getLeadMeetingDisplay } from "@/lib/leadScheduleDisplay";
+import MeetingLinksPanel from "@/components/MeetingLinksPanel";
 
 interface CustomColumn {
   id: string;
@@ -224,6 +225,8 @@ export default function TeleSalesClient({
 
   return (
     <div className="space-y-6">
+      <MeetingLinksPanel />
+
       {/* Workspace Summary Filters */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div 
