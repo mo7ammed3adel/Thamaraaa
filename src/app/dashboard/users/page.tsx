@@ -45,7 +45,7 @@ export default async function UsersPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
       </div>
-      <UserListClient initialUsers={users} managers={managers} canImpersonate={viewerRole === "super_admin"} />
+      <UserListClient initialUsers={users} managers={managers} canImpersonate={viewerRole === "super_admin"} canDelete={viewerRole === "super_admin"} />
     </div>
   );
 }

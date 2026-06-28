@@ -7,7 +7,7 @@ import { Pencil, Trash2, LogIn, Search } from "lucide-react";
 import { HttpError } from "@/client/transport/http";
 import { impersonateUser } from "@/client/api/admin";
 
-export default function UserListClient({ initialUsers, managers, canImpersonate = false }: { initialUsers: any[]; managers: any[]; canImpersonate?: boolean }) {
+export default function UserListClient({ initialUsers, managers, canImpersonate = false, canDelete = false }: { initialUsers: any[]; managers: any[]; canImpersonate?: boolean; canDelete?: boolean }) {
   const router = useRouter();
   const [users, setUsers] = useState(initialUsers);
   const [showModal, setShowModal] = useState(false);
@@ -269,13 +269,15 @@ export default function UserListClient({ initialUsers, managers, canImpersonate 
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
-                      <button 
-                        onClick={() => setDeletingUser(u)}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                        title="Delete User"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {canDelete && (
+                        <button
+                          onClick={() => setDeletingUser(u)}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                          title="Delete User"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

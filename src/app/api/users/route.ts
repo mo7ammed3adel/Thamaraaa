@@ -132,7 +132,10 @@ export async function POST(req: Request) {
           role: true,
           level: true,
           status: true,
+          company: true,
           createdAt: true,
+          directManagerId: true,
+          directManager: { select: { id: true, name: true } },
         }
       });
 
