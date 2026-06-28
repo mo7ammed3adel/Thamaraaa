@@ -56,6 +56,10 @@ export function updateApplicant(id: string, body: unknown) {
   return patchJson(`/api/hr/applicants/${id}`, body);
 }
 
+export function submitLeaveRequest(body: unknown) {
+  return postJson("/api/hr/requests", body);
+}
+
 export function listHrRequests() {
   return getJson<any[]>("/api/hr/requests");
 }

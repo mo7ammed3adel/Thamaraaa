@@ -3,19 +3,25 @@
 import { useState, useEffect, useCallback } from "react";
 import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
-import { Users, Briefcase, Calendar, CheckSquare, Plus, X, Search, Edit2, UserX, UserCheck, TrendingUp, FileText, Trash2, AlertTriangle, Award } from "lucide-react";
+import { Users, Briefcase, Calendar, CheckSquare, Plus, X, Search, Edit2, UserX, UserCheck, TrendingUp, FileText, Trash2, AlertTriangle, Award, Clock, Check, CalendarDays } from "lucide-react";
 import { HttpError } from "@/client/transport/http";
 import {
+  createApplicant,
   createDocument,
   createEmployee,
   deleteDocument,
+  listApplicants,
   listDocuments,
+  listHrRequests,
   listPromotionEvaluations,
   runAutoEvaluations,
   runPromotionAction,
   submitAttendance,
+  submitLeaveRequest,
+  updateApplicant,
   updateAttendance,
   updateEmployee,
+  updateHrRequest,
 } from "@/client/api/hr";
 
 const ALL_ROLES = [
@@ -187,6 +193,12 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
           <button onClick={() => setActiveTab("departments")} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "departments" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500"}`}>
             🏢 Departments
           </button>
+          <button onClick={() => setActiveTab("leave")} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "leave" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500"}`}>
+            🌴 Leave Requests
+          </button>
+          <button onClick={() => setActiveTab("recruitment")} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "recruitment" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500"}`}>
+            🧑‍💼 Recruitment
+          </button>
           <button onClick={() => setActiveTab("promotion")} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "promotion" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500"}`}>
             🏆 Promotion Engine
           </button>
@@ -195,6 +207,12 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
           </button>
         </div>
       )}
+
+      {/* LEAVE REQUESTS TAB */}
+      {isManager && activeTab === "leave" && <LeaveRequestsTab />}
+
+      {/* RECRUITMENT TAB */}
+      {isManager && activeTab === "recruitment" && <RecruitmentTab />}
 
       {/* PROMOTION ENGINE TAB */}
       {isManager && activeTab === "promotion" && <PromotionEngineTab />}
@@ -278,6 +296,9 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
               </tbody>
             </table>
           </div>
+
+          {/* Employee Self-Service — request leave, see own requests & documents */}
+          {!isManager && <SelfServiceSection />}
         </div>
       )}
 
@@ -807,6 +828,347 @@ function DocumentsTab({ employees }: { employees: any[] }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Leave Requests Tab — HR reviews and approves/rejects leave & remote work.
+// ─────────────────────────────────────────────────────────────────────
+function LeaveRequestsTab() {
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"Pending" | "Approved" | "Rejected" | "all">("Pending");
+
+  const load = useCallback(() => {
+    setLoading(true);
+    listHrRequests()
+      .then((d: any) => setRequests(Array.isArray(d) ? d : []))
+      .catch(() => setRequests([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const decide = async (id: string, status: "Approved" | "Rejected") => {
+    setBusy(id);
+    try {
+      await updateHrRequest(id, { status });
+      setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
+    } catch (e) {
+      notify(e instanceof HttpError ? e.message : "Action failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const counts = {
+    Pending: requests.filter((r) => r.status === "Pending").length,
+    Approved: requests.filter((r) => r.status === "Approved").length,
+    Rejected: requests.filter((r) => r.status === "Rejected").length,
+  };
+  const filtered = requests.filter((r) => statusFilter === "all" || r.status === statusFilter);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2 text-xs">
+        {(["Pending", "Approved", "Rejected", "all"] as const).map((f) => (
+          <button key={f} onClick={() => setStatusFilter(f)}
+            className={`px-3 py-1.5 rounded-full font-semibold transition ${statusFilter === f ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
+            {f === "all" ? "All" : `${f} (${counts[f]})`}
+          </button>
+        ))}
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <ul className="divide-y">
+          {loading && <li className="px-6 py-8 text-center text-gray-400">Loading requests…</li>}
+          {!loading && filtered.length === 0 && <li className="px-6 py-8 text-center text-gray-400 italic">No requests in this band.</li>}
+          {!loading && filtered.map((req) => (
+            <li key={req.id} className="px-6 py-4 flex flex-col md:flex-row md:justify-between md:items-center gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-gray-900">{req.user?.name}</span>
+                  <span className="text-[10px] bg-gray-100 px-2 py-0.5 rounded capitalize text-gray-600">{(req.user?.role || "").replace(/_/g, " ")}</span>
+                </div>
+                <p className="text-sm font-medium mt-1 text-gray-700">
+                  <span className="text-blue-600">{req.type}</span>
+                  {" • "}{new Date(req.date).toLocaleDateString()}
+                  {req.duration ? ` • ${req.duration}` : ""}
+                </p>
+                {req.reason && <p className="text-sm text-gray-500 mt-1 italic">&quot;{req.reason}&quot;</p>}
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <span className={`px-3 py-1 text-xs font-bold rounded-full ${req.status === "Approved" ? "bg-green-100 text-green-700" : req.status === "Rejected" ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700"}`}>
+                  {req.status}
+                </span>
+                {req.status === "Pending" && (
+                  <div className="flex gap-2">
+                    <button disabled={busy === req.id} onClick={() => decide(req.id, "Approved")} className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 disabled:opacity-50" title="Approve"><Check className="w-4 h-4" /></button>
+                    <button disabled={busy === req.id} onClick={() => decide(req.id, "Rejected")} className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50" title="Reject"><X className="w-4 h-4" /></button>
+                  </div>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+const RECRUITMENT_STAGES = ["New", "HR_Interview", "Department_Interview", "Offer", "Hired", "Rejected"];
+
+// ─────────────────────────────────────────────────────────────────────
+// Recruitment Tab — applicant pipeline (kanban) backed by JobApplicant.
+// ─────────────────────────────────────────────────────────────────────
+function RecruitmentTab() {
+  const [applicants, setApplicants] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    listApplicants()
+      .then((d: any) => setApplicants(d?.data || []))
+      .catch(() => setApplicants([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const move = async (id: string, status: string) => {
+    setApplicants((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)));
+    try {
+      await updateApplicant(id, { status });
+    } catch (e) {
+      notify(e instanceof HttpError ? e.message : "Update failed");
+      load();
+    }
+  };
+
+  const add = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = new FormData(e.target as HTMLFormElement);
+    setSaving(true);
+    try {
+      await createApplicant({
+        name: form.get("name"),
+        email: form.get("email"),
+        phone: form.get("phone"),
+        roleApplied: form.get("roleApplied"),
+        notes: form.get("notes") || null,
+      });
+      setShowAdd(false);
+      load();
+    } catch (err) {
+      notify(err instanceof HttpError ? err.message : "Failed to add applicant");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-gray-500">{applicants.length} applicants in pipeline</p>
+        <button onClick={() => setShowAdd(true)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg flex items-center gap-2 shadow-sm">
+          <Plus className="w-4 h-4" /> Add Applicant
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="bg-white border rounded-xl p-12 text-center text-gray-400">Loading pipeline…</div>
+      ) : (
+        <div className="flex gap-4 overflow-x-auto pb-4">
+          {RECRUITMENT_STAGES.map((stage) => {
+            const stageApps = applicants.filter((a) => a.status === stage);
+            return (
+              <div key={stage} className="flex-shrink-0 w-72 bg-gray-50 rounded-xl border border-gray-200 flex flex-col max-h-[560px]">
+                <div className="p-3 border-b bg-gray-100 rounded-t-xl font-semibold text-gray-700 flex justify-between items-center text-sm">
+                  <span>{stage.replace(/_/g, " ")}</span>
+                  <span className="bg-white text-xs px-2 py-0.5 rounded-full border">{stageApps.length}</span>
+                </div>
+                <div className="p-3 flex-1 overflow-y-auto space-y-3">
+                  {stageApps.map((app) => (
+                    <div key={app.id} className="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                      <div className="flex justify-between items-start mb-1 gap-2">
+                        <h4 className="font-bold text-gray-900 text-sm">{app.name}</h4>
+                        <select value={app.status} onChange={(e) => move(app.id, e.target.value)} title="Change stage" className="text-[10px] border rounded px-1 py-0.5 bg-slate-50">
+                          {RECRUITMENT_STAGES.map((s) => <option key={s} value={s}>{s.replace(/_/g, " ")}</option>)}
+                        </select>
+                      </div>
+                      <p className="text-xs text-blue-600 font-medium">{app.roleApplied}</p>
+                      <p className="text-xs text-gray-500 mt-1">{app.phone}</p>
+                      {app.notes && <p className="text-xs text-gray-400 mt-2 line-clamp-2 italic">&quot;{app.notes}&quot;</p>}
+                    </div>
+                  ))}
+                  {stageApps.length === 0 && <div className="text-center text-xs text-gray-400 py-4 italic border-2 border-dashed rounded-lg">Empty</div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {showAdd && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4 border-b flex justify-between items-center">
+              <h3 className="text-lg font-bold text-gray-900">New Applicant</h3>
+              <button onClick={() => setShowAdd(false)} className="text-gray-400 hover:text-gray-600">&times;</button>
+            </div>
+            <form onSubmit={add} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                <input name="name" required className="w-full border rounded p-2 text-sm" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                  <input name="email" type="email" required className="w-full border rounded p-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
+                  <input name="phone" required className="w-full border rounded p-2 text-sm" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Role Applied For *</label>
+                <input name="roleApplied" required placeholder="e.g. Senior Sales Agent" className="w-full border rounded p-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Initial Notes</label>
+                <textarea name="notes" rows={2} className="w-full border rounded p-2 text-sm" />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200">Cancel</button>
+                <button type="submit" disabled={saving} className="px-5 py-2 bg-blue-600 text-white rounded-md text-sm font-bold hover:bg-blue-700 disabled:opacity-50">{saving ? "Saving…" : "Save Applicant"}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Employee Self-Service — request leave, track own requests & documents.
+// ─────────────────────────────────────────────────────────────────────
+function SelfServiceSection() {
+  const [requests, setRequests] = useState<any[]>([]);
+  const [docs, setDocs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState({ type: "Leave", date: "", duration: "1 Day", reason: "" });
+
+  const load = useCallback(() => {
+    setLoading(true);
+    Promise.all([
+      listHrRequests().then((d: any) => (Array.isArray(d) ? d : [])).catch(() => []),
+      listDocuments().then((d: any) => d?.documents || []).catch(() => []),
+    ]).then(([reqs, documents]) => {
+      setRequests(reqs);
+      setDocs(documents);
+    }).finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.date) { notify("Please choose a date"); return; }
+    setSubmitting(true);
+    try {
+      await submitLeaveRequest(form);
+      notify("Request submitted to HR");
+      setForm({ type: "Leave", date: "", duration: "1 Day", reason: "" });
+      load();
+    } catch (err) {
+      notify(err instanceof HttpError ? err.message : "Failed to submit request");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Request Leave */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><CalendarDays className="w-5 h-5 text-blue-600" /> Request Leave / Remote</h2>
+        <form onSubmit={submit} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Type</label>
+              <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                <option value="Leave">Leave</option>
+                <option value="Remote">Remote Work</option>
+                <option value="Permission">Permission</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Date</label>
+              <input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Duration</label>
+            <select value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+              <option>Half Day</option>
+              <option>1 Day</option>
+              <option>2 Days</option>
+              <option>3 Days</option>
+              <option>1 Week</option>
+              <option>2 Hours</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Reason</label>
+            <textarea value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} rows={2} placeholder="Optional note for HR…" className="w-full border rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <button type="submit" disabled={submitting} className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg disabled:opacity-50 transition">
+            {submitting ? "Submitting…" : "Submit Request"}
+          </button>
+        </form>
+      </div>
+
+      {/* My Requests + My Documents */}
+      <div className="space-y-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2"><Clock className="w-5 h-5 text-amber-600" /> My Requests</h2>
+          {loading ? <p className="text-sm text-gray-400">Loading…</p> : requests.length === 0 ? (
+            <p className="text-sm text-gray-400 italic">No requests yet.</p>
+          ) : (
+            <ul className="divide-y">
+              {requests.slice(0, 6).map((r) => (
+                <li key={r.id} className="py-2 flex justify-between items-center text-sm">
+                  <span className="text-gray-700"><span className="font-semibold text-blue-600">{r.type}</span> • {new Date(r.date).toLocaleDateString()}{r.duration ? ` • ${r.duration}` : ""}</span>
+                  <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${r.status === "Approved" ? "bg-green-100 text-green-700" : r.status === "Rejected" ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700"}`}>{r.status}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2"><FileText className="w-5 h-5 text-slate-500" /> My Documents</h2>
+          {loading ? <p className="text-sm text-gray-400">Loading…</p> : docs.length === 0 ? (
+            <p className="text-sm text-gray-400 italic">No documents on file.</p>
+          ) : (
+            <ul className="divide-y">
+              {docs.map((d) => (
+                <li key={d.id} className="py-2 flex justify-between items-center text-sm">
+                  <span className="font-medium text-gray-700">{d.name}</span>
+                  <a href={d.fileUrl} target="_blank" rel="noopener noreferrer" className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-bold hover:bg-blue-100">View</a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
