@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
-import { Pencil, Trash2, LogIn } from "lucide-react";
+import { Pencil, Trash2, LogIn, Search } from "lucide-react";
 import { HttpError } from "@/client/transport/http";
 import { impersonateUser } from "@/client/api/admin";
 
@@ -12,6 +12,8 @@ export default function UserListClient({ initialUsers, managers, canImpersonate 
   const [users, setUsers] = useState(initialUsers);
   const [showModal, setShowModal] = useState(false);
   const [impersonatingId, setImpersonatingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
 
   const handleImpersonate = async (user: any) => {
     setImpersonatingId(user.id);
@@ -151,14 +153,61 @@ export default function UserListClient({ initialUsers, managers, canImpersonate 
   // Filter managers to matching role if possible (simplified: just list all fetched managers)
   const availableManagers = managers;
 
+  const availableRoles = Array.from(new Set(users.map((u) => u.role))).sort();
+
+  const filteredUsers = users.filter((u) => {
+    const matchesRole = roleFilter === "all" || u.role === roleFilter;
+    const q = searchQuery.trim().toLowerCase();
+    const matchesSearch =
+      !q ||
+      u.name?.toLowerCase().includes(q) ||
+      u.email?.toLowerCase().includes(q) ||
+      (u.phone || "").toLowerCase().includes(q);
+    return matchesRole && matchesSearch;
+  });
+
   return (
     <div>
-      <button 
-        onClick={() => setShowModal(true)}
-        className="mb-6 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm"
-      >
-        + Create New User
-      </button>
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        <button
+          onClick={() => setShowModal(true)}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm"
+        >
+          + Create New User
+        </button>
+
+        <div className="flex flex-wrap items-center gap-3 ml-auto">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search name, email or phone…"
+              className="w-64 max-w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500 capitalize"
+          >
+            <option value="all">All Roles</option>
+            {availableRoles.map((r) => (
+              <option key={r} value={r} className="capitalize">{r.replace(/_/g, " ")}</option>
+            ))}
+          </select>
+          {(searchQuery || roleFilter !== "all") && (
+            <button
+              onClick={() => { setSearchQuery(""); setRoleFilter("all"); }}
+              className="px-3 py-2 text-xs font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition"
+            >
+              ✕ Clear
+            </button>
+          )}
+          <span className="text-xs text-gray-400 whitespace-nowrap">{filteredUsers.length} of {users.length}</span>
+        </div>
+      </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
@@ -174,7 +223,10 @@ export default function UserListClient({ initialUsers, managers, canImpersonate 
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {users.map((u) => (
+              {filteredUsers.length === 0 && (
+                <tr><td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-500 italic">No users match the filters.</td></tr>
+              )}
+              {filteredUsers.map((u) => (
                 <tr key={u.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{u.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
