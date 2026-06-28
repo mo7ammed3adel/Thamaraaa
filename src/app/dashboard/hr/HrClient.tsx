@@ -5,6 +5,7 @@ import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
 import { Users, Briefcase, Calendar, CheckSquare, Plus, X, Search, Edit2, UserX, UserCheck, TrendingUp, FileText, Trash2, AlertTriangle, Award, Clock, Check, CalendarDays } from "lucide-react";
 import { HttpError } from "@/client/transport/http";
+import { computeLeaveBalance } from "@/lib/leaveBalance";
 import {
   createApplicant,
   createDocument,
@@ -1094,6 +1095,8 @@ function SelfServiceSection() {
     }
   };
 
+  const balance = computeLeaveBalance(requests, new Date().getFullYear());
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Request Leave */}
@@ -1135,8 +1138,27 @@ function SelfServiceSection() {
         </form>
       </div>
 
-      {/* My Requests + My Documents */}
+      {/* Leave Balance + My Requests + My Documents */}
       <div className="space-y-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2"><CalendarDays className="w-5 h-5 text-emerald-600" /> Annual Leave Balance <span className="text-xs font-normal text-gray-400">({new Date().getFullYear()})</span></h2>
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="bg-slate-50 border rounded-lg p-3">
+              <p className="text-[10px] uppercase font-bold text-slate-400">Quota</p>
+              <p className="text-2xl font-black text-slate-800">{balance.quota}</p>
+            </div>
+            <div className="bg-amber-50 border border-amber-100 rounded-lg p-3">
+              <p className="text-[10px] uppercase font-bold text-amber-500">Used</p>
+              <p className="text-2xl font-black text-amber-700">{balance.used}</p>
+            </div>
+            <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-3">
+              <p className="text-[10px] uppercase font-bold text-emerald-500">Remaining</p>
+              <p className="text-2xl font-black text-emerald-700">{balance.remaining}</p>
+            </div>
+          </div>
+          <p className="text-[10px] text-gray-400 mt-2">Counts approved Leave-type requests this year against a {balance.quota}-day annual quota.</p>
+        </div>
+
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2"><Clock className="w-5 h-5 text-amber-600" /> My Requests</h2>
           {loading ? <p className="text-sm text-gray-400">Loading…</p> : requests.length === 0 ? (
