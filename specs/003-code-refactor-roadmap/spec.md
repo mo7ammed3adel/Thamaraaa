@@ -289,7 +289,7 @@ npm run build
 
 - [x] R0520 تفكيك `AccountManagerClient.tsx` إلى hooks/components.
 - [x] R0521 تفكيك `HeadAccountManagerClient.tsx`.
-- [ ] R0522 تفكيك `HeadTechnicalClient.tsx`.
+- [x] R0522 تفكيك `HeadTechnicalClient.tsx`.
 - [ ] R0523 تفكيك `SeoClient.tsx`.
 - [ ] R0524 تفكيك `SocialMediaClient.tsx`.
 - [ ] R0525 تفكيك `MediaBuyerClient.tsx`.

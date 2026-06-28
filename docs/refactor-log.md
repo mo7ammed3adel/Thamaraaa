@@ -1,5 +1,21 @@
 # Refactor Log
 
+## 2026-06-28 - Phase 5 Slice: Head Technical Dashboard
+
+Scope:
+
+- Completed R0522 by reducing `HeadTechnicalClient.tsx` to a composition/state orchestrator.
+- Extracted derived filtering and technical department calculations into `useHeadTechnicalDerivedData`.
+- Extracted KPI cards, team leader workload, master clients table, and global tasks execution into focused components.
+
+Smell -> principle -> fix:
+
+- `HeadTechnicalClient.tsx` mixed state, derived data, project filtering, department summary calculations, and two large tables -> SRP / component and hook boundaries -> split calculations into a hook and rendering into focused dashboard components.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed after each refactor slice.
+
 ## 2026-06-27 - Phase 0 Baseline
 
 Scope: establish the safety baseline before any behavior-preserving refactor work.
