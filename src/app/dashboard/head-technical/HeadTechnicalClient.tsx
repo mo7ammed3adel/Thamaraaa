@@ -6,91 +6,33 @@ import { AlertTriangle, Search, X } from "lucide-react";
 
 import TeamWorkloadBadge from "@/components/TeamWorkloadBadge";
 import LifecycleStateBadge from "@/components/LifecycleStateBadge";
+import {
+  getDelayedTechnicalTasks,
+  getDepartmentSummary,
+  getHeadTechnicalDepartmentsToShow,
+  getHeadTechnicalProgressColor,
+  getMissingTechnicalDepartments,
+  isHeadTechnicalTask,
+  useHeadTechnicalDerivedData,
+} from "./useHeadTechnicalDerivedData";
 
 export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userId }: any) {
   const router = useRouter();
   const [taskFilter, setTaskFilter] = useState("all");
   const [activeKpi, setActiveKpi] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-
-  const technicalTaskToDepartment: Record<string, string> = {
-    Social_Media: "social_media",
-    social_media: "social_media",
-    Media_Buyer: "media_buyer",
-    media_buyer: "media_buyer",
-    media_buying: "media_buyer",
-  };
-
-  const isTechnicalTask = (task: any) => Boolean(technicalTaskToDepartment[task.taskType]);
-
-  const hasDepartmentLeader = (project: any, department: string) => {
-    const hasAssignmentLeader = (project.teamAssignments || []).some((assignment: any) =>
-      assignment.department === department &&
-      assignment.role.includes("leader")
-    );
-    const hasTaskLeader = (project.tasks || []).some((task: any) =>
-      technicalTaskToDepartment[task.taskType] === department &&
-      Boolean(task.leaderId)
-    );
-    return hasAssignmentLeader || hasTaskLeader;
-  };
-
-  const missingTechnicalDepartments = (project: any) =>
-    (project.requiredTechnicalDepartments || []).filter((department: string) => !hasDepartmentLeader(project, department));
-
-  const delayedTechnicalTasks = (project: any) =>
-    (project.tasks || []).filter((task: any) =>
-      isTechnicalTask(task) &&
-      task.status !== "done" &&
-      task.deadline &&
-      new Date(task.deadline) < new Date()
-    );
-
-  const departmentSummary = (project: any, department: string) => {
-    const assignments = (project.teamAssignments || []).filter((assignment: any) => assignment.department === department);
-    const tasks = (project.tasks || []).filter((task: any) => technicalTaskToDepartment[task.taskType] === department);
-    const leader = assignments.find((assignment: any) => assignment.role.includes("leader"))?.user || tasks.find((task: any) => task.leader)?.leader || null;
-    const agentIds = new Set<string>();
-
-    assignments
-      .filter((assignment: any) => assignment.role.includes("agent"))
-      .forEach((assignment: any) => agentIds.add(assignment.userId));
-    tasks
-      .filter((task: any) => task.agentId)
-      .forEach((task: any) => agentIds.add(task.agentId));
-
-    return {
-      department,
-      leader,
-      agentCount: agentIds.size,
-      hasDelayedTasks: tasks.some((task: any) => task.status !== "done" && task.deadline && new Date(task.deadline) < new Date()),
-    };
-  };
-
-  const filteredProjects = projects.filter((p: any) => {
-    const matchSearch = !searchQuery ||
-      p.deal?.lead?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.deal?.lead?.phone?.includes(searchQuery) ||
-      p.package?.toLowerCase().includes(searchQuery.toLowerCase());
-
-    let matchKpi = true;
-    if (activeKpi === "unassigned") matchKpi = missingTechnicalDepartments(p).length > 0;
-    else if (activeKpi === "active") matchKpi = ["in_progress", "setup", "assigned"].includes(p.projectStatus);
-    else if (activeKpi === "delayed") matchKpi = p.projectStatus === "delayed" || delayedTechnicalTasks(p).length > 0;
-    else if (activeKpi === "in_progress") matchKpi = p.tasks?.some((t: any) => isTechnicalTask(t) && ["pending", "in_progress"].includes(t.status));
-    else if (activeKpi === "warnings") matchKpi = (p.warnings || []).length > 0;
-
-    return matchSearch && matchKpi;
+  const { filteredProjects, hasActiveFilters, visibleTasks } = useHeadTechnicalDerivedData({
+    projects,
+    allTasks: kpis.allTasks,
+    activeKpi,
+    searchQuery,
+    taskFilter,
   });
-
-  const hasActiveFilters = searchQuery || activeKpi !== "all";
 
   const clearAllFilters = () => {
     setSearchQuery("");
     setActiveKpi("all");
   };
-
-  const getProgressColor = (val: number) => val < 30 ? "bg-red-500" : val < 70 ? "bg-amber-400" : "bg-emerald-500";
 
   return (
     <div className="space-y-6">
@@ -180,19 +122,11 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filteredProjects.map((p: any) => {
-                const delayedTasks = delayedTechnicalTasks(p).length;
-                const activeTasks = p.tasks?.filter((t: any) => isTechnicalTask(t) && t.status !== "done").length || 0;
+                const delayedTasks = getDelayedTechnicalTasks(p).length;
+                const activeTasks = p.tasks?.filter((t: any) => isHeadTechnicalTask(t) && t.status !== "done").length || 0;
                 const warningCount = p.warnings?.length || 0;
-                const missingDepartments = missingTechnicalDepartments(p);
-                const departmentsToShow = Array.from(new Set([
-                  ...(p.requiredTechnicalDepartments || []),
-                  ...(p.teamAssignments || [])
-                    .filter((assignment: any) => ["social_media", "media_buyer"].includes(assignment.department))
-                    .map((assignment: any) => assignment.department),
-                  ...(p.tasks || [])
-                    .map((task: any) => technicalTaskToDepartment[task.taskType])
-                    .filter(Boolean),
-                ]));
+                const missingDepartments = getMissingTechnicalDepartments(p);
+                const departmentsToShow = getHeadTechnicalDepartmentsToShow(p);
                 
                 return (
                   <tr key={p.id} className="hover:bg-slate-50/50 transition">
@@ -216,7 +150,7 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-2">
                         {departmentsToShow.map((department: string) => {
-                          const dept = departmentSummary(p, department);
+                          const dept = getDepartmentSummary(p, department);
                           return (
                             <TeamWorkloadBadge
                               key={department}
@@ -243,7 +177,7 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
                           <div key={b.label} className="flex items-center text-[10px]">
                             <span className="w-8 font-bold text-slate-400">{b.label}</span>
                             <div className="flex-1 bg-slate-100 h-1 mx-2 rounded-full overflow-hidden">
-                              <div className={`${getProgressColor(b.val)} h-1`} style={{ width: `${b.val}%` }} />
+                              <div className={`${getHeadTechnicalProgressColor(b.val)} h-1`} style={{ width: `${b.val}%` }} />
                             </div>
                             <span className="w-6 text-right font-bold text-slate-600">{b.val.toFixed(0)}%</span>
                           </div>
@@ -324,14 +258,7 @@ export default function HeadTechnicalClient({ projects, teamLeaders, kpis, userI
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 bg-white">
-              {kpis.allTasks
-                .filter((t:any) => {
-                  if(taskFilter === "all") return true;
-                  if(taskFilter === "delayed") return t.status !== "done" && t.deadline && new Date(t.deadline) < new Date();
-                  return t.status === taskFilter;
-                })
-                .sort((a:any, b:any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                .map((t: any) => {
+              {visibleTasks.map((t: any) => {
                 const isDelayed = t.status !== "done" && t.deadline && new Date(t.deadline) < new Date();
                 const parentProject = projects.find((p:any) => p.id === t.projectId);
                 return (
