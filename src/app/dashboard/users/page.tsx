@@ -8,7 +8,8 @@ import UserListClient from "./UserListClient";
 export default async function UsersPage() {
   const session = await getServerSession(authOptions);
   
-  if ((session?.user as any)?.role !== "super_admin" && (session?.user as any)?.role !== "hr_manager") {
+  const viewerRole = (session?.user as any)?.role;
+  if (viewerRole !== "super_admin" && viewerRole !== "hr_manager") {
     redirect("/dashboard");
   }
 
@@ -44,7 +45,7 @@ export default async function UsersPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
       </div>
-      <UserListClient initialUsers={users} managers={managers} />
+      <UserListClient initialUsers={users} managers={managers} canImpersonate={viewerRole === "super_admin"} />
     </div>
   );
 }

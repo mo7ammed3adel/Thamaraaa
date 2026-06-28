@@ -12,6 +12,8 @@ declare module "next-auth" {
       id: string;
       role: string;
       level?: string;
+      /** Present only while a super_admin is impersonating this user. */
+      impersonatedBy?: { id: string; name?: string | null } | null;
     } & DefaultSession["user"];
   }
 

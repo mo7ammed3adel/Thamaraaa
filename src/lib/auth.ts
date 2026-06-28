@@ -1,7 +1,11 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { cookies } from "next/headers";
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
+
+/** Cookie that carries an active impersonation as "<impersonatorId>:<targetId>". */
+export const IMPERSONATION_COOKIE = "imp_session";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -57,6 +61,39 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role;
         session.user.level = token.level;
       }
+
+      // Super-admin impersonation overlay: when a super_admin has an active
+      // impersonation cookie, every getServerSession() resolves to the target
+      // user so the whole app behaves exactly as that user. The real identity
+      // stays in the JWT (token), which is never mutated — that's how "exit"
+      // and the impersonate routes recover the admin.
+      if (token?.role === "super_admin" && session.user) {
+        try {
+          const raw = cookies().get(IMPERSONATION_COOKIE)?.value;
+          if (raw) {
+            const sep = raw.indexOf(":");
+            const impersonatorId = sep >= 0 ? raw.slice(0, sep) : "";
+            const targetId = sep >= 0 ? raw.slice(sep + 1) : "";
+            if (impersonatorId === token.id && targetId && targetId !== token.id) {
+              const target = await prisma.user.findUnique({
+                where: { id: targetId },
+                select: { id: true, name: true, email: true, role: true, level: true },
+              });
+              if (target) {
+                session.user.impersonatedBy = { id: token.id as string, name: session.user.name };
+                session.user.id = target.id;
+                session.user.role = target.role;
+                session.user.name = target.name;
+                session.user.email = target.email;
+                session.user.level = target.level || undefined;
+              }
+            }
+          }
+        } catch {
+          // cookies() may be unavailable outside a request scope — ignore.
+        }
+      }
+
       return session;
     },
   },

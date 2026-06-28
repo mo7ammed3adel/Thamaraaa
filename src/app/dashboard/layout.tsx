@@ -9,6 +9,7 @@ import NotificationBell from "@/components/NotificationBell";
 import WarningPopup from "@/components/WarningPopup";
 import GlobalWarningAlert from "@/components/GlobalWarningAlert";
 import DashboardShell from "@/components/DashboardShell";
+import ImpersonationBanner from "@/components/ImpersonationBanner";
 
 export default async function DashboardLayout({
   children,
@@ -23,12 +24,15 @@ export default async function DashboardLayout({
 
   const role = session.user.role;
   const userId = session.user.id;
+  const impersonatedBy = session.user.impersonatedBy;
 
   /** Check if user has one of the given roles (super_admin always passes) */
   const hasRole = (...roles: string[]) => roles.includes(role) || role === "super_admin";
 
   return (
     <>
+      {impersonatedBy && <ImpersonationBanner name={session.user.name} role={role} />}
+
       {/* Warning Popup - renders for all roles, filters internally */}
       <WarningPopup userRole={role} userId={userId} />
       <GlobalWarningAlert userId={userId} />

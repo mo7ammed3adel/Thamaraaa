@@ -3,12 +3,27 @@
 import { useState } from "react";
 import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, LogIn } from "lucide-react";
+import { HttpError } from "@/client/transport/http";
+import { impersonateUser } from "@/client/api/admin";
 
-export default function UserListClient({ initialUsers, managers }: { initialUsers: any[]; managers: any[] }) {
+export default function UserListClient({ initialUsers, managers, canImpersonate = false }: { initialUsers: any[]; managers: any[]; canImpersonate?: boolean }) {
   const router = useRouter();
   const [users, setUsers] = useState(initialUsers);
   const [showModal, setShowModal] = useState(false);
+  const [impersonatingId, setImpersonatingId] = useState<string | null>(null);
+
+  const handleImpersonate = async (user: any) => {
+    setImpersonatingId(user.id);
+    try {
+      await impersonateUser(user.id);
+      router.push("/dashboard");
+      router.refresh();
+    } catch (error) {
+      notify(error instanceof HttpError ? error.message : "Failed to access dashboard");
+      setImpersonatingId(null);
+    }
+  };
   
   // Create User State
   const [formData, setFormData] = useState({
@@ -185,7 +200,17 @@ export default function UserListClient({ initialUsers, managers }: { initialUser
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                     <div className="flex items-center justify-end gap-1">
-                      <button 
+                      {canImpersonate && (
+                        <button
+                          onClick={() => handleImpersonate(u)}
+                          disabled={impersonatingId === u.id}
+                          className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors disabled:opacity-50"
+                          title="Access this user's dashboard (impersonate)"
+                        >
+                          <LogIn className="h-4 w-4" />
+                        </button>
+                      )}
+                      <button
                         onClick={() => openEditModal(u)}
                         className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
                         title="Edit User"
