@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Calendar, PhoneCall, ChevronDown, ChevronUp, CheckCircle2, XCircle, FileText, Send, X, Clock, AlertTriangle, ExternalLink } from "lucide-react";
@@ -13,6 +14,7 @@ import { updateUserStatus } from "@/client/api/users";
 import DateRangeFilter from "@/components/dashboard/DateRangeFilter";
 import { isDateInRange } from "@/lib/dateRange";
 import { getLeadFollowUpDisplay, getLeadMeetingDisplay } from "@/lib/leadScheduleDisplay";
+import { PACKAGE_SERVICES, buildDealPackageLabel } from "@/lib/dealPackage";
 
 export default function SalesClient({ initialLeads, userRole, userId, initialStatus, postSaleProjects = [] }: { initialLeads: any[], userRole: string, userId: string, initialStatus: string, postSaleProjects?: any[] }) {
   const router = useRouter();
@@ -102,7 +104,9 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
   // Deal closing form
   const [showClosingForm, setShowClosingForm] = useState(false);
   const [dealData, setDealData] = useState({
-    packageType: "SEO",
+    packageMode: "unified" as "unified" | "monthly",
+    packageServices: [] as string[],
+    monthlyPackages: [{ services: [] as string[] }],
     contractStart: "",
     contractEnd: "",
     totalAmount: "",
@@ -246,10 +250,44 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     setDealData({ ...dealData, installments: newInsts });
   };
 
+  const toggleService = (services: string[], svc: string) =>
+    services.includes(svc) ? services.filter(s => s !== svc) : [...services, svc];
+
+  const toggleUnifiedService = (svc: string) => {
+    setDealData(prev => ({ ...prev, packageServices: toggleService(prev.packageServices, svc) }));
+  };
+
+  const toggleMonthlyService = (monthIdx: number, svc: string) => {
+    setDealData(prev => ({
+      ...prev,
+      monthlyPackages: prev.monthlyPackages.map((m, i) =>
+        i === monthIdx ? { services: toggleService(m.services, svc) } : m
+      ),
+    }));
+  };
+
+  const addPackageMonth = () => {
+    setDealData(prev => ({ ...prev, monthlyPackages: [...prev.monthlyPackages, { services: [] }] }));
+  };
+
+  const removePackageMonth = (monthIdx: number) => {
+    setDealData(prev => ({ ...prev, monthlyPackages: prev.monthlyPackages.filter((_, i) => i !== monthIdx) }));
+  };
+
   const closeDeal = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const payload = { ...dealData };
+
+    const packageType = buildDealPackageLabel(dealData);
+    if (!packageType) {
+      notify(
+        dealData.packageMode === "monthly"
+          ? "Select at least one package service for every month."
+          : "Select at least one package service."
+      );
+      return;
+    }
+
+    const payload = { ...dealData, packageType };
     // Default firstAmount to totalAmount if not provided
     if (!payload.firstAmount) {
       payload.firstAmount = payload.totalAmount;
@@ -264,7 +302,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
           ...payload
       });
     } catch (error) {
-      alert(`Failed to close deal: ${error instanceof Error ? error.message : "Unknown error"}`);
+      notify(`Failed to close deal: ${error instanceof Error ? error.message : "Unknown error"}`);
       return;
     }
     // The Operations project is created atomically by POST /api/deals — no
@@ -279,7 +317,8 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     setActiveLead(null);
     setFeedback({ notes: "", outcome: "won", followUpDate: "", meetingDate: "", meetingTime: "", hasStore: "No", storeLink: "", customerType: "Launch" });
     setDealData({
-      packageType: "SEO", contractStart: "", contractEnd: "",
+      packageMode: "unified", packageServices: [], monthlyPackages: [{ services: [] }],
+      contractStart: "", contractEnd: "",
       totalAmount: "", firstAmount: "", paymentType: "Full",
       paymentMethod: "Cash", installments: [], contractImageUrl: "", receiptUrl: ""
     });
@@ -301,12 +340,12 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         type: "meeting_link",
         relatedId: linkLead.id,
       });
-      alert("Link sent to TeleSales Agent!");
+      notify("Link sent to TeleSales Agent!");
       setLinkLead(null);
       setMeetingLink("");
     } catch (error) {
       const message = error instanceof HttpError ? error.message : "Failed to send link";
-      alert(message);
+      notify(message);
     } finally {
       setSendingLink(false);
     }
@@ -507,6 +546,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Classification</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TeleSales Agent</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Meeting Time</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Follow-up</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Note</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
@@ -543,27 +583,30 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {(() => {
                       const meetingDisplay = getLeadMeetingDisplay(l);
-                      const followUpDisplay = getLeadFollowUpDisplay(l);
-
-                      if (l.status === "Follow_Up" && followUpDisplay.hasDate) {
-                        return (
-                          <>
-                            <span className="font-semibold text-amber-700">Follow-up</span>
-                            <br />
-                            <span className="text-xs text-amber-600 font-medium">{followUpDisplay.fullLabel}</span>
-                          </>
-                        );
+                      if (!meetingDisplay.hasDate) {
+                        return <span className="text-gray-400 italic">—</span>;
                       }
-
                       return (
                         <>
-                          {meetingDisplay.fullLabel || "N/A"}
-                          {followUpDisplay.hasDate && (
-                            <>
-                              <br />
-                              <span className="text-xs text-amber-600 font-medium">Follow-up: {followUpDisplay.fullLabel}</span>
-                            </>
+                          <span className="font-medium text-gray-800">{meetingDisplay.dateLabel}</span>
+                          {meetingDisplay.timeLabel && (
+                            <span className="text-blue-600 font-medium"> {meetingDisplay.timeLabel}</span>
                           )}
+                        </>
+                      );
+                    })()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {(() => {
+                      const followUpDisplay = getLeadFollowUpDisplay(l);
+                      if (!followUpDisplay.hasDate) {
+                        return <span className="text-gray-400 italic">—</span>;
+                      }
+                      return (
+                        <>
+                          <span className="font-semibold text-amber-700">Follow-up</span>
+                          <br />
+                          <span className="text-xs text-amber-600 font-medium">{followUpDisplay.fullLabel}</span>
                         </>
                       );
                     })()}
@@ -597,7 +640,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                 {/* Expanded Call Logs */}
                 {expandedLead === l.id && l.callLogs && l.callLogs.length > 0 && (
                   <tr key={`${l.id}-logs`}>
-                    <td colSpan={7} className="px-6 py-3 bg-slate-50">
+                    <td colSpan={8} className="px-6 py-3 bg-slate-50">
                       <div className="space-y-2">
                         <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">TeleSales Call History ({l.callLogs.length} calls)</p>
                         {l.callLogs.map((log: any, idx: number) => (
@@ -624,7 +667,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
               </React.Fragment>
             ))}
             {paginatedLeads.length === 0 && (
-              <tr><td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500">No active leads match the filters.</td></tr>
+              <tr><td colSpan={8} className="px-6 py-8 text-center text-sm text-gray-500">No active leads match the filters.</td></tr>
             )}
           </tbody>
         </table>
@@ -741,20 +784,22 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
       )}
 
       {showFeedbackForm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold">Task Feedback</h3>
-              <button 
-                type="button" 
-                onClick={closeFeedbackTemporarily} 
-                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" 
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-3 sm:p-4">
+          <form onSubmit={submitFeedback} className="bg-white rounded-xl shadow-xl w-full max-w-sm sm:max-w-md max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center px-4 sm:px-5 py-3 border-b shrink-0">
+              <h3 className="text-base font-bold">Task Feedback</h3>
+              <button
+                type="button"
+                onClick={closeFeedbackTemporarily}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                 title="Close temporarily — your data will be saved as draft"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            
+
+            <div className="overflow-y-auto px-4 sm:px-5 py-4 space-y-4">
+
             {activeLead?.callLogs?.[0] && (() => {
               const lastLog = activeLead.callLogs[0];
               const diffTime = Math.abs(new Date().getTime() - new Date(lastLog.createdAt).getTime());
@@ -807,7 +852,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
               </div>
             )}
 
-            <form onSubmit={submitFeedback} className="space-y-4 border-t pt-4">
+            <div className="space-y-4 border-t pt-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Outcome</label>
                 <div className="flex gap-4 flex-wrap">
@@ -879,12 +924,13 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                 <textarea required rows={3} className="w-full border-2 border-blue-200 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-gray-400" value={feedback.notes} onChange={e => setFeedback({...feedback, notes: e.target.value})} placeholder="Write detailed new notes about the current call/meeting..." />
               </div>
               <p className="text-[10px] text-gray-400 -mt-2">These notes will be independently saved to the interaction history log.</p>
-              
-              <div className="flex justify-end gap-3 mt-6">
-               <button type="submit" className="px-4 py-2 bg-blue-600 font-bold hover:bg-blue-700 text-white rounded w-full">Confirm & Continue</button>
               </div>
-            </form>
-          </div>
+            </div>
+
+            <div className="px-4 sm:px-5 py-3 border-t shrink-0">
+              <button type="submit" className="px-4 py-2 bg-blue-600 font-bold hover:bg-blue-700 text-white rounded w-full">Confirm & Continue</button>
+            </div>
+          </form>
         </div>
       )}
 
@@ -893,15 +939,69 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl p-6 my-8">
             <h3 className="text-xl font-bold mb-6 border-b pb-2">Deal Closing Form</h3>
             <form onSubmit={closeDeal} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Package</label>
-                  <select className="w-full border p-2 rounded" value={dealData.packageType} onChange={e => setDealData({...dealData, packageType: e.target.value})}>
-                    <option>SEO</option>
-                    <option>Social</option>
-                    <option>Full</option>
-                  </select>
+              {/* Package Services — multi-select checkboxes, optionally per-month */}
+              <div className="border rounded-lg p-3 bg-gray-50/60">
+                <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+                  <label className="block text-sm font-bold text-gray-800">Package Services</label>
+                  <div className="flex items-center gap-1 bg-white border rounded-lg p-0.5 text-xs font-medium">
+                    <button
+                      type="button"
+                      onClick={() => setDealData({ ...dealData, packageMode: "unified" })}
+                      className={`px-2.5 py-1 rounded-md transition-colors ${dealData.packageMode === "unified" ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"}`}
+                    >
+                      Same every month
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDealData({ ...dealData, packageMode: "monthly" })}
+                      className={`px-2.5 py-1 rounded-md transition-colors ${dealData.packageMode === "monthly" ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"}`}
+                    >
+                      Different per month
+                    </button>
+                  </div>
                 </div>
+
+                {dealData.packageMode === "unified" ? (
+                  <div className="flex flex-wrap gap-2">
+                    {PACKAGE_SERVICES.map(s => {
+                      const checked = dealData.packageServices.includes(s.value);
+                      return (
+                        <label key={s.value} className={`flex items-center gap-2 text-sm rounded-lg border px-3 py-2 cursor-pointer transition-colors ${checked ? "border-blue-500 bg-blue-50 text-blue-700 font-medium" : "border-gray-200 bg-white hover:border-blue-300"}`}>
+                          <input type="checkbox" checked={checked} onChange={() => toggleUnifiedService(s.value)} />
+                          {s.label}
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {dealData.monthlyPackages.map((m, idx) => (
+                      <div key={idx} className="bg-white border rounded-lg p-2.5">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">Month {idx + 1}</span>
+                          {dealData.monthlyPackages.length > 1 && (
+                            <button type="button" onClick={() => removePackageMonth(idx)} className="text-xs font-semibold text-red-500 hover:text-red-700">Remove</button>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {PACKAGE_SERVICES.map(s => {
+                            const checked = m.services.includes(s.value);
+                            return (
+                              <label key={s.value} className={`flex items-center gap-2 text-sm rounded-lg border px-3 py-1.5 cursor-pointer transition-colors ${checked ? "border-blue-500 bg-blue-50 text-blue-700 font-medium" : "border-gray-200 bg-white hover:border-blue-300"}`}>
+                                <input type="checkbox" checked={checked} onChange={() => toggleMonthlyService(idx, s.value)} />
+                                {s.label}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                    <button type="button" onClick={addPackageMonth} className="px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 text-xs font-semibold rounded">+ Add Month</button>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Total Amount (SAR)</label>
                   <input required type="number" min="0" className="w-full border p-2 rounded" value={dealData.totalAmount} onChange={e => setDealData({...dealData, totalAmount: e.target.value})} />

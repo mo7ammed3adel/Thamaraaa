@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
 
 const DEFAULT_TIERS = [
@@ -178,7 +179,7 @@ function FinanceRulesSection({ gatewayFee, tiers, onUpdate }: { gatewayFee: numb
                   if (!Array.isArray(parsed)) throw new Error("Must be an array");
                   onUpdate("commission_tiers", JSON.stringify(parsed));
                 } catch (err: any) {
-                  alert("Invalid JSON: " + err.message);
+                  notify("Invalid JSON: " + err.message);
                 }
               }}
               rows={8}

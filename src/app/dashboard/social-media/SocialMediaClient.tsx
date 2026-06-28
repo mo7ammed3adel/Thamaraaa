@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Search, X, ExternalLink, Plus, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
@@ -115,11 +116,11 @@ export default function SocialMediaClient({ projects, teamMembers, userRole, use
     setLoading(true);
     try {
       await assignProjectAgent(projectId, { agentUserId: agentId, department: "social_media" });
-      alert("Agent assigned successfully");
+      notify("Agent assigned successfully");
       setActiveDistribution(null);
       router.refresh();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "An unexpected error occurred");
+      notify(e instanceof Error ? e.message : "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -130,7 +131,7 @@ export default function SocialMediaClient({ projects, teamMembers, userRole, use
       await updateTask(taskId, { status });
       router.refresh();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Network error — please try again");
+      notify(e instanceof Error ? e.message : "Network error — please try again");
     }
   };
 

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { notify } from "@/components/toast";
 import { RotateCcw, CheckSquare, Square, Users } from "lucide-react";
 import { updateLead } from "@/client/api/leads";
 
@@ -47,8 +48,8 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
   };
 
   const handleRedistribute = async () => {
-    if (!assignToAgent) return alert("Select an agent to assign");
-    if (selectedLeads.size === 0) return alert("Select at least one lead");
+    if (!assignToAgent) return notify("Select an agent to assign");
+    if (selectedLeads.size === 0) return notify("Select at least one lead");
 
     setLoading(true);
     try {
@@ -66,7 +67,7 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
       setSelectedLeads(new Set());
       setAssignToAgent("");
     } catch (error: any) {
-      alert("Failed to redistribute leads: " + (error.message || "Unknown error"));
+      notify("Failed to redistribute leads: " + (error.message || "Unknown error"));
     }
     setLoading(false);
   };

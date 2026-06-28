@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { notify } from "@/components/toast";
 import { MessageSquare, Send } from "lucide-react";
 import { createNote, listNotes } from "@/client/api/notes";
 
@@ -66,7 +67,7 @@ export default function NotesPanel({ projectId, currentUserRole }: NotesPanelPro
       setNotes([note, ...notes]);
       setNewNote("");
     } catch (e) {
-      alert("Failed to add note");
+      notify("Failed to add note");
     } finally {
       setSubmitting(false);
     }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
 import { Users, Briefcase, Calendar, CheckSquare, Plus, X, Search, Edit2, UserX, UserCheck, TrendingUp, FileText, Trash2, AlertTriangle, Award } from "lucide-react";
 import { HttpError } from "@/client/transport/http";
@@ -586,7 +587,7 @@ function PromotionEngineTab() {
       load();
       router.refresh();
     } catch (error) {
-      alert(error instanceof HttpError ? error.message : "Action failed");
+      notify(error instanceof HttpError ? error.message : "Action failed");
     } finally {
       setBusy(null);
     }
@@ -715,7 +716,7 @@ function DocumentsTab({ employees }: { employees: any[] }) {
       setShowUpload(false);
       load();
     } catch (error) {
-      alert(error instanceof HttpError ? error.message : "Upload failed");
+      notify(error instanceof HttpError ? error.message : "Upload failed");
     } finally {
       setUploading(false);
     }

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
 import { RotateCcw } from "lucide-react";
 import { updateLead } from "@/client/api/leads";
@@ -11,7 +12,7 @@ export default function RecycleBinClient({ leads, salesAgents }: { leads: any[],
 
   const handleReassign = async (leadId: string) => {
     const newAgentId = selectedAgentForLead[leadId];
-    if (!newAgentId) return alert("Select an agent first");
+    if (!newAgentId) return notify("Select an agent first");
 
     setLoadingId(leadId);
     try {
@@ -25,7 +26,7 @@ export default function RecycleBinClient({ leads, salesAgents }: { leads: any[],
       router.refresh();
     } catch (e) {
       console.error(e);
-      alert("Failed to re-assign");
+      notify("Failed to re-assign");
     }
     setLoadingId(null);
   };
@@ -43,7 +44,7 @@ export default function RecycleBinClient({ leads, salesAgents }: { leads: any[],
       router.refresh();
     } catch (e) {
       console.error(e);
-      alert("Failed to archive");
+      notify("Failed to archive");
     }
     setLoadingId(null);
   };

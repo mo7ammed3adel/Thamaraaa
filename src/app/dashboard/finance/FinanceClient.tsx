@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { notify } from "@/components/toast";
 import { DollarSign, AlertCircle, FileText, CheckCircle2, Calculator, Download, Plus, X, Trash2, Lock } from "lucide-react";
 import { formatSar } from "@/shared/formatters/currency";
 import { formatDate } from "@/shared/formatters/date";
@@ -240,7 +241,7 @@ function CommissionsTab() {
       await recomputeCommissions({ month });
       load();
     } catch (error) {
-      alert(error instanceof HttpError ? error.message : "Recompute failed");
+      notify(error instanceof HttpError ? error.message : "Recompute failed");
     } finally {
       setBusy(null);
     }
@@ -389,7 +390,7 @@ function BonusDeductionModal({ commission, onClose, onSaved }: { commission: any
       onSaved();
       onClose();
     } catch (error) {
-      alert(error instanceof HttpError ? error.message : "Save failed");
+      notify(error instanceof HttpError ? error.message : "Save failed");
     } finally {
       setSaving(false);
     }

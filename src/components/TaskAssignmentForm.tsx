@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { notify } from "@/components/toast";
 import { X, Plus, Trash2 } from "lucide-react";
 import { HttpError } from "@/client/transport/http";
 import { createTask } from "@/client/api/tasks";
@@ -64,10 +65,10 @@ export default function TaskAssignmentForm({ projectId, projectNiche, onSuccess 
       onSuccess();
     } catch (err) {
       if (err instanceof HttpError) {
-        alert(`Failed: ${err.message || "Unknown error"}`);
+        notify(`Failed: ${err.message || "Unknown error"}`);
         return;
       }
-      alert("Error creating task");
+      notify("Error creating task");
     } finally {
       setLoading(false);
     }

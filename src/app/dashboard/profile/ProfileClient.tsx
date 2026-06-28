@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { notify } from "@/components/toast";
 import { Clock, FileText, UploadCloud, Calendar, User } from "lucide-react";
 
 export default function ProfileClient({ profile }: { profile: any }) {
@@ -15,7 +16,7 @@ export default function ProfileClient({ profile }: { profile: any }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(reqData)
     });
-    alert("Request submitted successfully to HR.");
+    notify("Request submitted successfully to HR.");
     window.location.reload();
   };
 
@@ -26,7 +27,7 @@ export default function ProfileClient({ profile }: { profile: any }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(docData)
     });
-    alert("Document uploaded.");
+    notify("Document uploaded.");
     window.location.reload();
   };
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Search, X, ExternalLink, ChevronDown, ChevronUp, Plus, AlertTriangle } from "lucide-react";
@@ -111,11 +112,11 @@ export default function MediaBuyerClient({ projects, teamMembers, userRole, user
     setLoading(true);
     try {
       await assignProjectAgent(projectId, { agentUserId: agentId, department: "media_buyer" });
-      alert("Agent assigned successfully");
+      notify("Agent assigned successfully");
       setActiveDistribution(null);
       router.refresh();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "An unexpected error occurred");
+      notify(e instanceof Error ? e.message : "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -126,7 +127,7 @@ export default function MediaBuyerClient({ projects, teamMembers, userRole, user
       await updateTask(taskId, { status });
       router.refresh();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Network error — please try again");
+      notify(e instanceof Error ? e.message : "Network error — please try again");
     }
   };
 

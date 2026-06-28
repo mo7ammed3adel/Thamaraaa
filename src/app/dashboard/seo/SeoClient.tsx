@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Inbox, Clock, CheckCircle, AlertTriangle, Users, Search, X, ExternalLink, Plus, ChevronDown, ChevronUp } from "lucide-react";
@@ -130,11 +131,11 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
         assignedRoleType: "leader",
         newUserId: leaderId,
       });
-      alert("Team Leader assigned successfully");
+      notify("Team Leader assigned successfully");
       setActiveDistribution(null);
       router.refresh();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "An unexpected error occurred");
+      notify(e instanceof Error ? e.message : "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -144,11 +145,11 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
     setLoading(true);
     try {
       await assignProjectAgent(projectId, { agentUserId: agentId, department });
-      alert(`${department === "content_seo" ? "Content SEO" : "SEO"} Agent assigned successfully`);
+      notify(`${department === "content_seo" ? "Content SEO" : "SEO"} Agent assigned successfully`);
       setActiveDistribution(null);
       router.refresh();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "An unexpected error occurred");
+      notify(e instanceof Error ? e.message : "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -159,7 +160,7 @@ export default function SeoClient({ projects, teamMembers, userRole, userId }: a
       await updateTask(taskId, { status });
       router.refresh();
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Network error — please try again");
+      notify(error instanceof Error ? error.message : "Network error — please try again");
     }
   };
 

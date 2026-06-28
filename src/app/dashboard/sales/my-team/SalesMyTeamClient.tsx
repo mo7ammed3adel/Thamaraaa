@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
 import { Users, Flame, Snowflake, Sun, Handshake, XCircle, DollarSign, Briefcase, Calendar, ChevronDown } from "lucide-react";
 import { updateUserSpecialization } from "@/client/api/users";
@@ -59,7 +60,7 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
       await updateUserSpecialization(agentId, { specialization: spec });
       setAgents(agents.map(a => a.id === agentId ? { ...a, specialization: spec } : a));
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Network error");
+      notify(error instanceof Error ? error.message : "Network error");
     }
     setLoading(null);
   };

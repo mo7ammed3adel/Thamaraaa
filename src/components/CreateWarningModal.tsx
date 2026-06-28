@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { notify } from "@/components/toast";
 import { X } from "lucide-react";
 
 interface CreateWarningModalProps {
@@ -56,11 +57,11 @@ export default function CreateWarningModal({ isOpen, onClose, clientId, projectI
         setSeverity("Medium");
         setRecipientRoles(defaultRecipientRole ? [defaultRecipientRole] : []);
       } else {
-        alert("Failed to send warning");
+        notify("Failed to send warning");
       }
     } catch (err) {
       console.error(err);
-      alert("Error sending warning");
+      notify("Error sending warning");
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
 import { Pencil, Trash2 } from "lucide-react";
 
@@ -61,7 +62,7 @@ export default function UserListClient({ initialUsers, managers }: { initialUser
       router.refresh();
     } else {
       const data = await res.json().catch(() => ({}));
-      alert(data.error || "Error creating user");
+      notify(data.error || "Error creating user");
     }
     setLoading(false);
   };
@@ -108,7 +109,7 @@ export default function UserListClient({ initialUsers, managers }: { initialUser
       router.refresh();
     } else {
       const data = await res.json().catch(() => ({}));
-      alert(data.error || "Error updating user");
+      notify(data.error || "Error updating user");
     }
     setLoading(false);
   };
@@ -127,7 +128,7 @@ export default function UserListClient({ initialUsers, managers }: { initialUser
       router.refresh();
     } else {
       const data = await res.json();
-      alert(data.error || "Error deleting user");
+      notify(data.error || "Error deleting user");
     }
     setLoading(false);
   };

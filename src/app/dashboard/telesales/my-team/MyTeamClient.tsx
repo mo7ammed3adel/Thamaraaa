@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
 import { Users, Flame, Snowflake, Sun, PhoneCall, Calendar, ArrowRightLeft, BarChart3 } from "lucide-react";
 import { updateUserSpecialization, updateUserTarget } from "@/client/api/users";
@@ -70,7 +71,7 @@ export default function MyTeamClient({
       await updateUserSpecialization(agentId, { specialization: spec });
       setAgents(agents.map(a => a.id === agentId ? { ...a, specialization: spec } : a));
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Network error");
+      notify(error instanceof Error ? error.message : "Network error");
     }
     setLoading(null);
   };
@@ -80,7 +81,7 @@ export default function MyTeamClient({
       await updateUserTarget(agentId, { target: newTarget });
       setAgents(agents.map(a => a.id === agentId ? { ...a, target: newTarget } : a));
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Network error");
+      notify(error instanceof Error ? error.message : "Network error");
     }
   };
 

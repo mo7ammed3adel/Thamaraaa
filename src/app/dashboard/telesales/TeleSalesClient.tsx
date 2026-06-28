@@ -1,5 +1,6 @@
 "use client";
 import { Fragment, useState } from "react";
+import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
 import { Plus, X, Pencil, Check, PhoneCall, CheckCircle2, PhoneOff, XCircle, Send, ChevronDown, ChevronUp, ExternalLink, Trash2 } from "lucide-react";
 import { canManuallyDistributeMeeting } from "@/lib/meetingDistribution";
@@ -72,7 +73,7 @@ export default function TeleSalesClient({
       setLeads(leads.filter((l) => l.id !== leadId));
       router.refresh();
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Network error");
+      notify(error instanceof Error ? error.message : "Network error");
     }
   };
 
@@ -83,7 +84,7 @@ export default function TeleSalesClient({
       setLeads(leads.map(l => l.id === leadId ? { ...l, assignedTeleAgentId: newAgentId, teleAgent: newlyAssignedAgent || null } : l));
       router.refresh();
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Network err");
+      notify(error instanceof Error ? error.message : "Network err");
     }
   };
 
@@ -105,7 +106,7 @@ export default function TeleSalesClient({
       // Then refresh server data in the background
       router.refresh();
     } catch (error) {
-      alert(error instanceof Error ? `Error logging call: ${error.message}` : "Network error. Please try again.");
+      notify(error instanceof Error ? `Error logging call: ${error.message}` : "Network error. Please try again.");
     }
     setLoading(false);
   };
@@ -121,7 +122,7 @@ export default function TeleSalesClient({
       }
       router.refresh();
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Network error. Please try again.");
+      notify(error instanceof Error ? error.message : "Network error. Please try again.");
       router.refresh();
     } finally {
       setDistributingLeadId(null);
@@ -138,7 +139,7 @@ export default function TeleSalesClient({
       setNewColumnName("");
       setShowAddColumn(false);
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Network error");
+      notify(error instanceof Error ? error.message : "Network error");
     }
     setAddingColumn(false);
   };
@@ -149,7 +150,7 @@ export default function TeleSalesClient({
       await deleteCustomColumn(colId);
       setCustomColumns(customColumns.filter((c) => c.id !== colId));
     } catch (error) {
-      alert("Failed to delete column");
+      notify("Failed to delete column");
     }
   };
 
@@ -171,7 +172,7 @@ export default function TeleSalesClient({
         })
       );
     } catch {
-      alert("Failed to save value");
+      notify("Failed to save value");
     }
     setEditingCell(null);
     setEditValue("");

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
 
 type ClientJourneyActionsParams = {
@@ -34,7 +35,7 @@ export function useClientJourneyActions({ project, lead }: ClientJourneyActionsP
   const [taskFilterCreator, setTaskFilterCreator] = useState("all");
 
   async function handleCreateTask() {
-    if (!newTaskBrief) return alert("Please enter task details");
+    if (!newTaskBrief) return notify("Please enter task details");
     setCreatingTask(true);
     await fetch("/api/tasks", {
       method: "POST",
@@ -80,7 +81,7 @@ export function useClientJourneyActions({ project, lead }: ClientJourneyActionsP
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(data.error || "Failed to upload project file");
+        notify(data.error || "Failed to upload project file");
         return;
       }
 
@@ -88,7 +89,7 @@ export function useClientJourneyActions({ project, lead }: ClientJourneyActionsP
       setFileType("other");
       router.refresh();
     } catch (err) {
-      alert("Network error — could not reach server.");
+      notify("Network error — could not reach server.");
     } finally {
       setUploadingFile(false);
     }
@@ -126,12 +127,12 @@ export function useClientJourneyActions({ project, lead }: ClientJourneyActionsP
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(`Assignment failed: ${data.error || "Unknown error"}`);
+        notify(`Assignment failed: ${data.error || "Unknown error"}`);
         return;
       }
       router.refresh();
     } catch (err) {
-      alert("Network error — could not reach server.");
+      notify("Network error — could not reach server.");
     }
   }
 
@@ -146,12 +147,12 @@ export function useClientJourneyActions({ project, lead }: ClientJourneyActionsP
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || "Failed to update status");
+        notify(data.error || "Failed to update status");
         return;
       }
       router.refresh();
     } catch (err) {
-      alert("Network error — could not reach server.");
+      notify("Network error — could not reach server.");
     }
   }
 
@@ -164,12 +165,12 @@ export function useClientJourneyActions({ project, lead }: ClientJourneyActionsP
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || "Failed to update progress");
+        notify(data.error || "Failed to update progress");
         return;
       }
       router.refresh();
     } catch (err) {
-      alert("Network error — could not reach server.");
+      notify("Network error — could not reach server.");
     }
   }
 
@@ -183,12 +184,12 @@ export function useClientJourneyActions({ project, lead }: ClientJourneyActionsP
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(`Assignment failed: ${data.error || "Unknown error"}`);
+        notify(`Assignment failed: ${data.error || "Unknown error"}`);
         return;
       }
       router.refresh();
     } catch (err) {
-      alert("Network error — could not reach server.");
+      notify("Network error — could not reach server.");
     }
   }
 

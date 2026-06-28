@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { notify } from "@/components/toast";
 import { Plus, Link as LinkIcon, PhoneCall, User as UserIcon, Tag, Store } from "lucide-react";
 import { bulkDeleteLeads, bulkPromoteLeads, createLead } from "@/client/api/leads";
 import { createNiche, listNiches } from "@/client/api/niches";
@@ -55,7 +56,7 @@ export default function ColdLeadsClient({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !phone) return alert("Name and phone are required.");
+    if (!name || !phone) return notify("Name and phone are required.");
     
     setLoading(true);
     try {
@@ -92,7 +93,7 @@ export default function ColdLeadsClient({
       setStoreLink("");
       setNiche("");
     } catch (err: any) {
-      alert(err.message || "Failed to add lead");
+      notify(err.message || "Failed to add lead");
     } finally {
       setLoading(false);
     }
@@ -104,13 +105,13 @@ export default function ColdLeadsClient({
     try {
       const data = await bulkPromoteLeads({ leadIds: selected }) as any;
 
-      alert(data.message || `Successfully added ${data.promotedCount} to Leads!`);
+      notify(data.message || `Successfully added ${data.promotedCount} to Leads!`);
       
       // Remove promoted leads from UI
       setLeads(leads.filter(l => !selected.includes(l.id)));
       setSelected([]);
     } catch (err: any) {
-      alert(err.message || "Failed to promote leads");
+      notify(err.message || "Failed to promote leads");
     } finally {
       setPromoting(false);
     }
@@ -125,7 +126,7 @@ export default function ColdLeadsClient({
       setLeads(leads.filter(l => !selected.includes(l.id)));
       setSelected([]);
     } catch (err) {
-      alert("Error deleting leads");
+      notify("Error deleting leads");
     } finally {
       setPromoting(false);
     }
