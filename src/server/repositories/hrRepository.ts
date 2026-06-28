@@ -291,6 +291,72 @@ export function findEmployeeRole(userId: string) {
   });
 }
 
+// ── Performance reviews ──
+export function createPerformanceReview(input: {
+  userId: string;
+  reviewerId: string;
+  period: string;
+  rating: number;
+  strengths?: string | null;
+  improvements?: string | null;
+  goals?: string | null;
+}) {
+  return prisma.performanceReview.create({ data: input });
+}
+
+export function findPerformanceReviews(userId?: string | null) {
+  return prisma.performanceReview.findMany({
+    where: userId ? { userId } : undefined,
+    include: {
+      user: { select: { id: true, name: true, role: true } },
+      reviewer: { select: { id: true, name: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+// ── Onboarding / offboarding checklist ──
+export function findOnboardingTasks(userId: string) {
+  return prisma.onboardingTask.findMany({
+    where: { userId },
+    orderBy: [{ kind: "asc" }, { orderIndex: "asc" }],
+  });
+}
+
+export function countOnboardingTasks(userId: string, kind: string) {
+  return prisma.onboardingTask.count({ where: { userId, kind } });
+}
+
+export function createOnboardingTasks(
+  rows: { userId: string; kind: string; title: string; orderIndex: number }[]
+) {
+  return prisma.onboardingTask.createMany({ data: rows });
+}
+
+export function createOnboardingTask(input: {
+  userId: string;
+  kind: string;
+  title: string;
+  orderIndex: number;
+}) {
+  return prisma.onboardingTask.create({ data: input });
+}
+
+export function findOnboardingTask(id: string) {
+  return prisma.onboardingTask.findUnique({ where: { id }, select: { id: true, userId: true } });
+}
+
+export function setOnboardingTaskDone(id: string, completed: boolean) {
+  return prisma.onboardingTask.update({
+    where: { id },
+    data: { completed, completedAt: completed ? new Date() : null },
+  });
+}
+
+export function deleteOnboardingTask(id: string) {
+  return prisma.onboardingTask.delete({ where: { id } });
+}
+
 export function updateEmployeeUser(input: { id: string; data: any }) {
   return prisma.user.update({
     where: { id: input.id },

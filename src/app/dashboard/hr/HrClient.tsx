@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
-import { Users, Briefcase, Calendar, CheckSquare, Plus, X, Search, Edit2, UserX, UserCheck, TrendingUp, FileText, Trash2, AlertTriangle, Award, Clock, Check, CalendarDays, DollarSign } from "lucide-react";
+import { Users, Briefcase, Calendar, CheckSquare, Plus, X, Search, Edit2, UserX, UserCheck, TrendingUp, FileText, Trash2, AlertTriangle, Award, Clock, Check, CalendarDays, DollarSign, Star, ClipboardList } from "lucide-react";
 import { HttpError } from "@/client/transport/http";
 import { computeLeaveBalance } from "@/lib/leaveBalance";
 import { currentMonth } from "@/lib/payslip";
@@ -11,17 +11,23 @@ import {
   createApplicant,
   createDocument,
   createEmployee,
+  createReview,
   deleteDocument,
+  deleteOnboardingTask,
   getPayslip,
   listApplicants,
   listDocuments,
   listHrRequests,
+  listOnboarding,
   listPayroll,
   listPromotionEvaluations,
+  listReviews,
+  manageOnboarding,
   runAutoEvaluations,
   runPromotionAction,
   submitAttendance,
   submitLeaveRequest,
+  toggleOnboarding,
   updateApplicant,
   updateAttendance,
   updateEmployee,
@@ -206,6 +212,12 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
           <button onClick={() => setActiveTab("payroll")} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "payroll" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500"}`}>
             💵 Payroll
           </button>
+          <button onClick={() => setActiveTab("performance")} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "performance" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500"}`}>
+            ⭐ Performance
+          </button>
+          <button onClick={() => setActiveTab("onboarding")} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "onboarding" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500"}`}>
+            📋 Onboarding
+          </button>
           <button onClick={() => setActiveTab("promotion")} className={`px-6 py-3 font-semibold text-sm border-b-2 transition ${activeTab === "promotion" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500"}`}>
             🏆 Promotion Engine
           </button>
@@ -223,6 +235,12 @@ export default function HrClient({ isManager, myTodayAttendance, history, employ
 
       {/* PAYROLL TAB */}
       {isManager && activeTab === "payroll" && <PayrollTab />}
+
+      {/* PERFORMANCE REVIEWS TAB */}
+      {isManager && activeTab === "performance" && <PerformanceTab employees={employees || []} />}
+
+      {/* ONBOARDING TAB */}
+      {isManager && activeTab === "onboarding" && <OnboardingTab employees={employees || []} />}
 
       {/* PROMOTION ENGINE TAB */}
       {isManager && activeTab === "promotion" && <PromotionEngineTab />}
@@ -1072,6 +1090,8 @@ function SelfServiceSection() {
   const [requests, setRequests] = useState<any[]>([]);
   const [docs, setDocs] = useState<any[]>([]);
   const [payslip, setPayslip] = useState<any>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [onboarding, setOnboarding] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ type: "Leave", date: "", duration: "1 Day", reason: "" });
@@ -1082,10 +1102,14 @@ function SelfServiceSection() {
       listHrRequests().then((d: any) => (Array.isArray(d) ? d : [])).catch(() => []),
       listDocuments().then((d: any) => d?.documents || []).catch(() => []),
       getPayslip().then((d: any) => d).catch(() => null),
-    ]).then(([reqs, documents, slip]) => {
+      listReviews().then((d: any) => d?.reviews || []).catch(() => []),
+      listOnboarding().then((d: any) => d?.tasks || []).catch(() => []),
+    ]).then(([reqs, documents, slip, reviewList, onboardingList]) => {
       setRequests(reqs);
       setDocs(documents);
       setPayslip(slip);
+      setReviews(reviewList);
+      setOnboarding(onboardingList);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -1221,6 +1245,43 @@ function SelfServiceSection() {
             </ul>
           )}
         </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2"><ClipboardList className="w-5 h-5 text-indigo-600" /> My Onboarding</h2>
+          {loading ? <p className="text-sm text-gray-400">Loading…</p> : onboarding.length === 0 ? (
+            <p className="text-sm text-gray-400 italic">No checklist assigned.</p>
+          ) : (
+            <ul className="space-y-1.5">
+              {onboarding.map((t) => (
+                <li key={t.id} className="flex items-center gap-2 text-sm">
+                  <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${t.completed ? "bg-emerald-500 border-emerald-500" : "border-gray-300"}`}>{t.completed && <Check className="w-3 h-3 text-white" />}</span>
+                  <span className={t.completed ? "text-gray-400 line-through" : "text-gray-700"}>{t.title}</span>
+                  <span className="ml-auto text-[9px] uppercase font-bold text-gray-300">{t.kind}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2"><Star className="w-5 h-5 text-amber-500" /> My Reviews</h2>
+          {loading ? <p className="text-sm text-gray-400">Loading…</p> : reviews.length === 0 ? (
+            <p className="text-sm text-gray-400 italic">No reviews yet.</p>
+          ) : (
+            <ul className="divide-y">
+              {reviews.slice(0, 4).map((r) => (
+                <li key={r.id} className="py-2 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-gray-700">{r.period}</span>
+                    <span className="flex items-center gap-0.5">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`w-3.5 h-3.5 ${i < r.rating ? "fill-amber-400 text-amber-400" : "text-gray-300"}`} />)}</span>
+                  </div>
+                  {r.strengths && <p className="text-xs text-gray-500 mt-1"><span className="font-semibold">Strengths:</span> {r.strengths}</p>}
+                  {r.goals && <p className="text-xs text-gray-500 mt-0.5"><span className="font-semibold">Goals:</span> {r.goals}</p>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -1293,6 +1354,243 @@ function PayrollTab() {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Performance Tab — HR writes periodic reviews and browses past ones.
+// ─────────────────────────────────────────────────────────────────────
+function PerformanceTab({ employees }: { employees: any[] }) {
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filterUser, setFilterUser] = useState("all");
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ userId: "", period: currentMonth(), rating: "4", strengths: "", improvements: "", goals: "" });
+
+  const load = useCallback(() => {
+    setLoading(true);
+    listReviews(filterUser === "all" ? {} : { userId: filterUser })
+      .then((d: any) => setReviews(d?.reviews || []))
+      .catch(() => setReviews([]))
+      .finally(() => setLoading(false));
+  }, [filterUser]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.userId) { notify("Select an employee"); return; }
+    setSaving(true);
+    try {
+      await createReview({ ...form, rating: Number(form.rating) });
+      notify("Review saved");
+      setForm({ userId: "", period: currentMonth(), rating: "4", strengths: "", improvements: "", goals: "" });
+      load();
+    } catch (err) {
+      notify(err instanceof HttpError ? err.message : "Failed to save review");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="bg-white p-6 rounded-xl shadow-sm border">
+        <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><Star className="w-5 h-5 text-amber-500" /> New Performance Review</h3>
+        <form onSubmit={submit} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Employee *</label>
+              <select value={form.userId} onChange={(e) => setForm({ ...form, userId: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                <option value="">Select…</option>
+                {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Period</label>
+              <input value={form.period} onChange={(e) => setForm({ ...form, period: e.target.value })} placeholder="2026-06" className="w-full border rounded-lg px-3 py-2 text-sm" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Rating</label>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button type="button" key={n} onClick={() => setForm({ ...form, rating: String(n) })} className="p-0.5">
+                  <Star className={`w-6 h-6 ${n <= Number(form.rating) ? "fill-amber-400 text-amber-400" : "text-gray-300"}`} />
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Strengths</label>
+            <textarea value={form.strengths} onChange={(e) => setForm({ ...form, strengths: e.target.value })} rows={2} className="w-full border rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Areas to Improve</label>
+            <textarea value={form.improvements} onChange={(e) => setForm({ ...form, improvements: e.target.value })} rows={2} className="w-full border rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Goals</label>
+            <textarea value={form.goals} onChange={(e) => setForm({ ...form, goals: e.target.value })} rows={2} className="w-full border rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <button type="submit" disabled={saving} className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg disabled:opacity-50">{saving ? "Saving…" : "Save Review"}</button>
+        </form>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <label className="text-sm font-semibold text-gray-600">Filter</label>
+          <select value={filterUser} onChange={(e) => setFilterUser(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white">
+            <option value="all">All employees</option>
+            {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+          </select>
+        </div>
+        {loading ? <p className="text-sm text-gray-400">Loading…</p> : reviews.length === 0 ? (
+          <div className="bg-white border rounded-xl p-8 text-center text-gray-400 italic">No reviews yet.</div>
+        ) : (
+          <div className="space-y-3 max-h-[640px] overflow-y-auto pr-1">
+            {reviews.map((r) => (
+              <div key={r.id} className="bg-white border rounded-xl p-4">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="font-bold text-gray-900">{r.user?.name}</span>
+                  <span className="flex">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`w-4 h-4 ${i < r.rating ? "fill-amber-400 text-amber-400" : "text-gray-300"}`} />)}</span>
+                </div>
+                <p className="text-xs text-gray-400 mb-2">{r.period} • by {r.reviewer?.name} • {new Date(r.createdAt).toLocaleDateString()}</p>
+                {r.strengths && <p className="text-sm text-gray-600"><span className="font-semibold">Strengths:</span> {r.strengths}</p>}
+                {r.improvements && <p className="text-sm text-gray-600"><span className="font-semibold">Improve:</span> {r.improvements}</p>}
+                {r.goals && <p className="text-sm text-gray-600"><span className="font-semibold">Goals:</span> {r.goals}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Onboarding Tab — HR manages per-employee onboarding/offboarding checklists.
+// ─────────────────────────────────────────────────────────────────────
+function OnboardingTab({ employees }: { employees: any[] }) {
+  const [selectedUser, setSelectedUser] = useState("");
+  const [kind, setKind] = useState<"onboarding" | "offboarding">("onboarding");
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(() => {
+    if (!selectedUser) { setTasks([]); return; }
+    setLoading(true);
+    listOnboarding({ userId: selectedUser })
+      .then((d: any) => setTasks(d?.tasks || []))
+      .catch(() => setTasks([]))
+      .finally(() => setLoading(false));
+  }, [selectedUser]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const kindTasks = tasks.filter((t) => t.kind === kind);
+  const done = kindTasks.filter((t) => t.completed).length;
+
+  const seed = async () => {
+    setBusy(true);
+    try {
+      await manageOnboarding({ action: "seed", userId: selectedUser, kind });
+      load();
+    } catch (e) {
+      notify(e instanceof HttpError ? e.message : "Failed to create checklist");
+    } finally { setBusy(false); }
+  };
+
+  const addItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTitle.trim()) return;
+    setBusy(true);
+    try {
+      await manageOnboarding({ action: "add", userId: selectedUser, kind, title: newTitle.trim() });
+      setNewTitle("");
+      load();
+    } catch (err) {
+      notify(err instanceof HttpError ? err.message : "Failed to add item");
+    } finally { setBusy(false); }
+  };
+
+  const toggle = async (t: any) => {
+    setTasks((prev) => prev.map((x) => (x.id === t.id ? { ...x, completed: !x.completed } : x)));
+    try {
+      await toggleOnboarding({ id: t.id, completed: !t.completed });
+    } catch (e) {
+      notify(e instanceof HttpError ? e.message : "Update failed");
+      load();
+    }
+  };
+
+  const remove = async (id: string) => {
+    setTasks((prev) => prev.filter((x) => x.id !== id));
+    try {
+      await deleteOnboardingTask(id);
+    } catch (e) {
+      notify(e instanceof HttpError ? e.message : "Delete failed");
+      load();
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl border p-4 shadow-sm">
+        <ClipboardList className="w-5 h-5 text-slate-500" />
+        <select value={selectedUser} onChange={(e) => setSelectedUser(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white">
+          <option value="">Select employee…</option>
+          {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+        </select>
+        <div className="flex bg-slate-100 rounded-lg p-0.5 text-xs font-semibold">
+          {(["onboarding", "offboarding"] as const).map((k) => (
+            <button key={k} onClick={() => setKind(k)} className={`px-3 py-1.5 rounded-md capitalize ${kind === k ? "bg-white shadow text-slate-800" : "text-slate-500"}`}>{k}</button>
+          ))}
+        </div>
+      </div>
+
+      {!selectedUser ? (
+        <div className="bg-white border rounded-xl p-12 text-center text-gray-400 italic">Select an employee to manage their {kind} checklist.</div>
+      ) : loading ? (
+        <div className="bg-white border rounded-xl p-12 text-center text-gray-400">Loading…</div>
+      ) : (
+        <div className="bg-white border rounded-xl p-6 space-y-4">
+          {kindTasks.length === 0 ? (
+            <div className="text-center py-6">
+              <p className="text-gray-400 italic mb-3">No {kind} checklist yet.</p>
+              <button onClick={seed} disabled={busy} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 disabled:opacity-50">Create default {kind} checklist</button>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-gray-700 capitalize">{kind} progress</span>
+                <span className="text-sm font-bold text-indigo-700">{done}/{kindTasks.length}</span>
+              </div>
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-2 bg-indigo-500 rounded-full" style={{ width: `${kindTasks.length ? (done / kindTasks.length) * 100 : 0}%` }} />
+              </div>
+              <ul className="space-y-2">
+                {kindTasks.map((t) => (
+                  <li key={t.id} className="flex items-center gap-3 group">
+                    <button onClick={() => toggle(t)} className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 ${t.completed ? "bg-emerald-500 border-emerald-500" : "border-gray-300 hover:border-indigo-400"}`}>
+                      {t.completed && <Check className="w-3.5 h-3.5 text-white" />}
+                    </button>
+                    <span className={`text-sm flex-1 ${t.completed ? "text-gray-400 line-through" : "text-gray-700"}`}>{t.title}</span>
+                    <button onClick={() => remove(t.id)} className="opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:text-red-700" title="Remove"><Trash2 className="w-3.5 h-3.5" /></button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          <form onSubmit={addItem} className="flex gap-2 pt-2 border-t">
+            <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder={`Add ${kind} item…`} className="flex-1 border rounded-lg px-3 py-2 text-sm" />
+            <button type="submit" disabled={busy || !newTitle.trim()} className="px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-bold hover:bg-slate-900 disabled:opacity-50">Add</button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

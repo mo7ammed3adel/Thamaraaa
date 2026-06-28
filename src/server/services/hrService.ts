@@ -29,6 +29,15 @@ import {
   findCommissionForUserMonth,
   findCommissionsByUserForMonth,
   findActiveHrRecordsWithUser,
+  createPerformanceReview,
+  findPerformanceReviews,
+  findOnboardingTasks,
+  countOnboardingTasks,
+  createOnboardingTasks,
+  createOnboardingTask,
+  findOnboardingTask,
+  setOnboardingTaskDone,
+  deleteOnboardingTask,
 } from "@/server/repositories/hrRepository";
 import { normalizeWebUrl } from "@/lib/safe-url";
 import { evaluateAllEmployees } from "@/lib/promotion";
@@ -342,6 +351,146 @@ export async function getPayslip(input: {
     employee: { id: record.user.id, name: record.user.name, role: record.user.role },
     payslip,
   };
+}
+
+// ── Performance reviews ──
+export async function createReview(input: {
+  reviewerId: string;
+  reviewerRole?: string | null;
+  body: any;
+}) {
+  if (!isHrManager(input.reviewerRole)) {
+    return { status: "unauthorized" as const };
+  }
+
+  const { userId, period, rating, strengths, improvements, goals } = input.body || {};
+  const ratingNum = Number(rating);
+  if (!userId || !period || !ratingNum || ratingNum < 1 || ratingNum > 5) {
+    return { status: "missing_fields" as const };
+  }
+
+  const review = await createPerformanceReview({
+    userId,
+    reviewerId: input.reviewerId,
+    period: String(period).slice(0, 20),
+    rating: ratingNum,
+    strengths: strengths?.trim() || null,
+    improvements: improvements?.trim() || null,
+    goals: goals?.trim() || null,
+  });
+
+  await createHrNotification({
+    userId,
+    title: "New Performance Review",
+    message: "Your performance review has been recorded by HR.",
+    link: "/dashboard/hr",
+  });
+
+  return { status: "ok" as const, review };
+}
+
+export function listReviews(input: {
+  sessionUserId: string;
+  sessionUserRole?: string | null;
+  targetUserId?: string | null;
+}) {
+  const isHr = HR_ROLES.includes(input.sessionUserRole || "");
+  if (isHr) {
+    return findPerformanceReviews(input.targetUserId || undefined);
+  }
+  return findPerformanceReviews(input.sessionUserId);
+}
+
+// ── Onboarding / offboarding ──
+const ONBOARDING_TEMPLATE = [
+  "Sign employment contract",
+  "Collect ID & personal documents",
+  "Set up email & system accounts",
+  "Assign equipment / workspace",
+  "Introduce to team & manager",
+  "First-week orientation & training",
+];
+
+const OFFBOARDING_TEMPLATE = [
+  "Revoke all system access",
+  "Return company equipment",
+  "Knowledge handover & documentation",
+  "Final settlement & payslip",
+  "Conduct exit interview",
+];
+
+export function listOnboarding(input: {
+  sessionUserId: string;
+  sessionUserRole?: string | null;
+  targetUserId?: string | null;
+}) {
+  const isHr = HR_ROLES.includes(input.sessionUserRole || "");
+  const targetUserId = isHr ? input.targetUserId || input.sessionUserId : input.sessionUserId;
+  return findOnboardingTasks(targetUserId);
+}
+
+export async function manageOnboarding(input: {
+  sessionUserRole?: string | null;
+  body: any;
+}) {
+  if (!isHrManager(input.sessionUserRole)) {
+    return { status: "unauthorized" as const };
+  }
+
+  const { action, userId, kind, title } = input.body || {};
+  const safeKind = kind === "offboarding" ? "offboarding" : "onboarding";
+
+  if (action === "seed") {
+    if (!userId) return { status: "missing_fields" as const };
+    const existing = await countOnboardingTasks(userId, safeKind);
+    if (existing > 0) {
+      return { status: "already_seeded" as const };
+    }
+    const template = safeKind === "offboarding" ? OFFBOARDING_TEMPLATE : ONBOARDING_TEMPLATE;
+    await createOnboardingTasks(
+      template.map((t, index) => ({ userId, kind: safeKind, title: t, orderIndex: index }))
+    );
+    return { status: "ok" as const };
+  }
+
+  if (action === "add") {
+    const cleanTitle = typeof title === "string" ? title.trim().slice(0, 160) : "";
+    if (!userId || !cleanTitle) return { status: "missing_fields" as const };
+    const count = await countOnboardingTasks(userId, safeKind);
+    await createOnboardingTask({ userId, kind: safeKind, title: cleanTitle, orderIndex: count });
+    return { status: "ok" as const };
+  }
+
+  return { status: "invalid_action" as const };
+}
+
+export async function toggleOnboarding(input: {
+  sessionUserRole?: string | null;
+  body: any;
+}) {
+  if (!isHrManager(input.sessionUserRole)) {
+    return { status: "unauthorized" as const };
+  }
+  const { id, completed } = input.body || {};
+  if (!id) return { status: "missing_fields" as const };
+
+  const task = await findOnboardingTask(id);
+  if (!task) return { status: "not_found" as const };
+
+  await setOnboardingTaskDone(id, Boolean(completed));
+  return { status: "ok" as const };
+}
+
+export async function removeOnboarding(input: {
+  sessionUserRole?: string | null;
+  id?: string | null;
+}) {
+  if (!isHrManager(input.sessionUserRole)) {
+    return { status: "unauthorized" as const };
+  }
+  if (!input.id) return { status: "missing_fields" as const };
+  await deleteOnboardingTask(input.id);
+  return { status: "ok" as const };
 }
 
 export async function listPayroll(input: { month?: string | null }) {

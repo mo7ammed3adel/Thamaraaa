@@ -48,6 +48,9 @@ model User {
   teamAssignments     TeamAssignment[]   @relation("TeamAssignmentUser")
   teamAssignmentsMade TeamAssignment[]   @relation("TeamAssignmentAssigner")
   warningReceipts     WarningReceipt[]   @relation("WarningReceiptUser")
+  performanceReviews  PerformanceReview[] @relation("PerfReviewSubject")
+  authoredReviews     PerformanceReview[] @relation("PerfReviewAuthor")
+  onboardingTasks     OnboardingTask[]   @relation("OnboardingTaskUser")
 }
 
 model Niche {
@@ -366,6 +369,32 @@ model CommissionRule {
   role       String   @unique // e.g., "sales_agent", "team_leader_seo"
   percentage Float
   updatedAt  DateTime @updatedAt
+}
+
+model PerformanceReview {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation("PerfReviewSubject", fields: [userId], references: [id])
+  reviewerId   String
+  reviewer     User     @relation("PerfReviewAuthor", fields: [reviewerId], references: [id])
+  period       String // e.g. "2026-06" or "2026-Q2"
+  rating       Int // 1-5
+  strengths    String?
+  improvements String?
+  goals        String?
+  createdAt    DateTime @default(now())
+}
+
+model OnboardingTask {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation("OnboardingTaskUser", fields: [userId], references: [id])
+  kind        String    @default("onboarding") // onboarding | offboarding
+  title       String
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  orderIndex  Int       @default(0)
+  createdAt   DateTime  @default(now())
 }
 
 model Package {

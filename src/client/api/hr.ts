@@ -68,6 +68,30 @@ export function listPayroll(params: Record<string, string | number | boolean | n
   return getJson(`/api/hr/payroll${buildQueryString(params)}`);
 }
 
+export function listReviews(params: Record<string, string | number | boolean | null | undefined> = {}) {
+  return getJson(`/api/hr/reviews${buildQueryString(params)}`);
+}
+
+export function createReview(body: unknown) {
+  return postJson("/api/hr/reviews", body);
+}
+
+export function listOnboarding(params: Record<string, string | number | boolean | null | undefined> = {}) {
+  return getJson(`/api/hr/onboarding${buildQueryString(params)}`);
+}
+
+export function manageOnboarding(body: unknown) {
+  return postJson("/api/hr/onboarding", body);
+}
+
+export function toggleOnboarding(body: unknown) {
+  return patchJson("/api/hr/onboarding", body);
+}
+
+export function deleteOnboardingTask(id: string) {
+  return deleteJson(`/api/hr/onboarding?id=${encodeURIComponent(id)}`);
+}
+
 export function listHrRequests() {
   return getJson<any[]>("/api/hr/requests");
 }
