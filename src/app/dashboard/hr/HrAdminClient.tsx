@@ -6,10 +6,11 @@ import {
   CalendarClock, Wallet, ChevronRight, LayoutDashboard,
 } from "lucide-react";
 import type { HrOverview } from "@/lib/hrOverview";
+import HrEmployees from "./HrEmployees";
 
 const MODULES = [
   { id: "dashboard", label: "Dashboard", live: true },
-  { id: "employees", label: "Employees", live: false },
+  { id: "employees", label: "Employees", live: true },
   { id: "departments", label: "Departments", live: false },
   { id: "requests", label: "Requests", live: false },
   { id: "documents", label: "Documents", live: false },
@@ -37,7 +38,10 @@ function StatCard({ label, value, icon, tone = "slate" }: { label: string; value
   );
 }
 
-export default function HrAdminClient({ overview, userName }: { overview: HrOverview; userName?: string }) {
+export default function HrAdminClient({ overview, userName, employees = [], departments = [], leaveRequests = [], salaryAdvances = [], complaints = [] }: {
+  overview: HrOverview; userName?: string;
+  employees?: any[]; departments?: any[]; leaveRequests?: any[]; salaryAdvances?: any[]; complaints?: any[];
+}) {
   const [module, setModule] = useState("dashboard");
 
   return (
@@ -67,6 +71,12 @@ export default function HrAdminClient({ overview, userName }: { overview: HrOver
         </nav>
       </div>
 
+      {module === "employees" && (
+        <HrEmployees employees={employees} departments={departments} leaveRequests={leaveRequests} salaryAdvances={salaryAdvances} complaints={complaints} />
+      )}
+
+      {module === "dashboard" && (
+      <>
       {/* Employee statistics */}
       <section>
         <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Employee Statistics</h2>
@@ -143,6 +153,8 @@ export default function HrAdminClient({ overview, userName }: { overview: HrOver
           </div>
         </div>
       </section>
+      </>
+      )}
     </div>
   );
 }

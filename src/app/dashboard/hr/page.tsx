@@ -15,13 +15,15 @@ export default async function HrPage() {
 
   // ── HR Manager → new HR dashboard ──
   if (isManager) {
-    const [employees, leaveRequests, salaryAdvances] = await Promise.all([
+    const [employees, leaveRequests, salaryAdvances, complaints, departments] = await Promise.all([
       prisma.user.findMany({
-        include: { hrRecord: { select: { documentChecklist: true, dateOfBirth: true, gender: true } } },
+        include: { hrRecord: true, directManager: { select: { id: true, name: true } } },
         orderBy: { createdAt: "desc" },
       }),
       prisma.leaveRequest.findMany({ orderBy: { createdAt: "desc" } }),
-      prisma.salaryAdvance.findMany({ select: { status: true } }),
+      prisma.salaryAdvance.findMany({ orderBy: { createdAt: "desc" } }),
+      prisma.hrComplaint.findMany({ orderBy: { createdAt: "desc" } }),
+      prisma.hrDepartment.findMany({ orderBy: { name: "asc" } }),
     ]);
 
     const overview = buildHrOverview(
@@ -37,7 +39,17 @@ export default async function HrPage() {
       salaryAdvances
     );
 
-    return <HrAdminClient overview={overview} userName={user.name} />;
+    return (
+      <HrAdminClient
+        overview={overview}
+        userName={user.name}
+        employees={employees}
+        departments={departments}
+        leaveRequests={leaveRequests}
+        salaryAdvances={salaryAdvances}
+        complaints={complaints}
+      />
+    );
   }
 
   // ── Every other user → attendance + self-service (unchanged) ──
