@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { submitAttendance } from "@/client/api/hr";
 import { SelfServiceSection } from "./HrWorkflowTabs";
+import HrSelfServiceExtras from "./HrSelfServiceExtras";
 
 /**
  * Employee view of the HR / Attendance page (every non-HR-manager user).
@@ -80,6 +81,7 @@ export default function HrClient({ myTodayAttendance, history }: any) {
       </div>
 
       <SelfServiceSection />
+      <HrSelfServiceExtras />
     </div>
   );
 }

@@ -8,12 +8,13 @@ import {
 import type { HrOverview } from "@/lib/hrOverview";
 import HrEmployees from "./HrEmployees";
 import HrDepartments from "./HrDepartments";
+import HrRequests from "./HrRequests";
 
 const MODULES = [
   { id: "dashboard", label: "Dashboard", live: true },
   { id: "employees", label: "Employees", live: true },
   { id: "departments", label: "Departments", live: true },
-  { id: "requests", label: "Requests", live: false },
+  { id: "requests", label: "Requests", live: true },
   { id: "documents", label: "Documents", live: false },
 ];
 
@@ -77,6 +78,8 @@ export default function HrAdminClient({ overview, userName, employees = [], depa
       )}
 
       {module === "departments" && <HrDepartments employees={employees} />}
+
+      {module === "requests" && <HrRequests />}
 
       {module === "dashboard" && (
       <>
