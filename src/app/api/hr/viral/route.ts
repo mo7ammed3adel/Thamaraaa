@@ -50,6 +50,9 @@ export async function POST(req: NextRequest) {
     if ((result as any)?.status === "locked_period") {
       return errorJson("Payroll period is locked or published", 400);
     }
+    if ((result as any)?.status === "missing_fields") {
+      return errorJson("Required fields are missing", 400);
+    }
     return successJson({ result }, 201);
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Unknown error";
@@ -72,6 +75,7 @@ export async function PATCH(req: NextRequest) {
       body,
     });
     if ((result as any)?.status === "missing_id") return errorJson("id is required", 400);
+    if ((result as any)?.status === "missing_fields") return errorJson("Required fields are missing", 400);
     if ((result as any)?.status === "invalid_weights") {
       return errorJson(`KPI weights must sum to 100. Current total: ${(result as any).total}`, 400);
     }

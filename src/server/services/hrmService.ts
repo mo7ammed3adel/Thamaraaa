@@ -25,6 +25,7 @@ type HrmResource =
   | "contract"
   | "folder"
   | "asset"
+  | "devicePassword"
   | "setting";
 
 export async function getViralHrmDashboard(month?: string | null) {
@@ -44,6 +45,7 @@ export async function getViralHrmDashboard(month?: string | null) {
     contracts,
     folders,
     assets,
+    devicePasswords,
     settings,
   ] = await Promise.all([
     prisma.user.findMany({
@@ -64,10 +66,23 @@ export async function getViralHrmDashboard(month?: string | null) {
     prisma.hrContract.findMany({ orderBy: { createdAt: "desc" } }),
     prisma.employeeFolder.findMany({ orderBy: { createdAt: "desc" } }),
     prisma.employeeAsset.findMany({ orderBy: { createdAt: "desc" } }),
+    prisma.devicePassword.findMany({ orderBy: { updatedAt: "desc" } }),
     prisma.hrSystemSetting.findMany(),
   ]);
 
   const userNames = new Map(employees.map((employee) => [employee.id, employee.name]));
+  const employeeCodes = new Map(employees.map((employee) => [employee.id, employee.hrRecord?.employeeCode || null]));
+
+  // Collapse KPI templates to their latest version, with a count of total versions
+  // per logical template so HR can see history is preserved.
+  const kpiVersionCounts = new Map<string, number>();
+  for (const template of kpiTemplates) {
+    const rootKey = template.rootId ?? template.id;
+    kpiVersionCounts.set(rootKey, (kpiVersionCounts.get(rootKey) || 0) + 1);
+  }
+  const latestKpiTemplates = kpiTemplates
+    .filter((template) => template.isLatest)
+    .map((template) => ({ ...template, versionCount: kpiVersionCounts.get(template.rootId ?? template.id) || 1 }));
   const settingsMap = {
     ...DEFAULT_SETTINGS,
     ...Object.fromEntries(settings.map((setting) => [setting.key, setting.value])),
@@ -100,7 +115,12 @@ export async function getViralHrmDashboard(month?: string | null) {
       employeeName: userNames.get(advance.userId) || "Unknown",
     })),
     recruitmentRequests,
-    kpiTemplates,
+    kpiTemplates: latestKpiTemplates,
+    devicePasswords: devicePasswords.map((entry) => ({
+      ...entry,
+      employeeName: userNames.get(entry.userId) || "Unknown",
+      employeeCode: employeeCodes.get(entry.userId) || null,
+    })),
     exits: exits.map((exit) => ({ ...exit, employeeName: userNames.get(exit.userId) || "Unknown" })),
     complaints: complaints.map((complaint) => ({ ...complaint, employeeName: userNames.get(complaint.userId) || "Unknown" })),
     warnings: warnings.map((warning) => ({ ...warning, employeeName: userNames.get(warning.userId) || "Unknown" })),
@@ -395,6 +415,18 @@ export async function createHrmResource(input: {
     });
   }
 
+  if (resource === "devicePassword") {
+    // Always keep only the latest password per employee (no history).
+    if (!body.userId || !clean(body.password)) {
+      return { status: "missing_fields" as const };
+    }
+    return prisma.devicePassword.upsert({
+      where: { userId: body.userId },
+      update: { password: clean(body.password), updatedById: actorId },
+      create: { userId: body.userId, password: clean(body.password), updatedById: actorId },
+    });
+  }
+
   if (resource === "setting") {
     return prisma.hrSystemSetting.upsert({
       where: { key: clean(body.key) },
@@ -412,7 +444,7 @@ export async function updateHrmResource(input: {
   body: any;
 }) {
   const { actorId, resource, body } = input;
-  if (!body.id && resource !== "setting") return { status: "missing_id" as const };
+  if (!body.id && resource !== "setting" && resource !== "devicePassword") return { status: "missing_id" as const };
 
   if (resource === "department") {
     return prisma.hrDepartment.update({
@@ -441,25 +473,48 @@ export async function updateHrmResource(input: {
   }
 
   if (resource === "kpiTemplate") {
+    // Structural edit (items present) → create a NEW version; the previous version
+    // stays immutable so completed evaluations keep their original KPI structure.
     if (Array.isArray(body.items)) {
       const items = normalizeKpiItems(body.items);
       const total = items.reduce((sum, item) => sum + item.weight, 0);
       if (Math.round(total) !== 100) return { status: "invalid_weights" as const, total };
+
+      const current = await prisma.kpiTemplate.findUnique({ where: { id: body.id } });
+      if (!current) return { status: "missing_id" as const };
+      const rootKey = current.rootId ?? current.id;
+
       return prisma.$transaction(async (tx) => {
-        await tx.kpiItem.deleteMany({ where: { templateId: body.id } });
-        return tx.kpiTemplate.update({
-          where: { id: body.id },
+        await tx.kpiTemplate.update({ where: { id: current.id }, data: { isLatest: false } });
+        return tx.kpiTemplate.create({
           data: {
-            name: body.name,
-            active: body.active,
-            targetRole: body.targetRole,
+            name: body.name ?? current.name,
+            departmentId: current.departmentId,
+            departmentName: body.departmentName ?? current.departmentName,
+            targetRole: body.targetRole ?? current.targetRole,
+            active: body.active ?? current.active,
+            version: current.version + 1,
+            isLatest: true,
+            rootId: rootKey,
             items: { create: items },
           },
           include: { items: true },
         });
       });
     }
+    // Non-structural change (activate/deactivate) → in place; never affects history.
     return prisma.kpiTemplate.update({ where: { id: body.id }, data: { active: body.active } });
+  }
+
+  if (resource === "devicePassword") {
+    if (!body.userId || !clean(body.password)) {
+      return { status: "missing_fields" as const };
+    }
+    return prisma.devicePassword.upsert({
+      where: { userId: body.userId },
+      update: { password: clean(body.password), updatedById: actorId },
+      create: { userId: body.userId, password: clean(body.password), updatedById: actorId },
+    });
   }
 
   if (resource === "employeeExit") {
@@ -515,6 +570,7 @@ export async function deleteHrmResource(resource: HrmResource, id: string) {
   if (resource === "contract") return prisma.hrContract.delete({ where: { id } });
   if (resource === "folder") return prisma.employeeFolder.delete({ where: { id } });
   if (resource === "asset") return prisma.employeeAsset.delete({ where: { id } });
+  if (resource === "devicePassword") return prisma.devicePassword.delete({ where: { id } });
   return { status: "delete_not_supported" as const };
 }
 

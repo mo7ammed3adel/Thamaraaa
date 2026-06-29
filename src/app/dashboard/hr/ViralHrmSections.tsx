@@ -229,47 +229,94 @@ export function Recruitment({ departments, requests, busy, onCreate, onUpdate, o
 }
 
 export function Kpis({ departments, templates, busy, onCreate, onUpdate, onDelete }: any) {
+  const [editing, setEditing] = useState<any>(null);
+
   return (
     <TwoColumn>
-      <DataPanel title="Create KPI Template">
-        <form className="space-y-3" onSubmit={(e) => {
+      <DataPanel title={editing ? `New Version — ${editing.name} (currently v${editing.version})` : "Create KPI Template"}>
+        <form key={editing?.id || "new"} className="space-y-3" onSubmit={(e) => {
           e.preventDefault();
           const raw = formValues(e.currentTarget);
-          const items = [1, 2, 3, 4].map((i) => ({
+          const items = [1, 2, 3, 4, 5, 6].map((i) => ({
             name: raw[`item${i}`],
             weight: Number(raw[`weight${i}`]) || 0,
             description: raw[`description${i}`],
           })).filter((item) => item.name);
-          onCreate("kpiTemplate", { ...raw, items }, e.currentTarget);
+          if (editing) {
+            onUpdate("kpiTemplate", { id: editing.id, name: raw.name, targetRole: raw.targetRole, departmentName: raw.departmentName, items });
+            setEditing(null);
+          } else {
+            onCreate("kpiTemplate", { ...raw, items }, e.currentTarget);
+          }
         }}>
-          <Field name="name" label="Template name" required />
+          <Field name="name" label="Template name" required defaultValue={editing?.name || ""} />
           <Select name="departmentName" label="Department" options={[["", "All"], ...departments.map((d: any) => [d.name, d.name])]} />
           <Select name="targetRole" label="Target role" options={[["employee", "Employee"], ["team_leader", "Team Leader"]]} />
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="grid grid-cols-5 gap-2">
-              <input name={`item${i}`} placeholder={`KPI item ${i}`} className="col-span-2 border rounded-lg px-3 py-2 text-sm" />
-              <input name={`weight${i}`} type="number" placeholder="Weight" className="border rounded-lg px-3 py-2 text-sm" />
-              <input name={`description${i}`} placeholder="Description" className="col-span-2 border rounded-lg px-3 py-2 text-sm" />
-            </div>
-          ))}
-          <PrimaryButton disabled={busy}>Create Template</PrimaryButton>
+          {[1, 2, 3, 4, 5, 6].map((i) => {
+            const item = editing?.items?.[i - 1];
+            return (
+              <div key={i} className="grid grid-cols-5 gap-2">
+                <input name={`item${i}`} defaultValue={item?.name || ""} placeholder={`KPI item ${i}`} className="col-span-2 border rounded-lg px-3 py-2 text-sm" />
+                <input name={`weight${i}`} type="number" defaultValue={item?.weight ?? ""} placeholder="Weight" className="border rounded-lg px-3 py-2 text-sm" />
+                <input name={`description${i}`} defaultValue={item?.description || ""} placeholder="Description" className="col-span-2 border rounded-lg px-3 py-2 text-sm" />
+              </div>
+            );
+          })}
+          <p className="text-[11px] text-gray-400">Weights must total 100%. Saving a new version keeps every previous version intact, so completed evaluations stay linked to the structure they were scored against.</p>
+          <div className="flex gap-2">
+            <PrimaryButton disabled={busy}>{editing ? "Save New Version" : "Create Template"}</PrimaryButton>
+            {editing && <button type="button" onClick={() => setEditing(null)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-bold">Cancel</button>}
+          </div>
         </form>
       </DataPanel>
-      <DataPanel title="Templates">
+      <DataPanel title="Templates (latest versions)">
         <SimpleTable
-          columns={["Template", "Department", "Role", "Items", "Weight", "Actions"]}
+          columns={["Template", "Dept", "Role", "Items", "Weight", "Version", "Actions"]}
           rows={templates.map((template: any) => [
             template.name,
             template.departmentName || "All",
             template.targetRole,
             template.items?.length || 0,
             `${sum(template.items || [], "weight")}%`,
-            <div key={template.id} className="flex gap-2">
+            <span key={`v-${template.id}`} className="text-xs font-bold text-slate-700">v{template.version}{template.versionCount > 1 ? ` · ${template.versionCount} versions` : ""}</span>,
+            <div key={`a-${template.id}`} className="flex gap-2 flex-wrap">
+              <button onClick={() => setEditing(template)} className="text-xs font-bold text-emerald-700">New version</button>
               <button onClick={() => onUpdate("kpiTemplate", { id: template.id, active: !template.active })} className="text-xs font-bold text-blue-700">
                 {template.active ? "Deactivate" : "Activate"}
               </button>
               <button onClick={() => onDelete("kpiTemplate", template.id)} className="text-xs font-bold text-red-600">Delete</button>
             </div>,
+          ])}
+        />
+      </DataPanel>
+    </TwoColumn>
+  );
+}
+
+export function DevicePasswords({ employees, entries, busy, onCreate, onDelete }: any) {
+  return (
+    <TwoColumn>
+      <DataPanel title="Set / Update Device Password">
+        <form className="space-y-3" onSubmit={(e) => {
+          e.preventDefault();
+          const raw = formValues(e.currentTarget);
+          onCreate("devicePassword", raw, e.currentTarget);
+        }}>
+          <EmployeeSelect employees={employees} />
+          <Field name="password" label="Device / computer password" required />
+          <p className="text-[11px] text-gray-400">Only the latest password is stored — saving again replaces the previous one (no history). Employees cannot view this after it is set; this module is visible to HR only.</p>
+          <PrimaryButton disabled={busy}>Save Password</PrimaryButton>
+        </form>
+      </DataPanel>
+      <DataPanel title="Device Passwords (HR only)">
+        <SimpleTable
+          columns={["Employee", "Code", "Device Password", "Last Updated", "Actions"]}
+          rows={(entries || []).map((entry: any) => [
+            entry.employeeName,
+            entry.employeeCode || "-",
+            <span key={`p-${entry.id}`} className="font-mono text-slate-800">{entry.password}</span>,
+            new Date(entry.updatedAt).toLocaleString(),
+            <button key={`d-${entry.id}`} onClick={() => onDelete("devicePassword", entry.id)} className="text-xs font-bold text-red-600">Delete</button>,
           ])}
         />
       </DataPanel>

@@ -573,9 +573,18 @@ model KpiTemplate {
   departmentName String?
   targetRole     String
   active         Boolean   @default(true)
+  // Versioning: editing a template's structure creates a NEW version row and
+  // marks the previous one isLatest=false, so completed evaluations stay linked
+  // to the exact KPI structure/weights they were scored against (immutable history).
+  version          Int     @default(1)
+  isLatest         Boolean @default(true)
+  rootId           String? // groups all versions of one logical template; null = this row is the root
   items          KpiItem[]
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+
+  @@index([rootId])
+  @@index([isLatest])
 }
 
 model KpiItem {
@@ -693,6 +702,17 @@ model HrSystemSetting {
   value       String
   updatedById String?
   updatedAt   DateTime @default(now()) @updatedAt
+}
+
+// Internal HR-only asset tool: stores ONLY the latest device/computer password
+// per employee (no history). Visible/editable to HR Admin only.
+model DevicePassword {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  password    String
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Package {

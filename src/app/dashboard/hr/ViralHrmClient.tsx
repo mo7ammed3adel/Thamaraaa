@@ -9,7 +9,7 @@ import {
   getViralHrm,
   updateViralHrmResource,
 } from "@/client/api/hr";
-import { Advances, Departments, Kpis, Overview, PayrollPeriods, PeopleOps, Profiles, Recruitment, Settings } from "./ViralHrmSections";
+import { Advances, Departments, DevicePasswords, Kpis, Overview, PayrollPeriods, PeopleOps, Profiles, Recruitment, Settings } from "./ViralHrmSections";
 
 const MODULES = [
   { id: "overview", label: "Overview" },
@@ -20,6 +20,7 @@ const MODULES = [
   { id: "recruitment", label: "Recruitment" },
   { id: "kpis", label: "KPI Templates" },
   { id: "peopleOps", label: "People Ops" },
+  { id: "devicePasswords", label: "Device Passwords" },
   { id: "settings", label: "Settings" },
 ];
 
@@ -174,6 +175,16 @@ export default function ViralHrmClient() {
           busy={busy}
           onCreate={createResource}
           onUpdate={updateResource}
+          onDelete={removeResource}
+        />
+      )}
+
+      {!loading && data && module === "devicePasswords" && (
+        <DevicePasswords
+          employees={employees}
+          entries={data.devicePasswords || []}
+          busy={busy}
+          onCreate={createResource}
           onDelete={removeResource}
         />
       )}
