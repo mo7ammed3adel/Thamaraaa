@@ -3,7 +3,16 @@ import { notify } from "@/components/toast";
 import { Calculator, Download, Plus, X, Trash2, Lock, ChevronDown, ChevronUp } from "lucide-react";
 import { formatSar } from "@/shared/formatters/currency";
 import { HttpError } from "@/client/transport/http";
-import { listCommissions, recomputeCommissions, updateCommission } from "@/client/api/finance";
+import { listCommissions, recomputeCommissions, updateCommission, updateCommissionConfig } from "@/client/api/finance";
+
+// SystemConfig keys for the accountant-editable commission rate tables
+// (kept in sync with COMMISSION_RATE_KEYS in src/lib/commissions.ts).
+const RATE_KEY = {
+  salesAgentTiers: "commission_sales_agent_tiers",
+  salesTeamLeaderTiers: "commission_sales_tl_tiers",
+  telesalesColdTiers: "commission_telesales_cold_tiers",
+  telesalesManagerRates: "commission_telesales_manager_rates",
+};
 
 export function CommissionsTab() {
   const today = new Date();
@@ -97,17 +106,8 @@ export function CommissionsTab() {
         </button>
       </div>
 
-      {/* Formula reminder */}
-      {config && (
-        <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-xs text-slate-700 leading-relaxed">
-          <div className="font-bold text-slate-900 mb-2">Commission rules applied for accountant payroll</div>
-          <code className="block bg-white p-2 rounded border">Gateway net base = gross deal value minus Tabby/Tamara fee ({(config.gatewayFeePct * 100).toFixed(2)}%)</code>
-          <RuleChips title="Sales Agent" tiers={config.rules?.salesAgentTiers || []} />
-          <RuleChips title="Sales Team Leader" tiers={config.rules?.salesTeamLeaderTiers || []} />
-          <RuleChips title="TeleSales Cold Count" tiers={config.rules?.telesalesColdTiers || []} />
-          <RuleChips title="TeleSales Manager" tiers={config.rules?.telesalesManagerRates || []} />
-        </div>
-      )}
+      {/* Editable commission rates (accountant) */}
+      {config && <CommissionRatesPanel config={config} onSaved={load} />}
 
       {/* Summary KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -216,16 +216,114 @@ export function CommissionsTab() {
   );
 }
 
-function RuleChips({ title, tiers }: { title: string; tiers: any[] }) {
-  if (!tiers.length) return null;
+function CommissionRatesPanel({ config, onSaved }: { config: any; onSaved: () => void }) {
+  const [open, setOpen] = useState(false);
   return (
-    <div className="mt-2">
-      <span className="font-bold text-slate-900 mr-2">{title}:</span>
-      {tiers.map((tier, i) => (
-        <span key={`${title}-${i}`} className="inline-block bg-white border rounded px-2 py-0.5 mr-1.5 mb-1">
-          {tier.min.toLocaleString()}-{tier.max ? tier.max.toLocaleString() : "∞"}: {(tier.pct * 100).toFixed(2)}%
-        </span>
-      ))}
+    <div className="bg-slate-50 border border-slate-200 rounded-xl">
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between p-4 text-left">
+        <div>
+          <div className="font-bold text-slate-900 text-sm">Commission rates (editable)</div>
+          <div className="text-xs text-slate-500 mt-0.5">Gateway fee {(config.gatewayFeePct * 100).toFixed(2)}% · saving any rate recomputes this month immediately.</div>
+        </div>
+        {open ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+      </button>
+      {open && (
+        <div className="p-4 pt-0 space-y-3">
+          <GatewayFeeEditor value={config.gatewayFeePct} onSaved={onSaved} />
+          <RateTableEditor title="Sales Agent — by gross fund (SAR)" configKey={RATE_KEY.salesAgentTiers} tiers={config.rules?.salesAgentTiers || []} onSaved={onSaved} />
+          <RateTableEditor title="Sales Team Leader — by gross fund (SAR)" configKey={RATE_KEY.salesTeamLeaderTiers} tiers={config.rules?.salesTeamLeaderTiers || []} onSaved={onSaved} />
+          <RateTableEditor title="TeleSales Cold — by cold deal count" configKey={RATE_KEY.telesalesColdTiers} tiers={config.rules?.telesalesColdTiers || []} onSaved={onSaved} />
+          <RateTableEditor title="TeleSales Manager — by final tier" configKey={RATE_KEY.telesalesManagerRates} tiers={config.rules?.telesalesManagerRates || []} onSaved={onSaved} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GatewayFeeEditor({ value, onSaved }: { value: number; onSaved: () => void }) {
+  const [pct, setPct] = useState(((value ?? 0) * 100).toString());
+  const [saving, setSaving] = useState(false);
+  const save = async () => {
+    setSaving(true);
+    try {
+      await updateCommissionConfig({ key: "gateway_fee_pct", value: String((Number(pct) || 0) / 100) });
+      notify("Gateway fee saved & month recomputed");
+      onSaved();
+    } catch (e) {
+      notify(e instanceof HttpError ? e.message : "Failed to save fee");
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <div className="bg-white border rounded-lg p-3 flex items-end gap-3">
+      <label className="block">
+        <span className="block text-xs font-bold text-slate-600 mb-1">Gateway fee % (Tabby / Tamara)</span>
+        <input type="number" step="0.01" value={pct} onChange={(e) => setPct(e.target.value)} className="border rounded px-2 py-1 text-sm w-32" />
+      </label>
+      <button onClick={save} disabled={saving} className="px-3 py-1.5 bg-slate-900 text-white rounded text-xs font-bold disabled:opacity-50">{saving ? "Saving…" : "Save"}</button>
+    </div>
+  );
+}
+
+function RateTableEditor({ title, configKey, tiers, onSaved }: { title: string; configKey: string; tiers: any[]; onSaved: () => void }) {
+  const [rows, setRows] = useState<any[]>(() => (tiers || []).map((t: any) => ({
+    label: t.label || "",
+    min: t.min ?? 0,
+    max: t.max ?? "",
+    pct: (t.pct ?? 0) * 100,
+  })));
+  const [saving, setSaving] = useState(false);
+
+  const update = (i: number, field: string, value: string) =>
+    setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, [field]: value } : r)));
+  const addRow = () => setRows((prev) => [...prev, { label: "", min: 0, max: "", pct: 0 }]);
+  const removeRow = (i: number) => setRows((prev) => prev.filter((_, idx) => idx !== i));
+
+  const save = async () => {
+    const payload = rows.map((r, i) => ({
+      tier: i + 1,
+      label: r.label || `Tier ${i + 1}`,
+      min: Number(r.min) || 0,
+      max: r.max === "" || r.max === null ? null : Number(r.max),
+      pct: (Number(r.pct) || 0) / 100,
+    }));
+    setSaving(true);
+    try {
+      await updateCommissionConfig({ key: configKey, value: JSON.stringify(payload) });
+      notify("Rates saved & month recomputed");
+      onSaved();
+    } catch (e) {
+      notify(e instanceof HttpError ? e.message : "Failed to save rates");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white border rounded-lg p-3">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-bold text-slate-700">{title}</span>
+        <button onClick={addRow} className="text-xs font-bold text-blue-600 flex items-center gap-1"><Plus className="w-3 h-3" /> Row</button>
+      </div>
+      <div className="grid grid-cols-12 gap-2 text-[10px] font-bold text-slate-400 uppercase px-1 mb-1">
+        <span className="col-span-4">Min</span>
+        <span className="col-span-4">Max (blank = ∞)</span>
+        <span className="col-span-3">Rate %</span>
+        <span className="col-span-1"></span>
+      </div>
+      <div className="space-y-1.5">
+        {rows.map((r, i) => (
+          <div key={i} className="grid grid-cols-12 gap-2 items-center">
+            <input type="number" value={r.min} onChange={(e) => update(i, "min", e.target.value)} className="col-span-4 border rounded px-2 py-1 text-xs" />
+            <input type="number" value={r.max} onChange={(e) => update(i, "max", e.target.value)} placeholder="∞" className="col-span-4 border rounded px-2 py-1 text-xs" />
+            <input type="number" step="0.01" value={r.pct} onChange={(e) => update(i, "pct", e.target.value)} className="col-span-3 border rounded px-2 py-1 text-xs" />
+            <button onClick={() => removeRow(i)} className="col-span-1 text-red-500 hover:text-red-700" title="Remove row"><Trash2 className="w-3.5 h-3.5" /></button>
+          </div>
+        ))}
+        {rows.length === 0 && <p className="text-xs text-gray-400 italic">No tiers — add a row.</p>}
+      </div>
+      <button onClick={save} disabled={saving} className="mt-2 px-3 py-1.5 bg-slate-900 text-white rounded text-xs font-bold disabled:opacity-50">{saving ? "Saving…" : "Save rates"}</button>
     </div>
   );
 }

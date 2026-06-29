@@ -103,6 +103,38 @@ export const TELESALES_COLD_TIERS: FlatTier[] = [
   { tier: 4, label: "TeleSales Cold Tier 4", min: 20, max: null, pct: 0.0115 },
 ];
 
+export const DEFAULT_TELESALES_MANAGER_RATES: FlatTier[] = [
+  { tier: 1, label: "TeleSales Manager Tier 1", min: 1, max: 1, pct: 0.0025 },
+  { tier: 2, label: "TeleSales Manager Tier 2", min: 2, max: 2, pct: 0.005 },
+  { tier: 3, label: "TeleSales Manager Tier 3", min: 3, max: 3, pct: 0.0075 },
+];
+
+// SystemConfig keys that hold the accountant-editable commission rate tables.
+export const COMMISSION_RATE_KEYS = {
+  salesAgentTiers: "commission_sales_agent_tiers",
+  salesTeamLeaderTiers: "commission_sales_tl_tiers",
+  telesalesColdTiers: "commission_telesales_cold_tiers",
+  telesalesManagerRates: "commission_telesales_manager_rates",
+} as const;
+
+/** Parses a stored JSON rate table, falling back to the built-in defaults on any problem. */
+export function parseFlatTiers(json: string | null | undefined, fallback: FlatTier[]): FlatTier[] {
+  if (!json) return fallback;
+  try {
+    const parsed = JSON.parse(json);
+    if (!Array.isArray(parsed) || parsed.length === 0) return fallback;
+    return parsed.map((tier: any, index: number) => ({
+      tier: Number(tier.tier) || index + 1,
+      label: typeof tier.label === "string" && tier.label ? tier.label : `Tier ${index + 1}`,
+      min: Number(tier.min) || 0,
+      max: tier.max === null || tier.max === undefined || tier.max === "" ? null : Number(tier.max),
+      pct: Number(tier.pct) || 0,
+    }));
+  } catch {
+    return fallback;
+  }
+}
+
 const DEFAULT_GATEWAY_FEE_PCT = 0.07;
 const FINANCE_COMMISSION_ROLES = ["sales_agent", "sales_manager", "tele_sales_agent", "tele_sales_manager"];
 const BOOKED_MEETING_STATUS = "Accept and book meeting";
@@ -117,9 +149,13 @@ export async function loadCommissionConfig(): Promise<{
     telesalesManagerRates: FlatTier[];
   };
 }> {
-  const [tiersConfig, feeConfig] = await Promise.all([
+  const [tiersConfig, feeConfig, agentCfg, tlCfg, coldCfg, mgrCfg] = await Promise.all([
     prisma.systemConfig.findUnique({ where: { key: "commission_tiers" } }),
     prisma.systemConfig.findUnique({ where: { key: "gateway_fee_pct" } }),
+    prisma.systemConfig.findUnique({ where: { key: COMMISSION_RATE_KEYS.salesAgentTiers } }),
+    prisma.systemConfig.findUnique({ where: { key: COMMISSION_RATE_KEYS.salesTeamLeaderTiers } }),
+    prisma.systemConfig.findUnique({ where: { key: COMMISSION_RATE_KEYS.telesalesColdTiers } }),
+    prisma.systemConfig.findUnique({ where: { key: COMMISSION_RATE_KEYS.telesalesManagerRates } }),
   ]);
 
   let tiers: CommissionTier[] = DEFAULT_TIERS;
@@ -138,14 +174,10 @@ export async function loadCommissionConfig(): Promise<{
     tiers,
     gatewayFeePct,
     rules: {
-      salesAgentTiers: SALES_AGENT_TIERS,
-      salesTeamLeaderTiers: SALES_TEAM_LEADER_TIERS,
-      telesalesColdTiers: TELESALES_COLD_TIERS,
-      telesalesManagerRates: [
-        { tier: 1, label: "TeleSales Manager Tier 1", min: 1, max: 1, pct: 0.0025 },
-        { tier: 2, label: "TeleSales Manager Tier 2", min: 2, max: 2, pct: 0.005 },
-        { tier: 3, label: "TeleSales Manager Tier 3", min: 3, max: 3, pct: 0.0075 },
-      ],
+      salesAgentTiers: parseFlatTiers(agentCfg?.value, SALES_AGENT_TIERS),
+      salesTeamLeaderTiers: parseFlatTiers(tlCfg?.value, SALES_TEAM_LEADER_TIERS),
+      telesalesColdTiers: parseFlatTiers(coldCfg?.value, TELESALES_COLD_TIERS),
+      telesalesManagerRates: parseFlatTiers(mgrCfg?.value, DEFAULT_TELESALES_MANAGER_RATES),
     },
   };
 }
@@ -177,7 +209,8 @@ export function sumLineItems(json: string | null): number {
 
 export function computeSalesAgentCommission(
   deals: DealForCommission[],
-  gatewayFeePct = DEFAULT_GATEWAY_FEE_PCT
+  gatewayFeePct = DEFAULT_GATEWAY_FEE_PCT,
+  salesAgentTiers: FlatTier[] = SALES_AGENT_TIERS
 ): CommissionBreakdown {
   const rows = deals.map((deal) => classifyDeal(deal, gatewayFeePct));
 
@@ -188,7 +221,7 @@ export function computeSalesAgentCommission(
 
   const standardGrossFund = sumRows(standardTierRows, "gross");
   const standardNetBase = sumRows(standardTierRows, "net");
-  const tier = tierForValue(standardGrossFund, SALES_AGENT_TIERS);
+  const tier = tierForValue(standardGrossFund, salesAgentTiers);
   const standardCommission = round2(standardNetBase * tier.pct);
   const coldBonus = round2(sumRows(standardColdRows, "net") * 0.0075);
   const huntCommission = round2(sumRows(standardHuntRows, "net") * 0.05);
@@ -248,6 +281,8 @@ export function computeSalesTeamLeaderCommission(input: {
   personalDeals: DealForCommission[];
   monthlyTarget: number;
   gatewayFeePct?: number;
+  salesTeamLeaderTiers?: FlatTier[];
+  salesAgentTiers?: FlatTier[];
 }): CommissionBreakdown {
   const gatewayFeePct = input.gatewayFeePct ?? DEFAULT_GATEWAY_FEE_PCT;
   const teamRows = input.teamDeals.map((deal) => classifyDeal(deal, gatewayFeePct));
@@ -257,9 +292,9 @@ export function computeSalesTeamLeaderCommission(input: {
   const teamNet = sumRows(teamRows, "net");
   const personalNet = sumRows(personalRows, "net");
   const tierFund = teamGross + personalGross;
-  const tier = tierForValue(tierFund, SALES_TEAM_LEADER_TIERS);
+  const tier = tierForValue(tierFund, input.salesTeamLeaderTiers ?? SALES_TEAM_LEADER_TIERS);
   const teamOverride = round2(teamNet * tier.pct);
-  const personalCommission = computeSalesAgentCommission(input.personalDeals, gatewayFeePct).commissionAmount;
+  const personalCommission = computeSalesAgentCommission(input.personalDeals, gatewayFeePct, input.salesAgentTiers ?? SALES_AGENT_TIERS).commissionAmount;
   const achievementPct = input.monthlyTarget > 0 ? (tierFund / input.monthlyTarget) * 100 : 0;
   const targetBonus = round2(tierFund * salesTeamLeaderTargetBonusPct(achievementPct));
   const commissionAmount = round2(teamOverride + personalCommission);
@@ -301,6 +336,7 @@ export function computeTelesalesAgentCommission(input: {
   meetingsBooked: number;
   meetingsTarget: number;
   gatewayFeePct?: number;
+  telesalesColdTiers?: FlatTier[];
 }): CommissionBreakdown {
   const gatewayFeePct = input.gatewayFeePct ?? DEFAULT_GATEWAY_FEE_PCT;
   const rows = input.deals.map((deal) => classifyDeal(deal, gatewayFeePct));
@@ -309,7 +345,7 @@ export function computeTelesalesAgentCommission(input: {
   const vipColdRows = rows.filter((row) => row.isVip && row.dealType === "cold");
   const vipHotRows = rows.filter((row) => row.isVip && row.dealType !== "cold");
 
-  const coldTier = tierForValue(standardColdRows.length, TELESALES_COLD_TIERS);
+  const coldTier = tierForValue(standardColdRows.length, input.telesalesColdTiers ?? TELESALES_COLD_TIERS);
   const standardColdCommission = round2(sumRows(standardColdRows, "net") * coldTier.pct);
   const standardHotCommission = round2(sumRows(standardHotRows, "net") * 0.0025);
   const vipColdCommission = round2(sumRows(vipColdRows, "net") * 0.01);
@@ -363,6 +399,7 @@ export function computeTelesalesManagerCommission(input: {
   hotMeetings: number;
   totalLeads: number;
   gatewayFeePct?: number;
+  telesalesManagerRates?: FlatTier[];
 }): CommissionBreakdown {
   const gatewayFeePct = input.gatewayFeePct ?? DEFAULT_GATEWAY_FEE_PCT;
   const rows = input.deals.map((deal) => classifyDeal(deal, gatewayFeePct));
@@ -372,7 +409,9 @@ export function computeTelesalesManagerCommission(input: {
   const coldTier = telesalesManagerColdTier(input.coldMeetingsPerAgent);
   const hotTier = telesalesManagerHotTier(hotConversionRate);
   const finalTierNumber = Math.min(coldTier.tier, hotTier.tier);
-  const finalTier = telesalesManagerRateTier(finalTierNumber);
+  const finalTier =
+    input.telesalesManagerRates?.find((rate) => rate.tier === finalTierNumber) ??
+    telesalesManagerRateTier(finalTierNumber);
   const commissionAmount = round2(netCommissionBase * finalTier.pct);
 
   return {
@@ -407,7 +446,7 @@ export function computeTelesalesManagerCommission(input: {
 
 export async function recomputeMonth(month: string) {
   const { start, end } = monthDateRange(month);
-  const { gatewayFeePct } = await loadCommissionConfig();
+  const { gatewayFeePct, rules } = await loadCommissionConfig();
 
   const [salesAgents, salesManagers] = await Promise.all([
     prisma.user.findMany({ where: { role: "sales_agent" }, include: { hrRecord: true } }),
@@ -426,7 +465,7 @@ export async function recomputeMonth(month: string) {
       include: { lead: { select: { classification: true, customerType: true } } },
     });
 
-    const breakdown = computeSalesAgentCommission(deals, gatewayFeePct);
+    const breakdown = computeSalesAgentCommission(deals, gatewayFeePct, rules.salesAgentTiers);
     results.push(await upsertCommissionFromBreakdown(agent, month, breakdown));
   }
 
@@ -455,6 +494,8 @@ export async function recomputeMonth(month: string) {
       personalDeals,
       monthlyTarget: manager.hrRecord?.monthlyTarget ?? 0,
       gatewayFeePct,
+      salesTeamLeaderTiers: rules.salesTeamLeaderTiers,
+      salesAgentTiers: rules.salesAgentTiers,
     });
     results.push(await upsertCommissionFromBreakdown(manager, month, breakdown));
   }
@@ -464,7 +505,7 @@ export async function recomputeMonth(month: string) {
 
 export async function recomputeTelesalesBonuses(month: string) {
   const { start, end } = monthDateRange(month);
-  const { gatewayFeePct } = await loadCommissionConfig();
+  const { gatewayFeePct, rules } = await loadCommissionConfig();
 
   const [agents, managers] = await Promise.all([
     prisma.user.findMany({ where: { role: "tele_sales_agent" }, include: { hrRecord: true } }),
@@ -501,6 +542,7 @@ export async function recomputeTelesalesBonuses(month: string) {
       meetingsBooked,
       meetingsTarget,
       gatewayFeePct,
+      telesalesColdTiers: rules.telesalesColdTiers,
     });
     results.push(await upsertCommissionFromBreakdown(agent, month, breakdown));
   }
@@ -556,6 +598,7 @@ export async function recomputeTelesalesBonuses(month: string) {
       hotMeetings,
       totalLeads,
       gatewayFeePct,
+      telesalesManagerRates: rules.telesalesManagerRates,
     });
     results.push(await upsertCommissionFromBreakdown(manager, month, breakdown));
   }
@@ -571,14 +614,14 @@ export async function buildCommissionBreakdownForUserMonth(input: {
   if (!input.role || !FINANCE_COMMISSION_ROLES.includes(input.role)) return null;
 
   const { start, end } = monthDateRange(input.month);
-  const { gatewayFeePct } = await loadCommissionConfig();
+  const { gatewayFeePct, rules } = await loadCommissionConfig();
 
   if (input.role === "sales_agent") {
     const deals = await prisma.deal.findMany({
       where: { salesAgentId: input.userId, createdAt: { gte: start, lt: end }, status: "Closed_Won" },
       include: { lead: { select: { classification: true, customerType: true } } },
     });
-    return computeSalesAgentCommission(deals, gatewayFeePct);
+    return computeSalesAgentCommission(deals, gatewayFeePct, rules.salesAgentTiers);
   }
 
   if (input.role === "sales_manager") {
@@ -602,6 +645,8 @@ export async function buildCommissionBreakdownForUserMonth(input: {
       personalDeals,
       monthlyTarget: manager?.hrRecord?.monthlyTarget ?? 0,
       gatewayFeePct,
+      salesTeamLeaderTiers: rules.salesTeamLeaderTiers,
+      salesAgentTiers: rules.salesAgentTiers,
     });
   }
 
@@ -632,6 +677,7 @@ export async function buildCommissionBreakdownForUserMonth(input: {
       meetingsBooked,
       meetingsTarget: targetRow?.target ?? agent?.hrRecord?.monthlyTarget ?? 0,
       gatewayFeePct,
+      telesalesColdTiers: rules.telesalesColdTiers,
     });
   }
 
@@ -685,6 +731,7 @@ export async function buildCommissionBreakdownForUserMonth(input: {
     hotMeetings,
     totalLeads,
     gatewayFeePct,
+    telesalesManagerRates: rules.telesalesManagerRates,
   });
 }
 

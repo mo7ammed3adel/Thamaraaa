@@ -23,3 +23,7 @@ export function recomputeCommissions(body: unknown) {
 export function updateCommission(id: string, body: unknown) {
   return patchJson(`/api/finance/commissions/${id}`, body);
 }
+
+export function updateCommissionConfig(body: unknown) {
+  return patchJson("/api/finance/commission-config", body);
+}
