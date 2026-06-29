@@ -26,6 +26,10 @@ export function createManualLeadRecord(input: {
   });
 }
 
+export function findUserCompanyId(userId: string) {
+  return prisma.user.findUnique({ where: { id: userId }, select: { companyId: true } });
+}
+
 export function findLeadAssigneeForManualCreate(userId: string) {
   return prisma.user.findUnique({
     where: { id: userId },

@@ -15,18 +15,46 @@ export type AutoAssignLeadResult =
   | { assigned: true; salesAgent: { id: string; name: string } }
   | { assigned: false; reason: "lead_not_found" | "no_available_sales_agents" };
 
+/**
+ * The company whose Sales agents may receive a lead: the lead's own company,
+ * else the company of its assigned telesales agent. Returns null only when
+ * neither is known (then distribution is org-wide). This guarantees a tele
+ * agent in Company A can never hand a lead to Sales in another company.
+ */
+export function resolveDistributionCompanyId(
+  lead: { companyId?: string | null; assignedTeleAgentId?: string | null },
+  teleAgentCompanyId?: string | null
+): string | null {
+  if (lead.companyId) return lead.companyId;
+  if (lead.assignedTeleAgentId) return teleAgentCompanyId ?? null;
+  return null;
+}
+
 export async function autoAssignLead(leadId: string): Promise<AutoAssignLeadResult> {
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead) return { assigned: false, reason: "lead_not_found" };
 
+  // The lead's company governs distribution. If it wasn't set explicitly, fall back
+  // to the assigned telesales agent's company — so a tele agent in Company A can
+  // never hand a lead to a Sales agent in a different company.
+  let teleAgentCompanyId: string | null = null;
+  if (!lead.companyId && lead.assignedTeleAgentId) {
+    const teleAgent = await prisma.user.findUnique({
+      where: { id: lead.assignedTeleAgentId },
+      select: { companyId: true },
+    });
+    teleAgentCompanyId = teleAgent?.companyId ?? null;
+  }
+  const companyId = resolveDistributionCompanyId(lead, teleAgentCompanyId);
+
   // 1. Get all AVAILABLE sales agents (exclude Busy and In_Call).
-  //    When the lead belongs to a company, only that company's agents are eligible —
-  //    distribution stays inside the lead's company (same load-balancing logic).
+  //    When the lead has a company, only that company's agents are eligible —
+  //    distribution stays inside the company (same load-balancing logic).
   const agents = await prisma.user.findMany({
     where: {
       role: "sales_agent",
       status: { notIn: ["Busy", "In_Call", "Inactive"] },
-      ...(lead.companyId ? { companyId: lead.companyId } : {}),
+      ...(companyId ? { companyId } : {}),
     },
     include: {
       salesLeads: {

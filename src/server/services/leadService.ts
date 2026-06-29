@@ -8,6 +8,7 @@ import {
   createLeadNotification,
   createImportedLead,
   createManualLeadRecord,
+  findUserCompanyId,
   deleteLeadRecord,
   deleteDraftLeads,
   findActiveTeleSalesAgents,
@@ -136,6 +137,14 @@ export async function createManualLead(input: { user: LeadUser; body: any }) {
     }
   }
 
+  // A lead inherits the company of its telesales agent when one isn't chosen
+  // explicitly, so company-scoped distribution always has a company to honour.
+  let leadCompanyId: string | null = companyId || null;
+  if (!leadCompanyId && finalTeleAgentId) {
+    const teleUser = await findUserCompanyId(finalTeleAgentId);
+    leadCompanyId = teleUser?.companyId ?? null;
+  }
+
   const lead = await createManualLeadRecord({
     name,
     phone,
@@ -146,7 +155,7 @@ export async function createManualLead(input: { user: LeadUser; body: any }) {
     createdById: input.user.id,
     source: sourceName,
     status: status || "New",
-    companyId: companyId || null,
+    companyId: leadCompanyId,
   });
 
   return { status: "ok" as const, lead };
