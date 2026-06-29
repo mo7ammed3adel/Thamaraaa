@@ -30,6 +30,44 @@ export function resolveDistributionCompanyId(
   return null;
 }
 
+export type DistributableAgent = {
+  id: string;
+  specialization?: string | null;
+  /** Active (In_Sales) leads currently held by the agent. */
+  activeLeads: number;
+  /** Total meetings ever assigned to the agent. */
+  meetings: number;
+};
+
+/** True when the agent's specialization fits the lead classification. */
+function specializationFits(agent: DistributableAgent, classification: string): boolean {
+  const s = (agent.specialization || "").toLowerCase();
+  if (classification === "Hot") return s === "hot";
+  if (classification === "Warm") return s === "warm";
+  return s === "cold" || s === "warm";
+}
+
+/**
+ * Picks the sales agent who should receive the next meeting. Priority:
+ *   1) fewest active leads, 2) fewest meetings (agents with NO meetings first),
+ *   3) matching specialization as a tiebreaker.
+ * Every eligible agent stays in the pool — specialization never narrows it down
+ * to a single agent, so meetings spread to whoever is least busy.
+ */
+export function chooseSalesAgent(
+  agents: DistributableAgent[],
+  classification: string
+): DistributableAgent | null {
+  if (agents.length === 0) return null;
+  return [...agents].sort((a, b) => {
+    if (a.activeLeads !== b.activeLeads) return a.activeLeads - b.activeLeads;
+    if (a.meetings !== b.meetings) return a.meetings - b.meetings;
+    const aFit = specializationFits(a, classification) ? 0 : 1;
+    const bFit = specializationFits(b, classification) ? 0 : 1;
+    return aFit - bFit;
+  })[0];
+}
+
 export async function autoAssignLead(leadId: string): Promise<AutoAssignLeadResult> {
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead) return { assigned: false, reason: "lead_not_found" };
@@ -76,55 +114,21 @@ export async function autoAssignLead(leadId: string): Promise<AutoAssignLeadResu
     return { assigned: false, reason: "no_available_sales_agents" };
   }
 
-  // 2. Match by specialization
-  let eligibleAgents = agents;
+  // 2 + 3. Load-balanced selection across the whole eligible pool — spread to
+  //        the least-busy agent (fewest active leads, then fewest meetings),
+  //        with specialization only as a tiebreaker so it never narrows the
+  //        pool down to a single agent.
   const classification = lead.classification || "Cold";
-
-  if (classification === "Hot") {
-    // Hot leads → Hot agents first → Senior/Mid fallback → all agents
-    const hotAgents = agents.filter((a) => a.specialization === "Hot");
-    if (hotAgents.length > 0) {
-      eligibleAgents = hotAgents;
-    } else {
-      const seniorAgents = agents.filter(
-        (a) => a.level === "Senior" || a.level === "Mid"
-      );
-      eligibleAgents = seniorAgents.length > 0 ? seniorAgents : agents;
-    }
-  } else if (classification === "Warm") {
-    // Warm leads → Warm agents first → Hot/Cold fallback → all agents
-    const warmAgents = agents.filter((a) => a.specialization === "Warm");
-    if (warmAgents.length > 0) {
-      eligibleAgents = warmAgents;
-    } else {
-      const midAgents = agents.filter(
-        (a) => a.level === "Mid" || a.level === "Senior"
-      );
-      eligibleAgents = midAgents.length > 0 ? midAgents : agents;
-    }
-  } else {
-    // Cold leads → Cold agents first → Warm fallback → Junior/Mid → all agents
-    const coldAgents = agents.filter(
-      (a) => a.specialization === "Cold" || a.specialization === "Warm"
-    );
-    if (coldAgents.length > 0) {
-      eligibleAgents = coldAgents;
-    } else {
-      const juniorAgents = agents.filter(
-        (a) => a.level === "Junior" || a.level === "Mid"
-      );
-      eligibleAgents = juniorAgents.length > 0 ? juniorAgents : agents;
-    }
-  }
-
-  // 3. Load balancing — sort by fewest active leads (In_Sales), then by fewest total meetings
-  eligibleAgents.sort((a, b) => {
-    const leadDiff = a.salesLeads.length - b.salesLeads.length;
-    if (leadDiff !== 0) return leadDiff;
-    return a._count.meetingsAsSales - b._count.meetingsAsSales;
-  });
-
-  const chosenAgent = eligibleAgents[0];
+  const chosen = chooseSalesAgent(
+    agents.map((a) => ({
+      id: a.id,
+      specialization: a.specialization,
+      activeLeads: a.salesLeads.length,
+      meetings: a._count.meetingsAsSales,
+    })),
+    classification
+  );
+  const chosenAgent = agents.find((a) => a.id === chosen!.id)!;
 
   // 4. Assign lead to chosen agent
   await prisma.lead.update({
