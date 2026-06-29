@@ -300,6 +300,7 @@ model HrRecord {
   jobTitle           String?
   hiringDate         DateTime?
   employmentType     String?
+  workMode           String? @default("onsite") // onsite | remote
   employmentStatus   String  @default("active")
   resignationDate    DateTime?
   startingSalary     Float?

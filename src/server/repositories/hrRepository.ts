@@ -21,6 +21,7 @@ type CreateEmployeeInput = {
   jobTitle?: string | null;
   hiringDate?: Date | null;
   employmentType?: string | null;
+  workMode?: string | null;
   employmentStatus?: string | null;
   startingSalary?: number | null;
   currentSalary?: number | null;
@@ -268,6 +269,7 @@ export function createEmployeeWithHrRecord(input: CreateEmployeeInput) {
         jobTitle: input.jobTitle || null,
         hiringDate: input.hiringDate || new Date(),
         employmentType: input.employmentType || "full-time",
+        workMode: input.workMode || "onsite",
         employmentStatus: input.employmentStatus || "active",
         startingSalary: input.startingSalary ?? input.baseSalary,
         currentSalary: input.currentSalary ?? input.baseSalary,

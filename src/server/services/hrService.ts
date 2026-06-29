@@ -172,6 +172,7 @@ export async function createEmployee(input: { actorRole?: string | null; body: a
     jobTitle: data.jobTitle || null,
     hiringDate: parseDateOrNull(data.hiringDate),
     employmentType: data.employmentType || "full-time",
+    workMode: data.workMode || "onsite",
     employmentStatus: data.employmentStatus || "active",
     startingSalary: Number(data.startingSalary ?? data.baseSalary) || 0,
     currentSalary: Number(data.currentSalary ?? data.baseSalary) || 0,

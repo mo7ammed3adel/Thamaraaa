@@ -1,9 +1,24 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, X, User2, Building2, Briefcase, Wallet, CalendarDays, FileWarning, Clock, Plane, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Search, X, User2, Building2, Briefcase, Wallet, CalendarDays, FileWarning, Clock, Plane, ChevronRight, UserPlus } from "lucide-react";
+import { notify } from "@/components/toast";
+import { HttpError } from "@/client/transport/http";
+import { createEmployee } from "@/client/api/hr";
 import { buildLeaveSummary } from "@/lib/leaveAccrual";
 import { HR_DOC_LABELS } from "@/lib/hrOverview";
+
+const CREATE_ROLES = [
+  "sales_agent", "sales_manager", "tele_sales_agent", "tele_sales_manager",
+  "account_manager", "head_account_manager", "head_seo", "team_leader_seo",
+  "agent_seo", "agent_content_seo", "team_leader_social_media", "agent_social_media",
+  "team_leader_media_buyer", "agent_media_buyer", "accountant", "hr_manager",
+];
+function genTempPassword() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+}
 
 function fmtDate(d?: string | Date | null) {
   if (!d) return "—";
@@ -26,10 +41,12 @@ function statusTone(s?: string | null) {
 }
 
 export default function HrEmployees({ employees, departments, leaveRequests, salaryAdvances, complaints }: any) {
+  const router = useRouter();
   const [q, setQ] = useState("");
   const [dept, setDept] = useState("all");
   const [status, setStatus] = useState("all");
   const [selected, setSelected] = useState<any>(null);
+  const [showCreate, setShowCreate] = useState(false);
 
   const deptNames: string[] = useMemo(
     () => Array.from(new Set([...(departments || []).map((d: any) => d.name), ...(employees || []).map((e: any) => e.hrRecord?.department).filter(Boolean)])),
@@ -65,8 +82,20 @@ export default function HrEmployees({ employees, departments, leaveRequests, sal
           <option value="all">All Statuses</option>
           {["active", "suspended", "resigned", "terminated"].map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
-        <span className="text-xs text-slate-400 ml-auto">{filtered.length} of {employees?.length || 0}</span>
+        <span className="text-xs text-slate-400">{filtered.length} of {employees?.length || 0}</span>
+        <button onClick={() => setShowCreate(true)} className="ml-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg flex items-center gap-2 shadow-sm">
+          <UserPlus className="w-4 h-4" /> New Employee
+        </button>
       </div>
+
+      {showCreate && (
+        <CreateEmployeeDrawer
+          departments={departments}
+          employees={employees}
+          onClose={() => setShowCreate(false)}
+          onCreated={() => { setShowCreate(false); router.refresh(); }}
+        />
+      )}
 
       <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
         <table className="min-w-full divide-y divide-slate-200">
@@ -108,6 +137,110 @@ export default function HrEmployees({ employees, departments, leaveRequests, sal
           complaints={(complaints || []).filter((c: any) => c.userId === selected.id)}
         />
       )}
+    </div>
+  );
+}
+
+function CreateEmployeeDrawer({ departments, employees, onClose, onCreated }: any) {
+  const blank = {
+    name: "", phone: "", gender: "Male", dateOfBirth: "",
+    email: "", password: genTempPassword(), role: "sales_agent",
+    department: "", directManagerId: "", baseSalary: "", hiringDate: "",
+    employmentType: "full-time", workMode: "onsite", employmentStatus: "active",
+  };
+  const [form, setForm] = useState<any>(blank);
+  const [saving, setSaving] = useState(false);
+  const [created, setCreated] = useState<{ email: string; password: string } | null>(null);
+  const set = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }));
+  const cls = "w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500";
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await createEmployee({
+        name: form.name, email: form.email, password: form.password, role: form.role,
+        phone: form.phone || null, gender: form.gender, dateOfBirth: form.dateOfBirth || null,
+        department: form.department || null, directManagerId: form.directManagerId || null,
+        baseSalary: form.baseSalary || 0, monthlyTarget: 0, level: "Junior",
+        hiringDate: form.hiringDate || null, employmentType: form.employmentType,
+        workMode: form.workMode, employmentStatus: form.employmentStatus,
+        status: form.employmentStatus === "active" ? "Active" : "Inactive",
+      });
+      setCreated({ email: form.email, password: form.password });
+    } catch (err) {
+      notify(err instanceof HttpError ? err.message : "Failed to create employee");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40" onClick={onClose}>
+      <div className="w-full max-w-xl bg-slate-50 h-full overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10">
+          <h3 className="font-black text-slate-900">New Employee</h3>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100"><X className="w-5 h-5 text-slate-500" /></button>
+        </div>
+
+        {created ? (
+          <div className="p-6">
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 text-center">
+              <p className="font-bold text-emerald-800">Employee created 🎉</p>
+              <p className="text-sm text-emerald-700 mt-1">Share these credentials with the employee — the password is shown only once.</p>
+              <div className="bg-white rounded-xl border mt-4 p-4 text-left space-y-2">
+                <div className="flex justify-between text-sm"><span className="text-slate-500">Username / Email</span><span className="font-mono font-bold text-slate-800">{created.email}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-slate-500">Temporary Password</span><span className="font-mono font-bold text-slate-800">{created.password}</span></div>
+              </div>
+            </div>
+            <button onClick={onCreated} className="w-full mt-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700">Done</button>
+          </div>
+        ) : (
+          <form onSubmit={submit} className="p-6 space-y-5">
+            <div className="bg-white rounded-2xl border p-4 space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Personal Information</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Full Name *</span><input required value={form.name} onChange={(e) => set("name", e.target.value)} className={cls} /></label>
+                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Mobile *</span><input required value={form.phone} onChange={(e) => set("phone", e.target.value)} className={cls} /></label>
+                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Gender</span><select value={form.gender} onChange={(e) => set("gender", e.target.value)} className={`${cls} bg-white`}><option>Male</option><option>Female</option></select></label>
+                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Date of Birth</span><input type="date" value={form.dateOfBirth} onChange={(e) => set("dateOfBirth", e.target.value)} className={cls} /></label>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border p-4 space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Employment Information</h4>
+              <p className="text-[11px] text-slate-400">Employee ID is generated automatically.</p>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Role *</span><select required value={form.role} onChange={(e) => set("role", e.target.value)} className={`${cls} bg-white capitalize`}>{CREATE_ROLES.map((r) => <option key={r} value={r}>{r.replace(/_/g, " ")}</option>)}</select></label>
+                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Department</span><select value={form.department} onChange={(e) => set("department", e.target.value)} className={`${cls} bg-white`}><option value="">— None —</option>{(departments || []).map((d: any) => <option key={d.id} value={d.name}>{d.name}</option>)}</select></label>
+                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Direct Manager</span><select value={form.directManagerId} onChange={(e) => set("directManagerId", e.target.value)} className={`${cls} bg-white`}><option value="">— None —</option>{(employees || []).filter((m: any) => m.status === "Active").map((m: any) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></label>
+                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Monthly Salary (SAR)</span><input type="number" min="0" value={form.baseSalary} onChange={(e) => set("baseSalary", e.target.value)} className={cls} /></label>
+                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Hiring Date</span><input type="date" value={form.hiringDate} onChange={(e) => set("hiringDate", e.target.value)} className={cls} /></label>
+                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Work Type</span><select value={form.employmentType} onChange={(e) => set("employmentType", e.target.value)} className={`${cls} bg-white`}><option value="full-time">Full Time</option><option value="part-time">Part Time</option></select></label>
+                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Work Mode</span><select value={form.workMode} onChange={(e) => set("workMode", e.target.value)} className={`${cls} bg-white`}><option value="onsite">On Site</option><option value="remote">Remote</option></select></label>
+                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Employment Status</span><select value={form.employmentStatus} onChange={(e) => set("employmentStatus", e.target.value)} className={`${cls} bg-white capitalize`}>{["active", "suspended", "resigned", "terminated"].map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border p-4 space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Login Account</h4>
+              <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Email (username) *</span><input required type="email" value={form.email} onChange={(e) => set("email", e.target.value)} className={cls} /></label>
+              <label className="block">
+                <span className="block text-xs font-bold text-slate-600 mb-1">Temporary Password *</span>
+                <div className="flex gap-2">
+                  <input required value={form.password} onChange={(e) => set("password", e.target.value)} className={cls} />
+                  <button type="button" onClick={() => set("password", genTempPassword())} className="px-3 py-2 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold whitespace-nowrap">Generate</button>
+                </div>
+              </label>
+            </div>
+
+            <div className="flex gap-3 pb-6">
+              <button type="button" onClick={onClose} className="flex-1 py-2.5 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">Cancel</button>
+              <button type="submit" disabled={saving} className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-50">{saving ? "Creating…" : "Create Employee"}</button>
+            </div>
+          </form>
+        )}
+      </div>
     </div>
   );
 }
