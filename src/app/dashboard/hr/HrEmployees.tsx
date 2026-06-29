@@ -7,7 +7,9 @@ import { notify } from "@/components/toast";
 import { HttpError } from "@/client/transport/http";
 import { createEmployee } from "@/client/api/hr";
 import { buildLeaveSummary } from "@/lib/leaveAccrual";
+import { computeSalaryReview } from "@/lib/salaryReview";
 import { HR_DOC_LABELS } from "@/lib/hrOverview";
+import HrSalaryEvalCard from "./HrSalaryEvalCard";
 
 const CREATE_ROLES = [
   "sales_agent", "sales_manager", "tele_sales_agent", "tele_sales_manager",
@@ -131,6 +133,7 @@ export default function HrEmployees({ employees, departments, leaveRequests, sal
       {selected && (
         <ProfileDrawer
           employee={selected}
+          departments={departments}
           onClose={() => setSelected(null)}
           leaveRequests={(leaveRequests || []).filter((r: any) => r.userId === selected.id)}
           salaryAdvances={(salaryAdvances || []).filter((a: any) => a.userId === selected.id)}
@@ -271,9 +274,26 @@ function Balance({ label, used, remaining, total, unit }: { label: string; used:
   );
 }
 
-function ProfileDrawer({ employee, onClose, leaveRequests, salaryAdvances, complaints }: any) {
+function ProfileDrawer({ employee, departments, onClose, leaveRequests, salaryAdvances, complaints }: any) {
   const hr = employee.hrRecord || {};
   const leave = buildLeaveSummary(hr.hiringDate, leaveRequests);
+
+  const dept = (departments || []).find((d: any) => d.name === hr.department);
+  let policy: any = {};
+  if (dept) { try { policy = typeof dept.policy === "string" ? JSON.parse(dept.policy) : (dept.policy || {}); } catch { policy = {}; } }
+  const review = computeSalaryReview(hr.hiringDate, policy);
+  const salaryInfo = {
+    currentSalary: hr.currentSalary ?? hr.baseSalary ?? 0,
+    evaluationFrequency: review.evaluationFrequency,
+    increaseType: review.increaseType,
+    increaseValue: review.increaseValue,
+    minEvalForIncrease: review.minEvalForIncrease,
+    nextReviewDate: review.nextReviewDate ? review.nextReviewDate.toISOString() : null,
+    daysUntilReview: review.daysUntilReview,
+    nextEvaluationDate: review.nextEvaluationDate ? review.nextEvaluationDate.toISOString() : null,
+    daysUntilEvaluation: review.daysUntilEvaluation,
+    commission: { enabled: !!policy.commissionEnabled, type: policy.commissionType || "percentage", rules: policy.commissionRules || [] },
+  };
   const checklist = parseChecklist(hr.documentChecklist);
   const isMale = (hr.gender || "").toLowerCase().startsWith("m");
   const docKeys = Object.keys(HR_DOC_LABELS).filter((k) => !(k === "militaryStatus" && !isMale));
@@ -326,6 +346,8 @@ function ProfileDrawer({ employee, onClose, leaveRequests, salaryAdvances, compl
               </div>
             </Section>
           </div>
+
+          <HrSalaryEvalCard info={salaryInfo} />
 
           <div className="bg-white rounded-2xl border p-4">
             <Section icon={<CalendarDays className="w-3.5 h-3.5" />} title={`Leave Summary ${leave.eligibleForAnnual ? "" : "(annual unlocks after 3 months)"}`}>

@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 import { submitAttendance } from "@/client/api/hr";
 import { SelfServiceSection } from "./HrWorkflowTabs";
 import HrSelfServiceExtras from "./HrSelfServiceExtras";
+import HrSalaryEvalCard from "./HrSalaryEvalCard";
 
 /**
  * Employee view of the HR / Attendance page (every non-HR-manager user).
  * The HR Manager's dashboard lives in HrAdminClient — this file deliberately
  * only carries the employee attendance + self-service experience.
  */
-export default function HrClient({ myTodayAttendance, history }: any) {
+export default function HrClient({ myTodayAttendance, history, salaryInfo }: any) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -80,6 +81,7 @@ export default function HrClient({ myTodayAttendance, history }: any) {
         </table>
       </div>
 
+      {salaryInfo && <HrSalaryEvalCard info={salaryInfo} />}
       <SelfServiceSection />
       <HrSelfServiceExtras />
     </div>

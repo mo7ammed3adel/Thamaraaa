@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { buildHrOverview } from "@/lib/hrOverview";
+import { computeSalaryReview } from "@/lib/salaryReview";
 import HrClient from "./HrClient";
 import HrAdminClient from "./HrAdminClient";
 
@@ -56,15 +57,43 @@ export default async function HrPage() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const [myAttendance, history] = await Promise.all([
+  const [myAttendance, history, me] = await Promise.all([
     prisma.attendance.findFirst({ where: { userId: user.id, date: { gte: today } } }),
     prisma.attendance.findMany({ where: { userId: user.id }, orderBy: { date: "desc" }, take: 50 }),
+    prisma.user.findUnique({
+      where: { id: user.id },
+      select: { hrRecord: { select: { currentSalary: true, baseSalary: true, hiringDate: true, department: true } } },
+    }),
   ]);
+
+  // Salary / evaluation / commission inherited from the employee's department.
+  let salaryInfo: any = null;
+  const hr = me?.hrRecord;
+  if (hr) {
+    let policy: any = {};
+    if (hr.department) {
+      const dep = await prisma.hrDepartment.findUnique({ where: { name: hr.department } });
+      if (dep) { try { policy = JSON.parse(dep.policy); } catch { policy = {}; } }
+    }
+    const review = computeSalaryReview(hr.hiringDate, policy);
+    salaryInfo = {
+      currentSalary: hr.currentSalary ?? hr.baseSalary ?? 0,
+      evaluationFrequency: review.evaluationFrequency,
+      increaseType: review.increaseType,
+      increaseValue: review.increaseValue,
+      minEvalForIncrease: review.minEvalForIncrease,
+      nextReviewDate: review.nextReviewDate ? review.nextReviewDate.toISOString() : null,
+      daysUntilReview: review.daysUntilReview,
+      nextEvaluationDate: review.nextEvaluationDate ? review.nextEvaluationDate.toISOString() : null,
+      daysUntilEvaluation: review.daysUntilEvaluation,
+      commission: { enabled: !!policy.commissionEnabled, type: policy.commissionType || "percentage", rules: policy.commissionRules || [] },
+    };
+  }
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">My Attendance</h1>
-      <HrClient myTodayAttendance={myAttendance} history={history} />
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">My HR Portal</h1>
+      <HrClient myTodayAttendance={myAttendance} history={history} salaryInfo={salaryInfo} />
     </div>
   );
 }
