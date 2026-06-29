@@ -14,6 +14,8 @@ export default async function UsersPage() {
   }
 
   const users = await prisma.user.findMany({
+    // Hide soft-deleted accounts (kept only to preserve business history).
+    where: { NOT: { email: { startsWith: "deleted_" } } },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,

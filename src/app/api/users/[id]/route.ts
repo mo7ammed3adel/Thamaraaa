@@ -119,13 +119,15 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
 
     if (hasBusinessHistory) {
       // Soft delete: deactivate and free unique email/phone so they can be reused.
+      // Don't re-prefix an already soft-deleted record (avoids deleted_..._deleted_... chains).
       const stamp = Date.now();
+      const alreadyDeleted = target.email.startsWith("deleted_");
       await prisma.user.update({
         where: { id },
         data: {
           status: "Inactive",
-          email: `deleted_${stamp}_${target.email}`.slice(0, 190),
-          phone: target.phone ? `deleted_${stamp}_${target.phone}`.slice(0, 190) : null,
+          email: alreadyDeleted ? target.email : `deleted_${stamp}_${target.email}`.slice(0, 190),
+          phone: target.phone && !target.phone.startsWith("deleted_") ? `deleted_${stamp}_${target.phone}`.slice(0, 190) : target.phone,
           directManagerId: null,
         },
       });
