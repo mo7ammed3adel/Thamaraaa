@@ -14,6 +14,7 @@ export default function UserListClient({ initialUsers, managers, companies = [],
   const [impersonatingId, setImpersonatingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [companyFilter, setCompanyFilter] = useState("all");
 
   const handleImpersonate = async (user: any) => {
     setImpersonatingId(user.id);
@@ -158,15 +159,21 @@ export default function UserListClient({ initialUsers, managers, companies = [],
 
   const availableRoles = Array.from(new Set(users.map((u) => u.role))).sort();
 
+  const userCompanyName = (u: any) => u.companyRef?.name || u.company || "";
+
   const filteredUsers = users.filter((u) => {
     const matchesRole = roleFilter === "all" || u.role === roleFilter;
+    const matchesCompany =
+      companyFilter === "all" ||
+      (companyFilter === "none" ? !u.companyId : u.companyId === companyFilter);
     const q = searchQuery.trim().toLowerCase();
     const matchesSearch =
       !q ||
       u.name?.toLowerCase().includes(q) ||
       u.email?.toLowerCase().includes(q) ||
-      (u.phone || "").toLowerCase().includes(q);
-    return matchesRole && matchesSearch;
+      (u.phone || "").toLowerCase().includes(q) ||
+      userCompanyName(u).toLowerCase().includes(q);
+    return matchesRole && matchesCompany && matchesSearch;
   });
 
   return (
@@ -200,9 +207,20 @@ export default function UserListClient({ initialUsers, managers, companies = [],
               <option key={r} value={r} className="capitalize">{r.replace(/_/g, " ")}</option>
             ))}
           </select>
-          {(searchQuery || roleFilter !== "all") && (
+          <select
+            value={companyFilter}
+            onChange={(e) => setCompanyFilter(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All Companies</option>
+            {companies.map((c: any) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+            <option value="none">— No company —</option>
+          </select>
+          {(searchQuery || roleFilter !== "all" || companyFilter !== "all") && (
             <button
-              onClick={() => { setSearchQuery(""); setRoleFilter("all"); }}
+              onClick={() => { setSearchQuery(""); setRoleFilter("all"); setCompanyFilter("all"); }}
               className="px-3 py-2 text-xs font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition"
             >
               ✕ Clear
@@ -220,6 +238,7 @@ export default function UserListClient({ initialUsers, managers, companies = [],
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role & Level</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Company</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Direct Manager</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
@@ -227,7 +246,7 @@ export default function UserListClient({ initialUsers, managers, companies = [],
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredUsers.length === 0 && (
-                <tr><td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-500 italic">No users match the filters.</td></tr>
+                <tr><td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500 italic">No users match the filters.</td></tr>
               )}
               {filteredUsers.map((u) => (
                 <tr key={u.id} className="hover:bg-gray-50 transition-colors">
@@ -240,6 +259,13 @@ export default function UserListClient({ initialUsers, managers, companies = [],
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mt-1">
                       {u.level}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {userCompanyName(u) ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">{userCompanyName(u)}</span>
+                    ) : (
+                      <span className="text-gray-400 italic text-xs">—</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                     {u.directManager ? (
