@@ -9,13 +9,14 @@ import type { HrOverview } from "@/lib/hrOverview";
 import HrEmployees from "./HrEmployees";
 import HrDepartments from "./HrDepartments";
 import HrRequests from "./HrRequests";
+import HrDocuments from "./HrDocuments";
 
 const MODULES = [
   { id: "dashboard", label: "Dashboard", live: true },
   { id: "employees", label: "Employees", live: true },
   { id: "departments", label: "Departments", live: true },
   { id: "requests", label: "Requests", live: true },
-  { id: "documents", label: "Documents", live: false },
+  { id: "documents", label: "Documents", live: true },
 ];
 
 const TONE: Record<string, { bg: string; ring: string; text: string; icon: string }> = {
@@ -80,6 +81,8 @@ export default function HrAdminClient({ overview, userName, employees = [], depa
       {module === "departments" && <HrDepartments employees={employees} />}
 
       {module === "requests" && <HrRequests />}
+
+      {module === "documents" && <HrDocuments employees={employees} />}
 
       {module === "dashboard" && (
       <>
