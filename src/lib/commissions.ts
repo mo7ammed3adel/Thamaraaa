@@ -135,6 +135,77 @@ export function parseFlatTiers(json: string | null | undefined, fallback: FlatTi
   }
 }
 
+// ── Editable formula parameters (every non-tier scalar in the math) ──
+export const COMMISSION_PARAMS_KEY = "commission_params";
+
+export type CommissionParams = {
+  // Sales agent extra rates (applied to net)
+  salesColdExtraPct: number;
+  salesHuntPct: number;
+  salesVipHuntPct: number;
+  salesVipColdPct: number;
+  salesVipHotPct: number;
+  // Sales team leader target cash bonus (% of tier fund) by achievement %
+  tlTargetBonusFullThreshold: number;
+  tlTargetBonusFullPct: number;
+  tlTargetBonusPartialThreshold: number;
+  tlTargetBonusPartialPct: number;
+  // Telesales agent extra rates (applied to net)
+  telesalesHotPct: number;
+  telesalesVipColdPct: number;
+  telesalesVipHotPct: number;
+  // Telesales agent fixed target bonus (SAR) by achievement %
+  telesalesTargetBonusHighThreshold: number;
+  telesalesTargetBonusHigh: number;
+  telesalesTargetBonusExact: number;
+  telesalesTargetBonusOver: number;
+  // Telesales manager tier thresholds (cold count / hot conversion %)
+  mgrColdTier3Min: number;
+  mgrColdTier2Min: number;
+  mgrHotTier3Min: number;
+  mgrHotTier2Min: number;
+};
+
+export const DEFAULT_COMMISSION_PARAMS: CommissionParams = {
+  salesColdExtraPct: 0.0075,
+  salesHuntPct: 0.05,
+  salesVipHuntPct: 0.06,
+  salesVipColdPct: 0.035,
+  salesVipHotPct: 0.03,
+  tlTargetBonusFullThreshold: 100,
+  tlTargetBonusFullPct: 0.01,
+  tlTargetBonusPartialThreshold: 80,
+  tlTargetBonusPartialPct: 0.005,
+  telesalesHotPct: 0.0025,
+  telesalesVipColdPct: 0.01,
+  telesalesVipHotPct: 0.005,
+  telesalesTargetBonusHighThreshold: 125,
+  telesalesTargetBonusHigh: 3000,
+  telesalesTargetBonusExact: 1500,
+  telesalesTargetBonusOver: 2000,
+  mgrColdTier3Min: 19,
+  mgrColdTier2Min: 15,
+  mgrHotTier3Min: 60,
+  mgrHotTier2Min: 50,
+};
+
+/** Merges stored overrides onto the defaults; any missing/invalid key keeps its default. */
+export function parseCommissionParams(json: string | null | undefined): CommissionParams {
+  if (!json) return DEFAULT_COMMISSION_PARAMS;
+  try {
+    const parsed = JSON.parse(json);
+    if (!parsed || typeof parsed !== "object") return DEFAULT_COMMISSION_PARAMS;
+    const merged: CommissionParams = { ...DEFAULT_COMMISSION_PARAMS };
+    for (const key of Object.keys(DEFAULT_COMMISSION_PARAMS) as (keyof CommissionParams)[]) {
+      const value = Number((parsed as any)[key]);
+      if (Number.isFinite(value)) merged[key] = value;
+    }
+    return merged;
+  } catch {
+    return DEFAULT_COMMISSION_PARAMS;
+  }
+}
+
 const DEFAULT_GATEWAY_FEE_PCT = 0.07;
 const FINANCE_COMMISSION_ROLES = ["sales_agent", "sales_manager", "tele_sales_agent", "tele_sales_manager"];
 const BOOKED_MEETING_STATUS = "Accept and book meeting";
@@ -148,14 +219,16 @@ export async function loadCommissionConfig(): Promise<{
     telesalesColdTiers: FlatTier[];
     telesalesManagerRates: FlatTier[];
   };
+  params: CommissionParams;
 }> {
-  const [tiersConfig, feeConfig, agentCfg, tlCfg, coldCfg, mgrCfg] = await Promise.all([
+  const [tiersConfig, feeConfig, agentCfg, tlCfg, coldCfg, mgrCfg, paramsCfg] = await Promise.all([
     prisma.systemConfig.findUnique({ where: { key: "commission_tiers" } }),
     prisma.systemConfig.findUnique({ where: { key: "gateway_fee_pct" } }),
     prisma.systemConfig.findUnique({ where: { key: COMMISSION_RATE_KEYS.salesAgentTiers } }),
     prisma.systemConfig.findUnique({ where: { key: COMMISSION_RATE_KEYS.salesTeamLeaderTiers } }),
     prisma.systemConfig.findUnique({ where: { key: COMMISSION_RATE_KEYS.telesalesColdTiers } }),
     prisma.systemConfig.findUnique({ where: { key: COMMISSION_RATE_KEYS.telesalesManagerRates } }),
+    prisma.systemConfig.findUnique({ where: { key: COMMISSION_PARAMS_KEY } }),
   ]);
 
   let tiers: CommissionTier[] = DEFAULT_TIERS;
@@ -179,6 +252,7 @@ export async function loadCommissionConfig(): Promise<{
       telesalesColdTiers: parseFlatTiers(coldCfg?.value, TELESALES_COLD_TIERS),
       telesalesManagerRates: parseFlatTiers(mgrCfg?.value, DEFAULT_TELESALES_MANAGER_RATES),
     },
+    params: parseCommissionParams(paramsCfg?.value),
   };
 }
 
@@ -210,7 +284,8 @@ export function sumLineItems(json: string | null): number {
 export function computeSalesAgentCommission(
   deals: DealForCommission[],
   gatewayFeePct = DEFAULT_GATEWAY_FEE_PCT,
-  salesAgentTiers: FlatTier[] = SALES_AGENT_TIERS
+  salesAgentTiers: FlatTier[] = SALES_AGENT_TIERS,
+  params: CommissionParams = DEFAULT_COMMISSION_PARAMS
 ): CommissionBreakdown {
   const rows = deals.map((deal) => classifyDeal(deal, gatewayFeePct));
 
@@ -223,15 +298,15 @@ export function computeSalesAgentCommission(
   const standardNetBase = sumRows(standardTierRows, "net");
   const tier = tierForValue(standardGrossFund, salesAgentTiers);
   const standardCommission = round2(standardNetBase * tier.pct);
-  const coldBonus = round2(sumRows(standardColdRows, "net") * 0.0075);
-  const huntCommission = round2(sumRows(standardHuntRows, "net") * 0.05);
+  const coldBonus = round2(sumRows(standardColdRows, "net") * params.salesColdExtraPct);
+  const huntCommission = round2(sumRows(standardHuntRows, "net") * params.salesHuntPct);
 
   let vipCommission = 0;
   let vipHotNet = 0;
   let vipColdNet = 0;
   let vipHuntNet = 0;
   for (const row of vipRows) {
-    const pct = row.dealType === "hunt" ? 0.06 : row.dealType === "cold" ? 0.035 : 0.03;
+    const pct = row.dealType === "hunt" ? params.salesVipHuntPct : row.dealType === "cold" ? params.salesVipColdPct : params.salesVipHotPct;
     vipCommission += row.net * pct;
     if (row.dealType === "hunt") vipHuntNet += row.net;
     else if (row.dealType === "cold") vipColdNet += row.net;
@@ -264,8 +339,8 @@ export function computeSalesAgentCommission(
     },
     components: [
       { label: "Standard tier commission", amount: standardCommission, pct: tier.pct },
-      { label: "Standard Cold extra bonus", amount: coldBonus, pct: 0.0075 },
-      { label: "Standard Hunt fixed commission", amount: huntCommission, pct: 0.05 },
+      { label: "Standard Cold extra bonus", amount: coldBonus, pct: params.salesColdExtraPct },
+      { label: "Standard Hunt fixed commission", amount: huntCommission, pct: params.salesHuntPct },
       { label: "VIP commission", amount: round2(vipCommission) },
     ],
     notes: [
@@ -283,8 +358,10 @@ export function computeSalesTeamLeaderCommission(input: {
   gatewayFeePct?: number;
   salesTeamLeaderTiers?: FlatTier[];
   salesAgentTiers?: FlatTier[];
+  params?: CommissionParams;
 }): CommissionBreakdown {
   const gatewayFeePct = input.gatewayFeePct ?? DEFAULT_GATEWAY_FEE_PCT;
+  const params = input.params ?? DEFAULT_COMMISSION_PARAMS;
   const teamRows = input.teamDeals.map((deal) => classifyDeal(deal, gatewayFeePct));
   const personalRows = input.personalDeals.map((deal) => classifyDeal(deal, gatewayFeePct));
   const teamGross = sumRows(teamRows, "gross");
@@ -294,9 +371,9 @@ export function computeSalesTeamLeaderCommission(input: {
   const tierFund = teamGross + personalGross;
   const tier = tierForValue(tierFund, input.salesTeamLeaderTiers ?? SALES_TEAM_LEADER_TIERS);
   const teamOverride = round2(teamNet * tier.pct);
-  const personalCommission = computeSalesAgentCommission(input.personalDeals, gatewayFeePct, input.salesAgentTiers ?? SALES_AGENT_TIERS).commissionAmount;
+  const personalCommission = computeSalesAgentCommission(input.personalDeals, gatewayFeePct, input.salesAgentTiers ?? SALES_AGENT_TIERS, params).commissionAmount;
   const achievementPct = input.monthlyTarget > 0 ? (tierFund / input.monthlyTarget) * 100 : 0;
-  const targetBonus = round2(tierFund * salesTeamLeaderTargetBonusPct(achievementPct));
+  const targetBonus = round2(tierFund * salesTeamLeaderTargetBonusPct(achievementPct, params));
   const commissionAmount = round2(teamOverride + personalCommission);
   const netCommissionBase = round2(teamNet + personalNet);
 
@@ -337,8 +414,10 @@ export function computeTelesalesAgentCommission(input: {
   meetingsTarget: number;
   gatewayFeePct?: number;
   telesalesColdTiers?: FlatTier[];
+  params?: CommissionParams;
 }): CommissionBreakdown {
   const gatewayFeePct = input.gatewayFeePct ?? DEFAULT_GATEWAY_FEE_PCT;
+  const params = input.params ?? DEFAULT_COMMISSION_PARAMS;
   const rows = input.deals.map((deal) => classifyDeal(deal, gatewayFeePct));
   const standardColdRows = rows.filter((row) => !row.isVip && row.dealType === "cold");
   const standardHotRows = rows.filter((row) => !row.isVip && row.dealType !== "cold");
@@ -347,12 +426,12 @@ export function computeTelesalesAgentCommission(input: {
 
   const coldTier = tierForValue(standardColdRows.length, input.telesalesColdTiers ?? TELESALES_COLD_TIERS);
   const standardColdCommission = round2(sumRows(standardColdRows, "net") * coldTier.pct);
-  const standardHotCommission = round2(sumRows(standardHotRows, "net") * 0.0025);
-  const vipColdCommission = round2(sumRows(vipColdRows, "net") * 0.01);
-  const vipHotCommission = round2(sumRows(vipHotRows, "net") * 0.005);
+  const standardHotCommission = round2(sumRows(standardHotRows, "net") * params.telesalesHotPct);
+  const vipColdCommission = round2(sumRows(vipColdRows, "net") * params.telesalesVipColdPct);
+  const vipHotCommission = round2(sumRows(vipHotRows, "net") * params.telesalesVipHotPct);
   const targetAchievementPct =
     input.meetingsTarget > 0 ? (input.meetingsBooked / input.meetingsTarget) * 100 : 0;
-  const targetBonus = telesalesTargetBonus(input.meetingsBooked, input.meetingsTarget);
+  const targetBonus = telesalesTargetBonus(input.meetingsBooked, input.meetingsTarget, params);
   const commissionAmount = round2(
     standardColdCommission + standardHotCommission + vipColdCommission + vipHotCommission
   );
@@ -380,9 +459,9 @@ export function computeTelesalesAgentCommission(input: {
     },
     components: [
       { label: "Standard Cold commission", amount: standardColdCommission, pct: coldTier.pct },
-      { label: "Standard Hot commission", amount: standardHotCommission, pct: 0.0025 },
-      { label: "VIP Cold commission", amount: vipColdCommission, pct: 0.01 },
-      { label: "VIP Hot commission", amount: vipHotCommission, pct: 0.005 },
+      { label: "Standard Hot commission", amount: standardHotCommission, pct: params.telesalesHotPct },
+      { label: "VIP Cold commission", amount: vipColdCommission, pct: params.telesalesVipColdPct },
+      { label: "VIP Hot commission", amount: vipHotCommission, pct: params.telesalesVipHotPct },
       { label: "Target fixed bonus", amount: targetBonus },
     ],
     notes: [
@@ -400,14 +479,16 @@ export function computeTelesalesManagerCommission(input: {
   totalLeads: number;
   gatewayFeePct?: number;
   telesalesManagerRates?: FlatTier[];
+  params?: CommissionParams;
 }): CommissionBreakdown {
   const gatewayFeePct = input.gatewayFeePct ?? DEFAULT_GATEWAY_FEE_PCT;
+  const params = input.params ?? DEFAULT_COMMISSION_PARAMS;
   const rows = input.deals.map((deal) => classifyDeal(deal, gatewayFeePct));
   const grossFund = sumRows(rows, "gross");
   const netCommissionBase = sumRows(rows, "net");
   const hotConversionRate = input.totalLeads > 0 ? (input.hotMeetings / input.totalLeads) * 100 : 0;
-  const coldTier = telesalesManagerColdTier(input.coldMeetingsPerAgent);
-  const hotTier = telesalesManagerHotTier(hotConversionRate);
+  const coldTier = telesalesManagerColdTier(input.coldMeetingsPerAgent, params);
+  const hotTier = telesalesManagerHotTier(hotConversionRate, params);
   const finalTierNumber = Math.min(coldTier.tier, hotTier.tier);
   const finalTier =
     input.telesalesManagerRates?.find((rate) => rate.tier === finalTierNumber) ??
@@ -446,7 +527,7 @@ export function computeTelesalesManagerCommission(input: {
 
 export async function recomputeMonth(month: string) {
   const { start, end } = monthDateRange(month);
-  const { gatewayFeePct, rules } = await loadCommissionConfig();
+  const { gatewayFeePct, rules, params } = await loadCommissionConfig();
 
   const [salesAgents, salesManagers] = await Promise.all([
     prisma.user.findMany({ where: { role: "sales_agent" }, include: { hrRecord: true } }),
@@ -465,7 +546,7 @@ export async function recomputeMonth(month: string) {
       include: { lead: { select: { classification: true, customerType: true } } },
     });
 
-    const breakdown = computeSalesAgentCommission(deals, gatewayFeePct, rules.salesAgentTiers);
+    const breakdown = computeSalesAgentCommission(deals, gatewayFeePct, rules.salesAgentTiers, params);
     results.push(await upsertCommissionFromBreakdown(agent, month, breakdown));
   }
 
@@ -496,6 +577,7 @@ export async function recomputeMonth(month: string) {
       gatewayFeePct,
       salesTeamLeaderTiers: rules.salesTeamLeaderTiers,
       salesAgentTiers: rules.salesAgentTiers,
+      params,
     });
     results.push(await upsertCommissionFromBreakdown(manager, month, breakdown));
   }
@@ -505,7 +587,7 @@ export async function recomputeMonth(month: string) {
 
 export async function recomputeTelesalesBonuses(month: string) {
   const { start, end } = monthDateRange(month);
-  const { gatewayFeePct, rules } = await loadCommissionConfig();
+  const { gatewayFeePct, rules, params } = await loadCommissionConfig();
 
   const [agents, managers] = await Promise.all([
     prisma.user.findMany({ where: { role: "tele_sales_agent" }, include: { hrRecord: true } }),
@@ -543,6 +625,7 @@ export async function recomputeTelesalesBonuses(month: string) {
       meetingsTarget,
       gatewayFeePct,
       telesalesColdTiers: rules.telesalesColdTiers,
+      params,
     });
     results.push(await upsertCommissionFromBreakdown(agent, month, breakdown));
   }
@@ -599,6 +682,7 @@ export async function recomputeTelesalesBonuses(month: string) {
       totalLeads,
       gatewayFeePct,
       telesalesManagerRates: rules.telesalesManagerRates,
+      params,
     });
     results.push(await upsertCommissionFromBreakdown(manager, month, breakdown));
   }
@@ -614,14 +698,14 @@ export async function buildCommissionBreakdownForUserMonth(input: {
   if (!input.role || !FINANCE_COMMISSION_ROLES.includes(input.role)) return null;
 
   const { start, end } = monthDateRange(input.month);
-  const { gatewayFeePct, rules } = await loadCommissionConfig();
+  const { gatewayFeePct, rules, params } = await loadCommissionConfig();
 
   if (input.role === "sales_agent") {
     const deals = await prisma.deal.findMany({
       where: { salesAgentId: input.userId, createdAt: { gte: start, lt: end }, status: "Closed_Won" },
       include: { lead: { select: { classification: true, customerType: true } } },
     });
-    return computeSalesAgentCommission(deals, gatewayFeePct, rules.salesAgentTiers);
+    return computeSalesAgentCommission(deals, gatewayFeePct, rules.salesAgentTiers, params);
   }
 
   if (input.role === "sales_manager") {
@@ -647,6 +731,7 @@ export async function buildCommissionBreakdownForUserMonth(input: {
       gatewayFeePct,
       salesTeamLeaderTiers: rules.salesTeamLeaderTiers,
       salesAgentTiers: rules.salesAgentTiers,
+      params,
     });
   }
 
@@ -678,6 +763,7 @@ export async function buildCommissionBreakdownForUserMonth(input: {
       meetingsTarget: targetRow?.target ?? agent?.hrRecord?.monthlyTarget ?? 0,
       gatewayFeePct,
       telesalesColdTiers: rules.telesalesColdTiers,
+      params,
     });
   }
 
@@ -732,6 +818,7 @@ export async function buildCommissionBreakdownForUserMonth(input: {
     totalLeads,
     gatewayFeePct,
     telesalesManagerRates: rules.telesalesManagerRates,
+    params,
   });
 }
 
@@ -829,31 +916,31 @@ function tierForValue(value: number, tiers: FlatTier[]): FlatTier {
   return tiers[0];
 }
 
-function salesTeamLeaderTargetBonusPct(achievementPct: number): number {
-  if (achievementPct >= 100) return 0.01;
-  if (achievementPct >= 80) return 0.005;
+function salesTeamLeaderTargetBonusPct(achievementPct: number, params: CommissionParams = DEFAULT_COMMISSION_PARAMS): number {
+  if (achievementPct >= params.tlTargetBonusFullThreshold) return params.tlTargetBonusFullPct;
+  if (achievementPct >= params.tlTargetBonusPartialThreshold) return params.tlTargetBonusPartialPct;
   return 0;
 }
 
-function telesalesTargetBonus(meetingsBooked: number, meetingsTarget: number): number {
+function telesalesTargetBonus(meetingsBooked: number, meetingsTarget: number, params: CommissionParams = DEFAULT_COMMISSION_PARAMS): number {
   if (meetingsTarget <= 0) return 0;
   const achievementPct = (meetingsBooked / meetingsTarget) * 100;
-  if (achievementPct >= 125) return 3000;
-  if (meetingsBooked === meetingsTarget) return 1500;
-  if (achievementPct > 100) return 2000;
+  if (achievementPct >= params.telesalesTargetBonusHighThreshold) return params.telesalesTargetBonusHigh;
+  if (meetingsBooked === meetingsTarget) return params.telesalesTargetBonusExact;
+  if (achievementPct > 100) return params.telesalesTargetBonusOver;
   return 0;
 }
 
-function telesalesManagerColdTier(coldMeetingsPerAgent: number): FlatTier {
-  if (coldMeetingsPerAgent >= 19) return { tier: 3, label: "Cold Tier 3", min: 19, max: null, pct: 0.0075 };
-  if (coldMeetingsPerAgent >= 15) return { tier: 2, label: "Cold Tier 2", min: 15, max: 18, pct: 0.005 };
-  return { tier: 1, label: "Cold Tier 1", min: 0, max: 14, pct: 0.0025 };
+function telesalesManagerColdTier(coldMeetingsPerAgent: number, params: CommissionParams = DEFAULT_COMMISSION_PARAMS): FlatTier {
+  if (coldMeetingsPerAgent >= params.mgrColdTier3Min) return { tier: 3, label: "Cold Tier 3", min: params.mgrColdTier3Min, max: null, pct: 0.0075 };
+  if (coldMeetingsPerAgent >= params.mgrColdTier2Min) return { tier: 2, label: "Cold Tier 2", min: params.mgrColdTier2Min, max: params.mgrColdTier3Min - 1, pct: 0.005 };
+  return { tier: 1, label: "Cold Tier 1", min: 0, max: params.mgrColdTier2Min - 1, pct: 0.0025 };
 }
 
-function telesalesManagerHotTier(hotConversionRate: number): FlatTier {
-  if (hotConversionRate >= 60) return { tier: 3, label: "Hot Tier 3", min: 60, max: null, pct: 0.0075 };
-  if (hotConversionRate >= 50) return { tier: 2, label: "Hot Tier 2", min: 50, max: 59.9, pct: 0.005 };
-  return { tier: 1, label: "Hot Tier 1", min: 0, max: 49.9, pct: 0.0025 };
+function telesalesManagerHotTier(hotConversionRate: number, params: CommissionParams = DEFAULT_COMMISSION_PARAMS): FlatTier {
+  if (hotConversionRate >= params.mgrHotTier3Min) return { tier: 3, label: "Hot Tier 3", min: params.mgrHotTier3Min, max: null, pct: 0.0075 };
+  if (hotConversionRate >= params.mgrHotTier2Min) return { tier: 2, label: "Hot Tier 2", min: params.mgrHotTier2Min, max: params.mgrHotTier3Min - 0.1, pct: 0.005 };
+  return { tier: 1, label: "Hot Tier 1", min: 0, max: params.mgrHotTier2Min - 0.1, pct: 0.0025 };
 }
 
 function telesalesManagerRateTier(tierNumber: number): FlatTier {

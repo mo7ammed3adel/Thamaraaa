@@ -234,8 +234,121 @@ function CommissionRatesPanel({ config, onSaved }: { config: any; onSaved: () =>
           <RateTableEditor title="Sales Team Leader — by gross fund (SAR)" configKey={RATE_KEY.salesTeamLeaderTiers} tiers={config.rules?.salesTeamLeaderTiers || []} onSaved={onSaved} />
           <RateTableEditor title="TeleSales Cold — by cold deal count" configKey={RATE_KEY.telesalesColdTiers} tiers={config.rules?.telesalesColdTiers || []} onSaved={onSaved} />
           <RateTableEditor title="TeleSales Manager — by final tier" configKey={RATE_KEY.telesalesManagerRates} tiers={config.rules?.telesalesManagerRates || []} onSaved={onSaved} />
+          <FormulaParamsEditor params={config.params} onSaved={onSaved} />
         </div>
       )}
+    </div>
+  );
+}
+
+const PARAM_GROUPS: { title: string; fields: { key: string; label: string; kind: "pct" | "num" }[] }[] = [
+  {
+    title: "Sales Agent extra rates",
+    fields: [
+      { key: "salesColdExtraPct", label: "Cold extra %", kind: "pct" },
+      { key: "salesHuntPct", label: "Hunt %", kind: "pct" },
+      { key: "salesVipHuntPct", label: "VIP Hunt %", kind: "pct" },
+      { key: "salesVipColdPct", label: "VIP Cold %", kind: "pct" },
+      { key: "salesVipHotPct", label: "VIP Hot %", kind: "pct" },
+    ],
+  },
+  {
+    title: "Sales Team Leader target bonus",
+    fields: [
+      { key: "tlTargetBonusFullThreshold", label: "Full bonus at ≥ achievement %", kind: "num" },
+      { key: "tlTargetBonusFullPct", label: "Full bonus %", kind: "pct" },
+      { key: "tlTargetBonusPartialThreshold", label: "Partial bonus at ≥ achievement %", kind: "num" },
+      { key: "tlTargetBonusPartialPct", label: "Partial bonus %", kind: "pct" },
+    ],
+  },
+  {
+    title: "TeleSales Agent extra rates",
+    fields: [
+      { key: "telesalesHotPct", label: "Hot %", kind: "pct" },
+      { key: "telesalesVipColdPct", label: "VIP Cold %", kind: "pct" },
+      { key: "telesalesVipHotPct", label: "VIP Hot %", kind: "pct" },
+    ],
+  },
+  {
+    title: "TeleSales Agent target bonus (SAR)",
+    fields: [
+      { key: "telesalesTargetBonusHighThreshold", label: "High bonus at ≥ achievement %", kind: "num" },
+      { key: "telesalesTargetBonusHigh", label: "High bonus (SAR)", kind: "num" },
+      { key: "telesalesTargetBonusExact", label: "Exact-target bonus (SAR)", kind: "num" },
+      { key: "telesalesTargetBonusOver", label: "Over-target bonus (SAR)", kind: "num" },
+    ],
+  },
+  {
+    title: "TeleSales Manager tier thresholds",
+    fields: [
+      { key: "mgrColdTier3Min", label: "Cold Tier 3 min (count)", kind: "num" },
+      { key: "mgrColdTier2Min", label: "Cold Tier 2 min (count)", kind: "num" },
+      { key: "mgrHotTier3Min", label: "Hot Tier 3 min (conversion %)", kind: "num" },
+      { key: "mgrHotTier2Min", label: "Hot Tier 2 min (conversion %)", kind: "num" },
+    ],
+  },
+];
+
+function FormulaParamsEditor({ params, onSaved }: { params: any; onSaved: () => void }) {
+  const [values, setValues] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    for (const group of PARAM_GROUPS) {
+      for (const field of group.fields) {
+        const raw = Number(params?.[field.key] ?? 0);
+        init[field.key] = String(field.kind === "pct" ? raw * 100 : raw);
+      }
+    }
+    return init;
+  });
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    const payload: Record<string, number> = {};
+    for (const group of PARAM_GROUPS) {
+      for (const field of group.fields) {
+        const n = Number(values[field.key]) || 0;
+        payload[field.key] = field.kind === "pct" ? n / 100 : n;
+      }
+    }
+    setSaving(true);
+    try {
+      await updateCommissionConfig({ key: "commission_params", value: JSON.stringify(payload) });
+      notify("Formula parameters saved & month recomputed");
+      onSaved();
+    } catch (e) {
+      notify(e instanceof HttpError ? e.message : "Failed to save parameters");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white border rounded-lg p-3">
+      <div className="text-xs font-bold text-slate-700 mb-2">Formula parameters — bonuses, VIP rates & thresholds</div>
+      <div className="space-y-3">
+        {PARAM_GROUPS.map((group) => (
+          <div key={group.title}>
+            <div className="text-[11px] font-bold text-slate-500 uppercase mb-1">{group.title}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
+              {group.fields.map((field) => (
+                <label key={field.key} className="flex items-center justify-between gap-2 text-xs">
+                  <span className="text-slate-600">{field.label}</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={values[field.key]}
+                    onChange={(e) => setValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                    className="border rounded px-2 py-1 text-xs w-24 shrink-0"
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <button onClick={save} disabled={saving} className="mt-3 px-3 py-1.5 bg-slate-900 text-white rounded text-xs font-bold disabled:opacity-50">
+        {saving ? "Saving…" : "Save parameters"}
+      </button>
     </div>
   );
 }

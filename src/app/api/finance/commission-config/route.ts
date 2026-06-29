@@ -3,11 +3,30 @@ import { NextRequest } from "next/server";
 import { getSessionUser } from "@/server/auth/session";
 import { errorJson, successJson } from "@/server/http/responses";
 import { prisma } from "@/lib/prisma";
-import { COMMISSION_RATE_KEYS, recomputeMonth, recomputeTelesalesBonuses } from "@/lib/commissions";
+import {
+  COMMISSION_PARAMS_KEY,
+  COMMISSION_RATE_KEYS,
+  DEFAULT_COMMISSION_PARAMS,
+  recomputeMonth,
+  recomputeTelesalesBonuses,
+} from "@/lib/commissions";
 import { safeTrigger } from "@/lib/pusher";
 
 const FINANCE_ROLES = ["super_admin", "accountant"];
 const RATE_KEYS = new Set<string>(Object.values(COMMISSION_RATE_KEYS));
+
+function isValidParams(value: string): boolean {
+  try {
+    const parsed = JSON.parse(value);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return false;
+    // Every provided key must be a known param and a finite number.
+    return Object.entries(parsed).every(
+      ([key, v]) => key in DEFAULT_COMMISSION_PARAMS && Number.isFinite(Number(v))
+    );
+  } catch {
+    return false;
+  }
+}
 
 function isValidRateTable(value: string): boolean {
   try {
@@ -48,6 +67,10 @@ export async function PATCH(req: NextRequest) {
   if (RATE_KEYS.has(key)) {
     if (!isValidRateTable(value)) {
       return errorJson("Rate table must be a JSON array of { min, max, pct }, with pct between 0 and 1", 400);
+    }
+  } else if (key === COMMISSION_PARAMS_KEY) {
+    if (!isValidParams(value)) {
+      return errorJson("Formula parameters must be a JSON object of known numeric keys", 400);
     }
   } else if (key === "gateway_fee_pct") {
     const fee = parseFloat(value);
