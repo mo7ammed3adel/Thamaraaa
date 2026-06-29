@@ -19,6 +19,8 @@ model User {
   directManager   User?    @relation("ManagerToSubordinates", fields: [directManagerId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   subordinates    User[]   @relation("ManagerToSubordinates")
   company         String?
+  companyId       String?
+  companyRef      Company? @relation("UserCompany", fields: [companyId], references: [id], onDelete: SetNull)
   status          String   @default("Active") // Active, Inactive
   specialization  String? // Hot, Cold, Warm
   createdAt       DateTime @default(now())
@@ -29,6 +31,7 @@ model User {
   callLogs        CallLog[]
   salesDeals      Deal[]             @relation("DealSalesAgent")
   managedProjects Project[]          @relation("ProjectAccountManager")
+  headAmProjects  Project[]          @relation("ProjectHeadAccountManager")
   technicalProjects Project[]        @relation("ProjectHeadTechnical")
   seoProjects       Project[]        @relation("ProjectHeadSeo")
   ledTasks        Task[]             @relation("TaskLeader")
@@ -57,6 +60,14 @@ model Niche {
   id        String   @id @default(uuid())
   name      String   @unique
   createdAt DateTime @default(now())
+}
+
+model Company {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  users     User[]   @relation("UserCompany")
+  leads     Lead[]   @relation("LeadCompany")
 }
 
 model Lead {
@@ -88,11 +99,15 @@ model Lead {
   recycleCount         Int       @default(0)
   archivedAt           DateTime?
   salesNotes           String?
+  companyId            String?
+  company              Company?  @relation("LeadCompany", fields: [companyId], references: [id], onDelete: SetNull)
 
   callLogs           CallLog[]
   deals              Deal[]
   meetings           Meeting[]
   customColumnValues CustomColumnValue[]
+
+  @@index([companyId])
 }
 
 model AgentTarget {
@@ -193,6 +208,8 @@ model Project {
   deal                Deal      @relation(fields: [dealId], references: [id])
   accountManagerId    String?
   accountManager      User?     @relation("ProjectAccountManager", fields: [accountManagerId], references: [id])
+  headAccountManagerId String?
+  headAccountManager  User?     @relation("ProjectHeadAccountManager", fields: [headAccountManagerId], references: [id])
   headTechnicalId     String?
   headTechnical       User?     @relation("ProjectHeadTechnical", fields: [headTechnicalId], references: [id])
   headSeoId           String?
@@ -229,6 +246,7 @@ model Project {
 
   @@index([lifecycleState])
   @@index([accountManagerId])
+  @@index([headAccountManagerId])
 }
 
 model Task {

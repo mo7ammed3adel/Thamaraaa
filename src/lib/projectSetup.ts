@@ -44,24 +44,25 @@ export function projectSetupLogDetails(packageName: string): string {
 }
 
 /**
- * Notifies every active Head Account Manager that a new project is awaiting
- * distribution. Runs outside any transaction (it triggers Pusher / external IO).
- * Failures here never roll back the project — the notification is best-effort.
+ * Notifies the Super Admin(s) that a new project is awaiting manual assignment
+ * to a Head Account Manager. A new client must NOT auto-drop onto every Head
+ * Account Manager — the super_admin distributes it to one of them. Runs outside
+ * any transaction; failures never roll back the project (best-effort).
  */
 export async function notifyHeadAccountManagersOfNewProject(
   clientName: string,
   packageName: string
 ): Promise<void> {
-  const headAccountManagers = await prisma.user.findMany({
-    where: { role: "head_account_manager", status: "Active" },
+  const superAdmins = await prisma.user.findMany({
+    where: { role: "super_admin", status: "Active" },
     select: { id: true },
   });
 
   await notifyUsers(
-    headAccountManagers.map((ham) => ham.id),
+    superAdmins.map((admin) => admin.id),
     {
-      title: "New Project Awaiting Distribution",
-      message: `A new project for "${clientName}" (${packageName}) is ready for assignment.`,
+      title: "New Client Awaiting Assignment",
+      message: `A new project for "${clientName}" (${packageName}) is ready — assign it to a Head Account Manager.`,
       type: "deal_closed",
       link: "/dashboard/head-account-manager",
     }

@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { User, Settings, PhoneCall, Briefcase, ListTodo, LogOut, Upload, RotateCcw, Users, BarChart3, Calendar, Handshake, TrendingUp, PlusSquare, Package, AlertTriangle, Crown, Shield, Monitor, Search, Megaphone, ShoppingCart, Palette, Film, Layout, DollarSign, ClipboardList } from "lucide-react";
+import { User, Settings, PhoneCall, Briefcase, ListTodo, LogOut, Upload, RotateCcw, Users, BarChart3, Calendar, Handshake, TrendingUp, PlusSquare, Package, AlertTriangle, Crown, Shield, Monitor, Search, Megaphone, ShoppingCart, Palette, Film, Layout, DollarSign, ClipboardList, Building2 } from "lucide-react";
 
 import LogoutButton from "@/components/LogoutButton";
 import NotificationBell from "@/components/NotificationBell";
@@ -65,6 +65,10 @@ export default async function DashboardLayout({
               <Link href="/dashboard/users" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
                 <User className="mr-3 h-5 w-5 opacity-75" />
                 Users
+              </Link>
+              <Link href="/dashboard/companies" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
+                <Building2 className="mr-3 h-5 w-5 opacity-75" />
+                Companies
               </Link>
               <Link href="/dashboard/settings" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
                 <Settings className="mr-3 h-5 w-5 opacity-75" />

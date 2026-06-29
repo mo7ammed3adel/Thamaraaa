@@ -47,10 +47,11 @@ function normalizeHeader(h: string): string {
   return h.trim().toLowerCase().replace(/[_\-]+/g, " ");
 }
 
-export default function LeadsImportClient({ agents }: { agents: Agent[] }) {
+export default function LeadsImportClient({ agents, companies = [] }: { agents: Agent[]; companies?: { id: string; name: string }[] }) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<ParsedRow[]>([]);
   const [selectedAgent, setSelectedAgent] = useState("");
+  const [selectedCompany, setSelectedCompany] = useState("");
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState("");
@@ -129,6 +130,7 @@ export default function LeadsImportClient({ agents }: { agents: Agent[] }) {
       const formData = new FormData();
       formData.append("file", file);
       if (selectedAgent) formData.append("assignToAgentId", selectedAgent);
+      if (selectedCompany) formData.append("companyId", selectedCompany);
 
       const res = await fetch("/api/leads/import", {
         method: "POST",
@@ -243,6 +245,22 @@ export default function LeadsImportClient({ agents }: { agents: Agent[] }) {
                   <option key={a.id} value={a.id}>{a.name}</option>
                 ))}
               </select>
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                الشركة (Company)
+              </label>
+              <select
+                value={selectedCompany}
+                onChange={(e) => setSelectedCompany(e.target.value)}
+                className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              >
+                <option value="">بدون شركة</option>
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-400 mt-1">الليدز هتتوزّع على موظفي الشركة دي بس.</p>
             </div>
           </div>
 

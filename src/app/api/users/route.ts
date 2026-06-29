@@ -110,6 +110,15 @@ export async function POST(req: Request) {
       }
     }
 
+    // Resolve the company relation (and denormalize its name for HR display).
+    const companyId: string | null = data.companyId || null;
+    let companyName: string | null = data.company || null;
+    if (companyId) {
+      const company = await prisma.company.findUnique({ where: { id: companyId } });
+      if (!company) return NextResponse.json({ error: "Selected company not found" }, { status: 400 });
+      companyName = company.name;
+    }
+
     const level = data.level || "Junior";
     const user = await prisma.$transaction(async (tx) => {
       const created = await tx.user.create({
@@ -121,7 +130,8 @@ export async function POST(req: Request) {
           role: data.role,
           level,
           status: data.status || "Active",
-          company: data.company || null,
+          company: companyName,
+          companyId,
           directManagerId: assignedManagerId,
         },
         select: {
@@ -133,6 +143,8 @@ export async function POST(req: Request) {
           level: true,
           status: true,
           company: true,
+          companyId: true,
+          companyRef: { select: { id: true, name: true } },
           createdAt: true,
           directManagerId: true,
           directManager: { select: { id: true, name: true } },

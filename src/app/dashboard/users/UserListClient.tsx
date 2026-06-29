@@ -7,7 +7,7 @@ import { Pencil, Trash2, LogIn, Search } from "lucide-react";
 import { HttpError } from "@/client/transport/http";
 import { impersonateUser } from "@/client/api/admin";
 
-export default function UserListClient({ initialUsers, managers, canImpersonate = false, canDelete = false }: { initialUsers: any[]; managers: any[]; canImpersonate?: boolean; canDelete?: boolean }) {
+export default function UserListClient({ initialUsers, managers, companies = [], canImpersonate = false, canDelete = false }: { initialUsers: any[]; managers: any[]; companies?: any[]; canImpersonate?: boolean; canDelete?: boolean }) {
   const router = useRouter();
   const [users, setUsers] = useState(initialUsers);
   const [showModal, setShowModal] = useState(false);
@@ -38,10 +38,11 @@ export default function UserListClient({ initialUsers, managers, canImpersonate 
     status: "Active",
     directManagerId: "",
     company: "",
+    companyId: "",
     baseSalary: "",
     monthlyTarget: "",
   });
-  
+
   // Edit User State
   const [editingUser, setEditingUser] = useState<any>(null);
   const [editData, setEditData] = useState({
@@ -54,6 +55,7 @@ export default function UserListClient({ initialUsers, managers, canImpersonate 
     status: "",
     level: "",
     company: "",
+    companyId: "",
   });
 
   // Delete confirmation state
@@ -74,7 +76,7 @@ export default function UserListClient({ initialUsers, managers, canImpersonate 
     if (res.ok) {
       const newUser = await res.json();
       setShowModal(false);
-      setFormData({ name: "", email: "", phone: "", password: "", role: "sales_agent", level: "Junior", status: "Active", directManagerId: "", company: "", baseSalary: "", monthlyTarget: "" });
+      setFormData({ name: "", email: "", phone: "", password: "", role: "sales_agent", level: "Junior", status: "Active", directManagerId: "", company: "", companyId: "", baseSalary: "", monthlyTarget: "" });
       setUsers([newUser, ...users]);
       router.refresh();
     } else {
@@ -96,6 +98,7 @@ export default function UserListClient({ initialUsers, managers, canImpersonate 
       status: user.status || "Active",
       level: user.level || "Junior",
       company: user.company || "",
+      companyId: user.companyId || "",
     });
   };
 
@@ -115,7 +118,7 @@ export default function UserListClient({ initialUsers, managers, canImpersonate 
         directManagerId: editData.directManagerId === "" ? null : editData.directManagerId,
         status: editData.status,
         level: editData.level,
-        company: editData.company,
+        companyId: editData.companyId === "" ? null : editData.companyId,
       }),
     });
 
@@ -376,7 +379,10 @@ export default function UserListClient({ initialUsers, managers, canImpersonate 
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
-                    <input type="text" placeholder="Optional" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} />
+                    <select className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-white" value={formData.companyId} onChange={e => setFormData({...formData, companyId: e.target.value})}>
+                      <option value="">— None —</option>
+                      {companies.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Base Salary (SAR)</label>
@@ -506,7 +512,10 @@ export default function UserListClient({ initialUsers, managers, canImpersonate 
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
-                    <input type="text" placeholder="Company name" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" value={editData.company} onChange={e => setEditData({...editData, company: e.target.value})} />
+                    <select className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm bg-white" value={editData.companyId} onChange={e => setEditData({...editData, companyId: e.target.value})}>
+                      <option value="">— None —</option>
+                      {companies.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
                   </div>
                 </div>
               </form>

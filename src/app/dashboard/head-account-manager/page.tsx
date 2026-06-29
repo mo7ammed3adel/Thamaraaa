@@ -13,23 +13,28 @@ export default async function HeadAccountManagerPage() {
     redirect("/dashboard");
   }
 
+  // Head Account Managers only see clients the super_admin assigned to them.
+  const projectScope = user.role === "head_account_manager" ? { headAccountManagerId: user.id } : {};
+
   const projects = await prisma.project.findMany({
+    where: projectScope,
     include: {
-      deal: { 
-        include: { 
-          lead: { 
-            include: { 
+      deal: {
+        include: {
+          lead: {
+            include: {
               callLogs: { include: { agent: true }, orderBy: { createdAt: "asc" } },
               meetings: { include: { teleAgent: true, salesAgent: true }, orderBy: { createdAt: "asc" } },
               deals: { include: { salesAgent: true }, orderBy: { createdAt: "asc" } }
-            } 
+            }
           },
           salesAgent: true,
           installments: { orderBy: { dueDate: "asc" } },
-        } 
+        }
       },
       tasks: { include: { leader: true, agent: true } },
       accountManager: true,
+      headAccountManager: { select: { id: true, name: true } },
       headTechnical: true,
       headSeo: true,
       teamAssignments: {
@@ -50,6 +55,13 @@ export default async function HeadAccountManagerPage() {
         where: { projectStatus: { in: ["new", "setup", "in_progress", "assigned", "delayed"] } }
       }
     }
+  });
+
+  // For the super_admin to distribute clients to a specific Head Account Manager.
+  const headAccountManagers = await prisma.user.findMany({
+    where: { role: "head_account_manager", status: "Active" },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
   });
 
   const headTechnicals = await prisma.user.findMany({
@@ -125,6 +137,8 @@ export default async function HeadAccountManagerPage() {
       <HeadAccountManagerClient
         projects={projectsWithData}
         accountManagers={accountManagers}
+        headAccountManagers={headAccountManagers}
+        currentUserRole={user.role}
         headTechnicals={headTechnicalsForModal}
         headSeoUsers={headSeoForModal}
         kpis={{

@@ -43,6 +43,19 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       updateData.passwordHash = await bcrypt.hash(body.password, 10);
     }
     if (body.company !== undefined) updateData.company = body.company;
+    if (body.companyId !== undefined) {
+      if (body.companyId === null || body.companyId === "") {
+        updateData.companyId = null;
+        updateData.company = null;
+      } else {
+        const company = await prisma.company.findUnique({ where: { id: body.companyId } });
+        if (!company) {
+          return NextResponse.json({ error: "Selected company not found" }, { status: 400 });
+        }
+        updateData.companyId = body.companyId;
+        updateData.company = company.name;
+      }
+    }
 
     const updatedUser = await prisma.user.update({
       where: { id },
@@ -56,6 +69,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         level: true,
         status: true,
         company: true,
+        companyId: true,
+        companyRef: { select: { id: true, name: true } },
         directManagerId: true,
         directManager: { select: { id: true, name: true } },
       }

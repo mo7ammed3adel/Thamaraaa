@@ -24,6 +24,10 @@ export function reassignAccountManager(projectId: string, body: unknown) {
   return patchJson(`/api/projects/${projectId}/reassign-am`, body);
 }
 
+export function assignHeadAccountManager(projectId: string, body: unknown) {
+  return patchJson(`/api/projects/${projectId}/head-account-manager`, body);
+}
+
 export function listProjectFiles(projectId: string) {
   return getJson(`/api/projects/${projectId}/files`);
 }

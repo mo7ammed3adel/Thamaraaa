@@ -10,6 +10,7 @@ export function createManualLeadRecord(input: {
   createdById: string;
   source: string;
   status: string;
+  companyId?: string | null;
 }) {
   return prisma.lead.create({
     data: input,
@@ -205,6 +206,7 @@ export function createImportedLead(input: {
   classification: string;
   status: string;
   assignedTeleAgentId: string | null;
+  companyId?: string | null;
 }) {
   return prisma.lead.create({
     data: input,

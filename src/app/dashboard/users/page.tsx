@@ -24,6 +24,8 @@ export default async function UsersPage() {
       level: true,
       status: true,
       company: true,
+      companyId: true,
+      companyRef: { select: { id: true, name: true } },
       createdAt: true,
       directManagerId: true,
       directManager: { select: { id: true, name: true } },
@@ -40,12 +42,17 @@ export default async function UsersPage() {
     orderBy: { name: "asc" }
   });
 
+  const companies = await prisma.company.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
       </div>
-      <UserListClient initialUsers={users} managers={managers} canImpersonate={viewerRole === "super_admin"} canDelete={viewerRole === "super_admin"} />
+      <UserListClient initialUsers={users} managers={managers} companies={companies} canImpersonate={viewerRole === "super_admin"} canDelete={viewerRole === "super_admin"} />
     </div>
   );
 }

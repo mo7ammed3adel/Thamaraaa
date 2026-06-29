@@ -95,7 +95,7 @@ function normalizeImportClassification(value: string) {
 }
 
 export async function createManualLead(input: { user: LeadUser; body: any }) {
-  const { name, phone, storeLink, niche, classification, assignedTeleAgentId, status } = input.body;
+  const { name, phone, storeLink, niche, classification, assignedTeleAgentId, status, companyId } = input.body;
 
   if (!name || !phone) {
     return { status: "missing_name_phone" as const };
@@ -146,6 +146,7 @@ export async function createManualLead(input: { user: LeadUser; body: any }) {
     createdById: input.user.id,
     source: sourceName,
     status: status || "New",
+    companyId: companyId || null,
   });
 
   return { status: "ok" as const, lead };
@@ -465,6 +466,7 @@ export async function importLeadsFromExcel(input: {
   user: LeadUser;
   file: File | null;
   assignToAgentId: string | null;
+  companyId?: string | null;
 }) {
   if (!input.file) {
     return { status: "no_file" as const };
@@ -587,6 +589,7 @@ export async function importLeadsFromExcel(input: {
         classification,
         status: "New",
         assignedTeleAgentId: finalAgentId || null,
+        companyId: input.companyId || null,
       });
 
       if (finalAgentId && !input.assignToAgentId) {

@@ -16,6 +16,7 @@ export async function POST(req: Request) {
       user: { id: user.id, role: user.role, name: user.name },
       file: formData.get("file") as File | null,
       assignToAgentId: formData.get("assignToAgentId") as string | null,
+      companyId: (formData.get("companyId") as string | null) || null,
     });
 
     if (result.status === "no_file") {

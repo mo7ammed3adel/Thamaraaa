@@ -19,11 +19,14 @@ export async function autoAssignLead(leadId: string): Promise<AutoAssignLeadResu
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead) return { assigned: false, reason: "lead_not_found" };
 
-  // 1. Get all AVAILABLE sales agents (exclude Busy and In_Call)
+  // 1. Get all AVAILABLE sales agents (exclude Busy and In_Call).
+  //    When the lead belongs to a company, only that company's agents are eligible —
+  //    distribution stays inside the lead's company (same load-balancing logic).
   const agents = await prisma.user.findMany({
     where: {
       role: "sales_agent",
       status: { notIn: ["Busy", "In_Call", "Inactive"] },
+      ...(lead.companyId ? { companyId: lead.companyId } : {}),
     },
     include: {
       salesLeads: {

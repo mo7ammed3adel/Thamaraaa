@@ -7,17 +7,34 @@ import LifecycleChangeModal from "@/components/LifecycleChangeModal";
 import DistributeModal from "@/components/DistributeModal";
 import ClientReassignModal from "@/components/ClientReassignModal";
 import CreateWarningModal from "@/components/CreateWarningModal";
-import { distributeProject as distributeProjectRequest, updateProjectStatus } from "@/client/api/projects";
+import { assignHeadAccountManager, distributeProject as distributeProjectRequest, updateProjectStatus } from "@/client/api/projects";
+import { notify } from "@/components/toast";
+import { HttpError } from "@/client/transport/http";
 import HeadAccountManagerKpiGrid from "./HeadAccountManagerKpiGrid";
 import HeadAccountManagerMasterList from "./HeadAccountManagerMasterList";
 import HeadAccountManagerTasksPanel from "./HeadAccountManagerTasksPanel";
 import HeadAccountManagerWorkload from "./HeadAccountManagerWorkload";
 import { useHeadAccountManagerDerivedData } from "./useHeadAccountManagerDerivedData";
 
-export default function HeadAccountManagerClient({ projects, accountManagers, headTechnicals, headSeoUsers, kpis, userId }: any) {
+export default function HeadAccountManagerClient({ projects, accountManagers, headAccountManagers = [], currentUserRole, headTechnicals, headSeoUsers, kpis, userId }: any) {
   const router = useRouter();
+  const isSuperAdmin = currentUserRole === "super_admin";
+  const [assigningHeadId, setAssigningHeadId] = useState<string | null>(null);
   const [filterAM, setFilterAM] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const handleAssignHeadAm = async (projectId: string, headAccountManagerId: string) => {
+    setAssigningHeadId(projectId);
+    try {
+      await assignHeadAccountManager(projectId, { headAccountManagerId: headAccountManagerId || null });
+      notify(headAccountManagerId ? "Client assigned to Head Account Manager" : "Assignment cleared");
+      router.refresh();
+    } catch (e) {
+      notify(e instanceof HttpError ? e.message : "Failed to assign");
+    } finally {
+      setAssigningHeadId(null);
+    }
+  };
   
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterWarning, setFilterWarning] = useState("all");
@@ -58,6 +75,49 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
 
   return (
     <div className="space-y-8">
+      {/* ── Super Admin: distribute clients to a Head Account Manager ── */}
+      {isSuperAdmin && (
+        <div className="bg-white rounded-xl border shadow-sm p-5">
+          <h2 className="text-lg font-bold text-slate-800 mb-1">Assign Clients to Head Account Manager</h2>
+          <p className="text-xs text-slate-500 mb-4">A new client does not auto-drop on every Head AM — assign each one here.</p>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
+                <tr>
+                  <th className="px-4 py-2 text-left">Client</th>
+                  <th className="px-4 py-2 text-left">Package</th>
+                  <th className="px-4 py-2 text-left">Head Account Manager</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 text-sm">
+                {projects.length === 0 && (
+                  <tr><td colSpan={3} className="px-4 py-6 text-center text-gray-400 italic">No clients yet.</td></tr>
+                )}
+                {projects.map((p: any) => (
+                  <tr key={p.id} className={p.headAccountManagerId ? "" : "bg-amber-50/40"}>
+                    <td className="px-4 py-2 font-semibold text-gray-900">{p.deal?.lead?.name || "Unknown"}</td>
+                    <td className="px-4 py-2 text-gray-500">{p.package}</td>
+                    <td className="px-4 py-2">
+                      <select
+                        value={p.headAccountManagerId || ""}
+                        disabled={assigningHeadId === p.id}
+                        onChange={(e) => handleAssignHeadAm(p.id, e.target.value)}
+                        className="border rounded-lg px-2 py-1.5 text-sm bg-white outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                      >
+                        <option value="">— Unassigned —</option>
+                        {headAccountManagers.map((h: any) => (
+                          <option key={h.id} value={h.id}>{h.name}</option>
+                        ))}
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* ── KPI Grid ── */}
       <HeadAccountManagerKpiGrid kpis={kpis} activeKpi={activeKpi} setActiveKpi={setActiveKpi} />
 
