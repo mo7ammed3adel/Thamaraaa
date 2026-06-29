@@ -7,11 +7,12 @@ import {
 } from "lucide-react";
 import type { HrOverview } from "@/lib/hrOverview";
 import HrEmployees from "./HrEmployees";
+import HrDepartments from "./HrDepartments";
 
 const MODULES = [
   { id: "dashboard", label: "Dashboard", live: true },
   { id: "employees", label: "Employees", live: true },
-  { id: "departments", label: "Departments", live: false },
+  { id: "departments", label: "Departments", live: true },
   { id: "requests", label: "Requests", live: false },
   { id: "documents", label: "Documents", live: false },
 ];
@@ -74,6 +75,8 @@ export default function HrAdminClient({ overview, userName, employees = [], depa
       {module === "employees" && (
         <HrEmployees employees={employees} departments={departments} leaveRequests={leaveRequests} salaryAdvances={salaryAdvances} complaints={complaints} />
       )}
+
+      {module === "departments" && <HrDepartments employees={employees} />}
 
       {module === "dashboard" && (
       <>

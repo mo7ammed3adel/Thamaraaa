@@ -448,13 +448,30 @@ model OnboardingTask {
 }
 
 model HrDepartment {
-  id        String         @id @default(uuid())
-  name      String         @unique
-  parentId  String?
-  parent    HrDepartment?  @relation("HrDepartmentTree", fields: [parentId], references: [id], onDelete: SetNull)
-  children  HrDepartment[] @relation("HrDepartmentTree")
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  id            String         @id @default(uuid())
+  name          String         @unique
+  description   String?
+  status        String         @default("active") // active | inactive
+  headId        String?
+  teamLeaderIds String         @default("[]") // JSON array of user ids
+  policy        String         @default("{}")  // JSON: evaluation / salary / commission / probation config
+  parentId      String?
+  parent        HrDepartment?  @relation("HrDepartmentTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children      HrDepartment[] @relation("HrDepartmentTree")
+  documents     DepartmentDocument[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model DepartmentDocument {
+  id           String       @id @default(uuid())
+  departmentId String
+  department   HrDepartment @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  name         String
+  fileUrl      String
+  createdAt    DateTime     @default(now())
+
+  @@index([departmentId])
 }
 
 model SalaryHistory {
