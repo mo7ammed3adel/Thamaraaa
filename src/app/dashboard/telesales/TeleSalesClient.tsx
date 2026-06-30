@@ -2,7 +2,7 @@
 import { Fragment, useState } from "react";
 import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
-import { Plus, X, Pencil, Check, PhoneCall, CheckCircle2, PhoneOff, XCircle, Send, ChevronDown, ChevronUp, ExternalLink, Trash2 } from "lucide-react";
+import { Plus, X, Pencil, Check, PhoneCall, CheckCircle2, PhoneOff, XCircle, Send, ChevronDown, ChevronUp, ExternalLink, Trash2, Video } from "lucide-react";
 import { canManuallyDistributeMeeting } from "@/lib/meetingDistribution";
 import { createCallLog } from "@/client/api/callLogs";
 import { createCustomColumn, deleteCustomColumn, saveCustomColumnValue } from "@/client/api/customColumns";
@@ -193,10 +193,15 @@ export default function TeleSalesClient({
 
     if (logFilter !== "All") {
       if (logFilter === "Accept and book meeting") {
-        // Meeting-booked leads should remain in this bucket even after follow-up call logs.
-        const hasBookedMeeting = !!l.meetingDate ||
-          ["Transferred", "In_Sales", "Closed_Won"].includes(l.status);
+        // Booked = a meeting was booked and the lead has NOT since fallen through
+        // (a follow-up "Accept but lost" flips the status to Closed_Lost).
+        const hasBookedMeeting =
+          (!!l.meetingDate || ["Transferred", "In_Sales", "Closed_Won"].includes(l.status)) &&
+          l.status !== "Closed_Lost";
         if (!hasBookedMeeting) return false;
+      } else if (logFilter === "Actual Meetings") {
+        // The meeting actually happened — the sales agent pressed Start Task.
+        if (!l.meetingStartedAt) return false;
       } else {
         const lastLog = l.callLogs?.[0]?.callStatus;
         if (lastLog !== logFilter) return false;
@@ -217,10 +222,16 @@ export default function TeleSalesClient({
 
   const totalCount = leads.length;
   const acceptLostCount = leads.filter(l => l.callLogs?.[0]?.callStatus === "Accept but lost").length;
-  // A booked meeting stays counted even after follow-up call logs change the latest status.
+  // Booked = a meeting was booked and the lead has NOT since fallen through. A
+  // later "Accept but lost" flips the status to Closed_Lost, which drops the
+  // lead out of Booked (and into Accept but Lost) so the buckets stay consistent.
   const acceptBookCount = leads.filter(l =>
-    !!l.meetingDate || ["Transferred", "In_Sales", "Closed_Won"].includes(l.status)
+    (!!l.meetingDate || ["Transferred", "In_Sales", "Closed_Won"].includes(l.status)) &&
+    l.status !== "Closed_Lost"
   ).length;
+  // Actual Meetings = the sales agent the lead was sent to actually started the
+  // booked meeting (Start Task sets meetingStartedAt).
+  const actualMeetingsCount = leads.filter(l => !!l.meetingStartedAt).length;
   const busyCount = leads.filter(l => l.callLogs?.[0]?.callStatus === "Busy").length;
   const wrongNumberCount = leads.filter(l => l.callLogs?.[0]?.callStatus === "Wrong Number").length;
 
@@ -229,7 +240,7 @@ export default function TeleSalesClient({
       <MeetingLinksPanel />
 
       {/* Workspace Summary Filters */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <div 
           onClick={() => { setLogFilter(logFilter === "All" ? "All" : "All"); setCurrentPage(1); }} 
           className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "All" ? "border-blue-500 bg-blue-50" : "border-transparent bg-white hover:bg-gray-50"}`}
@@ -252,8 +263,19 @@ export default function TeleSalesClient({
           <p className="text-2xl font-bold text-gray-900">{acceptBookCount}</p>
         </div>
 
-        <div 
-          onClick={() => { setLogFilter(logFilter === "Accept but lost" ? "All" : "Accept but lost"); setCurrentPage(1); }} 
+        <div
+          onClick={() => { setLogFilter(logFilter === "Actual Meetings" ? "All" : "Actual Meetings"); setCurrentPage(1); }}
+          className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Actual Meetings" ? "border-teal-500 bg-teal-50" : "border-transparent bg-white hover:bg-gray-50"}`}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <Video className="h-5 w-5 text-teal-500" />
+            <span className="text-xs font-bold uppercase text-gray-500">Actual Meetings</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-900">{actualMeetingsCount}</p>
+        </div>
+
+        <div
+          onClick={() => { setLogFilter(logFilter === "Accept but lost" ? "All" : "Accept but lost"); setCurrentPage(1); }}
           className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Accept but lost" ? "border-orange-500 bg-orange-50" : "border-transparent bg-white hover:bg-gray-50"}`}
         >
           <div className="flex items-center gap-2 mb-2">

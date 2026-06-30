@@ -7,6 +7,15 @@ export function findUnreadNotificationsForUser(userId: string) {
   });
 }
 
+/** Full notification history for a user — read and unread alike. */
+export function findAllNotificationsForUser(userId: string, take = 100) {
+  return prisma.notification.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    take,
+  });
+}
+
 export function findMeetingLinkNotificationsForUser(userId: string) {
   return prisma.notification.findMany({
     where: {

@@ -1,4 +1,5 @@
 import {
+  findAllNotificationsForUser,
   findMeetingLinkNotificationsForUser,
   findNotificationOwner,
   findUnreadNotificationsForUser,
@@ -7,6 +8,10 @@ import {
 
 export async function listUnreadNotifications(userId: string) {
   return findUnreadNotificationsForUser(userId);
+}
+
+export async function listAllNotifications(userId: string) {
+  return findAllNotificationsForUser(userId);
 }
 
 export async function listMeetingLinkNotifications(userId: string) {

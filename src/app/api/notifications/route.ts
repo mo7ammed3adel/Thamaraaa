@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { getSessionUser } from "@/server/auth/session";
 import { errorJson, successJson, unauthorizedJson } from "@/server/http/responses";
-import { listMeetingLinkNotifications, listUnreadNotifications } from "@/server/services/notificationService";
+import { listAllNotifications, listMeetingLinkNotifications, listUnreadNotifications } from "@/server/services/notificationService";
 
 export async function GET(req: Request) {
   const user = await getSessionUser();
@@ -9,10 +9,13 @@ export async function GET(req: Request) {
 
   try {
     const url = new URL(req.url);
+    const type = url.searchParams.get("type");
     const notifications =
-      url.searchParams.get("type") === "meeting_links"
+      type === "meeting_links"
         ? await listMeetingLinkNotifications(user.id)
-        : await listUnreadNotifications(user.id);
+        : type === "history"
+          ? await listAllNotifications(user.id)
+          : await listUnreadNotifications(user.id);
     return successJson({ data: notifications }, 200);
   } catch (err: any) {
     console.error("Notifications API error:", err);

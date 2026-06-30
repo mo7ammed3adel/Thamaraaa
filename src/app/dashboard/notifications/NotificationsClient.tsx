@@ -22,7 +22,8 @@ export default function NotificationsClient() {
 
   const fetchNotifications = async () => {
     try {
-      const res = await fetch("/api/notifications");
+      // Full history (read + unread), not just the unread ones the bell shows.
+      const res = await fetch("/api/notifications?type=history");
       if (res.ok) {
         const { data } = await res.json();
         setNotifications(data || []);
@@ -38,11 +39,23 @@ export default function NotificationsClient() {
     e.stopPropagation();
     try {
       await fetch(`/api/notifications/${id}`, { method: "PATCH" });
-      setNotifications(prev => prev.filter(n => n.id !== id));
+      // Keep it in the list as history — just flip it to read.
+      setNotifications(prev => prev.map(n => (n.id === id ? { ...n, read: true } : n)));
     } catch (err) {
       console.error(err);
     }
   };
+
+  const markAllAsRead = async () => {
+    const unread = notifications.filter(n => !n.read);
+    if (unread.length === 0) return;
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    await Promise.all(
+      unread.map(n => fetch(`/api/notifications/${n.id}`, { method: "PATCH" }).catch(() => null))
+    );
+  };
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   if (loading) {
     return <div className="p-8 text-center text-gray-500">Loading notifications...</div>;
@@ -50,13 +63,30 @@ export default function NotificationsClient() {
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      {notifications.length > 0 && (
+        <div className="px-6 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+          <span className="text-sm text-gray-600">
+            <span className="font-semibold text-gray-900">{notifications.length}</span> in history
+            {unreadCount > 0 && <span className="ml-2 text-blue-600 font-semibold">· {unreadCount} unread</span>}
+          </span>
+          {unreadCount > 0 && (
+            <button
+              onClick={markAllAsRead}
+              className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-sm font-medium transition"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              Mark all read
+            </button>
+          )}
+        </div>
+      )}
       {notifications.length === 0 ? (
         <div className="p-12 text-center flex flex-col items-center">
           <div className="bg-blue-50 text-blue-500 p-4 rounded-full mb-4">
             <Bell className="h-8 w-8" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">No pending notifications</h3>
-          <p className="text-gray-500 text-sm">You are all caught up! When you receive a notification, it will appear here.</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">No notifications yet</h3>
+          <p className="text-gray-500 text-sm">When you receive a notification, it will appear here — read or unread.</p>
         </div>
       ) : (
         <ul className="divide-y divide-gray-100">

@@ -19,23 +19,26 @@ export default async function OperationsPage() {
     redirect("/dashboard");
   }
 
-  // Fetch projects by role scope. Only org-wide roles see everything; everyone
-  // else is limited to projects they manage, lead, or are assigned to.
+  // Fetch projects by role scope. Only the super_admin sees everything; everyone
+  // else is limited to projects they manage, lead, or are assigned to. A Head
+  // Account Manager only sees the clients the super_admin distributed to them.
   const whereClause =
-    ["super_admin", "head_account_manager"].includes(user.role)
+    user.role === "super_admin"
       ? {}
-      : user.role === "account_manager"
-        ? { accountManagerId: user.id }
-        : user.role === "head_technical"
-          ? { headTechnicalId: user.id }
-          : user.role === "head_seo"
-            ? { headSeoId: user.id }
-            : {
-                OR: [
-                  { teamAssignments: { some: { userId: user.id, status: "active" } } },
-                  { tasks: { some: { OR: [{ leaderId: user.id }, { agentId: user.id }] } } },
-                ],
-              };
+      : user.role === "head_account_manager"
+        ? { headAccountManagerId: user.id }
+        : user.role === "account_manager"
+          ? { accountManagerId: user.id }
+          : user.role === "head_technical"
+            ? { headTechnicalId: user.id }
+            : user.role === "head_seo"
+              ? { headSeoId: user.id }
+              : {
+                  OR: [
+                    { teamAssignments: { some: { userId: user.id, status: "active" } } },
+                    { tasks: { some: { OR: [{ leaderId: user.id }, { agentId: user.id }] } } },
+                  ],
+                };
 
   const projects = await prisma.project.findMany({
     where: whereClause,
