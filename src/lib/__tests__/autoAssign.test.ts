@@ -1,36 +1,71 @@
 import { describe, expect, it } from "vitest";
-import { chooseSalesAgent, resolveDistributionCompanyId } from "../autoAssign";
+import {
+  chooseNextAgentRoundRobin,
+  isAgentPresent,
+  resolveDistributionCompanyId,
+  type RotationAgent,
+} from "../autoAssign";
 
-describe("meeting distribution to sales (load-balanced)", () => {
-  it("spreads to the agent with the fewest active leads", () => {
-    const agents = [
-      { id: "busy", specialization: "Cold", activeLeads: 3, meetings: 5 },
-      { id: "free", specialization: null, activeLeads: 0, meetings: 0 },
-    ];
-    expect(chooseSalesAgent(agents, "Cold")?.id).toBe("free");
+// Three agents in a fixed cycle order: s1 (earliest) → s2 → s3.
+const cycle = (overrides: Partial<Record<"s1" | "s2" | "s3", boolean>> = {}): RotationAgent[] => [
+  { id: "s1", order: 1, available: overrides.s1 ?? true },
+  { id: "s2", order: 2, available: overrides.s2 ?? true },
+  { id: "s3", order: 3, available: overrides.s3 ?? true },
+];
+
+describe("sequential round-robin meeting distribution", () => {
+  it("starts at the first agent when nobody has been assigned yet", () => {
+    expect(chooseNextAgentRoundRobin(cycle(), null)?.id).toBe("s1");
   });
 
-  it("a Cold lead does NOT pile onto the only Cold-specialized agent when others are free", () => {
-    // Reproduces the reported bug: salaaaah is Cold-specialized but already loaded;
-    // other agents have no meetings → they should get the lead.
-    const agents = [
-      { id: "salaaaah", specialization: "Cold", activeLeads: 3, meetings: 3 },
-      { id: "other1", specialization: null, activeLeads: 0, meetings: 0 },
-      { id: "other2", specialization: null, activeLeads: 0, meetings: 0 },
-    ];
-    expect(chooseSalesAgent(agents, "Cold")?.id).not.toBe("salaaaah");
+  it("hands the next meeting to the agent after the last one assigned", () => {
+    expect(chooseNextAgentRoundRobin(cycle(), "s1")?.id).toBe("s2");
+    expect(chooseNextAgentRoundRobin(cycle(), "s2")?.id).toBe("s3");
   });
 
-  it("uses specialization only as a tiebreaker when load is equal", () => {
-    const agents = [
-      { id: "generic", specialization: null, activeLeads: 0, meetings: 0 },
-      { id: "matching", specialization: "Hot", activeLeads: 0, meetings: 0 },
-    ];
-    expect(chooseSalesAgent(agents, "Hot")?.id).toBe("matching");
+  it("wraps back to the first agent after the last in the cycle", () => {
+    expect(chooseNextAgentRoundRobin(cycle(), "s3")?.id).toBe("s1");
   });
 
-  it("returns null when there are no agents", () => {
-    expect(chooseSalesAgent([], "Cold")).toBeNull();
+  it("does NOT load balance — an idle agent does not jump the queue", () => {
+    // s1 just got a meeting; even if s3 is totally idle, the next goes to s2.
+    expect(chooseNextAgentRoundRobin(cycle(), "s1")?.id).toBe("s2");
+  });
+
+  it("skips a busy agent and continues forward to the next free one", () => {
+    // After s3, the cycle returns to s1 — but s1 is in a meeting, so s2 gets it.
+    expect(chooseNextAgentRoundRobin(cycle({ s1: false }), "s3")?.id).toBe("s2");
+  });
+
+  it("reconsiders a previously-skipped agent once their turn comes back around", () => {
+    // s1 was busy and skipped (s2 took the lead). Now s1 is free again: after s2
+    // comes s3, then on the next turn s1 is picked up again.
+    expect(chooseNextAgentRoundRobin(cycle(), "s2")?.id).toBe("s3");
+    expect(chooseNextAgentRoundRobin(cycle(), "s3")?.id).toBe("s1");
+  });
+
+  it("returns null when every agent is checked out / absent / busy", () => {
+    expect(chooseNextAgentRoundRobin(cycle({ s1: false, s2: false, s3: false }), "s1")).toBeNull();
+  });
+
+  it("gives the meeting to the only available agent regardless of position", () => {
+    expect(chooseNextAgentRoundRobin(cycle({ s1: false, s2: false }), "s1")?.id).toBe("s3");
+  });
+});
+
+describe("attendance-based availability", () => {
+  it("is present after check-in", () => {
+    expect(isAgentPresent({ checkIn: new Date(), checkOut: null })).toBe(true);
+  });
+
+  it("is NOT present once checked out", () => {
+    expect(isAgentPresent({ checkIn: new Date(), checkOut: new Date() })).toBe(false);
+  });
+
+  it("is NOT present when never checked in (absent / no record)", () => {
+    expect(isAgentPresent({ checkIn: null, checkOut: null })).toBe(false);
+    expect(isAgentPresent(null)).toBe(false);
+    expect(isAgentPresent(undefined)).toBe(false);
   });
 });
 
@@ -48,7 +83,6 @@ describe("lead distribution company scoping", () => {
   });
 
   it("a tele agent in company A never scopes to another company", () => {
-    // Lead created by a Company A tele agent → only Company A is eligible.
     const company = resolveDistributionCompanyId(
       { companyId: null, assignedTeleAgentId: "tele-in-A" },
       "A"
