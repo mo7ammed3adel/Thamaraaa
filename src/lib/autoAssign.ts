@@ -10,15 +10,18 @@ import { prisma } from "./prisma";
  * distribution — Sales 1 keeps getting meetings as long as they are free.
  *
  * "Available" means the agent is present at work right now — they have checked
- * in today and have not checked out — and is not flagged Busy/In_Call. An agent
- * becomes In_Call the moment they Start Task on a meeting, so once Sales 1 is in
- * a meeting the next one flows to Sales 2; when Sales 1 finishes they return to
- * Active and are first in line again.
+ * in today and have not checked out — is not flagged Busy/In_Call, AND is not
+ * already holding an open meeting. An agent holds a meeting from the moment it
+ * is routed to them until they close it (Won/Lost/Follow-up/Reschedule). This
+ * "one open meeting at a time" rule is what stops every meeting from piling onto
+ * the first agent: once Sales 1 is handed a meeting they are busy, so the next
+ * flows to Sales 2; when Sales 1 closes theirs they are first in line again.
  *
  * Flow:
  * 1. Resolve the company scope (lead's company → tele agent's company).
  * 2. List that company's employed sales agents in a stable priority order.
- * 3. Mark each agent available/unavailable from today's attendance + status.
+ * 3. Mark each agent available/unavailable from attendance + status + whether
+ *    they already hold an open (In_Sales) meeting.
  * 4. Pick the first available agent in order.
  * 5. Assign lead + update meeting + notify. If nobody is free → Waiting queue.
  */
@@ -54,6 +57,26 @@ export function isAgentPresent(
   attendance: { checkIn: Date | null; checkOut: Date | null } | null | undefined
 ): boolean {
   return Boolean(attendance && attendance.checkIn && !attendance.checkOut);
+}
+
+/**
+ * An agent can receive a NEW meeting only when they are present at work, not
+ * flagged Busy/In_Call, AND not already holding an open meeting. The last
+ * condition — one open meeting at a time — is what prevents every meeting from
+ * piling onto the first agent in the order: a handed-out meeting keeps its agent
+ * busy until it is closed, so the next meeting flows to the next free agent.
+ */
+export function isAgentAvailableForMeeting(input: {
+  present: boolean;
+  status: string | null;
+  holdingOpenMeeting: boolean;
+}): boolean {
+  return (
+    input.present &&
+    input.status !== "Busy" &&
+    input.status !== "In_Call" &&
+    !input.holdingOpenMeeting
+  );
 }
 
 /**
@@ -118,12 +141,24 @@ export async function autoAssignLead(leadId: string): Promise<AutoAssignLeadResu
   const attendanceByUser = new Map<string, { checkIn: Date | null; checkOut: Date | null }>();
   for (const a of attendance) attendanceByUser.set(a.userId, a); // latest wins
 
-  // 3. An agent is available when present AND not flagged Busy / In_Call.
+  // 3. Agents already holding an open (In_Sales) meeting are busy until they
+  //    close it — this is what stops every meeting piling onto the first agent.
+  const heldOpenLeads = await prisma.lead.findMany({
+    where: { assignedSalesAgentId: { in: agentIds }, status: "In_Sales" },
+    select: { assignedSalesAgentId: true },
+  });
+  const holdingAgentIds = new Set(heldOpenLeads.map((l) => l.assignedSalesAgentId));
+
+  // An agent is available when present, not Busy/In_Call, and not already
+  // holding an open meeting.
   const rotation: RotationAgent[] = agents.map((a) => ({
     id: a.id,
     order: a.createdAt.getTime(),
-    available:
-      isAgentPresent(attendanceByUser.get(a.id)) && a.status !== "Busy" && a.status !== "In_Call",
+    available: isAgentAvailableForMeeting({
+      present: isAgentPresent(attendanceByUser.get(a.id)),
+      status: a.status,
+      holdingOpenMeeting: holdingAgentIds.has(a.id),
+    }),
   }));
 
   // 4. Pick the first available agent in priority order (Sales 1 first).

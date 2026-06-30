@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   chooseFirstAvailableByOrder,
+  isAgentAvailableForMeeting,
   isAgentPresent,
   resolveDistributionCompanyId,
   type RotationAgent,
@@ -42,6 +43,27 @@ describe("priority-order meeting distribution", () => {
 
   it("returns null for an empty roster", () => {
     expect(chooseFirstAvailableByOrder([])).toBeNull();
+  });
+});
+
+describe("agent availability for a new meeting", () => {
+  const base = { present: true, status: "Active", holdingOpenMeeting: false };
+
+  it("is available when present, Active, and holding nothing", () => {
+    expect(isAgentAvailableForMeeting(base)).toBe(true);
+  });
+
+  it("is NOT available while holding an open meeting (prevents piling)", () => {
+    expect(isAgentAvailableForMeeting({ ...base, holdingOpenMeeting: true })).toBe(false);
+  });
+
+  it("is NOT available when absent", () => {
+    expect(isAgentAvailableForMeeting({ ...base, present: false })).toBe(false);
+  });
+
+  it("is NOT available when flagged Busy or In_Call", () => {
+    expect(isAgentAvailableForMeeting({ ...base, status: "Busy" })).toBe(false);
+    expect(isAgentAvailableForMeeting({ ...base, status: "In_Call" })).toBe(false);
   });
 });
 
