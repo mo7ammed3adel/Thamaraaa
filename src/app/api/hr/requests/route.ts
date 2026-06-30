@@ -15,7 +15,11 @@ export async function POST(req: Request) {
     });
 
     if (requestOut.status === "not_eligible") {
-      return errorJson("Leave eligibility begins 90 days after hiring date", 400);
+      const months = requestOut.probationMonths ?? 3;
+      return errorJson(
+        `Annual leave is not available during the ${months}-month probation period`,
+        400
+      );
     }
     if (requestOut.status === "insufficient_balance") {
       return errorJson("Requested leave exceeds available balance", 400, { balance: requestOut.balance });

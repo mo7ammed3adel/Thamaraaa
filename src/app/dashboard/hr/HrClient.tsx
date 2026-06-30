@@ -6,6 +6,7 @@ import { submitAttendance } from "@/client/api/hr";
 import { SelfServiceSection } from "./HrWorkflowTabs";
 import HrSelfServiceExtras from "./HrSelfServiceExtras";
 import HrSalaryEvalCard from "./HrSalaryEvalCard";
+import HrMyTasks from "./HrMyTasks";
 
 /**
  * Employee view of the HR / Attendance page (every non-HR-manager user).
@@ -82,6 +83,7 @@ export default function HrClient({ myTodayAttendance, history, salaryInfo }: any
       </div>
 
       {salaryInfo && <HrSalaryEvalCard info={salaryInfo} />}
+      <HrMyTasks />
       <SelfServiceSection />
       <HrSelfServiceExtras />
     </div>

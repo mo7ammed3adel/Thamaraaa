@@ -156,6 +156,11 @@ export function findHrRecordByUserId(userId: string) {
   });
 }
 
+/** Look up a department by its (unique) name to read its policy JSON. */
+export function findDepartmentByName(name: string) {
+  return prisma.hrDepartment.findUnique({ where: { name }, select: { policy: true } });
+}
+
 export function promoteEmployee(input: { userId: string; userUpdate: any; hrLevel: string }) {
   return prisma.$transaction([
     prisma.user.update({ where: { id: input.userId }, data: input.userUpdate }),
@@ -248,6 +253,7 @@ export function createEmployeeWithHrRecord(input: CreateEmployeeInput) {
         company: input.company || null,
         status: input.status,
         directManagerId: input.directManagerId || null,
+        mustChangePassword: true, // new hire must set their own password on first login
       },
       select: { id: true, name: true, email: true, role: true, level: true, status: true },
     });
@@ -311,7 +317,7 @@ export function createEmployeeWithHrRecord(input: CreateEmployeeInput) {
       },
     });
 
-    return created;
+    return { ...created, employeeCode };
   });
 }
 

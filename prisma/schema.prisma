@@ -21,6 +21,7 @@ model User {
   company         String?
   companyId       String?
   companyRef      Company? @relation("UserCompany", fields: [companyId], references: [id], onDelete: SetNull)
+  mustChangePassword Boolean @default(false)
   status          String   @default("Active") // Active, Inactive
   specialization  String? // Hot, Cold, Warm
   createdAt       DateTime @default(now())

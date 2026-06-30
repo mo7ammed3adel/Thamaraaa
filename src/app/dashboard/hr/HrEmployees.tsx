@@ -153,7 +153,7 @@ function CreateEmployeeDrawer({ departments, employees, onClose, onCreated }: an
   };
   const [form, setForm] = useState<any>(blank);
   const [saving, setSaving] = useState(false);
-  const [created, setCreated] = useState<{ email: string; password: string } | null>(null);
+  const [created, setCreated] = useState<{ email: string; password: string; employeeCode?: string } | null>(null);
   const set = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }));
   const cls = "w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500";
 
@@ -161,7 +161,7 @@ function CreateEmployeeDrawer({ departments, employees, onClose, onCreated }: an
     e.preventDefault();
     setSaving(true);
     try {
-      await createEmployee({
+      const res: any = await createEmployee({
         name: form.name, email: form.email, password: form.password, role: form.role,
         phone: form.phone || null, gender: form.gender, dateOfBirth: form.dateOfBirth || null,
         department: form.department || null, directManagerId: form.directManagerId || null,
@@ -170,7 +170,7 @@ function CreateEmployeeDrawer({ departments, employees, onClose, onCreated }: an
         workMode: form.workMode, employmentStatus: form.employmentStatus,
         status: form.employmentStatus === "active" ? "Active" : "Inactive",
       });
-      setCreated({ email: form.email, password: form.password });
+      setCreated({ email: form.email, password: form.password, employeeCode: res?.user?.employeeCode });
     } catch (err) {
       notify(err instanceof HttpError ? err.message : "Failed to create employee");
     } finally {
@@ -192,9 +192,13 @@ function CreateEmployeeDrawer({ departments, employees, onClose, onCreated }: an
               <p className="font-bold text-emerald-800">Employee created 🎉</p>
               <p className="text-sm text-emerald-700 mt-1">Share these credentials with the employee — the password is shown only once.</p>
               <div className="bg-white rounded-xl border mt-4 p-4 text-left space-y-2">
-                <div className="flex justify-between text-sm"><span className="text-slate-500">Username / Email</span><span className="font-mono font-bold text-slate-800">{created.email}</span></div>
+                {created.employeeCode && (
+                  <div className="flex justify-between text-sm"><span className="text-slate-500">Employee ID (username)</span><span className="font-mono font-bold text-slate-800">{created.employeeCode}</span></div>
+                )}
+                <div className="flex justify-between text-sm"><span className="text-slate-500">Email (also a username)</span><span className="font-mono font-bold text-slate-800">{created.email}</span></div>
                 <div className="flex justify-between text-sm"><span className="text-slate-500">Temporary Password</span><span className="font-mono font-bold text-slate-800">{created.password}</span></div>
               </div>
+              <p className="text-[11px] text-emerald-700 mt-2">The employee can sign in with either the Employee ID or their email, and will be asked to set a new password on first login.</p>
             </div>
             <button onClick={onCreated} className="w-full mt-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700">Done</button>
           </div>

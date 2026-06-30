@@ -12,6 +12,7 @@ declare module "next-auth" {
       id: string;
       role: string;
       level?: string;
+      mustChangePassword?: boolean;
       /** Present only while a super_admin is impersonating this user. */
       impersonatedBy?: { id: string; name?: string | null } | null;
     } & DefaultSession["user"];
@@ -21,6 +22,7 @@ declare module "next-auth" {
     id: string;
     role: string;
     level?: string;
+    mustChangePassword?: boolean;
   }
 }
 
@@ -29,5 +31,6 @@ declare module "next-auth/jwt" {
     id: string;
     role: string;
     level?: string;
+    mustChangePassword?: boolean;
   }
 }

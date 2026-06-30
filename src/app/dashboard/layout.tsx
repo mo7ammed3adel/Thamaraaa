@@ -22,6 +22,12 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
+  // First-login gate: auto-provisioned employees must set their own password
+  // before they can use the app. Impersonating super-admins are exempt.
+  if (session.user.mustChangePassword && !session.user.impersonatedBy) {
+    redirect("/change-password");
+  }
+
   const role = session.user.role;
   const userId = session.user.id;
   const impersonatedBy = session.user.impersonatedBy;

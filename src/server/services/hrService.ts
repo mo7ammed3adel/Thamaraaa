@@ -16,6 +16,7 @@ import {
   clearEmployeeWarnings,
   createEmployeeWithHrRecord,
   findHrRecordByUserId,
+  findDepartmentByName,
   findEmployeeRole,
   findEmployeesForHrDashboard,
   findUserConflict,
@@ -52,6 +53,17 @@ function isHrManager(role?: string | null) {
   return role === "hr_manager" || role === "super_admin";
 }
 
+/** Parse a department policy JSON string defensively (never throws). */
+function safeParsePolicy(raw?: string | null): Record<string, any> {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 function canManageSuperAdmin(actorRole?: string | null) {
   return actorRole === "super_admin";
 }
@@ -69,9 +81,18 @@ export async function submitLeaveRequest(input: {
   const record = await findHrRecordByUserId(input.userId);
   const hiringDate = record?.hiringDate;
   if ((requestType === "Leave" || requestType === "annual") && hiringDate) {
+    // Probation window comes from the employee's department policy
+    // (probationMonths), falling back to the standard 3 months.
+    let probationMonths = 3;
+    if (record?.department) {
+      const dept = await findDepartmentByName(record.department);
+      const policy = safeParsePolicy(dept?.policy);
+      const pm = Number(policy?.probationMonths);
+      if (Number.isFinite(pm) && pm >= 0) probationMonths = pm;
+    }
     const serviceDays = Math.floor((Date.now() - hiringDate.getTime()) / 86400000);
-    if (serviceDays < 90) {
-      return { status: "not_eligible" as const };
+    if (serviceDays < probationMonths * 30) {
+      return { status: "not_eligible" as const, probationMonths };
     }
     const requests = await findLeaveRequestsForUser(input.userId);
     const balance = computeLeaveBalance(requests, requestDate.getFullYear(), 21);

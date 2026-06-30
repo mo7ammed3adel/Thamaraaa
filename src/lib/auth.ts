@@ -18,11 +18,17 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
+        const identifier = credentials.email.trim();
         let user;
         try {
           user = await prisma.user.findFirst({
             where: {
-              OR: [{ email: credentials.email.trim() }, { phone: credentials.email.trim() }],
+              OR: [
+                { email: identifier },
+                { phone: identifier },
+                // Allow signing in with the auto-generated Employee ID (username).
+                { hrRecord: { is: { employeeCode: identifier } } },
+              ],
             },
           });
         } catch (dbError) {
@@ -42,6 +48,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           role: user.role,
           level: user.level || undefined,
+          mustChangePassword: user.mustChangePassword || false,
         };
       },
     }),
@@ -52,6 +59,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.role = user.role;
         token.level = user.level;
+        token.mustChangePassword = (user as any).mustChangePassword || false;
       }
       return token;
     },
@@ -60,6 +68,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id;
         session.user.role = token.role;
         session.user.level = token.level;
+        session.user.mustChangePassword = token.mustChangePassword || false;
       }
 
       // Super-admin impersonation overlay: when a super_admin has an active
