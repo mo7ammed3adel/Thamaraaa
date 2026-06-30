@@ -1,6 +1,7 @@
 "use client";
-import { Fragment, useState } from "react";
+import { Fragment, useState, useEffect } from "react";
 import { notify } from "@/components/toast";
+import { todayInputValue, isPastMeetingDate } from "@/lib/meetingDate";
 import { useRouter } from "next/navigation";
 import { Plus, X, Pencil, Check, PhoneCall, CheckCircle2, PhoneOff, XCircle, Send, ChevronDown, ChevronUp, ExternalLink, Trash2, Video } from "lucide-react";
 import { canManuallyDistributeMeeting } from "@/lib/meetingDistribution";
@@ -42,6 +43,13 @@ export default function TeleSalesClient({
   });
   const [loading, setLoading] = useState(false);
   const [distributingLeadId, setDistributingLeadId] = useState<string | null>(null);
+
+  // Reflect server data refreshed in the background (AutoRefresher / router.refresh)
+  // so changes made elsewhere — new leads, distributed meetings — appear live
+  // without a manual reload.
+  useEffect(() => {
+    setLeads(initialLeads);
+  }, [initialLeads]);
 
   // Custom Columns
   const [customColumns, setCustomColumns] = useState<CustomColumn[]>(initialCustomColumns || []);
@@ -90,6 +98,13 @@ export default function TeleSalesClient({
 
   const handleLogCall = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // A meeting can never be booked for a past date.
+    if (isPastMeetingDate(logData.meetingDate)) {
+      notify("لا يمكن حجز اجتماع بتاريخ قديم. اختر اليوم أو تاريخ لاحق.", "error");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -677,7 +692,7 @@ export default function TeleSalesClient({
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Meeting Date *</label>
-                    <input required type="date" className="w-full px-3 py-2 border rounded-md" value={logData.meetingDate} onChange={(e) => setLogData({ ...logData, meetingDate: e.target.value })} />
+                    <input required type="date" min={todayInputValue()} className="w-full px-3 py-2 border rounded-md" value={logData.meetingDate} onChange={(e) => setLogData({ ...logData, meetingDate: e.target.value })} />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Meeting Time *</label>

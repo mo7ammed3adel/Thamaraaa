@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { notify } from "@/components/toast";
+import { todayInputValue, isPastMeetingDate } from "@/lib/meetingDate";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Calendar, PhoneCall, ChevronDown, ChevronUp, CheckCircle2, XCircle, FileText, Send, X, Clock, AlertTriangle, ExternalLink } from "lucide-react";
@@ -25,7 +26,13 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
   const [logFilter, setLogFilter] = useState("All");
   const [activeTab, setActiveTab] = useState("leads"); // "leads" or "post-sale"
   const [warningProject, setWarningProject] = useState<any>(null);
-  
+
+  // Reflect server data refreshed in the background (AutoRefresher / router.refresh)
+  // so newly distributed meetings appear in the agent's queue without a reload.
+  useEffect(() => {
+    setLeads(initialLeads);
+  }, [initialLeads]);
+
   // Search, Pagination, & Dates
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -193,6 +200,13 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
 
   const submitFeedback = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Rescheduling can never move a meeting to a past date.
+    if (feedback.outcome === "reschedule" && isPastMeetingDate(feedback.meetingDate)) {
+      notify("لا يمكن إعادة جدولة الاجتماع بتاريخ قديم. اختر اليوم أو تاريخ لاحق.", "error");
+      return;
+    }
+
     const payloadStartEnd = {
       meetingStartedAt: taskStartTime,
       meetingEndedAt: new Date(),
@@ -880,7 +894,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium mb-1 text-blue-700">New Meeting Date</label>
-                    <input required type="date" className="w-full border p-2 rounded focus:ring-blue-500" value={feedback.meetingDate} onChange={e => setFeedback({...feedback, meetingDate: e.target.value})} />
+                    <input required type="date" min={todayInputValue()} className="w-full border p-2 rounded focus:ring-blue-500" value={feedback.meetingDate} onChange={e => setFeedback({...feedback, meetingDate: e.target.value})} />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1 text-blue-700">New Meeting Time</label>

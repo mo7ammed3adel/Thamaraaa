@@ -5,6 +5,7 @@ import Link from "next/link";
 import { User, Settings, PhoneCall, Briefcase, ListTodo, LogOut, Upload, RotateCcw, Users, BarChart3, Calendar, Handshake, TrendingUp, PlusSquare, Package, AlertTriangle, Crown, Shield, Monitor, Search, Megaphone, ShoppingCart, Palette, Film, Layout, DollarSign, ClipboardList, Building2, UserCheck } from "lucide-react";
 
 import LogoutButton from "@/components/LogoutButton";
+import AutoRefresher from "@/components/AutoRefresher";
 import NotificationBell from "@/components/NotificationBell";
 import WarningPopup from "@/components/WarningPopup";
 import GlobalWarningAlert from "@/components/GlobalWarningAlert";
@@ -37,6 +38,9 @@ export default async function DashboardLayout({
 
   return (
     <>
+      {/* Auto-refreshes server data across all dashboard pages (no manual reload). */}
+      <AutoRefresher />
+
       {impersonatedBy && <ImpersonationBanner name={session.user.name} role={role} />}
 
       {/* Warning Popup - renders for all roles, filters internally */}

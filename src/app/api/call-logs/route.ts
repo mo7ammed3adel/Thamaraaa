@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { isPastMeetingDate } from "@/lib/meetingDate";
 
 /**
  * POST /api/call-logs
@@ -23,6 +24,11 @@ export async function POST(req: Request) {
 
     if (!leadId || !callStatus || !notes) {
       return NextResponse.json({ error: "leadId, callStatus, and notes are required" }, { status: 400 });
+    }
+
+    // A meeting can only be booked for today or a future date.
+    if (callStatus === "Accept and book meeting" && isPastMeetingDate(meetingDate)) {
+      return NextResponse.json({ error: "Meeting date cannot be in the past." }, { status: 400 });
     }
 
     const existingLead = await prisma.lead.findUnique({

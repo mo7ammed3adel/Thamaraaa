@@ -1,19 +1,25 @@
 import { prisma } from "./prisma";
 
 /**
- * Sales Meeting Auto-Assignment Engine — sequential round-robin.
+ * Sales Meeting Auto-Assignment Engine — priority order (NOT round-robin).
  *
- * Meetings are handed out IN ORDER (Sales 1 → Sales 2 → Sales 3 → back to 1…),
- * always to the NEXT agent in the cycle who is currently free. We do NOT load
- * balance: an idle agent does not jump the queue. "Free" means the agent is
- * present at work right now — they have checked in today and have not checked
- * out — and is not manually flagged Busy/In_Call (e.g. while in a call/meeting).
+ * Meetings always go to the FIRST available agent in a fixed order (Sales 1
+ * first, then Sales 2, then Sales 3…). Earlier agents are preferred whenever
+ * they are free: a later agent only receives a meeting when everyone ahead of
+ * them is currently busy or absent. This is intentionally NOT equal/round-robin
+ * distribution — Sales 1 keeps getting meetings as long as they are free.
+ *
+ * "Available" means the agent is present at work right now — they have checked
+ * in today and have not checked out — and is not flagged Busy/In_Call. An agent
+ * becomes In_Call the moment they Start Task on a meeting, so once Sales 1 is in
+ * a meeting the next one flows to Sales 2; when Sales 1 finishes they return to
+ * Active and are first in line again.
  *
  * Flow:
  * 1. Resolve the company scope (lead's company → tele agent's company).
- * 2. List that company's employed sales agents in a stable cycle order.
+ * 2. List that company's employed sales agents in a stable priority order.
  * 3. Mark each agent available/unavailable from today's attendance + status.
- * 4. Find who got the most recent meeting and continue the rotation after them.
+ * 4. Pick the first available agent in order.
  * 5. Assign lead + update meeting + notify. If nobody is free → Waiting queue.
  */
 export type AutoAssignLeadResult =
@@ -51,27 +57,17 @@ export function isAgentPresent(
 }
 
 /**
- * Sequential round-robin pick. Starting from the position AFTER the agent who
- * received the most recent meeting, walks the fixed cycle forward and returns
- * the first AVAILABLE agent. Skipped (busy/absent) agents are simply passed
- * over — and reconsidered next time their turn comes back around. Returns null
- * when nobody in the cycle is currently available.
+ * Priority-order pick. Walks the fixed order from the top (Sales 1 → 2 → 3 …)
+ * and returns the FIRST agent who is currently available. Earlier agents are
+ * always preferred — a later agent only gets a meeting when everyone ahead of
+ * them is busy/absent. Returns null when nobody is available.
  */
-export function chooseNextAgentRoundRobin(
-  agents: RotationAgent[],
-  lastAssignedAgentId: string | null
-): RotationAgent | null {
+export function chooseFirstAvailableByOrder(agents: RotationAgent[]): RotationAgent | null {
   if (agents.length === 0) return null;
   const ordered = [...agents].sort((a, b) =>
     a.order !== b.order ? a.order - b.order : a.id < b.id ? -1 : a.id > b.id ? 1 : 0
   );
-  const n = ordered.length;
-  const lastIdx = lastAssignedAgentId ? ordered.findIndex((a) => a.id === lastAssignedAgentId) : -1;
-  for (let step = 1; step <= n; step++) {
-    const candidate = ordered[(((lastIdx + step) % n) + n) % n];
-    if (candidate.available) return candidate;
-  }
-  return null;
+  return ordered.find((a) => a.available) ?? null;
 }
 
 export async function autoAssignLead(leadId: string): Promise<AutoAssignLeadResult> {
@@ -130,13 +126,8 @@ export async function autoAssignLead(leadId: string): Promise<AutoAssignLeadResu
       isAgentPresent(attendanceByUser.get(a.id)) && a.status !== "Busy" && a.status !== "In_Call",
   }));
 
-  // 4. Continue the rotation after whoever received the most recent meeting.
-  const lastMeeting = await prisma.meeting.findFirst({
-    where: { salesAgentId: { in: agentIds } },
-    orderBy: { createdAt: "desc" },
-    select: { salesAgentId: true },
-  });
-  const chosen = chooseNextAgentRoundRobin(rotation, lastMeeting?.salesAgentId ?? null);
+  // 4. Pick the first available agent in priority order (Sales 1 first).
+  const chosen = chooseFirstAvailableByOrder(rotation);
 
   if (!chosen) {
     // Everyone is checked out / absent / busy — hold the lead for a retry.

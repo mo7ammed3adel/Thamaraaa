@@ -1,6 +1,7 @@
 import { resolveManualLeadAssigneeId } from "@/lib/manualLeadAssignment";
 import { autoAssignLead } from "@/lib/autoAssign";
 import { canManuallyDistributeMeeting } from "@/lib/meetingDistribution";
+import { isPastMeetingDate } from "@/lib/meetingDate";
 import { normalizeWebUrl } from "@/lib/safe-url";
 import * as XLSX from "xlsx";
 import {
@@ -282,6 +283,11 @@ export async function updateLead(input: { id: string; user: LeadUser; body: any 
 
   if (!canUpdateLead(input.user, existingLead)) {
     return { status: "forbidden" as const };
+  }
+
+  // A meeting date (e.g. on reschedule) can never be moved into the past.
+  if (input.body.meetingDate !== undefined && isPastMeetingDate(input.body.meetingDate)) {
+    return { status: "past_meeting_date" as const };
   }
 
   const updateData = buildLeadUpdateData(input.body);

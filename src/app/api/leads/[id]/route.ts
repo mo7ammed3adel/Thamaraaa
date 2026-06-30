@@ -38,6 +38,9 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     if (result.status === "invalid_store_link") {
       return NextResponse.json({ error: "storeLink must be a valid http(s) URL" }, { status: 400 });
     }
+    if (result.status === "past_meeting_date") {
+      return NextResponse.json({ error: "Meeting date cannot be in the past." }, { status: 400 });
+    }
 
     return NextResponse.json({ success: true, lead: result.lead });
   } catch (error: any) {
