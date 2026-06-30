@@ -1,28 +1,26 @@
 import { prisma } from "./prisma";
 
 /**
- * Sales Meeting Auto-Assignment Engine — priority order (NOT round-robin).
+ * Sales Meeting Auto-Assignment Engine — sequential round-robin with skip-busy.
  *
- * Meetings always go to the FIRST available agent in a fixed order (Sales 1
- * first, then Sales 2, then Sales 3…). Earlier agents are preferred whenever
- * they are free: a later agent only receives a meeting when everyone ahead of
- * them is currently busy or absent. This is intentionally NOT equal/round-robin
- * distribution — Sales 1 keeps getting meetings as long as they are free.
+ * Meetings are shared across ALL agents in turn (Sales 1 → 2 → 3 → back to 1 …).
+ * No agent is prioritised. Each new meeting goes to the next agent in the cycle
+ * after whoever received the previous one. If that agent is busy — currently
+ * INSIDE a started meeting (Start Task done, not finished), flagged Busy, or
+ * absent — their turn is skipped and the meeting flows to the next available
+ * agent; they are reconsidered when the rotation comes back around.
  *
- * "Available" means the agent is present at work right now — they have checked
- * in today and have not checked out — is not flagged Busy/In_Call, AND is not
- * already holding an open meeting. An agent holds a meeting from the moment it
- * is routed to them until they close it (Won/Lost/Follow-up/Reschedule). This
- * "one open meeting at a time" rule is what stops every meeting from piling onto
- * the first agent: once Sales 1 is handed a meeting they are busy, so the next
- * flows to Sales 2; when Sales 1 closes theirs they are first in line again.
+ * "Available" means present at work (checked in, not out), not flagged Busy,
+ * and not currently inside a started meeting. Being merely assigned an un-started
+ * meeting does NOT make an agent unavailable.
  *
  * Flow:
  * 1. Resolve the company scope (lead's company → tele agent's company).
- * 2. List that company's employed sales agents in a stable priority order.
+ * 2. List that company's employed sales agents in a stable cycle order.
  * 3. Mark each agent available/unavailable from attendance + status + whether
- *    they already hold an open (In_Sales) meeting.
- * 4. Pick the first available agent in order.
+ *    they are currently inside a started (un-finished) meeting.
+ * 4. Continue the rotation after whoever received the most recent meeting,
+ *    skipping unavailable agents.
  * 5. Assign lead + update meeting + notify. If nobody is free → Waiting queue.
  */
 export type AutoAssignLeadResult =
@@ -60,37 +58,45 @@ export function isAgentPresent(
 }
 
 /**
- * An agent can receive a NEW meeting only when they are present at work, not
- * flagged Busy/In_Call, AND not already holding an open meeting. The last
- * condition — one open meeting at a time — is what prevents every meeting from
- * piling onto the first agent in the order: a handed-out meeting keeps its agent
- * busy until it is closed, so the next meeting flows to the next free agent.
+ * An agent can receive a meeting this round when they are present at work, not
+ * flagged Busy, and not currently inside a started meeting (Start Task done, not
+ * yet finished). Being merely assigned an un-started meeting does not block them.
  */
 export function isAgentAvailableForMeeting(input: {
   present: boolean;
   status: string | null;
-  holdingOpenMeeting: boolean;
+  inStartedMeeting: boolean;
 }): boolean {
   return (
     input.present &&
     input.status !== "Busy" &&
     input.status !== "In_Call" &&
-    !input.holdingOpenMeeting
+    !input.inStartedMeeting
   );
 }
 
 /**
- * Priority-order pick. Walks the fixed order from the top (Sales 1 → 2 → 3 …)
- * and returns the FIRST agent who is currently available. Earlier agents are
- * always preferred — a later agent only gets a meeting when everyone ahead of
- * them is busy/absent. Returns null when nobody is available.
+ * Sequential round-robin pick. Starting from the position AFTER the agent who
+ * received the most recent meeting, walks the fixed cycle forward and returns
+ * the first AVAILABLE agent. Busy/absent agents are skipped for this round and
+ * reconsidered when their turn comes back around. Returns null when nobody in
+ * the cycle is currently available.
  */
-export function chooseFirstAvailableByOrder(agents: RotationAgent[]): RotationAgent | null {
+export function chooseNextAgentRoundRobin(
+  agents: RotationAgent[],
+  lastAssignedAgentId: string | null
+): RotationAgent | null {
   if (agents.length === 0) return null;
   const ordered = [...agents].sort((a, b) =>
     a.order !== b.order ? a.order - b.order : a.id < b.id ? -1 : a.id > b.id ? 1 : 0
   );
-  return ordered.find((a) => a.available) ?? null;
+  const n = ordered.length;
+  const lastIdx = lastAssignedAgentId ? ordered.findIndex((a) => a.id === lastAssignedAgentId) : -1;
+  for (let step = 1; step <= n; step++) {
+    const candidate = ordered[(((lastIdx + step) % n) + n) % n];
+    if (candidate.available) return candidate;
+  }
+  return null;
 }
 
 export async function autoAssignLead(leadId: string): Promise<AutoAssignLeadResult> {
@@ -141,28 +147,39 @@ export async function autoAssignLead(leadId: string): Promise<AutoAssignLeadResu
   const attendanceByUser = new Map<string, { checkIn: Date | null; checkOut: Date | null }>();
   for (const a of attendance) attendanceByUser.set(a.userId, a); // latest wins
 
-  // 3. Agents already holding an open (In_Sales) meeting are busy until they
-  //    close it — this is what stops every meeting piling onto the first agent.
-  const heldOpenLeads = await prisma.lead.findMany({
-    where: { assignedSalesAgentId: { in: agentIds }, status: "In_Sales" },
+  // 3. Agents currently INSIDE a started meeting (Start Task done, not finished)
+  //    are skipped until they finish. An un-started assigned meeting does NOT
+  //    block them — Sales 1 stays first in line until they actually start one.
+  const inMeetingLeads = await prisma.lead.findMany({
+    where: {
+      assignedSalesAgentId: { in: agentIds },
+      meetingStartedAt: { not: null },
+      meetingEndedAt: null,
+    },
     select: { assignedSalesAgentId: true },
   });
-  const holdingAgentIds = new Set(heldOpenLeads.map((l) => l.assignedSalesAgentId));
+  const inMeetingAgentIds = new Set(inMeetingLeads.map((l) => l.assignedSalesAgentId));
 
-  // An agent is available when present, not Busy/In_Call, and not already
-  // holding an open meeting.
+  // An agent is available when present, not Busy/In_Call, and not inside a
+  // started meeting.
   const rotation: RotationAgent[] = agents.map((a) => ({
     id: a.id,
     order: a.createdAt.getTime(),
     available: isAgentAvailableForMeeting({
       present: isAgentPresent(attendanceByUser.get(a.id)),
       status: a.status,
-      holdingOpenMeeting: holdingAgentIds.has(a.id),
+      inStartedMeeting: inMeetingAgentIds.has(a.id),
     }),
   }));
 
-  // 4. Pick the first available agent in priority order (Sales 1 first).
-  const chosen = chooseFirstAvailableByOrder(rotation);
+  // 4. Continue the rotation after whoever received the most recent meeting,
+  //    skipping anyone currently busy/absent.
+  const lastMeeting = await prisma.meeting.findFirst({
+    where: { salesAgentId: { in: agentIds } },
+    orderBy: { createdAt: "desc" },
+    select: { salesAgentId: true },
+  });
+  const chosen = chooseNextAgentRoundRobin(rotation, lastMeeting?.salesAgentId ?? null);
 
   if (!chosen) {
     // Everyone is checked out / absent / busy — hold the lead for a retry.

@@ -1,60 +1,66 @@
 import { describe, expect, it } from "vitest";
 import {
-  chooseFirstAvailableByOrder,
+  chooseNextAgentRoundRobin,
   isAgentAvailableForMeeting,
   isAgentPresent,
   resolveDistributionCompanyId,
   type RotationAgent,
 } from "../autoAssign";
 
-// Three agents in a fixed priority order: s1 (earliest) → s2 → s3.
+// Three agents in a fixed cycle order: s1 (earliest) → s2 → s3.
 const cycle = (overrides: Partial<Record<"s1" | "s2" | "s3", boolean>> = {}): RotationAgent[] => [
   { id: "s1", order: 1, available: overrides.s1 ?? true },
   { id: "s2", order: 2, available: overrides.s2 ?? true },
   { id: "s3", order: 3, available: overrides.s3 ?? true },
 ];
 
-describe("priority-order meeting distribution", () => {
-  it("always prefers the first agent when everyone is free", () => {
-    expect(chooseFirstAvailableByOrder(cycle())?.id).toBe("s1");
+describe("round-robin meeting distribution", () => {
+  it("starts at the first agent when nobody has been assigned yet", () => {
+    expect(chooseNextAgentRoundRobin(cycle(), null)?.id).toBe("s1");
   });
 
-  it("flows to the next agent in order only while earlier ones are busy", () => {
-    // s1 in a meeting → s2 is next; s1 & s2 busy → s3 gets it.
-    expect(chooseFirstAvailableByOrder(cycle({ s1: false }))?.id).toBe("s2");
-    expect(chooseFirstAvailableByOrder(cycle({ s1: false, s2: false }))?.id).toBe("s3");
+  it("rotates to the next agent after the last one assigned (no priority)", () => {
+    expect(chooseNextAgentRoundRobin(cycle(), "s1")?.id).toBe("s2");
+    expect(chooseNextAgentRoundRobin(cycle(), "s2")?.id).toBe("s3");
   });
 
-  it("returns to the first agent the moment they are free again", () => {
-    // Unlike round-robin, an earlier agent who frees up jumps back to the front.
-    expect(chooseFirstAvailableByOrder(cycle({ s2: false }))?.id).toBe("s1");
-    expect(chooseFirstAvailableByOrder(cycle({ s2: false, s3: false }))?.id).toBe("s1");
+  it("wraps back to the first agent after the last in the cycle", () => {
+    expect(chooseNextAgentRoundRobin(cycle(), "s3")?.id).toBe("s1");
   });
 
-  it("is NOT equal distribution — order is respected regardless of position", () => {
-    // Even if only the last agent is free, they get it; otherwise s1 wins.
-    expect(chooseFirstAvailableByOrder(cycle({ s1: false, s2: false }))?.id).toBe("s3");
-    expect(chooseFirstAvailableByOrder(cycle())?.id).toBe("s1");
+  it("does NOT load to one agent — an idle agent does not jump the queue", () => {
+    // s1 just got a meeting; even if everyone is free, the next goes to s2.
+    expect(chooseNextAgentRoundRobin(cycle(), "s1")?.id).toBe("s2");
+  });
+
+  it("skips a busy agent's turn and goes to the next available one", () => {
+    // After s3 the cycle returns to s1 — but s1 is busy, so s2 takes this round.
+    expect(chooseNextAgentRoundRobin(cycle({ s1: false }), "s3")?.id).toBe("s2");
+  });
+
+  it("reconsiders a skipped agent once the rotation comes back around", () => {
+    expect(chooseNextAgentRoundRobin(cycle(), "s2")?.id).toBe("s3");
+    expect(chooseNextAgentRoundRobin(cycle(), "s3")?.id).toBe("s1");
   });
 
   it("returns null when every agent is checked out / absent / busy", () => {
-    expect(chooseFirstAvailableByOrder(cycle({ s1: false, s2: false, s3: false }))).toBeNull();
+    expect(chooseNextAgentRoundRobin(cycle({ s1: false, s2: false, s3: false }), "s1")).toBeNull();
   });
 
   it("returns null for an empty roster", () => {
-    expect(chooseFirstAvailableByOrder([])).toBeNull();
+    expect(chooseNextAgentRoundRobin([], null)).toBeNull();
   });
 });
 
 describe("agent availability for a new meeting", () => {
-  const base = { present: true, status: "Active", holdingOpenMeeting: false };
+  const base = { present: true, status: "Active", inStartedMeeting: false };
 
-  it("is available when present, Active, and holding nothing", () => {
+  it("is available when present, Active, and not inside a meeting", () => {
     expect(isAgentAvailableForMeeting(base)).toBe(true);
   });
 
-  it("is NOT available while holding an open meeting (prevents piling)", () => {
-    expect(isAgentAvailableForMeeting({ ...base, holdingOpenMeeting: true })).toBe(false);
+  it("is NOT available while inside a started, un-finished meeting", () => {
+    expect(isAgentAvailableForMeeting({ ...base, inStartedMeeting: true })).toBe(false);
   });
 
   it("is NOT available when absent", () => {
