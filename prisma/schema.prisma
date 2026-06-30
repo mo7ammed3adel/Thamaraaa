@@ -109,6 +109,9 @@ model Lead {
   customColumnValues CustomColumnValue[]
 
   @@index([companyId])
+  @@index([assignedTeleAgentId])
+  @@index([assignedSalesAgentId])
+  @@index([status])
 }
 
 model AgentTarget {
@@ -133,6 +136,8 @@ model CallLog {
   notes          String
   meetingDate    DateTime?
   createdAt      DateTime  @default(now())
+
+  @@index([leadId])
 }
 
 model Deal {
@@ -182,6 +187,8 @@ model Meeting {
   summary      String?
   dealAmount   Float?
   createdAt    DateTime @default(now())
+
+  @@index([leadId])
 }
 
 model CustomColumn {
@@ -364,6 +371,8 @@ model Notification {
   link      String?
   relatedId String?   // Generic reference to related entity (task, project, etc.)
   createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model JobApplicant {

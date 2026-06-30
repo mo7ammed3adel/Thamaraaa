@@ -24,6 +24,7 @@ export default async function SalesWorkspacePage() {
       teleAgent: { select: { id: true, name: true } },
       callLogs: {
         orderBy: { createdAt: "desc" },
+        take: 50,
         include: {
           agent: { select: { name: true } }
         }

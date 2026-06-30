@@ -24,6 +24,7 @@ export default async function TeleSalesPage() {
       salesAgent: { select: { name: true } },
       callLogs: {
         orderBy: { createdAt: "desc" },
+        take: 50,
         include: {
           agent: { select: { name: true } },
         },

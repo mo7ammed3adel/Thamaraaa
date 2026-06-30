@@ -10,8 +10,13 @@ import { useRouter } from "next/navigation";
  * modals, form inputs, scroll) — on a fixed interval and immediately whenever
  * the tab regains focus. Skips work while the tab is hidden to avoid needless
  * load on the database.
+ *
+ * The interval is deliberately conservative: the user's own actions already
+ * call router.refresh() right after they happen, so this periodic pass only
+ * exists to pick up OTHER users' changes. A focus refresh covers "I just came
+ * back to the tab", so the timer can stay gentle to keep DB load low.
  */
-export default function AutoRefresher({ intervalMs = 20000 }: { intervalMs?: number }) {
+export default function AutoRefresher({ intervalMs = 60000 }: { intervalMs?: number }) {
   const router = useRouter();
   const refreshing = useRef(false);
 
