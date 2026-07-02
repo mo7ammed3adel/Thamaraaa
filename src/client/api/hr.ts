@@ -100,6 +100,14 @@ export function updateHrRequest(id: string, body: unknown) {
   return patchJson(`/api/hr/requests/${id}`, body);
 }
 
+export function listCentralHrRequests() {
+  return getJson("/api/hr/central-requests");
+}
+
+export function submitCentralHrRequest(body: unknown) {
+  return postJson("/api/hr/central-requests", body);
+}
+
 export function getViralHrm(params: Record<string, string | number | boolean | null | undefined> = {}) {
   return getJson(`/api/hr/viral${buildQueryString(params)}`);
 }

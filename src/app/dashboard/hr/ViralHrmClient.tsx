@@ -9,19 +9,44 @@ import {
   getViralHrm,
   updateViralHrmResource,
 } from "@/client/api/hr";
-import { Advances, Departments, DevicePasswords, Kpis, Overview, PayrollPeriods, PeopleOps, Profiles, Recruitment, Settings } from "./ViralHrmSections";
+import {
+  Advances,
+  Departments,
+  DevicePasswords,
+  Kpis,
+  Overview,
+  PayrollPeriods,
+  PeopleOps,
+  Profiles,
+  Recruitment,
+  Settings,
+} from "./ViralHrmSections";
+import {
+  AttendanceOps,
+  AuditTrail,
+  CompensationCenter,
+  RequestCenter,
+  TalentPool,
+  Workflows,
+} from "./ViralHrmAdvancedSections";
 
 const MODULES = [
   { id: "overview", label: "Overview" },
   { id: "employees", label: "Profiles" },
   { id: "departments", label: "Departments" },
   { id: "payroll", label: "Payroll Periods" },
+  { id: "compensation", label: "Compensation" },
   { id: "advances", label: "Advances" },
+  { id: "requests", label: "Request Center" },
+  { id: "workflows", label: "Workflows" },
+  { id: "attendance", label: "Attendance Ops" },
   { id: "recruitment", label: "Recruitment" },
+  { id: "talent", label: "Talent Pool" },
   { id: "kpis", label: "KPI Templates" },
   { id: "peopleOps", label: "People Ops" },
   { id: "devicePasswords", label: "Device Passwords" },
   { id: "settings", label: "Settings" },
+  { id: "audit", label: "Audit" },
 ];
 
 
@@ -146,10 +171,75 @@ export default function ViralHrmClient() {
         />
       )}
 
+      {!loading && data && module === "compensation" && (
+        <CompensationCenter
+          employees={employees}
+          salaryChanges={data.salaryChanges || []}
+          promotions={data.promotions || []}
+          compensationItems={data.compensationItems || []}
+          busy={busy}
+          onCreate={createResource}
+          onUpdate={updateResource}
+        />
+      )}
+
+      {!loading && data && module === "requests" && (
+        <RequestCenter
+          employees={employees}
+          requestTypes={data.requestTypes || []}
+          requests={data.hrRequests || []}
+          delegations={data.delegations || []}
+          tags={data.requestTags || []}
+          busy={busy}
+          onCreate={createResource}
+          onUpdate={updateResource}
+          onDelete={removeResource}
+        />
+      )}
+
+      {!loading && data && module === "workflows" && (
+        <Workflows
+          workflows={data.workflows || []}
+          requestTypes={data.requestTypes || []}
+          busy={busy}
+          onCreate={createResource}
+          onUpdate={updateResource}
+          onDelete={removeResource}
+        />
+      )}
+
+      {!loading && data && module === "attendance" && (
+        <AttendanceOps
+          employees={employees}
+          shifts={data.shifts || []}
+          shiftAssignments={data.shiftAssignments || []}
+          holidays={data.holidays || []}
+          attendanceAdjustments={data.attendanceAdjustments || []}
+          busy={busy}
+          onCreate={createResource}
+          onUpdate={updateResource}
+          onDelete={removeResource}
+        />
+      )}
+
       {!loading && data && module === "recruitment" && (
         <Recruitment
           departments={departments}
           requests={data.recruitmentRequests || []}
+          busy={busy}
+          onCreate={createResource}
+          onUpdate={updateResource}
+          onDelete={removeResource}
+        />
+      )}
+
+      {!loading && data && module === "talent" && (
+        <TalentPool
+          departments={departments}
+          candidates={data.candidates || []}
+          processes={data.candidateProcesses || []}
+          interviews={data.interviews || []}
+          offers={data.offers || []}
           busy={busy}
           onCreate={createResource}
           onUpdate={updateResource}
@@ -191,6 +281,10 @@ export default function ViralHrmClient() {
 
       {!loading && data && module === "settings" && (
         <Settings settings={data.settings || {}} busy={busy} onUpdate={updateResource} />
+      )}
+
+      {!loading && data && module === "audit" && (
+        <AuditTrail activityLogs={data.activityLogs || []} settingAudits={data.settingAudits || []} />
       )}
     </div>
   );

@@ -494,7 +494,7 @@ function Kpi({ label, value, icon, tone = "slate" }: { label: string; value: num
   );
 }
 
-function DataPanel({ title, children }: { title: string; children: React.ReactNode }) {
+export function DataPanel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
       <div className="px-5 py-3 border-b border-gray-100">
@@ -505,11 +505,11 @@ function DataPanel({ title, children }: { title: string; children: React.ReactNo
   );
 }
 
-function TwoColumn({ children }: { children: React.ReactNode }) {
+export function TwoColumn({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">{children}</div>;
 }
 
-function SimpleTable({ columns, rows }: { columns: string[]; rows: any[][] }) {
+export function SimpleTable({ columns, rows }: { columns: string[]; rows: any[][] }) {
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200 text-sm">
@@ -528,7 +528,7 @@ function SimpleTable({ columns, rows }: { columns: string[]; rows: any[][] }) {
   );
 }
 
-function Field({ name, label, type = "text", required = false, defaultValue = "" }: any) {
+export function Field({ name, label, type = "text", required = false, defaultValue = "" }: any) {
   return (
     <label className="block">
       <span className="block text-xs font-bold text-gray-600 mb-1">{label}</span>
@@ -537,7 +537,7 @@ function Field({ name, label, type = "text", required = false, defaultValue = ""
   );
 }
 
-function TextArea({ name, label, required = false }: any) {
+export function TextArea({ name, label, required = false }: any) {
   return (
     <label className="block">
       <span className="block text-xs font-bold text-gray-600 mb-1">{label}</span>
@@ -546,7 +546,7 @@ function TextArea({ name, label, required = false }: any) {
   );
 }
 
-function Select({ name, label, options }: { name: string; label: string; options: any[] }) {
+export function Select({ name, label, options }: { name: string; label: string; options: any[] }) {
   return (
     <label className="block">
       <span className="block text-xs font-bold text-gray-600 mb-1">{label}</span>
@@ -560,24 +560,24 @@ function Select({ name, label, options }: { name: string; label: string; options
   );
 }
 
-function EmployeeSelect({ employees }: { employees: any[] }) {
+export function EmployeeSelect({ employees }: { employees: any[] }) {
   return <Select name="userId" label="Employee" options={employees.map((employee) => [employee.id, `${employee.name} - ${employee.hrRecord?.employeeCode || employee.role}`])} />;
 }
 
-function PrimaryButton({ children, disabled }: { children: React.ReactNode; disabled?: boolean }) {
+export function PrimaryButton({ children, disabled }: { children: React.ReactNode; disabled?: boolean }) {
   return <button disabled={disabled} className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-50">{children}</button>;
 }
 
-function statusBadge(status?: string | null) {
+export function statusBadge(status?: string | null) {
   const value = String(status || "-");
   return <span className="inline-flex px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-700 capitalize">{value.replace(/_/g, " ")}</span>;
 }
 
-function formValues(form: HTMLFormElement) {
+export function formValues(form: HTMLFormElement) {
   return Object.fromEntries(new FormData(form).entries());
 }
 
-function parseJson(raw: string | null | undefined, fallback: any) {
+export function parseJson(raw: string | null | undefined, fallback: any) {
   if (!raw) return fallback;
   try { return JSON.parse(raw); } catch { return fallback; }
 }
@@ -586,10 +586,10 @@ function sum(rows: any[], key: string) {
   return rows.reduce((total, row) => total + (Number(row[key]) || 0), 0);
 }
 
-function money(value: number) {
+export function money(value: number) {
   return `SAR ${(Number(value) || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 }
 
-function formatDate(value?: string | Date | null) {
+export function formatDate(value?: string | Date | null) {
   return value ? new Date(value).toLocaleDateString() : "-";
 }
