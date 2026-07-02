@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Users,
   UserPlus,
@@ -23,27 +23,84 @@ import HrDocuments from "./HrDocuments";
 import { OnboardingTab, PayrollTab, PerformanceTab, PromotionEngineTab, RecruitmentTab } from "./HrWorkflowTabs";
 import ViralHrmClient from "./ViralHrmClient";
 
-const MODULES = [
-  { id: "dashboard", label: "Dashboard" },
-  { id: "employees", label: "Employees" },
-  { id: "departments", label: "Departments" },
-  { id: "requests", label: "Requests" },
-  { id: "documents", label: "Documents" },
-  { id: "payroll", label: "Payroll" },
-  { id: "performance", label: "Performance" },
-  { id: "onboarding", label: "Onboarding" },
-  { id: "recruitment", label: "Recruitment" },
-  { id: "promotion", label: "Promotion" },
-  { id: "hrm", label: "HRM Suite" },
+const MODULE_GROUPS = [
+  {
+    title: "Core",
+    items: [
+      { id: "dashboard", label: "Dashboard" },
+      { id: "employees", label: "Employees" },
+      { id: "departments", label: "Departments" },
+      { id: "documents", label: "Documents" },
+    ],
+  },
+  {
+    title: "Requests",
+    items: [
+      { id: "requests", label: "Leave & Complaints" },
+      { id: "requestCenter", label: "SLA Requests" },
+      { id: "attendance", label: "Attendance" },
+      { id: "workflows", label: "Workflows" },
+    ],
+  },
+  {
+    title: "Compensation",
+    items: [
+      { id: "payroll", label: "Payroll Summary" },
+      { id: "payrollPeriods", label: "Payroll Periods" },
+      { id: "compensation", label: "Salary Changes" },
+      { id: "advances", label: "Advances" },
+    ],
+  },
+  {
+    title: "Talent",
+    items: [
+      { id: "performance", label: "Performance" },
+      { id: "onboarding", label: "Onboarding" },
+      { id: "recruitment", label: "Applicant Pipeline" },
+      { id: "recruitmentRequests", label: "Hiring Requests" },
+      { id: "talent", label: "Talent Pool" },
+      { id: "promotion", label: "Promotion" },
+      { id: "kpis", label: "KPI Templates" },
+    ],
+  },
+  {
+    title: "Admin",
+    items: [
+      { id: "peopleOps", label: "People Ops" },
+      { id: "devicePasswords", label: "Device Access" },
+      { id: "settings", label: "Settings" },
+      { id: "audit", label: "Audit" },
+    ],
+  },
 ];
 
-const TONE: Record<string, { bg: string; ring: string; text: string; icon: string }> = {
-  slate: { bg: "bg-white", ring: "border-slate-200", text: "text-slate-900", icon: "bg-slate-100 text-slate-600" },
-  blue: { bg: "bg-blue-50", ring: "border-blue-100", text: "text-blue-700", icon: "bg-blue-100 text-blue-600" },
-  emerald: { bg: "bg-emerald-50", ring: "border-emerald-100", text: "text-emerald-700", icon: "bg-emerald-100 text-emerald-600" },
-  violet: { bg: "bg-violet-50", ring: "border-violet-100", text: "text-violet-700", icon: "bg-violet-100 text-violet-600" },
-  amber: { bg: "bg-amber-50", ring: "border-amber-100", text: "text-amber-700", icon: "bg-amber-100 text-amber-600" },
-  rose: { bg: "bg-rose-50", ring: "border-rose-100", text: "text-rose-700", icon: "bg-rose-100 text-rose-600" },
+const ADVANCED_MODULES: Record<string, string> = {
+  payrollPeriods: "payroll",
+  compensation: "compensation",
+  advances: "advances",
+  requestCenter: "requests",
+  workflows: "workflows",
+  attendance: "attendance",
+  recruitmentRequests: "recruitment",
+  talent: "talent",
+  kpis: "kpis",
+  peopleOps: "peopleOps",
+  devicePasswords: "devicePasswords",
+  settings: "settings",
+  audit: "audit",
+};
+
+const MODULE_LABELS = Object.fromEntries(
+  MODULE_GROUPS.flatMap((group) => group.items.map((item) => [item.id, item.label]))
+);
+
+const TONE: Record<string, { text: string; icon: string }> = {
+  slate: { text: "text-slate-900", icon: "bg-slate-100 text-slate-600" },
+  blue: { text: "text-blue-700", icon: "bg-blue-50 text-blue-600" },
+  emerald: { text: "text-emerald-700", icon: "bg-emerald-50 text-emerald-600" },
+  violet: { text: "text-violet-700", icon: "bg-violet-50 text-violet-600" },
+  amber: { text: "text-amber-700", icon: "bg-amber-50 text-amber-600" },
+  rose: { text: "text-rose-700", icon: "bg-rose-50 text-rose-600" },
 };
 
 type HrAdminClientProps = {
@@ -70,17 +127,17 @@ function StatCard({
   onClick?: () => void;
 }) {
   const t = TONE[tone] || TONE.slate;
-  const className = `rounded-2xl border ${t.ring} ${t.bg} p-4 shadow-sm text-left ${
-    onClick ? "cursor-pointer hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500" : ""
+  const className = `rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm transition ${
+    onClick ? "cursor-pointer hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500" : ""
   }`;
   const content = (
-    <>
-      <div className="flex items-center justify-between">
-        <span className={`w-9 h-9 rounded-xl flex items-center justify-center ${t.icon}`}>{icon}</span>
+    <div className="flex items-center gap-3">
+      <span className={`w-9 h-9 rounded-lg flex shrink-0 items-center justify-center ${t.icon}`}>{icon}</span>
+      <div className="min-w-0">
+        <p className={`text-2xl font-black leading-none ${t.text}`}>{value}</p>
+        <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">{label}</p>
       </div>
-      <p className={`text-3xl font-black mt-3 ${t.text}`}>{value}</p>
-      <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-1">{label}</p>
-    </>
+    </div>
   );
 
   if (onClick) {
@@ -104,31 +161,45 @@ export default function HrAdminClient({
   complaints = [],
 }: HrAdminClientProps) {
   const [module, setModule] = useState("dashboard");
+  const activeLabel = useMemo(() => MODULE_LABELS[module] || "Dashboard", [module]);
+  const advancedModule = ADVANCED_MODULES[module];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
-            <LayoutDashboard className="w-6 h-6 text-blue-600" /> HR Workspace
-          </h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {userName ? `Welcome, ${userName}. ` : ""}Here&apos;s what&apos;s happening across your team today.
-          </p>
+    <div className="space-y-5">
+      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="flex items-center gap-2 text-2xl font-black text-slate-950">
+              <LayoutDashboard className="h-6 w-6 text-blue-600" /> HR Workspace
+            </h1>
+            <p className="mt-0.5 text-sm text-slate-500">{userName ? `Welcome, ${userName}.` : "Welcome."}</p>
+          </div>
+          <span className="inline-flex w-fit rounded-lg bg-slate-950 px-3 py-1.5 text-sm font-bold text-white">
+            {activeLabel}
+          </span>
         </div>
-        <nav className="flex flex-wrap gap-1.5">
-          {MODULES.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setModule(item.id)}
-              className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-1.5 ${
-                module === item.id
-                  ? "bg-slate-900 text-white"
-                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              {item.label}
-            </button>
+
+        <nav className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-5">
+          {MODULE_GROUPS.map((group) => (
+            <div key={group.title} className="min-w-0">
+              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">{group.title}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {group.items.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setModule(item.id)}
+                    className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                      module === item.id
+                        ? "bg-slate-950 text-white shadow-sm"
+                        : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
       </div>
@@ -151,7 +222,7 @@ export default function HrAdminClient({
       {module === "onboarding" && <OnboardingTab employees={employees} />}
       {module === "recruitment" && <RecruitmentTab />}
       {module === "promotion" && <PromotionEngineTab />}
-      {module === "hrm" && <ViralHrmClient />}
+      {advancedModule && <ViralHrmClient module={advancedModule} />}
 
       {module === "dashboard" && (
         <>
@@ -178,7 +249,7 @@ export default function HrAdminClient({
           </section>
 
           <section className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
               <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
                 <span className="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center">
                   <FileWarning className="w-4 h-4" />
@@ -211,7 +282,7 @@ export default function HrAdminClient({
             </div>
 
             <div className="space-y-5">
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
                 <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
                   <span className="w-8 h-8 rounded-lg bg-violet-100 text-violet-600 flex items-center justify-center">
                     <Cake className="w-4 h-4" />
@@ -234,14 +305,28 @@ export default function HrAdminClient({
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-slate-900 to-slate-700 text-white rounded-2xl p-5 shadow-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <ChevronRight className="w-4 h-4" />
-                  <h3 className="font-bold">HR command center is live</h3>
+              <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="mb-3 flex items-center gap-2">
+                  <ChevronRight className="h-4 w-4 text-blue-600" />
+                  <h3 className="font-bold text-slate-900">Quick Actions</h3>
                 </div>
-                <p className="text-sm text-slate-300">
-                  Employees, departments, requests, documents, payroll, performance, onboarding, recruitment, promotions and advanced HRM tools are available from the workspace tabs.
-                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    ["employees", "Employees"],
+                    ["requestCenter", "SLA Requests"],
+                    ["recruitmentRequests", "Hiring Requests"],
+                    ["payroll", "Payroll"],
+                  ].map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setModule(id)}
+                      className="rounded-lg border border-slate-200 px-3 py-2 text-left text-sm font-semibold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </section>

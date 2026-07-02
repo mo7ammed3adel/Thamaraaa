@@ -49,15 +49,19 @@ const MODULES = [
   { id: "audit", label: "Audit" },
 ];
 
+type ViralHrmClientProps = {
+  module?: string;
+};
 
-export default function ViralHrmClient() {
+export default function ViralHrmClient({ module: controlledModule }: ViralHrmClientProps = {}) {
   const today = new Date();
   const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
   const [month, setMonth] = useState(defaultMonth);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [module, setModule] = useState("overview");
+  const [module, setModule] = useState(controlledModule || "overview");
+  const activeModule = controlledModule || module;
 
   const load = useCallback(() => {
     setLoading(true);
@@ -112,37 +116,38 @@ export default function ViralHrmClient() {
 
   const employees = data?.employees || [];
   const departments = data?.departments || [];
+  const showNavigation = !controlledModule;
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-2 border-b border-gray-200">
-        {MODULES.map((item) => (
+      <div className={`flex flex-wrap items-center gap-2 ${showNavigation ? "border-b border-gray-200" : "justify-end"}`}>
+        {showNavigation && MODULES.map((item) => (
           <button
             key={item.id}
             onClick={() => setModule(item.id)}
-            className={`px-4 py-2 text-sm font-semibold border-b-2 transition ${module === item.id ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-900"}`}
+            className={`border-b-2 px-4 py-2 text-sm font-semibold transition ${activeModule === item.id ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-900"}`}
           >
             {item.label}
           </button>
         ))}
-        <div className="ml-auto flex items-center gap-2 pb-2">
-          <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white" />
-          <button onClick={load} disabled={loading} className="px-3 py-2 text-sm font-bold bg-slate-800 text-white rounded-lg disabled:opacity-50">Refresh</button>
+        <div className={`${showNavigation ? "ml-auto pb-2" : ""} flex items-center gap-2`}>
+          <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm" />
+          <button onClick={load} disabled={loading} className="rounded-lg bg-slate-950 px-3 py-2 text-sm font-bold text-white disabled:opacity-50">Refresh</button>
         </div>
       </div>
 
       {loading && <div className="bg-white border rounded-xl p-8 text-center text-gray-400">Loading HRM data...</div>}
       {!loading && !data && <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center text-red-700">Failed to load HRM data.</div>}
 
-      {!loading && data && module === "overview" && (
+      {!loading && data && activeModule === "overview" && (
         <Overview data={data} />
       )}
 
-      {!loading && data && module === "employees" && (
+      {!loading && data && activeModule === "employees" && (
         <Profiles employees={employees} />
       )}
 
-      {!loading && data && module === "departments" && (
+      {!loading && data && activeModule === "departments" && (
         <Departments
           departments={departments}
           busy={busy}
@@ -151,7 +156,7 @@ export default function ViralHrmClient() {
         />
       )}
 
-      {!loading && data && module === "payroll" && (
+      {!loading && data && activeModule === "payroll" && (
         <PayrollPeriods
           data={data}
           month={month}
@@ -161,7 +166,7 @@ export default function ViralHrmClient() {
         />
       )}
 
-      {!loading && data && module === "advances" && (
+      {!loading && data && activeModule === "advances" && (
         <Advances
           employees={employees}
           advances={data.salaryAdvances || []}
@@ -171,7 +176,7 @@ export default function ViralHrmClient() {
         />
       )}
 
-      {!loading && data && module === "compensation" && (
+      {!loading && data && activeModule === "compensation" && (
         <CompensationCenter
           employees={employees}
           salaryChanges={data.salaryChanges || []}
@@ -183,7 +188,7 @@ export default function ViralHrmClient() {
         />
       )}
 
-      {!loading && data && module === "requests" && (
+      {!loading && data && activeModule === "requests" && (
         <RequestCenter
           employees={employees}
           requestTypes={data.requestTypes || []}
@@ -197,7 +202,7 @@ export default function ViralHrmClient() {
         />
       )}
 
-      {!loading && data && module === "workflows" && (
+      {!loading && data && activeModule === "workflows" && (
         <Workflows
           workflows={data.workflows || []}
           requestTypes={data.requestTypes || []}
@@ -208,7 +213,7 @@ export default function ViralHrmClient() {
         />
       )}
 
-      {!loading && data && module === "attendance" && (
+      {!loading && data && activeModule === "attendance" && (
         <AttendanceOps
           employees={employees}
           shifts={data.shifts || []}
@@ -222,7 +227,7 @@ export default function ViralHrmClient() {
         />
       )}
 
-      {!loading && data && module === "recruitment" && (
+      {!loading && data && activeModule === "recruitment" && (
         <Recruitment
           departments={departments}
           requests={data.recruitmentRequests || []}
@@ -233,7 +238,7 @@ export default function ViralHrmClient() {
         />
       )}
 
-      {!loading && data && module === "talent" && (
+      {!loading && data && activeModule === "talent" && (
         <TalentPool
           departments={departments}
           candidates={data.candidates || []}
@@ -247,7 +252,7 @@ export default function ViralHrmClient() {
         />
       )}
 
-      {!loading && data && module === "kpis" && (
+      {!loading && data && activeModule === "kpis" && (
         <Kpis
           departments={departments}
           templates={data.kpiTemplates || []}
@@ -258,7 +263,7 @@ export default function ViralHrmClient() {
         />
       )}
 
-      {!loading && data && module === "peopleOps" && (
+      {!loading && data && activeModule === "peopleOps" && (
         <PeopleOps
           employees={employees}
           data={data}
@@ -269,7 +274,7 @@ export default function ViralHrmClient() {
         />
       )}
 
-      {!loading && data && module === "devicePasswords" && (
+      {!loading && data && activeModule === "devicePasswords" && (
         <DevicePasswords
           employees={employees}
           entries={data.devicePasswords || []}
@@ -279,11 +284,11 @@ export default function ViralHrmClient() {
         />
       )}
 
-      {!loading && data && module === "settings" && (
+      {!loading && data && activeModule === "settings" && (
         <Settings settings={data.settings || {}} busy={busy} onUpdate={updateResource} />
       )}
 
-      {!loading && data && module === "audit" && (
+      {!loading && data && activeModule === "audit" && (
         <AuditTrail activityLogs={data.activityLogs || []} settingAudits={data.settingAudits || []} />
       )}
     </div>
