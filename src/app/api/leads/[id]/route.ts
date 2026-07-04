@@ -38,6 +38,12 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     if (result.status === "invalid_store_link") {
       return NextResponse.json({ error: "storeLink must be a valid http(s) URL" }, { status: 400 });
     }
+    if (result.status === "invalid_recording_url") {
+      return NextResponse.json({ error: "Recording link must be a valid http(s) URL" }, { status: 400 });
+    }
+    if (result.status === "lost_revert_forbidden") {
+      return NextResponse.json({ error: "Only the Sales Manager can move a lost client back to Follow-Up" }, { status: 403 });
+    }
     if (result.status === "past_meeting_date") {
       return NextResponse.json({ error: "Meeting date cannot be in the past." }, { status: 400 });
     }

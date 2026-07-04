@@ -134,6 +134,7 @@ model CallLog {
   callStatus     String
   classification String?
   notes          String
+  recordingUrl   String?
   meetingDate    DateTime?
   createdAt      DateTime  @default(now())
 

@@ -169,7 +169,12 @@ function canUpdateLead(user: LeadUser, lead: any) {
     user.role === "super_admin" ||
     (user.role === "tele_sales_manager" &&
       (!lead.assignedTeleAgentId || lead.teleAgent?.directManagerId === user.id)) ||
-    (user.role === "sales_manager" && (!lead.assignedSalesAgentId || lead.salesAgent?.directManagerId === user.id))
+    // Sales manager scope matches the My Team page: their direct reports plus
+    // orphan agents that have no direct manager assigned yet.
+    (user.role === "sales_manager" &&
+      (!lead.assignedSalesAgentId ||
+        lead.salesAgent?.directManagerId === user.id ||
+        lead.salesAgent?.directManagerId === null))
   );
 }
 
@@ -184,7 +189,9 @@ async function applySalesAssigneeChange(user: LeadUser, assignedSalesAgentId: an
       !targetSalesAgent ||
       targetSalesAgent.role !== "sales_agent" ||
       targetSalesAgent.status !== "Active" ||
-      (user.role === "sales_manager" && targetSalesAgent.directManagerId !== user.id)
+      (user.role === "sales_manager" &&
+        targetSalesAgent.directManagerId !== null &&
+        targetSalesAgent.directManagerId !== user.id)
     ) {
       return { status: "invalid_sales_assignee" as const };
     }
@@ -243,12 +250,14 @@ async function syncLeadNotes(input: {
   notes: string;
   meetingDate?: string;
   meetingTime?: string;
+  recordingUrl?: string | null;
 }) {
   await createLeadCallLog({
     leadId: input.leadId,
     agentId: input.userId,
     callStatus: input.status || "Updated",
     notes: input.notes,
+    recordingUrl: input.recordingUrl ?? null,
   });
 
   const latestMeeting = await findLatestLeadMeeting(input.leadId);
@@ -285,9 +294,27 @@ export async function updateLead(input: { id: string; user: LeadUser; body: any 
     return { status: "forbidden" as const };
   }
 
+  // Reviving a lost client back to Follow-Up is a manager-only decision — the
+  // Sales Manager dashboard is the sole place this transition is allowed from.
+  if (
+    existingLead.status === "Closed_Lost" &&
+    input.body.status === "Follow_Up" &&
+    !["super_admin", "sales_manager"].includes(input.user.role)
+  ) {
+    return { status: "lost_revert_forbidden" as const };
+  }
+
   // A meeting date (e.g. on reschedule) can never be moved into the past.
   if (input.body.meetingDate !== undefined && isPastMeetingDate(input.body.meetingDate)) {
     return { status: "past_meeting_date" as const };
+  }
+
+  let recordingUrl: string | null = null;
+  if (input.body.recordingUrl) {
+    recordingUrl = normalizeWebUrl(input.body.recordingUrl);
+    if (!recordingUrl) {
+      return { status: "invalid_recording_url" as const };
+    }
   }
 
   const updateData = buildLeadUpdateData(input.body);
@@ -295,6 +322,21 @@ export async function updateLead(input: { id: string; user: LeadUser; body: any 
   if (input.body.assignedSalesAgentId !== undefined) {
     const result = await applySalesAssigneeChange(input.user, input.body.assignedSalesAgentId, updateData);
     if (result.status !== "ok") return result;
+  }
+
+  // Manual reassignment hands the meeting over cleanly: an in-progress task the
+  // previous agent never finished is reset so the new agent starts fresh.
+  const salesAgentChanged =
+    input.body.assignedSalesAgentId &&
+    input.body.assignedSalesAgentId !== existingLead.assignedSalesAgentId;
+  if (
+    salesAgentChanged &&
+    input.body.meetingStartedAt === undefined &&
+    existingLead.meetingStartedAt &&
+    !existingLead.meetingEndedAt
+  ) {
+    updateData.meetingStartedAt = null;
+    updateData.meetingEndedAt = null;
   }
 
   if (input.body.assignedTeleAgentId !== undefined) {
@@ -316,6 +358,15 @@ export async function updateLead(input: { id: string; user: LeadUser; body: any 
 
   const lead = await updateLeadRecord(input.id, updateData);
 
+  // Keep the meeting record in sync with a manual handover so the round-robin
+  // rotation and meeting reports reflect who actually owns the meeting now.
+  if (salesAgentChanged) {
+    const latestMeeting = await findLatestLeadMeeting(input.id);
+    if (latestMeeting) {
+      await updateLeadMeeting(latestMeeting.id, { salesAgentId: input.body.assignedSalesAgentId });
+    }
+  }
+
   if (input.body.notes) {
     await syncLeadNotes({
       leadId: input.id,
@@ -324,6 +375,7 @@ export async function updateLead(input: { id: string; user: LeadUser; body: any 
       notes: input.body.notes,
       meetingDate: input.body.meetingDate,
       meetingTime: input.body.meetingTime,
+      recordingUrl,
     });
   }
 
@@ -332,6 +384,15 @@ export async function updateLead(input: { id: string; user: LeadUser; body: any 
       userId: input.body.assignedSalesAgentId,
       title: "New Lead Assigned",
       message: "A lead has been assigned to your queue.",
+      link: "/dashboard/sales",
+    });
+  }
+
+  if (salesAgentChanged && existingLead.assignedSalesAgentId) {
+    await createLeadNotification({
+      userId: existingLead.assignedSalesAgentId,
+      title: "Lead Reassigned",
+      message: `Lead "${existingLead.name}" was reassigned to another agent by your manager.`,
       link: "/dashboard/sales",
     });
   }

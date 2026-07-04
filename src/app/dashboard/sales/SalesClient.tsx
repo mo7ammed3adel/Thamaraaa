@@ -5,7 +5,7 @@ import { notify } from "@/components/toast";
 import { todayInputValue, isPastMeetingDate } from "@/lib/meetingDate";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Calendar, PhoneCall, ChevronDown, ChevronUp, CheckCircle2, XCircle, FileText, Send, X, Clock, AlertTriangle, ExternalLink } from "lucide-react";
+import { Calendar, PhoneCall, ChevronDown, ChevronUp, CheckCircle2, XCircle, FileText, Send, X, Clock, AlertTriangle, ExternalLink, Video, Repeat, RotateCcw } from "lucide-react";
 import CreateWarningModal from "@/components/CreateWarningModal";
 import { createDeal } from "@/client/api/deals";
 import { updateLead } from "@/client/api/leads";
@@ -17,8 +17,9 @@ import { isDateInRange } from "@/lib/dateRange";
 import { getLeadFollowUpDisplay, getLeadMeetingDisplay } from "@/lib/leadScheduleDisplay";
 import { PACKAGE_SERVICES, buildDealPackageLabel } from "@/lib/dealPackage";
 
-export default function SalesClient({ initialLeads, userRole, userId, initialStatus, postSaleProjects = [] }: { initialLeads: any[], userRole: string, userId: string, initialStatus: string, postSaleProjects?: any[] }) {
+export default function SalesClient({ initialLeads, userRole, userId, initialStatus, postSaleProjects = [], teamAgents = [] }: { initialLeads: any[], userRole: string, userId: string, initialStatus: string, postSaleProjects?: any[], teamAgents?: { id: string; name: string; status: string }[] }) {
   const router = useRouter();
+  const isManager = ["sales_manager", "super_admin"].includes(userRole);
   const [leads, setLeads] = useState(initialLeads);
   const [status, setStatus] = useState(initialStatus);
   const [activeLead, setActiveLead] = useState<any>(null);
@@ -136,8 +137,17 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     meetingTime: "",
     hasStore: "No", // "Yes" or "No"
     storeLink: "",
-    customerType: "Launch" // Store, Launch, Dropshipping, Shipping, Special
+    customerType: "Launch", // Store, Launch, Dropshipping, Shipping, Special
+    recordingUrl: "" // optional link to the meeting recording
   });
+
+  // Manager tools: manual meeting reassignment + reviving lost clients
+  const [reassignLead, setReassignLead] = useState<any>(null);
+  const [reassignAgentId, setReassignAgentId] = useState("");
+  const [reassigning, setReassigning] = useState(false);
+  const [revertLead, setRevertLead] = useState<any>(null);
+  const [revertData, setRevertData] = useState({ followUpDate: "", agentId: "", notes: "" });
+  const [reverting, setReverting] = useState(false);
 
   // Warn user before leaving page with unsaved feedback
   useEffect(() => {
@@ -217,7 +227,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
 
     if (feedback.outcome === "won") {
       // For won deal, update the lead with the store details & timer first.
-      await updateLead(activeLead.id, { ...payloadStartEnd, notes: feedback.notes });
+      await updateLead(activeLead.id, { ...payloadStartEnd, notes: feedback.notes, recordingUrl: feedback.recordingUrl || undefined });
       setShowFeedbackForm(false);
       setShowClosingForm(true);
     } else {
@@ -232,9 +242,10 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         extraData = { meetingDate: feedback.meetingDate, meetingTime: feedback.meetingTime };
       }
 
-      await updateLead(activeLead.id, { 
-        status: finalStatus, 
+      await updateLead(activeLead.id, {
+        status: finalStatus,
         notes: feedback.notes,
+        recordingUrl: feedback.recordingUrl || undefined,
         ...payloadStartEnd,
         ...extraData
       });
@@ -247,7 +258,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
       setLeads(prev => prev.map(l => l.id === activeLead.id ? { ...l, status: finalStatus, ...extraData } : l));
       setActiveLead(null);
       // Reset feedback for next task
-      setFeedback({ notes: "", outcome: "won", followUpDate: "", meetingDate: "", meetingTime: "", hasStore: "No", storeLink: "", customerType: "Launch" });
+      setFeedback({ notes: "", outcome: "won", followUpDate: "", meetingDate: "", meetingTime: "", hasStore: "No", storeLink: "", customerType: "Launch", recordingUrl: "" });
       router.refresh();
     }
   };
@@ -329,7 +340,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     // Update lead local state to Closed_Won so UI reflects immediately
     setLeads(prev => prev.map(l => l.id === activeLead.id ? { ...l, status: "Closed_Won" } : l));
     setActiveLead(null);
-    setFeedback({ notes: "", outcome: "won", followUpDate: "", meetingDate: "", meetingTime: "", hasStore: "No", storeLink: "", customerType: "Launch" });
+    setFeedback({ notes: "", outcome: "won", followUpDate: "", meetingDate: "", meetingTime: "", hasStore: "No", storeLink: "", customerType: "Launch", recordingUrl: "" });
     setDealData({
       packageMode: "unified", packageServices: [], monthlyPackages: [{ services: [] }],
       contractStart: "", contractEnd: "",
@@ -362,6 +373,74 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
       notify(message);
     } finally {
       setSendingLink(false);
+    }
+  };
+
+  const submitReassign = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reassignLead || !reassignAgentId) return;
+
+    setReassigning(true);
+    try {
+      await updateLead(reassignLead.id, { assignedSalesAgentId: reassignAgentId });
+      const agent = teamAgents.find(a => a.id === reassignAgentId);
+      setLeads(prev => prev.map(l => l.id === reassignLead.id
+        ? { ...l, assignedSalesAgentId: reassignAgentId, salesAgent: agent ? { id: agent.id, name: agent.name } : l.salesAgent, meetingStartedAt: null, meetingEndedAt: null }
+        : l));
+      notify(`Meeting reassigned to ${agent?.name || "the selected agent"}`);
+      setReassignLead(null);
+      setReassignAgentId("");
+      router.refresh();
+    } catch (error) {
+      notify(error instanceof HttpError ? error.message : "Failed to reassign meeting", "error");
+    } finally {
+      setReassigning(false);
+    }
+  };
+
+  const openRevertModal = (lead: any) => {
+    setRevertLead(lead);
+    setRevertData({
+      followUpDate: "",
+      agentId: lead.salesAgent?.id || lead.assignedSalesAgentId || "",
+      notes: "",
+    });
+  };
+
+  const submitRevert = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!revertLead || !revertData.followUpDate || !revertData.agentId) return;
+
+    setReverting(true);
+    try {
+      const currentAgentId = revertLead.salesAgent?.id || revertLead.assignedSalesAgentId || "";
+      const body: any = {
+        status: "Follow_Up",
+        followUpDate: revertData.followUpDate,
+        notes: revertData.notes.trim() || "Client reverted from Lost back to Follow-Up by the Sales Manager.",
+      };
+      if (revertData.agentId !== currentAgentId) {
+        body.assignedSalesAgentId = revertData.agentId;
+      }
+      await updateLead(revertLead.id, body);
+      const agent = teamAgents.find(a => a.id === revertData.agentId);
+      setLeads(prev => prev.map(l => l.id === revertLead.id
+        ? {
+            ...l,
+            status: "Follow_Up",
+            followUpDate: revertData.followUpDate,
+            ...(body.assignedSalesAgentId
+              ? { assignedSalesAgentId: revertData.agentId, salesAgent: agent ? { id: agent.id, name: agent.name } : l.salesAgent }
+              : {}),
+          }
+        : l));
+      notify(`${revertLead.name} moved back to Follow-Up`);
+      setRevertLead(null);
+      router.refresh();
+    } catch (error) {
+      notify(error instanceof HttpError ? error.message : "Failed to move client back to Follow-Up", "error");
+    } finally {
+      setReverting(false);
     }
   };
 
@@ -559,6 +638,9 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone & Source</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Classification</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TeleSales Agent</th>
+              {isManager && (
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sales Agent</th>
+              )}
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Meeting Time</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Follow-up</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Note</th>
@@ -594,6 +676,22 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                       )}
                     </div>
                   </td>
+                  {isManager && (
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      <div className="flex items-center gap-2">
+                        {l.salesAgent?.name || <span className="text-gray-400 italic">Unassigned</span>}
+                        {!["Closed_Won", "Closed_Lost"].includes(l.status) && (
+                          <button
+                            onClick={() => { setReassignLead(l); setReassignAgentId(""); }}
+                            title="Reassign meeting to another agent"
+                            className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-md transition-colors"
+                          >
+                            <Repeat className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  )}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {(() => {
                       const meetingDisplay = getLeadMeetingDisplay(l);
@@ -643,7 +741,19 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                     {l.status === "Closed_Won" ? (
                       <span className="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-md text-xs font-bold">✓ Won</span>
                     ) : l.status === "Closed_Lost" ? (
-                      <span className="px-3 py-1.5 bg-red-100 text-red-700 rounded-md text-xs font-bold">✗ Lost</span>
+                      <span className="inline-flex items-center gap-2">
+                        <span className="px-3 py-1.5 bg-red-100 text-red-700 rounded-md text-xs font-bold">✗ Lost</span>
+                        {isManager && (
+                          <button
+                            onClick={() => openRevertModal(l)}
+                            title="Move this client back to Follow-Up"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-md text-xs font-bold transition-colors"
+                          >
+                            <RotateCcw className="h-3 w-3" />
+                            Follow-Up
+                          </button>
+                        )}
+                      </span>
                     ) : activeLead?.id === l.id ? (
                       <button onClick={endTask} className="px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700">End Task</button>
                     ) : (
@@ -654,7 +764,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                 {/* Expanded Call Logs */}
                 {expandedLead === l.id && l.callLogs && l.callLogs.length > 0 && (
                   <tr key={`${l.id}-logs`}>
-                    <td colSpan={8} className="px-6 py-3 bg-slate-50">
+                    <td colSpan={isManager ? 9 : 8} className="px-6 py-3 bg-slate-50">
                       <div className="space-y-2">
                         <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">TeleSales Call History ({l.callLogs.length} calls)</p>
                         {l.callLogs.map((log: any, idx: number) => (
@@ -670,6 +780,17 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                                 {log.agent?.name && <span className="text-xs text-gray-400">by {log.agent.name}</span>}
                               </div>
                               <p className="text-xs text-gray-600 mt-1">{log.notes}</p>
+                              {log.recordingUrl && (
+                                <a
+                                  href={log.recordingUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 mt-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                                >
+                                  <Video className="h-3.5 w-3.5" />
+                                  Meeting Recording
+                                </a>
+                              )}
                             </div>
                             <span className="text-xs text-gray-400 whitespace-nowrap">{new Date(log.createdAt).toLocaleDateString("en-GB")}</span>
                           </div>
@@ -681,7 +802,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
               </React.Fragment>
             ))}
             {paginatedLeads.length === 0 && (
-              <tr><td colSpan={8} className="px-6 py-8 text-center text-sm text-gray-500">No active leads match the filters.</td></tr>
+              <tr><td colSpan={isManager ? 9 : 8} className="px-6 py-8 text-center text-sm text-gray-500">No active leads match the filters.</td></tr>
             )}
           </tbody>
         </table>
@@ -843,6 +964,17 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                   )}
 
                   <p className="text-sm text-gray-700 italic bg-white/50 p-2 rounded border border-white mt-2">"{lastLog.notes}"</p>
+                  {lastLog.recordingUrl && (
+                    <a
+                      href={lastLog.recordingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 mt-2 text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                      <Video className="h-3.5 w-3.5" />
+                      Meeting Recording
+                    </a>
+                  )}
                   <p className="text-[10px] text-gray-500 mt-2 text-right font-medium">- {lastLog.agent?.name} ({new Date(lastLog.createdAt).toLocaleString("en-GB")})</p>
                 </div>
               );
@@ -859,6 +991,17 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                          <span className="text-[10px] text-gray-400">{new Date(log.createdAt).toLocaleString("en-GB")}</span>
                        </div>
                        <p className="text-xs text-gray-600 mt-1.5">{log.notes}</p>
+                       {log.recordingUrl && (
+                         <a
+                           href={log.recordingUrl}
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           className="inline-flex items-center gap-1 mt-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                         >
+                           <Video className="h-3 w-3" />
+                           Meeting Recording
+                         </a>
+                       )}
                        <p className="text-[10px] text-gray-400 mt-1.5 text-right">- {log.agent?.name}</p>
                     </div>
                   ))}
@@ -938,6 +1081,21 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                 <textarea required rows={3} className="w-full border-2 border-blue-200 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-gray-400" value={feedback.notes} onChange={e => setFeedback({...feedback, notes: e.target.value})} placeholder="Write detailed new notes about the current call/meeting..." />
               </div>
               <p className="text-[10px] text-gray-400 -mt-2">These notes will be independently saved to the interaction history log.</p>
+
+              <div>
+                <label className="block text-sm font-medium mb-1 flex items-center gap-1.5">
+                  <Video className="h-4 w-4 text-gray-500" />
+                  Meeting Recording Link <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://..."
+                  className="w-full border p-2 rounded focus:ring-blue-500"
+                  value={feedback.recordingUrl}
+                  onChange={e => setFeedback({...feedback, recordingUrl: e.target.value})}
+                />
+                <p className="text-[10px] text-gray-400 mt-1">Paste the link to the meeting recording if one exists — it will be saved with this task's history.</p>
+              </div>
               </div>
             </div>
 
@@ -1133,6 +1291,109 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                 <button type="button" onClick={() => setLinkLead(null)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg font-medium">Cancel</button>
                 <button type="submit" disabled={sendingLink} className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg font-medium disabled:opacity-50">
                   {sendingLink ? "Sending..." : "Send Link"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Manual Meeting Reassignment (Sales Manager) */}
+      {reassignLead && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+            <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
+              <Repeat className="h-5 w-5 text-indigo-600" />
+              Reassign Meeting
+            </h3>
+            <p className="text-xs text-gray-500 mb-4">
+              Move <span className="font-semibold">{reassignLead.name}</span> from{" "}
+              <span className="font-semibold">{reassignLead.salesAgent?.name || "Unassigned"}</span> to another agent.
+              The new agent will be notified and takes over the meeting.
+            </p>
+            <form onSubmit={submitReassign}>
+              <label className="block text-sm font-medium mb-1">New Sales Agent</label>
+              <select
+                required
+                className="w-full border p-2 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 mb-4"
+                value={reassignAgentId}
+                onChange={e => setReassignAgentId(e.target.value)}
+              >
+                <option value="">Select an agent...</option>
+                {teamAgents
+                  .filter(a => a.id !== (reassignLead.salesAgent?.id || reassignLead.assignedSalesAgentId))
+                  .map(a => (
+                    <option key={a.id} value={a.id}>
+                      {a.name} {a.status !== "Active" ? `(${a.status.replace("_", " ")})` : ""}
+                    </option>
+                  ))}
+              </select>
+              <div className="flex justify-end gap-3">
+                <button type="button" onClick={() => { setReassignLead(null); setReassignAgentId(""); }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg font-medium">Cancel</button>
+                <button type="submit" disabled={reassigning || !reassignAgentId} className="px-4 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium disabled:opacity-50">
+                  {reassigning ? "Reassigning..." : "Reassign"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Revert Lost Client to Follow-Up (Sales Manager) */}
+      {revertLead && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+            <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
+              <RotateCcw className="h-5 w-5 text-amber-600" />
+              Back to Follow-Up
+            </h3>
+            <p className="text-xs text-gray-500 mb-4">
+              Move <span className="font-semibold">{revertLead.name}</span> from Lost back to Follow-Up.
+              The assigned agent will see the client in their Follow-up queue.
+            </p>
+            <form onSubmit={submitRevert} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Follow-up Date *</label>
+                <input
+                  required
+                  type="date"
+                  min={todayInputValue()}
+                  className="w-full border p-2 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
+                  value={revertData.followUpDate}
+                  onChange={e => setRevertData({ ...revertData, followUpDate: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Sales Agent *</label>
+                <select
+                  required
+                  className="w-full border p-2 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
+                  value={revertData.agentId}
+                  onChange={e => setRevertData({ ...revertData, agentId: e.target.value })}
+                >
+                  <option value="">Select an agent...</option>
+                  {teamAgents.map(a => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                      {a.id === (revertLead.salesAgent?.id || revertLead.assignedSalesAgentId) ? " (current)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Note <span className="text-gray-400 font-normal">(optional)</span></label>
+                <textarea
+                  rows={2}
+                  className="w-full border p-2 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 placeholder:text-gray-400"
+                  placeholder="Why is this client coming back to Follow-Up?"
+                  value={revertData.notes}
+                  onChange={e => setRevertData({ ...revertData, notes: e.target.value })}
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <button type="button" onClick={() => setRevertLead(null)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg font-medium">Cancel</button>
+                <button type="submit" disabled={reverting || !revertData.followUpDate || !revertData.agentId} className="px-4 py-2 text-sm text-white bg-amber-600 hover:bg-amber-700 rounded-lg font-medium disabled:opacity-50">
+                  {reverting ? "Saving..." : "Move to Follow-Up"}
                 </button>
               </div>
             </form>

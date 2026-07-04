@@ -66,6 +66,7 @@ export function createLeadCallLog(input: {
   agentId: string;
   callStatus: string;
   notes: string;
+  recordingUrl?: string | null;
 }) {
   return prisma.callLog.create({
     data: input,

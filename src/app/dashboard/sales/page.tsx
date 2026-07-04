@@ -22,6 +22,7 @@ export default async function SalesWorkspacePage() {
     orderBy: { createdAt: "asc" },
     include: {
       teleAgent: { select: { id: true, name: true } },
+      salesAgent: { select: { id: true, name: true } },
       callLogs: {
         orderBy: { createdAt: "desc" },
         take: 50,
@@ -35,6 +36,23 @@ export default async function SalesWorkspacePage() {
       }
     }
   });
+
+  // Managers can hand meetings over manually, so they need the roster of agents
+  // they may assign to — direct reports plus orphans, mirroring My Team.
+  const isManagerView = ["super_admin", "sales_manager"].includes(user.role);
+  const teamAgents = isManagerView
+    ? await prisma.user.findMany({
+        where: {
+          role: "sales_agent",
+          status: { not: "Inactive" },
+          ...(user.role === "sales_manager"
+            ? { OR: [{ directManagerId: user.id }, { directManagerId: null }] }
+            : {}),
+        },
+        select: { id: true, name: true, status: true },
+        orderBy: { name: "asc" },
+      })
+    : [];
 
   // Current agent status
   const agentData = await prisma.user.findUnique({
@@ -65,12 +83,13 @@ export default async function SalesWorkspacePage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Sales Workspace</h1>
       </div>
-      <SalesClient 
-        initialLeads={leads} 
-        userRole={user.role} 
-        userId={user.id} 
-        initialStatus={agentData?.status || "Active"} 
-        postSaleProjects={postSaleProjects} 
+      <SalesClient
+        initialLeads={leads}
+        userRole={user.role}
+        userId={user.id}
+        initialStatus={agentData?.status || "Active"}
+        postSaleProjects={postSaleProjects}
+        teamAgents={teamAgents}
       />
     </div>
   );
