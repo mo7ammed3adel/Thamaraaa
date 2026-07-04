@@ -461,3 +461,130 @@ export function upsertEmployeeHrRecord(input: {
     },
   });
 }
+
+// ── HR self-service: central requests, complaints, departments, salary advances ──
+
+export function findActiveHrRequestTypes() {
+  return prisma.hrRequestType.findMany({ where: { active: true }, orderBy: { name: "asc" } });
+}
+
+/** Pass a userId to scope to that employee; null returns every request (HR view). */
+export function findHrRequestsScoped(userId: string | null) {
+  return prisma.hrRequest.findMany({
+    where: userId ? { userId } : {},
+    include: { timeline: { orderBy: { createdAt: "asc" } }, comments: { orderBy: { createdAt: "asc" } } },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export function findUserNamesByIds(ids: string[]) {
+  return prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } });
+}
+
+export function findActiveHrManagerId() {
+  return prisma.user.findFirst({ where: { role: "hr_manager", status: "Active" }, select: { id: true } });
+}
+
+export function findHrComplaintsScoped(userId: string | null) {
+  return prisma.hrComplaint.findMany({
+    where: userId ? { userId } : {},
+    include: { notes: { orderBy: { createdAt: "asc" } } },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export function createHrComplaint(input: {
+  userId: string;
+  subject: string;
+  details: string;
+  visibility: string;
+  attachmentUrl: string | null;
+}) {
+  return prisma.hrComplaint.create({ data: input });
+}
+
+export function updateHrComplaint(id: string, data: any) {
+  return prisma.hrComplaint.update({ where: { id }, data });
+}
+
+export function createHrComplaintNote(input: { complaintId: string; authorId: string; note: string }) {
+  return prisma.hrComplaintNote.create({ data: input });
+}
+
+export function findHrComplaintWithNotes(id: string) {
+  return prisma.hrComplaint.findUnique({
+    where: { id },
+    include: { notes: { orderBy: { createdAt: "asc" } } },
+  });
+}
+
+export function findHrDepartmentsWithDocuments() {
+  return prisma.hrDepartment.findMany({
+    include: { documents: { orderBy: { createdAt: "desc" } } },
+    orderBy: { name: "asc" },
+  });
+}
+
+export function findHrRecordDepartments() {
+  return prisma.hrRecord.findMany({ select: { department: true } });
+}
+
+export function findHrDepartmentByExactName(name: string) {
+  return prisma.hrDepartment.findUnique({ where: { name } });
+}
+
+export function findHrDepartmentNameConflict(name: string, excludeId: string) {
+  return prisma.hrDepartment.findFirst({ where: { name, NOT: { id: excludeId } } });
+}
+
+export function createHrDepartment(data: any) {
+  return prisma.hrDepartment.create({ data });
+}
+
+export function updateHrDepartment(id: string, data: any) {
+  return prisma.hrDepartment.update({ where: { id }, data });
+}
+
+export function findHrDepartmentById(id: string) {
+  return prisma.hrDepartment.findUnique({ where: { id } });
+}
+
+export function countHrRecordsInDepartment(name: string) {
+  return prisma.hrRecord.count({ where: { department: name } });
+}
+
+export function deleteHrDepartment(id: string) {
+  return prisma.hrDepartment.delete({ where: { id } });
+}
+
+export function createDepartmentDocument(input: { departmentId: string; name: string; fileUrl: string }) {
+  return prisma.departmentDocument.create({ data: input });
+}
+
+export function deleteDepartmentDocument(docId: string) {
+  return prisma.departmentDocument.delete({ where: { id: docId } });
+}
+
+export function findSalaryAdvancesScoped(userId: string | null) {
+  return prisma.salaryAdvance.findMany({
+    where: userId ? { userId } : {},
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export function createSalaryAdvanceRequest(input: {
+  userId: string;
+  amount: number;
+  reason: string;
+  status: string;
+}) {
+  return prisma.salaryAdvance.create({ data: input });
+}
+
+export function findSalaryAdvanceById(id: string) {
+  return prisma.salaryAdvance.findUnique({ where: { id } });
+}
+
+export function updateSalaryAdvanceById(id: string, data: any) {
+  return prisma.salaryAdvance.update({ where: { id }, data });
+}

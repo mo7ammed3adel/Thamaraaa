@@ -4,24 +4,13 @@ import { NextRequest } from "next/server";
 import { getSessionUser } from "@/server/auth/session";
 import { errorJson, successJson, unauthorizedJson } from "@/server/http/responses";
 import { createHrmResource } from "@/server/services/hrmService";
-import { prisma } from "@/lib/prisma";
-
-const HR_ROLES = ["super_admin", "hr_manager"];
+import { listCentralHrRequests } from "@/server/services/hrService";
 
 export async function GET() {
   const user = await getSessionUser();
   if (!user) return unauthorizedJson();
 
-  const isHr = HR_ROLES.includes(user.role || "");
-  const [requestTypes, requests] = await Promise.all([
-    prisma.hrRequestType.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
-    prisma.hrRequest.findMany({
-      where: isHr ? {} : { userId: user.id },
-      include: { timeline: { orderBy: { createdAt: "asc" } }, comments: { orderBy: { createdAt: "asc" } } },
-      orderBy: { createdAt: "desc" },
-    }),
-  ]);
-
+  const { requestTypes, requests } = await listCentralHrRequests(user);
   return successJson({ requestTypes, requests });
 }
 

@@ -39,7 +39,32 @@ import {
   findOnboardingTask,
   setOnboardingTaskDone,
   deleteOnboardingTask,
+  findActiveHrRequestTypes,
+  findHrRequestsScoped,
+  findUserNamesByIds,
+  findActiveHrManagerId,
+  findHrComplaintsScoped,
+  createHrComplaint,
+  updateHrComplaint,
+  createHrComplaintNote,
+  findHrComplaintWithNotes,
+  findHrDepartmentsWithDocuments,
+  findHrRecordDepartments,
+  findHrDepartmentByExactName,
+  findHrDepartmentNameConflict,
+  createHrDepartment,
+  updateHrDepartment,
+  findHrDepartmentById,
+  countHrRecordsInDepartment,
+  deleteHrDepartment,
+  createDepartmentDocument,
+  deleteDepartmentDocument,
+  findSalaryAdvancesScoped,
+  createSalaryAdvanceRequest,
+  findSalaryAdvanceById,
+  updateSalaryAdvanceById,
 } from "@/server/repositories/hrRepository";
+import { parseJsonOr, stringifyJson } from "@/server/parsers/json";
 import { normalizeWebUrl } from "@/lib/safe-url";
 import { evaluateAllEmployees } from "@/lib/promotion";
 import { computePayslip, currentMonth, monthRange } from "@/lib/payslip";
@@ -721,4 +746,254 @@ export async function applyPromotionAction(input: {
   }
 
   return { status: "unhandled" as const };
+}
+
+// ── HR self-service: central requests, complaints, departments, salary advances ──
+
+type SessionUser = { id: string; role?: string | null; name?: string | null };
+
+const COMPLAINT_VISIBILITY = ["hr_only", "dept_head", "team_leader", "everyone"];
+const COMPLAINT_STATUSES = ["open", "in_progress", "resolved", "closed"];
+const SALARY_ADVANCE_ROLES = ["super_admin", "hr_manager", "accountant"];
+
+/** HR sees every central request; an employee sees only their own. */
+export async function listCentralHrRequests(user: SessionUser) {
+  const isHr = HR_ROLES.includes(user.role || "");
+  const [requestTypes, requests] = await Promise.all([
+    findActiveHrRequestTypes(),
+    findHrRequestsScoped(isHr ? null : user.id),
+  ]);
+  return { requestTypes, requests };
+}
+
+export async function listComplaints(user: SessionUser) {
+  const isHr = HR_ROLES.includes(user.role || "");
+  const complaints = await findHrComplaintsScoped(isHr ? null : user.id);
+  const names = new Map(
+    (await findUserNamesByIds(complaints.map((c) => c.userId))).map((u) => [u.id, u.name])
+  );
+  return complaints.map((c) => ({ ...c, employeeName: names.get(c.userId) || "Unknown" }));
+}
+
+export async function submitComplaint(input: { user: SessionUser; body: any }) {
+  const { user, body } = input;
+  const subject = typeof body?.subject === "string" ? body.subject.trim() : "";
+  const details = typeof body?.details === "string" ? body.details.trim() : "";
+  const visibility = COMPLAINT_VISIBILITY.includes(body?.visibility) ? body.visibility : "hr_only";
+  const attachmentUrl = body?.attachmentUrl ? normalizeWebUrl(body.attachmentUrl) : null;
+  if (!subject || !details) return { status: "missing_fields" as const };
+
+  const complaint = await createHrComplaint({
+    userId: user.id,
+    subject: subject.slice(0, 160),
+    details,
+    visibility,
+    attachmentUrl,
+  });
+  const hr = await findActiveHrManagerId();
+  if (hr) {
+    await createHrNotification({
+      userId: hr.id,
+      title: "New Complaint",
+      message: `${user.name} submitted a complaint: ${subject.slice(0, 60)}`,
+      link: "/dashboard/hr",
+    });
+  }
+  return { status: "ok" as const, complaint };
+}
+
+export async function reviewComplaint(input: { user: SessionUser; id: string; body: any }) {
+  const { user, id, body } = input;
+  if (!HR_ROLES.includes(user.role || "")) return { status: "forbidden" as const };
+
+  const data: any = {};
+  if (body?.status) {
+    if (!COMPLAINT_STATUSES.includes(body.status)) return { status: "invalid_status" as const };
+    data.status = body.status;
+  }
+  if (Object.keys(data).length > 0) {
+    await updateHrComplaint(id, data);
+  }
+  if (typeof body?.note === "string" && body.note.trim()) {
+    await createHrComplaintNote({ complaintId: id, authorId: user.id, note: body.note.trim() });
+  }
+  const complaint = await findHrComplaintWithNotes(id);
+  return { status: "ok" as const, complaint };
+}
+
+export async function listHrDepartments(user: SessionUser) {
+  if (!HR_ROLES.includes(user.role || "")) return { status: "forbidden" as const };
+
+  const [departments, hrRecords] = await Promise.all([
+    findHrDepartmentsWithDocuments(),
+    findHrRecordDepartments(),
+  ]);
+  const counts = new Map<string, number>();
+  for (const r of hrRecords) {
+    if (r.department) counts.set(r.department, (counts.get(r.department) || 0) + 1);
+  }
+  return {
+    status: "ok" as const,
+    departments: departments.map((d) => ({
+      ...d,
+      teamLeaderIds: parseJsonOr(d.teamLeaderIds, []),
+      policy: parseJsonOr(d.policy, {}),
+      employeeCount: counts.get(d.name) || 0,
+    })),
+  };
+}
+
+export async function createDepartment(input: { user: SessionUser; body: any }) {
+  const { user, body } = input;
+  if (!HR_ROLES.includes(user.role || "")) return { status: "forbidden" as const };
+
+  const name = typeof body?.name === "string" ? body.name.trim() : "";
+  if (!name) return { status: "missing_name" as const };
+
+  const existing = await findHrDepartmentByExactName(name);
+  if (existing) return { status: "duplicate_name" as const };
+
+  const department = await createHrDepartment({
+    name,
+    description: body.description || null,
+    status: body.status === "inactive" ? "inactive" : "active",
+    headId: body.headId || null,
+    teamLeaderIds: stringifyJson(Array.isArray(body.teamLeaderIds) ? body.teamLeaderIds : []),
+    policy: stringifyJson(body.policy && typeof body.policy === "object" ? body.policy : {}),
+  });
+  return { status: "ok" as const, department };
+}
+
+export async function editDepartment(input: { user: SessionUser; id: string; body: any }) {
+  const { user, id, body } = input;
+  if (!HR_ROLES.includes(user.role || "")) return { status: "forbidden" as const };
+  if (!body) return { status: "invalid_body" as const };
+
+  const data: any = {};
+  if (body.name !== undefined) {
+    const name = String(body.name).trim();
+    if (!name) return { status: "missing_name" as const };
+    const conflict = await findHrDepartmentNameConflict(name, id);
+    if (conflict) return { status: "duplicate_name" as const };
+    data.name = name;
+  }
+  if (body.description !== undefined) data.description = body.description || null;
+  if (body.status !== undefined) data.status = body.status === "inactive" ? "inactive" : "active";
+  if (body.headId !== undefined) data.headId = body.headId || null;
+  if (body.teamLeaderIds !== undefined) {
+    data.teamLeaderIds = stringifyJson(Array.isArray(body.teamLeaderIds) ? body.teamLeaderIds : []);
+  }
+  if (body.policy !== undefined) {
+    data.policy = stringifyJson(body.policy && typeof body.policy === "object" ? body.policy : {});
+  }
+
+  const department = await updateHrDepartment(id, data);
+  return { status: "ok" as const, department };
+}
+
+export async function removeDepartment(input: { user: SessionUser; id: string }) {
+  if (!HR_ROLES.includes(input.user.role || "")) return { status: "forbidden" as const };
+
+  const dept = await findHrDepartmentById(input.id);
+  if (!dept) return { status: "not_found" as const };
+
+  const inUse = await countHrRecordsInDepartment(dept.name);
+  if (inUse > 0) return { status: "in_use" as const, inUse };
+
+  await deleteHrDepartment(input.id);
+  return { status: "ok" as const };
+}
+
+export async function addDepartmentDocument(input: { user: SessionUser; departmentId: string; body: any }) {
+  const { user, departmentId, body } = input;
+  if (!HR_ROLES.includes(user.role || "")) return { status: "forbidden" as const };
+
+  const name = typeof body?.name === "string" ? body.name.trim() : "";
+  const fileUrl = body?.fileUrl ? normalizeWebUrl(body.fileUrl) : null;
+  if (!name || !fileUrl) return { status: "missing_fields" as const };
+
+  const document = await createDepartmentDocument({ departmentId, name: name.slice(0, 160), fileUrl });
+  return { status: "ok" as const, document };
+}
+
+export async function removeDepartmentDocument(input: { user: SessionUser; docId: string }) {
+  if (!HR_ROLES.includes(input.user.role || "")) return { status: "forbidden" as const };
+  await deleteDepartmentDocument(input.docId);
+  return { status: "ok" as const };
+}
+
+export async function listSalaryAdvances(user: SessionUser) {
+  const isHr = SALARY_ADVANCE_ROLES.includes(user.role || "");
+  const advances = await findSalaryAdvancesScoped(isHr ? null : user.id);
+  const names = new Map(
+    (await findUserNamesByIds(advances.map((a) => a.userId))).map((u) => [u.id, u.name])
+  );
+  return advances.map((a) => ({ ...a, employeeName: names.get(a.userId) || "Unknown" }));
+}
+
+export async function submitSalaryAdvance(input: { user: SessionUser; body: any }) {
+  const { user, body } = input;
+  const amount = Number(body?.amount);
+  const reason = typeof body?.reason === "string" ? body.reason.trim() : "";
+  if (!amount || amount <= 0 || !reason) return { status: "missing_fields" as const };
+
+  const advance = await createSalaryAdvanceRequest({
+    userId: user.id,
+    amount,
+    reason,
+    status: "pending_dept_head",
+  });
+  const hr = await findActiveHrManagerId();
+  if (hr) {
+    await createHrNotification({
+      userId: hr.id,
+      title: "New Salary Advance Request",
+      message: `${user.name} requested a salary advance of ${amount} SAR.`,
+      link: "/dashboard/hr",
+    });
+  }
+  return { status: "ok" as const, advance };
+}
+
+// Workflow: pending_dept_head → approve → pending_accountant → approve → approved → markPaid → paid (or reject)
+export async function decideSalaryAdvance(input: { user: SessionUser; id: string; body: any }) {
+  const { user, id, body } = input;
+  if (!SALARY_ADVANCE_ROLES.includes(user.role || "")) return { status: "forbidden" as const };
+
+  const current = await findSalaryAdvanceById(id);
+  if (!current) return { status: "not_found" as const };
+
+  const action = body?.action;
+  const data: any = {};
+  if (action === "approve") {
+    if (current.status === "pending_dept_head") {
+      data.status = "pending_accountant";
+      data.deptHeadApprovedById = user.id;
+      data.deptHeadApprovedAt = new Date();
+    } else if (current.status === "pending_accountant") {
+      data.status = "approved";
+      data.accountantApprovedById = user.id;
+      data.accountantApprovedAt = new Date();
+    } else {
+      return { status: "cannot_approve" as const };
+    }
+  } else if (action === "reject") {
+    data.status = "rejected";
+    data.rejectionReason = typeof body?.reason === "string" ? body.reason : null;
+  } else if (action === "markPaid") {
+    if (current.status !== "approved") return { status: "not_approved_yet" as const };
+    data.status = "paid";
+    data.paidAt = new Date();
+  } else {
+    return { status: "invalid_action" as const };
+  }
+
+  const advance = await updateSalaryAdvanceById(id, data);
+  await createHrNotification({
+    userId: current.userId,
+    title: "Salary Advance Update",
+    message: `Your salary advance request is now: ${advance.status.replace(/_/g, " ")}.`,
+    link: "/dashboard/hr",
+  });
+  return { status: "ok" as const, advance };
 }
