@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { addNiche, listNiches } from "@/server/services/referenceDataService";
 
 export async function GET() {
   try {
@@ -11,9 +11,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const niches = await prisma.niche.findMany({
-      orderBy: { name: "asc" }
-    });
+    const niches = await listNiches();
     return NextResponse.json(niches);
   } catch (error: any) {
     console.error("Error fetching niches:", error);
@@ -33,20 +31,12 @@ export async function POST(request: Request) {
     }
 
     const { name } = await request.json();
-    if (!name || typeof name !== "string") {
+    const result = await addNiche(name);
+    if (result.status === "invalid_name") {
       return NextResponse.json({ error: "Invalid niche name" }, { status: 400 });
     }
 
-    // Standardize: trim and title case
-    const standardizedName = name.trim().replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
-
-    const newNiche = await prisma.niche.upsert({
-      where: { name: standardizedName },
-      update: {}, // if it exists, do nothing
-      create: { name: standardizedName }
-    });
-
-    return NextResponse.json({ success: true, niche: newNiche });
+    return NextResponse.json({ success: true, niche: result.niche });
   } catch (error: any) {
     console.error("Error creating niche:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

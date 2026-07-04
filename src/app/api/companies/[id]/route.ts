@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest } from "next/server";
 import { getSessionUser } from "@/server/auth/session";
 import { errorJson, successJson, unauthorizedJson } from "@/server/http/responses";
-import { prisma } from "@/lib/prisma";
+import { removeCompany, renameCompany } from "@/server/services/referenceDataService";
 
 async function requireSuperAdmin() {
   const user = await getSessionUser();
@@ -20,10 +20,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!name) return errorJson("Company name is required", 400);
 
   try {
-    const conflict = await prisma.company.findFirst({ where: { name, NOT: { id: params.id } } });
-    if (conflict) return errorJson("A company with this name already exists", 400);
-    const company = await prisma.company.update({ where: { id: params.id }, data: { name } });
-    return successJson({ company });
+    const result = await renameCompany({ id: params.id, name });
+    if (result.status === "duplicate_name") {
+      return errorJson("A company with this name already exists", 400);
+    }
+    return successJson({ company: result.company });
   } catch (e: unknown) {
     console.error("Company PATCH error:", e instanceof Error ? e.message : e);
     return errorJson("Internal Server Error", 500);
@@ -35,17 +36,13 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   if (error) return error;
 
   try {
-    const [userCount, leadCount] = await Promise.all([
-      prisma.user.count({ where: { companyId: params.id } }),
-      prisma.lead.count({ where: { companyId: params.id } }),
-    ]);
-    if (userCount > 0 || leadCount > 0) {
+    const result = await removeCompany(params.id);
+    if (result.status === "in_use") {
       return errorJson(
-        `Cannot delete: ${userCount} user(s) and ${leadCount} lead(s) are still linked to this company.`,
+        `Cannot delete: ${result.userCount} user(s) and ${result.leadCount} lead(s) are still linked to this company.`,
         400
       );
     }
-    await prisma.company.delete({ where: { id: params.id } });
     return successJson({ success: true });
   } catch (e: unknown) {
     console.error("Company DELETE error:", e instanceof Error ? e.message : e);

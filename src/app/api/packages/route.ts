@@ -1,17 +1,14 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { addPackage, listPackages } from "@/server/services/referenceDataService";
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
-    const packages = await prisma.package.findMany({
-      orderBy: { createdAt: "desc" }
-    });
-
+    const packages = await listPackages();
     return NextResponse.json(packages);
   } catch (error) {
     console.error("Failed to fetch packages:", error);
@@ -27,16 +24,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const { name, servicesJson } = await request.json();
-    if (!name || !servicesJson) {
+    const result = await addPackage(await request.json());
+    if (result.status === "missing_fields") {
       return NextResponse.json({ error: "Name and services are required" }, { status: 400 });
     }
 
-    const newPackage = await prisma.package.create({
-      data: { name, servicesJson }
-    });
-
-    return NextResponse.json(newPackage);
+    return NextResponse.json(result.pkg);
   } catch (error) {
     console.error("Failed to create package:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

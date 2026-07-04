@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { addCustomColumn, listCustomColumns, removeCustomColumn } from "@/server/services/referenceDataService";
 
 export async function GET() {
   try {
@@ -15,15 +15,7 @@ export async function GET() {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const columns = await prisma.customColumn.findMany({
-      orderBy: { createdAt: "asc" },
-      include: {
-        values: user.role === "tele_sales_agent"
-          ? { where: { lead: { assignedTeleAgentId: user.id } } }
-          : true,
-      },
-    });
-
+    const columns = await listCustomColumns({ id: user.id, role: user.role });
     return NextResponse.json(columns);
   } catch (error) {
     console.error(error);
@@ -40,19 +32,12 @@ export async function POST(req: Request) {
     }
 
     const { name } = await req.json();
-    if (!name || !name.trim()) {
+    const result = await addCustomColumn({ actor: { id: user.id, role: user.role }, name });
+    if (result.status === "missing_name") {
       return NextResponse.json({ error: "Column name is required" }, { status: 400 });
     }
 
-    const column = await prisma.customColumn.create({
-      data: {
-        name: name.trim(),
-        createdBy: user.id,
-      },
-      include: { values: true },
-    });
-
-    return NextResponse.json(column, { status: 201 });
+    return NextResponse.json(result.column, { status: 201 });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
@@ -73,7 +58,7 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "Column ID is required" }, { status: 400 });
     }
 
-    await prisma.customColumn.delete({ where: { id } });
+    await removeCustomColumn(id);
 
     return NextResponse.json({ success: true });
   } catch (error) {

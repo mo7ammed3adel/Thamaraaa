@@ -217,3 +217,10 @@ export function createImportedLead(input: {
     data: input,
   });
 }
+
+export function findLeadTeleAgentOwner(leadId: string) {
+  return prisma.lead.findUnique({
+    where: { id: leadId },
+    select: { assignedTeleAgentId: true },
+  });
+}

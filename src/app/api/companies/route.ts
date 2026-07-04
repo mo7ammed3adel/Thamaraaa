@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest } from "next/server";
 import { getSessionUser } from "@/server/auth/session";
 import { errorJson, successJson, unauthorizedJson } from "@/server/http/responses";
-import { prisma } from "@/lib/prisma";
+import { addCompany, listCompanies } from "@/server/services/referenceDataService";
 
 async function requireSuperAdmin() {
   const user = await getSessionUser();
@@ -16,10 +16,7 @@ export async function GET() {
   if (error) return error;
 
   try {
-    const companies = await prisma.company.findMany({
-      orderBy: { name: "asc" },
-      include: { _count: { select: { users: true, leads: true } } },
-    });
+    const companies = await listCompanies();
     return successJson({ companies });
   } catch (e: unknown) {
     console.error("Companies GET error:", e instanceof Error ? e.message : e);
@@ -36,10 +33,11 @@ export async function POST(req: NextRequest) {
   if (!name) return errorJson("Company name is required", 400);
 
   try {
-    const existing = await prisma.company.findUnique({ where: { name } });
-    if (existing) return errorJson("A company with this name already exists", 400);
-    const company = await prisma.company.create({ data: { name } });
-    return successJson({ company }, 201);
+    const result = await addCompany(name);
+    if (result.status === "duplicate_name") {
+      return errorJson("A company with this name already exists", 400);
+    }
+    return successJson({ company: result.company }, 201);
   } catch (e: unknown) {
     console.error("Companies POST error:", e instanceof Error ? e.message : e);
     return errorJson("Internal Server Error", 500);

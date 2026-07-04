@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { setCustomColumnValue } from "@/server/services/referenceDataService";
 
 export async function PUT(req: Request) {
   try {
@@ -16,29 +16,21 @@ export async function PUT(req: Request) {
 
     const { columnId, leadId, value } = await req.json();
 
-    if (!columnId || !leadId) {
-      return NextResponse.json({ error: "columnId and leadId are required" }, { status: 400 });
-    }
-
-    if (user.role === "tele_sales_agent") {
-      const lead = await prisma.lead.findUnique({
-        where: { id: leadId },
-        select: { assignedTeleAgentId: true },
-      });
-      if (!lead || lead.assignedTeleAgentId !== user.id) {
-        return NextResponse.json({ error: "Forbidden: you cannot edit this lead" }, { status: 403 });
-      }
-    }
-
-    const result = await prisma.customColumnValue.upsert({
-      where: {
-        columnId_leadId: { columnId, leadId },
-      },
-      update: { value: value || "" },
-      create: { columnId, leadId, value: value || "" },
+    const result = await setCustomColumnValue({
+      actor: { id: user.id, role: user.role },
+      columnId,
+      leadId,
+      value,
     });
 
-    return NextResponse.json(result);
+    if (result.status === "missing_fields") {
+      return NextResponse.json({ error: "columnId and leadId are required" }, { status: 400 });
+    }
+    if (result.status === "lead_forbidden") {
+      return NextResponse.json({ error: "Forbidden: you cannot edit this lead" }, { status: 403 });
+    }
+
+    return NextResponse.json(result.result);
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
