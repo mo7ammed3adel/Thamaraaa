@@ -588,3 +588,23 @@ export function findSalaryAdvanceById(id: string) {
 export function updateSalaryAdvanceById(id: string, data: any) {
   return prisma.salaryAdvance.update({ where: { id }, data });
 }
+
+// ── Attendance ──
+
+export function findAttendanceSince(userId: string, since: Date) {
+  return prisma.attendance.findFirst({
+    where: { userId, date: { gte: since } },
+  });
+}
+
+export function createAttendanceRecord(data: any) {
+  return prisma.attendance.create({ data });
+}
+
+export function updateAttendanceRecord(id: string, data: any) {
+  return prisma.attendance.update({ where: { id }, data });
+}
+
+export function findHrRecordSalaryFields(userId: string) {
+  return prisma.hrRecord.findUnique({ where: { userId } });
+}

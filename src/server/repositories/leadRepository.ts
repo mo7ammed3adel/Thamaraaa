@@ -67,10 +67,22 @@ export function createLeadCallLog(input: {
   callStatus: string;
   notes: string;
   recordingUrl?: string | null;
+  classification?: string | null;
+  meetingDate?: Date | null;
 }) {
   return prisma.callLog.create({
     data: input,
   });
+}
+
+export function createLeadMeeting(input: {
+  leadId: string;
+  teleAgentId: string;
+  meetingDate: Date;
+  meetingTime?: string | null;
+  status: string;
+}) {
+  return prisma.meeting.create({ data: input });
 }
 
 export function findLatestLeadMeeting(leadId: string) {

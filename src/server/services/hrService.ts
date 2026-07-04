@@ -63,6 +63,10 @@ import {
   createSalaryAdvanceRequest,
   findSalaryAdvanceById,
   updateSalaryAdvanceById,
+  findAttendanceSince,
+  createAttendanceRecord,
+  updateAttendanceRecord,
+  findHrRecordSalaryFields,
 } from "@/server/repositories/hrRepository";
 import { parseJsonOr, stringifyJson } from "@/server/parsers/json";
 import { normalizeWebUrl } from "@/lib/safe-url";
@@ -996,4 +1000,99 @@ export async function decideSalaryAdvance(input: { user: SessionUser; id: string
     link: "/dashboard/hr",
   });
   return { status: "ok" as const, advance };
+}
+
+// ── Attendance check-in/out with lateness deductions ──
+
+function lateDeductionHours(lateMinutes: number) {
+  if (lateMinutes <= 18) return 0;
+  if (lateMinutes <= 35) return 2;
+  if (lateMinutes <= 90) return 4;
+  return 6;
+}
+
+async function draftAttendanceDeduction(userId: string, deductionHours: number) {
+  if (deductionHours <= 0) return null;
+  const hr = await findHrRecordSalaryFields(userId);
+  const baseSalary = hr?.currentSalary || hr?.baseSalary || 0;
+  const workingHours = hr?.workingHoursPerDay || 8;
+  const hourlyRate = baseSalary > 0 ? baseSalary / 26 / workingHours : 0;
+  return Math.round(hourlyRate * deductionHours * 100) / 100;
+}
+
+export async function recordAttendanceAction(input: { userId: string; action: any }) {
+  const { userId, action } = input;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const record = await findAttendanceSince(userId, today);
+
+  if (action === "checkIn") {
+    if (record) return { status: "already_checked_in" as const };
+
+    const checkInTime = new Date();
+    const shiftStart = new Date();
+    shiftStart.setHours(9, 0, 0, 0);
+
+    const lateMinutes = Math.max(0, Math.floor((checkInTime.getTime() - shiftStart.getTime()) / 60000));
+    const deductionHours = lateDeductionHours(lateMinutes);
+    const deductionDraft = await draftAttendanceDeduction(userId, deductionHours);
+
+    const created = await createAttendanceRecord({
+      userId,
+      date: new Date(),
+      checkIn: checkInTime,
+      lateMinutes,
+      deductionHours,
+      deductionDraft,
+      status: lateMinutes > 18 ? "late" : "on_time",
+    });
+    return { status: "checked_in" as const, record: created };
+  }
+
+  if (action === "checkOut") {
+    if (!record || record.checkOut) {
+      return { status: "no_active_check_in" as const };
+    }
+    const checkOut = new Date();
+    const shiftEnd = new Date();
+    shiftEnd.setHours(17, 0, 0, 0);
+    const earlyLeaveMinutes = Math.max(0, Math.floor((shiftEnd.getTime() - checkOut.getTime()) / 60000));
+    const earlyHours = earlyLeaveMinutes >= 60 ? 4 : 0;
+    const deductionHours = (record.deductionHours || 0) + earlyHours;
+    const deductionDraft = await draftAttendanceDeduction(userId, deductionHours);
+
+    const updated = await updateAttendanceRecord(record.id, {
+      checkOut,
+      earlyLeaveMinutes,
+      deductionHours,
+      deductionDraft,
+      status: earlyHours > 0 ? "early_leave" : record.status,
+    });
+    return { status: "checked_out" as const, record: updated };
+  }
+
+  return { status: "invalid_action" as const };
+}
+
+/**
+ * HR approves, rejects, or edits a drafted lateness deduction.
+ * Only an approved deduction should be picked up by payroll.
+ */
+export async function decideAttendanceDeduction(input: { id: any; action: any; deductionDraft: any }) {
+  const { id, action, deductionDraft } = input;
+  if (!id || !action) return { status: "missing_fields" as const };
+
+  let data: any = {};
+  if (action === "approve") {
+    data = { deductionApproved: true };
+    if (deductionDraft !== undefined) data.deductionDraft = Number(deductionDraft) || 0;
+  } else if (action === "reject") {
+    data = { deductionApproved: false, deductionDraft: null };
+  } else {
+    return { status: "invalid_action" as const };
+  }
+
+  const record = await updateAttendanceRecord(id, data);
+  return { status: "ok" as const, record };
 }

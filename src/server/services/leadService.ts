@@ -6,6 +6,7 @@ import { normalizeWebUrl } from "@/lib/safe-url";
 import * as XLSX from "xlsx";
 import {
   createLeadCallLog,
+  createLeadMeeting,
   createLeadNotification,
   createImportedLead,
   createManualLeadRecord,
@@ -407,6 +408,87 @@ export async function updateLead(input: { id: string; user: LeadUser; body: any 
   }
 
   return { status: "ok" as const, lead };
+}
+
+/** Lead status produced by each call outcome. */
+const CALL_STATUS_TO_LEAD_STATUS: Record<string, string> = {
+  "Busy": "No_Answer",
+  "Wrong Number": "Closed_Lost",
+  "Invalid": "Closed_Lost",
+  "Accept and book meeting": "Transferred",
+  "Accept but lost": "Closed_Lost",
+  "Not Interested": "Closed_Lost",
+};
+
+/**
+ * Logs a call for a lead, moves the lead to the outcome status, books the
+ * meeting when one was accepted, and returns the full lead (call logs and
+ * meetings included) so the frontend can refresh its local state.
+ */
+export async function logLeadCall(input: { user: LeadUser; body: any }) {
+  const { leadId, callStatus, classification, notes, meetingDate, meetingTime } = input.body;
+
+  if (!leadId || !callStatus || !notes) {
+    return { status: "missing_fields" as const };
+  }
+
+  // A meeting can only be booked for today or a future date.
+  if (callStatus === "Accept and book meeting" && isPastMeetingDate(meetingDate)) {
+    return { status: "past_meeting_date" as const };
+  }
+
+  const existingLead = await findLeadForUpdate(leadId);
+  if (!existingLead) {
+    return { status: "not_found" as const };
+  }
+
+  const isAuthorized =
+    existingLead.assignedTeleAgentId === input.user.id ||
+    existingLead.assignedSalesAgentId === input.user.id ||
+    input.user.role === "super_admin" ||
+    (input.user.role === "tele_sales_manager" &&
+      (!existingLead.assignedTeleAgentId || existingLead.teleAgent?.directManagerId === input.user.id)) ||
+    (input.user.role === "sales_manager" &&
+      (!existingLead.assignedSalesAgentId || existingLead.salesAgent?.directManagerId === input.user.id));
+
+  if (!isAuthorized) {
+    return { status: "forbidden" as const };
+  }
+
+  await createLeadCallLog({
+    leadId,
+    agentId: input.user.id,
+    callStatus,
+    classification,
+    notes,
+    meetingDate: meetingDate ? new Date(meetingDate + "T" + (meetingTime || "00:00") + ":00Z") : null,
+  });
+
+  const newStatus = CALL_STATUS_TO_LEAD_STATUS[callStatus] || "Contacted";
+
+  const updateData: any = {
+    classification,
+    status: newStatus,
+  };
+  if (callStatus === "Accept and book meeting" && meetingDate) {
+    updateData.meetingDate = new Date(meetingDate + "T00:00:00Z");
+    updateData.meetingTime = meetingTime;
+  }
+  await updateLeadRecord(leadId, updateData);
+
+  // Create meeting record. Sales distribution is triggered manually from Tele-Sales.
+  if (callStatus === "Accept and book meeting" && meetingDate) {
+    await createLeadMeeting({
+      leadId,
+      teleAgentId: input.user.id,
+      meetingDate: new Date(meetingDate + "T" + (meetingTime || "00:00") + ":00Z"),
+      meetingTime,
+      status: "Scheduled",
+    });
+  }
+
+  const fullLead = await findDistributedLead(leadId);
+  return { status: "ok" as const, lead: fullLead };
 }
 
 export async function deleteLead(input: { id: string; user: LeadUser }) {
