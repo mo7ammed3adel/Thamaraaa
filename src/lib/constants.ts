@@ -98,20 +98,20 @@ export const CURRENCY = "SAR";
 
 // ── Client Lifecycle State Constants ──
 export const LIFECYCLE_STATE = {
-  ONBOARDING: "Onboarding",
   ACTIVE: "Active",
-  ON_HOLD: "On_Hold",
-  COMPLETED: "Completed",
-  CHURNED: "Churned",
+  HOLD: "Hold",
+  RENEWER: "Renewer",
+  LOST: "Lost",
 } as const;
 
-// ── Allowed Lifecycle Transitions (state machine) ──
+// ── Allowed Lifecycle Transitions ──
+// Any state can move to any other: the Account Manager stays in full control
+// and can correct a wrong status (e.g. bring a Lost client back).
 export const LIFECYCLE_TRANSITIONS: Record<string, string[]> = {
-  Onboarding: ["Active", "Churned"],
-  Active: ["On_Hold", "Completed", "Churned"],
-  On_Hold: ["Active", "Completed", "Churned"],
-  Completed: ["Churned"],
-  Churned: [],
+  Active: ["Hold", "Renewer", "Lost"],
+  Hold: ["Active", "Renewer", "Lost"],
+  Renewer: ["Active", "Hold", "Lost"],
+  Lost: ["Active", "Hold", "Renewer"],
 };
 
 // ── Operations Department Identifiers ──

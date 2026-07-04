@@ -10,7 +10,7 @@ export type ProjectStatus =
   | "delayed"
   | "cancelled";
 
-export type ProjectLifecycleState = "Onboarding" | "Active" | "On_Hold" | "Completed" | "Churned";
+export type ProjectLifecycleState = "Active" | "Hold" | "Renewer" | "Lost";
 
 export type TeamAssignmentDto = {
   id: string;

@@ -106,9 +106,8 @@ export default async function HeadAccountManagerPage() {
   const completedCount = projectsWithData.filter((p) => p.projectStatus === "completed").length;
   const unassignedCount = projectsWithData.filter((p) => !p.accountManagerId).length;
   const clientsWithWarningsCount = projectsWithData.filter(p => p.warnings.length > 0).length;
-  const onboardingCount = projectsWithData.filter(p => p.lifecycleState === LIFECYCLE_STATE.ONBOARDING).length;
   const activeLifecycleCount = projectsWithData.filter(p => p.lifecycleState === LIFECYCLE_STATE.ACTIVE).length;
-  const churnRiskCount = projectsWithData.filter(p => p.lifecycleState === LIFECYCLE_STATE.ON_HOLD || p.lifecycleState === LIFECYCLE_STATE.CHURNED).length;
+  const churnRiskCount = projectsWithData.filter(p => p.lifecycleState === LIFECYCLE_STATE.HOLD || p.lifecycleState === LIFECYCLE_STATE.LOST).length;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);

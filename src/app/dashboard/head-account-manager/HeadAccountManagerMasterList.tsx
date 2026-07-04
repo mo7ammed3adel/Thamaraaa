@@ -92,12 +92,11 @@ export default function HeadAccountManagerMasterList({
             <option value="yes">Delayed Tasks/Project</option>
           </select>
           <select value={filterLifecycle} onChange={e => setFilterLifecycle(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none">
-            <option value="all">Lifecycle: All</option>
-            <option value="Onboarding">Onboarding</option>
+            <option value="all">Client Status: All</option>
             <option value="Active">Active</option>
-            <option value="On_Hold">On Hold</option>
-            <option value="Completed">Completed</option>
-            <option value="Churned">Churned</option>
+            <option value="Hold">Hold</option>
+            <option value="Renewer">Renewer</option>
+            <option value="Lost">Lost</option>
           </select>
         </div>
       </div>
@@ -135,7 +134,7 @@ export default function HeadAccountManagerMasterList({
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex flex-col gap-2">
-                    <LifecycleStateBadge state={p.lifecycleState || "Onboarding"} compact />
+                    <LifecycleStateBadge state={p.lifecycleState || "Active"} compact />
                     <button
                       onClick={() => setLifecycleProject(p)}
                       className="text-[10px] text-indigo-600 font-bold hover:underline"

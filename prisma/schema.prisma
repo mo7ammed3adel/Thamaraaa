@@ -241,7 +241,7 @@ model Project {
 
   finalStatus    String    @default("Active") // Active, Lost, Done — DEPRECATED: use lifecycleState
   projectStatus  String    @default("new") // new, setup, assigned, in_progress, completed, on_hold, delayed, cancelled
-  lifecycleState String    @default("Onboarding") // Onboarding, Active, On_Hold, Completed, Churned
+  lifecycleState String    @default("Active") // Active, Hold, Renewer, Lost
   assignedAt     DateTime?
   notes          String?
   createdAt      DateTime  @default(now())

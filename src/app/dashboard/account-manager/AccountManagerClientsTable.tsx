@@ -155,7 +155,7 @@ export default function AccountManagerClientsTable({
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <LifecycleStateBadge state={project.lifecycleState || "Onboarding"} />
+                      <LifecycleStateBadge state={project.lifecycleState || "Active"} />
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex flex-col gap-1 items-center">

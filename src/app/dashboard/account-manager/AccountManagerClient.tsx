@@ -216,7 +216,7 @@ export default function AccountManagerClient({ userId, projects, kpis, headTechn
           onClose={() => setLifecycleModalProject(null)}
           projectId={lifecycleModalProject.id}
           projectName={lifecycleModalProject.deal?.lead?.name || "Client"}
-          currentState={lifecycleModalProject.lifecycleState || "Onboarding"}
+          currentState={lifecycleModalProject.lifecycleState || "Active"}
           onChanged={() => { setLifecycleModalProject(null); router.refresh(); }}
         />
       )}

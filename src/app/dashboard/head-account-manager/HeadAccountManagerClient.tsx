@@ -176,7 +176,7 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
           isOpen={!!lifecycleProject}
           onClose={() => setLifecycleProject(null)}
           projectId={lifecycleProject.id}
-          currentState={lifecycleProject.lifecycleState || "Onboarding"}
+          currentState={lifecycleProject.lifecycleState || "Active"}
           projectName={lifecycleProject.deal?.lead?.name || "Unknown Client"}
           onChanged={() => { setLifecycleProject(null); router.refresh(); }}
         />

@@ -34,7 +34,7 @@ export function buildNewProjectData(
     technicalDeadline: deadline ?? null,
     finalDeadline: deadline ?? null,
     projectStatus: "new",
-    lifecycleState: "Onboarding",
+    lifecycleState: "Active",
   };
 }
 
