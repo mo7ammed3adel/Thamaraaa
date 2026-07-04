@@ -114,12 +114,12 @@ export default async function DashboardLayout({
                 <PhoneCall className="mr-3 h-5 w-5 opacity-75" />
                 Leads
               </Link>
+              <Link href="/dashboard/leads-import" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
+                <Upload className="mr-3 h-5 w-5 opacity-75" />
+                Upload Leads
+              </Link>
               {hasRole("tele_sales_manager") && (
                 <>
-                  <Link href="/dashboard/leads-import" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
-                    <Upload className="mr-3 h-5 w-5 opacity-75" />
-                    Upload Leads
-                  </Link>
                   <Link href="/dashboard/telesales/cold-leads" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
                     <PlusSquare className="mr-3 h-5 w-5 opacity-75" />
                     Add Cold Leads

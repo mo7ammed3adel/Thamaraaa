@@ -8,27 +8,31 @@ export default async function LeadsImportPage() {
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
 
-  if (!["super_admin", "tele_sales_manager"].includes(user?.role)) {
+  if (!["super_admin", "tele_sales_manager", "tele_sales_agent"].includes(user?.role)) {
     redirect("/dashboard");
   }
 
   // Fetch tele-sales agents for assignment dropdown
-  const agents = await prisma.user.findMany({
-    where: {
-      role: "tele_sales_agent",
-      status: "Active",
-    },
-    select: {
-      id: true,
-      name: true,
-    },
-    orderBy: { name: "asc" },
-  });
+  const agents = ["super_admin", "tele_sales_manager"].includes(user.role)
+    ? await prisma.user.findMany({
+        where: {
+          role: "tele_sales_agent",
+          status: "Active",
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+        orderBy: { name: "asc" },
+      })
+    : [];
 
-  const companies = await prisma.company.findMany({
-    select: { id: true, name: true },
-    orderBy: { name: "asc" },
-  });
+  const companies = ["super_admin", "tele_sales_manager"].includes(user.role)
+    ? await prisma.company.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      })
+    : [];
 
   return (
     <div>
@@ -36,7 +40,7 @@ export default async function LeadsImportPage() {
       <p className="text-sm text-gray-500 mb-6">
         Import leads from advertising campaign Excel sheets into the CRM system.
       </p>
-      <LeadsImportClient agents={agents} companies={companies} />
+      <LeadsImportClient agents={agents} companies={companies} userRole={user.role} />
     </div>
   );
 }

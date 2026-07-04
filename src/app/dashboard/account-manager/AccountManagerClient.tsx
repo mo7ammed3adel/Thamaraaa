@@ -25,6 +25,9 @@ export default function AccountManagerClient({ userId, projects, kpis, headTechn
   const [taskFilterStatus, setTaskFilterStatus] = useState("");
   const [taskFilterTeam, setTaskFilterTeam] = useState("");
   const [activeKpi, setActiveKpi] = useState("all");
+  const [filterLifecycle, setFilterLifecycle] = useState("all");
+  const [lifecycleFromDate, setLifecycleFromDate] = useState("");
+  const [lifecycleToDate, setLifecycleToDate] = useState("");
 
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [warningModalOpen, setWarningModalOpen] = useState(false);
@@ -43,6 +46,9 @@ export default function AccountManagerClient({ userId, projects, kpis, headTechn
     projects,
     searchQuery,
     activeKpi,
+    filterLifecycle,
+    lifecycleFromDate,
+    lifecycleToDate,
     taskFilterClient,
     taskFilterStatus,
     taskFilterTeam,
@@ -130,6 +136,12 @@ export default function AccountManagerClient({ userId, projects, kpis, headTechn
         filteredProjects={filteredProjects}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
+        filterLifecycle={filterLifecycle}
+        setFilterLifecycle={setFilterLifecycle}
+        lifecycleFromDate={lifecycleFromDate}
+        setLifecycleFromDate={setLifecycleFromDate}
+        lifecycleToDate={lifecycleToDate}
+        setLifecycleToDate={setLifecycleToDate}
         expandedRow={expandedRow}
         setExpandedRow={setExpandedRow}
         loadingAction={loadingAction}

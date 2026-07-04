@@ -4,11 +4,19 @@ import React from "react";
 import { AlertTriangle, FileEdit, Send } from "lucide-react";
 import LifecycleStateBadge from "@/components/LifecycleStateBadge";
 import TeamOverview from "@/components/TeamOverview";
+import DateRangeFilter from "@/components/dashboard/DateRangeFilter";
+import { LIFECYCLE_STATE } from "@/lib/constants";
 
 type AccountManagerClientsTableProps = {
   filteredProjects: any[];
   searchQuery: string;
   setSearchQuery: (value: string) => void;
+  filterLifecycle: string;
+  setFilterLifecycle: (value: string) => void;
+  lifecycleFromDate: string;
+  setLifecycleFromDate: (value: string) => void;
+  lifecycleToDate: string;
+  setLifecycleToDate: (value: string) => void;
   expandedRow: string | null;
   setExpandedRow: (value: string | null) => void;
   loadingAction: string | null;
@@ -80,6 +88,12 @@ export default function AccountManagerClientsTable({
   filteredProjects,
   searchQuery,
   setSearchQuery,
+  filterLifecycle,
+  setFilterLifecycle,
+  lifecycleFromDate,
+  setLifecycleFromDate,
+  lifecycleToDate,
+  setLifecycleToDate,
   expandedRow,
   setExpandedRow,
   loadingAction,
@@ -92,16 +106,49 @@ export default function AccountManagerClientsTable({
   setDistributeModalProject,
   setLifecycleModalProject,
 }: AccountManagerClientsTableProps) {
+  const hasActiveClientFilters = Boolean(
+    searchQuery || filterLifecycle !== "all" || lifecycleFromDate || lifecycleToDate
+  );
+
   return (
     <div className="bg-white rounded-xl shadow border overflow-hidden">
-      <div className="p-4 border-b bg-slate-50 flex gap-4 items-center">
-        <h2 className="text-lg font-bold text-slate-800 whitespace-nowrap">My Clients</h2>
-        <input
-          type="text"
-          placeholder="Search by client name or phone..."
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          className="flex-1 max-w-sm border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+      <div className="p-4 border-b bg-slate-50 space-y-3">
+        <div className="flex flex-col lg:flex-row gap-3 lg:items-end">
+          <h2 className="text-lg font-bold text-slate-800 whitespace-nowrap lg:pb-2">My Clients</h2>
+          <div className="flex flex-col sm:flex-row gap-3 flex-1">
+            <label className="flex-1 max-w-sm">
+              <span className="block text-xs font-semibold text-slate-500 mb-1 uppercase">Search</span>
+              <input
+                type="text"
+                placeholder="Search by client name or phone..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+              />
+            </label>
+            <label className="w-full sm:w-52">
+              <span className="block text-xs font-semibold text-slate-500 mb-1 uppercase">Client Status</span>
+              <select
+                value={filterLifecycle}
+                onChange={(event) => setFilterLifecycle(event.target.value)}
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+              >
+                <option value="all">All statuses</option>
+                <option value={LIFECYCLE_STATE.ACTIVE}>Active</option>
+                <option value={LIFECYCLE_STATE.HOLD}>Hold</option>
+                <option value={LIFECYCLE_STATE.RENEWER}>Renewer</option>
+                <option value={LIFECYCLE_STATE.LOST}>Lost</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <DateRangeFilter
+          fromDate={lifecycleFromDate}
+          toDate={lifecycleToDate}
+          onFromDateChange={setLifecycleFromDate}
+          onToDateChange={setLifecycleToDate}
+          label="Client Status Date"
+          includeLastMonth
         />
       </div>
 
@@ -298,7 +345,7 @@ export default function AccountManagerClientsTable({
             {filteredProjects.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-6 py-12 text-center text-sm text-slate-400 italic">
-                  {searchQuery ? "No matched clients found." : "You have no clients assigned yet."}
+                  {hasActiveClientFilters ? "No matched clients found." : "You have no clients assigned yet."}
                 </td>
               </tr>
             )}

@@ -1,11 +1,15 @@
 "use client";
 
 import { useMemo } from "react";
+import { matchesClientLifecycleFilters } from "@/lib/clientLifecycleFilter";
 
 type UseAccountManagerDerivedDataParams = {
   projects: any[];
   searchQuery: string;
   activeKpi: string;
+  filterLifecycle: string;
+  lifecycleFromDate: string;
+  lifecycleToDate: string;
   taskFilterClient: string;
   taskFilterStatus: string;
   taskFilterTeam: string;
@@ -15,6 +19,9 @@ export function useAccountManagerDerivedData({
   projects,
   searchQuery,
   activeKpi,
+  filterLifecycle,
+  lifecycleFromDate,
+  lifecycleToDate,
   taskFilterClient,
   taskFilterStatus,
   taskFilterTeam,
@@ -37,9 +44,15 @@ export function useAccountManagerDerivedData({
         oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
         matchKpi = (p.tasks || []).some((t: any) => t.status === "done" && t.completedAt && new Date(t.completedAt) > oneWeekAgo);
       }
-      return matchSearch && matchKpi;
+      const matchLifecycle = matchesClientLifecycleFilters(p, {
+        lifecycleState: filterLifecycle,
+        from: lifecycleFromDate,
+        to: lifecycleToDate,
+      });
+
+      return matchSearch && matchKpi && matchLifecycle;
     });
-  }, [projects, searchQuery, activeKpi]);
+  }, [projects, searchQuery, activeKpi, filterLifecycle, lifecycleFromDate, lifecycleToDate]);
 
   const filteredTasks = useMemo(() => {
     let allTasks = projects.flatMap((p: any) => (p.tasks || []).map((t: any) => ({ ...t, project: p })));

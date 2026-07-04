@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useCallback } from "react";
-import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, X, Users } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, X, Users, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 
 interface Agent {
@@ -47,7 +47,15 @@ function normalizeHeader(h: string): string {
   return h.trim().toLowerCase().replace(/[_\-]+/g, " ");
 }
 
-export default function LeadsImportClient({ agents, companies = [] }: { agents: Agent[]; companies?: { id: string; name: string }[] }) {
+export default function LeadsImportClient({
+  agents,
+  companies = [],
+  userRole,
+}: {
+  agents: Agent[];
+  companies?: { id: string; name: string }[];
+  userRole: string;
+}) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<ParsedRow[]>([]);
   const [selectedAgent, setSelectedAgent] = useState("");
@@ -57,6 +65,7 @@ export default function LeadsImportClient({ agents, companies = [] }: { agents: 
   const [error, setError] = useState("");
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const canChooseImportOwner = userRole === "super_admin" || userRole === "tele_sales_manager";
 
   /** Parse Excel file and generate preview */
   const parseFile = useCallback(async (f: File) => {
@@ -129,8 +138,8 @@ export default function LeadsImportClient({ agents, companies = [] }: { agents: 
     try {
       const formData = new FormData();
       formData.append("file", file);
-      if (selectedAgent) formData.append("assignToAgentId", selectedAgent);
-      if (selectedCompany) formData.append("companyId", selectedCompany);
+      if (canChooseImportOwner && selectedAgent) formData.append("assignToAgentId", selectedAgent);
+      if (canChooseImportOwner && selectedCompany) formData.append("companyId", selectedCompany);
 
       const res = await fetch("/api/leads/import", {
         method: "POST",
@@ -159,11 +168,31 @@ export default function LeadsImportClient({ agents, companies = [] }: { agents: 
     setResult(null);
     setError("");
     setSelectedAgent("");
+    setSelectedCompany("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   return (
     <div className="space-y-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <FileSpreadsheet className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-gray-900">Leads Template</h2>
+            <p className="text-xs text-gray-500">Download the sheet format before collecting leads.</p>
+          </div>
+        </div>
+        <a
+          href="/api/leads/import"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
+        >
+          <Download className="h-4 w-4" />
+          Download Template
+        </a>
+      </div>
+
       {/* Upload Zone */}
       {!result && (
         <div
@@ -229,40 +258,42 @@ export default function LeadsImportClient({ agents, companies = [] }: { agents: 
       {preview.length > 0 && !result && (
         <>
           {/* Agent Assignment */}
-          <div className="flex items-center gap-4 bg-white border border-gray-200 rounded-lg p-4">
-            <Users className="h-5 w-5 text-gray-400" />
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                تعيين الليدز لموظف تيلي سيلز (اختياري)
-              </label>
-              <select
-                value={selectedAgent}
-                onChange={(e) => setSelectedAgent(e.target.value)}
-                className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">بدون تعيين — يتم التوزيع لاحقاً</option>
-                {agents.map((a) => (
-                  <option key={a.id} value={a.id}>{a.name}</option>
-                ))}
-              </select>
+          {canChooseImportOwner && (
+            <div className="flex items-center gap-4 bg-white border border-gray-200 rounded-lg p-4">
+              <Users className="h-5 w-5 text-gray-400" />
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  تعيين الليدز لموظف تيلي سيلز (اختياري)
+                </label>
+                <select
+                  value={selectedAgent}
+                  onChange={(e) => setSelectedAgent(e.target.value)}
+                  className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">بدون تعيين — يتم التوزيع لاحقاً</option>
+                  {agents.map((a) => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  الشركة (Company)
+                </label>
+                <select
+                  value={selectedCompany}
+                  onChange={(e) => setSelectedCompany(e.target.value)}
+                  className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                >
+                  <option value="">بدون شركة</option>
+                  {companies.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-400 mt-1">الليدز هتتوزّع على موظفي الشركة دي بس.</p>
+              </div>
             </div>
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                الشركة (Company)
-              </label>
-              <select
-                value={selectedCompany}
-                onChange={(e) => setSelectedCompany(e.target.value)}
-                className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-              >
-                <option value="">بدون شركة</option>
-                {companies.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-              <p className="text-xs text-gray-400 mt-1">الليدز هتتوزّع على موظفي الشركة دي بس.</p>
-            </div>
-          </div>
+          )}
 
           {/* Data Preview */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">

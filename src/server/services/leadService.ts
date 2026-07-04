@@ -647,6 +647,10 @@ export async function importLeadsFromExcel(input: {
     }
   }
 
+  const importCompanyId =
+    input.companyId ||
+    (input.user.role === "tele_sales_agent" ? (await findUserCompanyId(input.user.id))?.companyId ?? null : null);
+
   const arrayBuffer = await input.file.arrayBuffer();
   const workbook = XLSX.read(arrayBuffer, { type: "array" });
   const sheetName = workbook.SheetNames[0];
@@ -747,7 +751,7 @@ export async function importLeadsFromExcel(input: {
         classification,
         status: "New",
         assignedTeleAgentId: finalAgentId || null,
-        companyId: input.companyId || null,
+        companyId: importCompanyId,
       });
 
       if (finalAgentId && !input.assignToAgentId) {
@@ -761,7 +765,7 @@ export async function importLeadsFromExcel(input: {
     }
   }
 
-  if (input.assignToAgentId && imported > 0) {
+  if (input.assignToAgentId && imported > 0 && input.user.role !== "tele_sales_agent") {
     await createLeadNotification({
       userId: input.assignToAgentId,
       title: "New Leads Assigned",
