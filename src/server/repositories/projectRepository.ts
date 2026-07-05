@@ -406,3 +406,194 @@ export function createProjectAssignmentNotification(input: {
 }) {
   return prisma.notification.create({ data: input });
 }
+
+export function findProjectLogs(projectId: string) {
+  return prisma.projectLog.findMany({
+    where: { projectId },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export function findProjectFiles(projectId: string) {
+  return prisma.projectFile.findMany({
+    where: { projectId },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export function createProjectFile(input: {
+  projectId: string;
+  fileUrl: string;
+  fileType: string;
+  uploadedBy: string;
+}) {
+  return prisma.projectFile.create({ data: input });
+}
+
+export function findProjectAccountManagerId(projectId: string) {
+  return prisma.project.findUnique({
+    where: { id: projectId },
+    select: { accountManagerId: true },
+  });
+}
+
+/** The full 360° project payload used by the client journey screen. */
+export function findProjectDetailFull(projectId: string) {
+  return prisma.project.findUnique({
+    where: { id: projectId },
+    include: {
+      accountManager: { select: { name: true, role: true } },
+      headTechnical: { select: { name: true, role: true } },
+      headSeo: { select: { name: true, role: true } },
+      deal: {
+        include: {
+          lead: {
+            include: {
+              callLogs: { include: { agent: { select: { name: true, role: true } } }, orderBy: { createdAt: "asc" } },
+              meetings: { include: { teleAgent: { select: { name: true } }, salesAgent: { select: { name: true } } }, orderBy: { createdAt: "asc" } },
+              deals: { include: { salesAgent: { select: { name: true } } }, orderBy: { createdAt: "asc" } },
+            },
+          },
+          salesAgent: { select: { name: true, role: true } },
+          installments: true,
+        },
+      },
+      tasks: {
+        include: {
+          leader: { select: { name: true, role: true } },
+          agent: { select: { name: true, role: true } },
+        },
+        orderBy: { createdAt: "asc" },
+      },
+      globalNotes: {
+        orderBy: { createdAt: "desc" },
+      },
+      files: true,
+      logs: true,
+    },
+  });
+}
+
+export function findActiveHeadAccountManagerCandidate(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true, status: true },
+  });
+}
+
+export function updateProjectHeadAccountManager(projectId: string, headAccountManagerId: string | null) {
+  return prisma.project.update({
+    where: { id: projectId },
+    data: { headAccountManagerId },
+    select: {
+      id: true,
+      headAccountManagerId: true,
+      deal: { select: { lead: { select: { name: true } } } },
+    },
+  });
+}
+
+export function findProjectWithLeadName(projectId: string) {
+  return prisma.project.findUnique({
+    where: { id: projectId },
+    include: { deal: { include: { lead: true } } },
+  });
+}
+
+export function findAccountManagerCandidate(userId: string) {
+  return prisma.user.findUnique({ where: { id: userId } });
+}
+
+/** Transfer a project to a new AM: update, audit log and both-side notifications. */
+export function reassignProjectAccountManagerWithLog(input: {
+  projectId: string;
+  newAccountManagerId: string;
+  newAccountManagerName: string;
+  previousAccountManagerId: string | null;
+  clientName: string;
+  actorId: string;
+  actorName: string;
+}) {
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.project.update({
+      where: { id: input.projectId },
+      data: { accountManagerId: input.newAccountManagerId },
+    });
+
+    await tx.projectLog.create({
+      data: {
+        projectId: input.projectId,
+        userId: input.actorId,
+        action: "client_reassigned",
+        details: `Client reassigned from ${input.previousAccountManagerId || "unassigned"} to ${input.newAccountManagerName} by ${input.actorName}`,
+      },
+    });
+
+    await tx.notification.create({
+      data: {
+        userId: input.newAccountManagerId,
+        title: "Client Assigned",
+        message: `Client "${input.clientName}" has been assigned to you by ${input.actorName}`,
+        type: "client_reassigned",
+        relatedId: input.projectId,
+      },
+    });
+
+    if (input.previousAccountManagerId && input.previousAccountManagerId !== input.newAccountManagerId) {
+      await tx.notification.create({
+        data: {
+          userId: input.previousAccountManagerId,
+          title: "Client Reassigned",
+          message: `Client "${input.clientName}" has been transferred to ${input.newAccountManagerName} by ${input.actorName}`,
+          type: "client_reassigned",
+          relatedId: input.projectId,
+        },
+      });
+    }
+
+    return updated;
+  });
+}
+
+export function findTeamAssignmentsForProject(projectId: string) {
+  return prisma.teamAssignment.findMany({
+    where: { projectId },
+    include: {
+      user: { select: { id: true, name: true, role: true, email: true } },
+      assignedByUser: { select: { id: true, name: true, role: true } },
+    },
+    orderBy: { assignedAt: "desc" },
+  });
+}
+
+export function findTeamAssignmentForRemoval(assignmentId: string) {
+  return prisma.teamAssignment.findUnique({
+    where: { id: assignmentId },
+    include: {
+      user: { select: { name: true, role: true } },
+      project: { select: { accountManagerId: true, headTechnicalId: true, headSeoId: true } },
+    },
+  });
+}
+
+export function removeTeamAssignmentWithLog(input: {
+  assignmentId: string;
+  projectId: string;
+  details: string;
+  userId: string;
+}) {
+  return prisma.$transaction([
+    prisma.teamAssignment.update({
+      where: { id: input.assignmentId },
+      data: { status: "removed", removedAt: new Date() },
+    }),
+    prisma.projectLog.create({
+      data: {
+        projectId: input.projectId,
+        action: "team_removed",
+        details: input.details,
+        userId: input.userId,
+      },
+    }),
+  ]);
+}

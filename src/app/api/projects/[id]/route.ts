@@ -1,78 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { userCanAccessProject } from "@/lib/distribution";
-import { normalizeWebUrl } from "@/lib/safe-url";
-
-// Fields the project detail PATCH is allowed to mutate. Anything not in this list
-// is silently dropped to prevent mass-assignment attacks (e.g. overwriting accountManagerId,
-// totals, lifecycleState — those have dedicated endpoints with stricter authz).
-const ALLOWED_PATCH_FIELDS = new Set([
-  "niche",
-  "storeUrl",
-  "driveLink",
-  "screenshotUrl",
-  "notes",
-  "priority",
-  "technicalDeadline",
-  "finalDeadline",
-  "addedDurationDays",
-  "storeCreated",
-  "userCreatedStore",
-]);
-
-const DATE_FIELDS = new Set(["technicalDeadline", "finalDeadline"]);
-const URL_FIELDS = new Set(["storeUrl", "driveLink", "screenshotUrl"]);
+import { editProjectDetails, getProjectDetail } from "@/server/services/projectLifecycleService";
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const user = session.user as { id: string; role: string };
 
-  const allowed = await userCanAccessProject(user.id, user.role, params.id);
-  if (!allowed) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
   try {
-    const project = await prisma.project.findUnique({
-      where: { id: params.id },
-      include: {
-        accountManager: { select: { name: true, role: true } },
-        headTechnical: { select: { name: true, role: true } },
-        headSeo: { select: { name: true, role: true } },
-        deal: {
-          include: {
-            lead: {
-              include: {
-                callLogs: { include: { agent: { select: { name: true, role: true } } }, orderBy: { createdAt: "asc" } },
-                meetings: { include: { teleAgent: { select: { name: true } }, salesAgent: { select: { name: true } } }, orderBy: { createdAt: "asc" } },
-                deals: { include: { salesAgent: { select: { name: true } } }, orderBy: { createdAt: "asc" } },
-              }
-            },
-            salesAgent: { select: { name: true, role: true } },
-            installments: true
-          }
-        },
-        tasks: {
-          include: {
-            leader: { select: { name: true, role: true } },
-            agent: { select: { name: true, role: true } }
-          },
-          orderBy: { createdAt: "asc" }
-        },
-        globalNotes: {
-          orderBy: { createdAt: "desc" }
-        },
-        files: true,
-        logs: true
-      }
-    });
+    const result = await getProjectDetail({ userId: user.id, userRole: user.role, projectId: params.id });
 
-    if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (result.status === "forbidden") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    if (result.status === "not_found") {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
 
-    return NextResponse.json({ project });
+    return NextResponse.json({ project: result.project });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
@@ -84,62 +30,31 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const user = session.user as { id: string; role: string };
 
-  // Only project stakeholders can edit. Sensitive fields (assignments, lifecycle, billing)
-  // have dedicated endpoints — the allow-list below also keeps non-stakeholders from touching anything else.
-  const allowed = await userCanAccessProject(user.id, user.role, params.id);
-  if (!allowed) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
   try {
-    const projectForEdit = await prisma.project.findUnique({
-      where: { id: params.id },
-      select: { accountManagerId: true },
+    const result = await editProjectDetails({
+      userId: user.id,
+      userRole: user.role,
+      projectId: params.id,
+      body: await req.json(),
     });
-    if (!projectForEdit) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const canEditProjectDetails =
-      user.role === "super_admin" ||
-      user.role === "head_account_manager" ||
-      projectForEdit.accountManagerId === user.id;
-
-    if (!canEditProjectDetails) {
+    if (result.status === "forbidden") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    if (result.status === "not_found") {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    if (result.status === "edit_forbidden") {
       return NextResponse.json({ error: "Forbidden: project details can only be edited by the assigned Account Manager or Head Account Manager" }, { status: 403 });
     }
-
-    const body = await req.json();
-
-    // Build a sanitized data object containing only allow-listed fields.
-    const data: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(body)) {
-      if (!ALLOWED_PATCH_FIELDS.has(key)) continue;
-      if (DATE_FIELDS.has(key)) {
-        data[key] = value ? new Date(value as string) : null;
-      } else if (URL_FIELDS.has(key)) {
-        if (value === null || value === "") {
-          data[key] = null;
-        } else {
-          const safeUrl = normalizeWebUrl(value);
-          if (!safeUrl) {
-            return NextResponse.json({ error: `${key} must be a valid http(s) URL` }, { status: 400 });
-          }
-          data[key] = safeUrl;
-        }
-      } else {
-        data[key] = value;
-      }
+    if (result.status === "invalid_url") {
+      return NextResponse.json({ error: `${result.field} must be a valid http(s) URL` }, { status: 400 });
     }
-
-    if (Object.keys(data).length === 0) {
+    if (result.status === "no_fields") {
       return NextResponse.json({ error: "No editable fields supplied" }, { status: 400 });
     }
 
-    const project = await prisma.project.update({
-      where: { id: params.id },
-      data,
-    });
-
-    return NextResponse.json({ success: true, project });
+    return NextResponse.json({ success: true, project: result.project });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

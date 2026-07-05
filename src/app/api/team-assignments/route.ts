@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { userCanAccessProject } from "@/lib/distribution";
+import { listTeamAssignments, removeTeamAssignment } from "@/server/services/projectDistributionService";
 
 /**
  * GET /api/team-assignments?projectId=xxx
@@ -23,21 +22,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "projectId required" }, { status: 400 });
     }
 
-    const allowed = await userCanAccessProject(user.id, user.role, projectId);
-    if (!allowed) {
+    const result = await listTeamAssignments({ userId: user.id, userRole: user.role, projectId });
+    if (result.status === "forbidden") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const assignments = await prisma.teamAssignment.findMany({
-      where: { projectId },
-      include: {
-        user: { select: { id: true, name: true, role: true, email: true } },
-        assignedByUser: { select: { id: true, name: true, role: true } },
-      },
-      orderBy: { assignedAt: "desc" },
-    });
-
-    return NextResponse.json({ assignments });
+    return NextResponse.json({ assignments: result.assignments });
   } catch (error: unknown) {
     console.error("Team assignments fetch error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -63,50 +53,17 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "assignmentId required" }, { status: 400 });
     }
 
-    const assignment = await prisma.teamAssignment.findUnique({
-      where: { id: assignmentId },
-      include: {
-        user: { select: { name: true, role: true } },
-        project: { select: { accountManagerId: true, headTechnicalId: true, headSeoId: true } },
-      },
+    const result = await removeTeamAssignment({
+      actor: { id: user.id, role: user.role, name: user.name },
+      assignmentId,
     });
 
-    if (!assignment) {
+    if (result.status === "not_found") {
       return NextResponse.json({ error: "Assignment not found" }, { status: 404 });
     }
-
-    const canRemove =
-      user.role === "super_admin" ||
-      user.role === "head_account_manager" ||
-      (user.role === "head_technical" &&
-        assignment.project.headTechnicalId === user.id &&
-        ["social_media", "media_buyer"].includes(assignment.department)) ||
-      (user.role === "head_seo" &&
-        assignment.project.headSeoId === user.id &&
-        ["seo", "content_seo"].includes(assignment.department));
-
-    if (!canRemove) {
+    if (result.status === "forbidden") {
       return NextResponse.json({ error: "Forbidden: you cannot remove this team assignment" }, { status: 403 });
     }
-
-    await prisma.$transaction([
-      prisma.teamAssignment.update({
-        where: { id: assignmentId },
-        data: { status: "removed", removedAt: new Date() },
-      }),
-      prisma.projectLog.create({
-        data: {
-          projectId: assignment.projectId,
-          action: "team_removed",
-          details: JSON.stringify({
-            removedUser: assignment.user.name,
-            removedRole: assignment.user.role,
-            removedBy: user.name,
-          }),
-          userId: user.id,
-        },
-      }),
-    ]);
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {

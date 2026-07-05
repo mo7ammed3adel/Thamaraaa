@@ -1,18 +1,26 @@
 import { canChangeLifecycle, validateLifecycleTransition } from "@/lib/lifecycle";
 import { safeTrigger } from "@/lib/pusher";
-import { backfillReceiptsForNewMember, checkProjectBlockers } from "@/lib/distribution";
+import { backfillReceiptsForNewMember, checkProjectBlockers, userCanAccessProject } from "@/lib/distribution";
 import { normalizeWebUrl } from "@/lib/safe-url";
 import { notifyHeadAccountManagersOfNewProject } from "@/lib/projectSetup";
 import {
+  createProjectAssignmentNotification,
+  createProjectFile,
   createProjectLog,
   createProjectFromDealWithLog,
   findActiveAccountManager,
+  findActiveHeadAccountManagerCandidate,
   findDealForProjectSetup,
+  findProjectAccountManagerId,
   findProjectByDealId,
+  findProjectDetailFull,
+  findProjectFiles,
   findProjectLifecycleAuth,
+  findProjectLogs,
   findProjectSetupAuth,
   findProjectStatusAuth,
   updateProjectFields,
+  updateProjectHeadAccountManager,
   updateProjectLifecycleWithLog,
 } from "@/server/repositories/projectRepository";
 
@@ -248,4 +256,169 @@ export async function updateProjectStatus(input: {
   }
 
   return { status: "ok" as const, project: updatedProject };
+}
+
+// ── Project detail: logs, files, 360° view, allow-listed edits, head AM ──
+
+// Fields the project detail edit is allowed to mutate. Anything not in this list
+// is silently dropped to prevent mass-assignment attacks (e.g. overwriting accountManagerId,
+// totals, lifecycleState — those have dedicated endpoints with stricter authz).
+const ALLOWED_PROJECT_PATCH_FIELDS = new Set([
+  "niche",
+  "storeUrl",
+  "driveLink",
+  "screenshotUrl",
+  "notes",
+  "priority",
+  "technicalDeadline",
+  "finalDeadline",
+  "addedDurationDays",
+  "storeCreated",
+  "userCreatedStore",
+]);
+
+const PROJECT_DATE_FIELDS = new Set(["technicalDeadline", "finalDeadline"]);
+const PROJECT_URL_FIELDS = new Set(["storeUrl", "driveLink", "screenshotUrl"]);
+
+export async function listProjectLogs(input: { userId: string; userRole: string; projectId: string }) {
+  const allowed = await userCanAccessProject(input.userId, input.userRole, input.projectId);
+  if (!allowed) return { status: "forbidden" as const };
+
+  const logs = await findProjectLogs(input.projectId);
+  return { status: "ok" as const, logs };
+}
+
+export async function listProjectFiles(input: { userId: string; userRole: string; projectId: string }) {
+  const allowed = await userCanAccessProject(input.userId, input.userRole, input.projectId);
+  if (!allowed) return { status: "forbidden" as const };
+
+  const files = await findProjectFiles(input.projectId);
+  return { status: "ok" as const, files };
+}
+
+export async function uploadProjectFile(input: {
+  userId: string;
+  userRole: string;
+  userName: string;
+  projectId: string;
+  body: any;
+}) {
+  const allowed = await userCanAccessProject(input.userId, input.userRole, input.projectId);
+  if (!allowed) return { status: "forbidden" as const };
+
+  const { fileUrl, fileType } = input.body || {};
+  const safeFileUrl = normalizeWebUrl(fileUrl);
+  const safeFileType = typeof fileType === "string" ? fileType.trim().slice(0, 120) : "";
+  if (!safeFileUrl || !safeFileType) {
+    return { status: "missing_file_info" as const };
+  }
+
+  const file = await createProjectFile({
+    projectId: input.projectId,
+    fileUrl: safeFileUrl,
+    fileType: safeFileType,
+    uploadedBy: input.userName,
+  });
+
+  await createProjectLog({
+    projectId: input.projectId,
+    action: "file_uploaded",
+    details: `Uploaded ${safeFileType} document.`,
+    userId: input.userId,
+  });
+
+  return { status: "ok" as const, file };
+}
+
+export async function getProjectDetail(input: { userId: string; userRole: string; projectId: string }) {
+  const allowed = await userCanAccessProject(input.userId, input.userRole, input.projectId);
+  if (!allowed) return { status: "forbidden" as const };
+
+  const project = await findProjectDetailFull(input.projectId);
+  if (!project) return { status: "not_found" as const };
+
+  return { status: "ok" as const, project };
+}
+
+/**
+ * Allow-listed project detail edit. Only the assigned Account Manager, Head AM
+ * or super admin may edit; sensitive fields have dedicated endpoints.
+ */
+export async function editProjectDetails(input: {
+  userId: string;
+  userRole: string;
+  projectId: string;
+  body: any;
+}) {
+  const allowed = await userCanAccessProject(input.userId, input.userRole, input.projectId);
+  if (!allowed) return { status: "forbidden" as const };
+
+  const projectForEdit = await findProjectAccountManagerId(input.projectId);
+  if (!projectForEdit) return { status: "not_found" as const };
+
+  const canEditProjectDetails =
+    input.userRole === "super_admin" ||
+    input.userRole === "head_account_manager" ||
+    projectForEdit.accountManagerId === input.userId;
+
+  if (!canEditProjectDetails) {
+    return { status: "edit_forbidden" as const };
+  }
+
+  // Build a sanitized data object containing only allow-listed fields.
+  const data: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(input.body as Record<string, unknown>)) {
+    if (!ALLOWED_PROJECT_PATCH_FIELDS.has(key)) continue;
+    if (PROJECT_DATE_FIELDS.has(key)) {
+      data[key] = value ? new Date(value as string) : null;
+    } else if (PROJECT_URL_FIELDS.has(key)) {
+      if (value === null || value === "") {
+        data[key] = null;
+      } else {
+        const safeUrl = normalizeWebUrl(value as string);
+        if (!safeUrl) {
+          return { status: "invalid_url" as const, field: key };
+        }
+        data[key] = safeUrl;
+      }
+    } else {
+      data[key] = value;
+    }
+  }
+
+  if (Object.keys(data).length === 0) {
+    return { status: "no_fields" as const };
+  }
+
+  const project = await updateProjectFields(input.projectId, data);
+  return { status: "ok" as const, project };
+}
+
+/** Super-admin assigns (or clears) the Head Account Manager for a project/client. */
+export async function assignHeadAccountManager(input: {
+  projectId: string;
+  headAccountManagerId: string | null;
+}) {
+  const { projectId, headAccountManagerId } = input;
+
+  if (headAccountManagerId) {
+    const head = await findActiveHeadAccountManagerCandidate(headAccountManagerId);
+    if (!head || head.role !== "head_account_manager" || head.status !== "Active") {
+      return { status: "invalid_head" as const };
+    }
+  }
+
+  const project = await updateProjectHeadAccountManager(projectId, headAccountManagerId);
+
+  if (headAccountManagerId) {
+    await createProjectAssignmentNotification({
+      userId: headAccountManagerId,
+      title: "New Client Assigned",
+      message: `You have been assigned client "${project.deal?.lead?.name || "a client"}".`,
+      type: "project_assigned",
+      link: "/dashboard/head-account-manager",
+    });
+  }
+
+  return { status: "ok" as const, project };
 }

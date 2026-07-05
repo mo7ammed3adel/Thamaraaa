@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { userCanAccessProject } from "@/lib/distribution";
-import { normalizeWebUrl } from "@/lib/safe-url";
+import { listProjectFiles, uploadProjectFile } from "@/server/services/projectLifecycleService";
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -11,15 +9,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
     const user = session?.user as { id?: string; role?: string } | undefined;
     if (!user?.id || !user.role) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const allowed = await userCanAccessProject(user.id, user.role, params.id);
-    if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const result = await listProjectFiles({ userId: user.id, userRole: user.role, projectId: params.id });
+    if (result.status === "forbidden") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    const files = await prisma.projectFile.findMany({
-      where: { projectId: params.id },
-      orderBy: { createdAt: "desc" }
-    });
-
-    return NextResponse.json(files);
+    return NextResponse.json(result.files);
   } catch (error) {
     console.error("Failed to fetch project files:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
@@ -35,35 +28,20 @@ export async function POST(request: Request, { params }: { params: { id: string 
     const userRole = sessionUser?.role;
     if (!userId || !userRole || !userName) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const allowed = await userCanAccessProject(userId, userRole, params.id);
-    if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const result = await uploadProjectFile({
+      userId,
+      userRole,
+      userName,
+      projectId: params.id,
+      body: await request.json(),
+    });
 
-    const { fileUrl, fileType } = await request.json();
-    const safeFileUrl = normalizeWebUrl(fileUrl);
-    const safeFileType = typeof fileType === "string" ? fileType.trim().slice(0, 120) : "";
-    if (!safeFileUrl || !safeFileType) {
+    if (result.status === "forbidden") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (result.status === "missing_file_info") {
       return NextResponse.json({ error: "Missing file information" }, { status: 400 });
     }
 
-    const newFile = await prisma.projectFile.create({
-      data: {
-        projectId: params.id,
-        fileUrl: safeFileUrl,
-        fileType: safeFileType,
-        uploadedBy: userName
-      }
-    });
-
-    await prisma.projectLog.create({
-      data: {
-        projectId: params.id,
-        action: "file_uploaded",
-        details: `Uploaded ${safeFileType} document.`,
-        userId: userId
-      }
-    });
-
-    return NextResponse.json(newFile);
+    return NextResponse.json(result.file);
   } catch (error) {
     console.error("Failed to upload file:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

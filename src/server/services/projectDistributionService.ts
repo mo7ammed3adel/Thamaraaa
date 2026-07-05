@@ -1,15 +1,22 @@
-import { backfillReceiptsForNewMember, canDistributeTo } from "@/lib/distribution";
+import { backfillReceiptsForNewMember, canDistributeTo, userCanAccessProject } from "@/lib/distribution";
 import { safeTrigger } from "@/lib/pusher";
+import { stringifyJson } from "@/server/parsers/json";
 import {
   assignDepartmentAgent,
   createDistributionTeamAssignmentWithLog,
   createProjectAssignmentNotification,
   createProjectLog,
+  findAccountManagerCandidate,
   findActiveUserForAssignment,
   findProjectAgentAssignmentScope,
   findProjectTeamAssignmentScope,
   findProjectStatusAuth,
   findProjectTeamAssignment,
+  findProjectWithLeadName,
+  findTeamAssignmentForRemoval,
+  findTeamAssignmentsForProject,
+  removeTeamAssignmentWithLog,
+  reassignProjectAccountManagerWithLog,
   replaceProjectTeamAssignment,
   updateProjectDistributionWithLog,
   updateProjectFields,
@@ -504,4 +511,89 @@ export async function distributeProject(input: {
   }
 
   return { status: "no_distribution_rule" as const };
+}
+
+// ── AM-to-AM client transfer and team assignment listing/removal ──
+
+/**
+ * Transfers a client (project) from one Account Manager to another.
+ * All client history (notes, tasks, team assignments, warnings) is preserved.
+ */
+export async function reassignAccountManager(input: {
+  actor: { id: string; name: string };
+  projectId: string;
+  body: any;
+}) {
+  const project = await findProjectWithLeadName(input.projectId);
+  if (!project) return { status: "not_found" as const };
+
+  const newAccountManagerId =
+    typeof input.body.newAccountManagerId === "string" ? input.body.newAccountManagerId.trim() : "";
+  if (!newAccountManagerId) return { status: "missing_id" as const };
+
+  const newAM = await findAccountManagerCandidate(newAccountManagerId);
+  if (!newAM) return { status: "am_not_found" as const };
+  if (newAM.role !== "account_manager" || newAM.status !== "Active") {
+    return { status: "invalid_am" as const };
+  }
+
+  const updatedProject = await reassignProjectAccountManagerWithLog({
+    projectId: input.projectId,
+    newAccountManagerId,
+    newAccountManagerName: newAM.name,
+    previousAccountManagerId: project.accountManagerId,
+    clientName: project.deal?.lead?.name || project.id,
+    actorId: input.actor.id,
+    actorName: input.actor.name,
+  });
+
+  await backfillReceiptsForNewMember(input.projectId, newAccountManagerId);
+
+  return { status: "ok" as const, project: updatedProject };
+}
+
+export async function listTeamAssignments(input: {
+  userId: string;
+  userRole: string;
+  projectId: string;
+}) {
+  const allowed = await userCanAccessProject(input.userId, input.userRole, input.projectId);
+  if (!allowed) return { status: "forbidden" as const };
+
+  const assignments = await findTeamAssignmentsForProject(input.projectId);
+  return { status: "ok" as const, assignments };
+}
+
+/** Removes a team assignment (sets status to "removed" and records removedAt). */
+export async function removeTeamAssignment(input: {
+  actor: { id: string; role: string; name: string };
+  assignmentId: string;
+}) {
+  const assignment = await findTeamAssignmentForRemoval(input.assignmentId);
+  if (!assignment) return { status: "not_found" as const };
+
+  const canRemove =
+    input.actor.role === "super_admin" ||
+    input.actor.role === "head_account_manager" ||
+    (input.actor.role === "head_technical" &&
+      assignment.project.headTechnicalId === input.actor.id &&
+      ["social_media", "media_buyer"].includes(assignment.department)) ||
+    (input.actor.role === "head_seo" &&
+      assignment.project.headSeoId === input.actor.id &&
+      ["seo", "content_seo"].includes(assignment.department));
+
+  if (!canRemove) return { status: "forbidden" as const };
+
+  await removeTeamAssignmentWithLog({
+    assignmentId: input.assignmentId,
+    projectId: assignment.projectId,
+    details: stringifyJson({
+      removedUser: assignment.user.name,
+      removedRole: assignment.user.role,
+      removedBy: input.actor.name,
+    }),
+    userId: input.actor.id,
+  });
+
+  return { status: "ok" as const };
 }

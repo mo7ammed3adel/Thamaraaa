@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { backfillReceiptsForNewMember } from "@/lib/distribution";
+import { reassignAccountManager } from "@/server/services/projectDistributionService";
 
 /** Roles allowed to reassign a client between Account Managers */
 const ALLOWED_ROLES = ["head_account_manager", "super_admin"];
@@ -12,15 +11,6 @@ const ALLOWED_ROLES = ["head_account_manager", "super_admin"];
  * Transfers a client (project) from one Account Manager Agent to another.
  * Only the Head Account Manager or super_admin can perform this action.
  * All client history (notes, tasks, team assignments, warnings) is preserved.
- *
- * @param req - JSON body: { newAccountManagerId: string }
- * @param params.id - The project ID to reassign
- * @returns 200 with updated project on success
- * @returns 401 if not authenticated
- * @returns 403 if user is not Head AM or super_admin
- * @returns 400 if newAccountManagerId is missing, user not found, or user is not account_manager role
- * @returns 404 if project not found
- * @returns 500 on internal server error
  */
 export async function POST(
   req: NextRequest,
@@ -40,94 +30,26 @@ export async function POST(
       );
     }
 
-    const project = await prisma.project.findUnique({
-      where: { id: params.id },
-      include: { deal: { include: { lead: true } } },
+    const result = await reassignAccountManager({
+      actor: { id: user.id, name: user.name },
+      projectId: params.id,
+      body: await req.json(),
     });
 
-    if (!project) {
-      return NextResponse.json(
-        { error: "Project not found" },
-        { status: 404 }
-      );
+    if (result.status === "not_found") {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+    if (result.status === "missing_id") {
+      return NextResponse.json({ error: "newAccountManagerId is required" }, { status: 400 });
+    }
+    if (result.status === "am_not_found") {
+      return NextResponse.json({ error: "Selected Account Manager not found" }, { status: 400 });
+    }
+    if (result.status === "invalid_am") {
+      return NextResponse.json({ error: "Selected user is not an active Account Manager" }, { status: 400 });
     }
 
-    const body = await req.json();
-    const newAccountManagerId =
-      typeof body.newAccountManagerId === "string"
-        ? body.newAccountManagerId.trim()
-        : "";
-
-    if (!newAccountManagerId) {
-      return NextResponse.json(
-        { error: "newAccountManagerId is required" },
-        { status: 400 }
-      );
-    }
-
-    const newAM = await prisma.user.findUnique({
-      where: { id: newAccountManagerId },
-    });
-
-    if (!newAM) {
-      return NextResponse.json(
-        { error: "Selected Account Manager not found" },
-        { status: 400 }
-      );
-    }
-
-    if (newAM.role !== "account_manager" || newAM.status !== "Active") {
-      return NextResponse.json(
-        { error: "Selected user is not an active Account Manager" },
-        { status: 400 }
-      );
-    }
-
-    const previousAMId = project.accountManagerId;
-
-    const updatedProject = await prisma.$transaction(async (tx) => {
-      const updated = await tx.project.update({
-        where: { id: params.id },
-        data: { accountManagerId: newAccountManagerId },
-      });
-
-      await tx.projectLog.create({
-        data: {
-          projectId: params.id,
-          userId: user.id,
-          action: "client_reassigned",
-          details: `Client reassigned from ${previousAMId || "unassigned"} to ${newAM.name} by ${user.name}`,
-        },
-      });
-
-      await tx.notification.create({
-        data: {
-          userId: newAccountManagerId,
-          title: "Client Assigned",
-          message: `Client "${project.deal?.lead?.name || project.id}" has been assigned to you by ${user.name}`,
-          type: "client_reassigned",
-          relatedId: params.id,
-        },
-      });
-
-      if (previousAMId && previousAMId !== newAccountManagerId) {
-        await tx.notification.create({
-          data: {
-            userId: previousAMId,
-            title: "Client Reassigned",
-            message: `Client "${project.deal?.lead?.name || project.id}" has been transferred to ${newAM.name} by ${user.name}`,
-            type: "client_reassigned",
-            relatedId: params.id,
-          },
-        });
-      }
-
-      return updated;
-    });
-
-    await backfillReceiptsForNewMember(params.id, newAccountManagerId);
-
-    return NextResponse.json({ success: true, project: updatedProject });
+    return NextResponse.json({ success: true, project: result.project });
   } catch (error: unknown) {
     const message =
       error instanceof Error ? error.message : "Unknown error occurred";
