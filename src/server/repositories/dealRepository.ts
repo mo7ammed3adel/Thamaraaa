@@ -19,6 +19,7 @@ export function createDealWithProject(input: {
   totalAmount: number;
   firstAmount: number | null;
   paymentMethod: string;
+  paymentBreakdown?: string | null;
   netTarget: number;
   contractImageUrl: string | null;
   receiptUrl: string | null;
@@ -35,6 +36,7 @@ export function createDealWithProject(input: {
         totalAmount: input.totalAmount,
         firstAmount: input.firstAmount,
         paymentMethod: input.paymentMethod,
+        paymentBreakdown: input.paymentBreakdown ?? null,
         netTarget: input.netTarget,
         contractImageUrl: input.contractImageUrl,
         receiptUrl: input.receiptUrl,

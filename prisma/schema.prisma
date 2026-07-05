@@ -151,7 +151,8 @@ model Deal {
   contractStart         DateTime?
   contractEnd           DateTime?
   totalAmount           Float
-  paymentMethod         String // Cash, Transfer, Tabby, Tamara
+  paymentMethod         String // Cash, Transfer, Tabby, Tamara, or "Split"
+  paymentBreakdown      String? // JSON array of { method, amount } when the paid amount is split across methods
   netTarget             Float
   firstAmount           Float?
   installment1Date      DateTime?

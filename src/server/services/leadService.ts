@@ -410,6 +410,66 @@ export async function updateLead(input: { id: string; user: LeadUser; body: any 
   return { status: "ok" as const, lead };
 }
 
+/**
+ * Sales agent reports that the client never showed up for a booked meeting.
+ * Instead of starting the task, the meeting is bounced back to TeleSales: the
+ * sales handover and the booked meeting are cleared and the lead returns to an
+ * actionable status so the tele agent can follow up and re-book from scratch.
+ */
+export async function reportClientNoShow(input: { id: string; user: LeadUser }) {
+  const existingLead = await findLeadForUpdate(input.id);
+  if (!existingLead) {
+    return { status: "not_found" as const };
+  }
+
+  const isAuthorized =
+    existingLead.assignedSalesAgentId === input.user.id ||
+    input.user.role === "super_admin" ||
+    (input.user.role === "sales_manager" &&
+      (!existingLead.assignedSalesAgentId ||
+        existingLead.salesAgent?.directManagerId === input.user.id ||
+        existingLead.salesAgent?.directManagerId === null));
+  if (!isAuthorized) {
+    return { status: "forbidden" as const };
+  }
+
+  await updateLeadRecord(input.id, {
+    status: "No_Answer",
+    assignedSalesAgentId: null,
+    meetingStartedAt: null,
+    meetingEndedAt: null,
+    meetingDate: null,
+    meetingTime: null,
+  });
+
+  await createLeadCallLog({
+    leadId: input.id,
+    agentId: input.user.id,
+    callStatus: "Client No-Show",
+    notes:
+      "Client did not attend the scheduled meeting. Returned to TeleSales for follow-up and re-booking.",
+    recordingUrl: null,
+  });
+
+  // Keep the meeting record consistent so reports don't count it as attended.
+  const latestMeeting = await findLatestLeadMeeting(input.id);
+  if (latestMeeting) {
+    await updateLeadMeeting(latestMeeting.id, { status: "No_Show" });
+  }
+
+  if (existingLead.assignedTeleAgentId) {
+    await createLeadNotification({
+      userId: existingLead.assignedTeleAgentId,
+      title: "Client No-Show — Follow Up",
+      message: `Client "${existingLead.name}" did not attend the meeting. Please follow up and re-book.`,
+      link: "/dashboard/telesales",
+    });
+  }
+
+  const lead = await findDistributedLead(input.id);
+  return { status: "ok" as const, lead };
+}
+
 /** Lead status produced by each call outcome. */
 const CALL_STATUS_TO_LEAD_STATUS: Record<string, string> = {
   "Busy": "No_Answer",

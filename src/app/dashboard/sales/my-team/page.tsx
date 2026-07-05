@@ -25,6 +25,9 @@ export default async function SalesMyTeamPage() {
   const endOfDay = new Date();
   endOfDay.setHours(23, 59, 59, 999);
 
+  // Current month for the monthly target (YYYY-MM).
+  const currentMonth = new Date().toISOString().slice(0, 7);
+
   const agents = await prisma.user.findMany({
     where: whereClause,
     select: {
@@ -56,6 +59,10 @@ export default async function SalesMyTeamPage() {
         where: { status: "Closed_Lost" },
         select: { id: true },
       },
+      agentTargets: {
+        where: { month: currentMonth },
+        select: { target: true },
+      },
     },
     orderBy: { name: "asc" },
   });
@@ -73,6 +80,7 @@ export default async function SalesMyTeamPage() {
     lostCount: a.salesLeads.length,
     revenue: a.salesDeals.reduce((sum, d) => sum + (d.totalAmount || 0), 0),
     dealsWonCount: a.salesDeals.filter(d => d.status === "Closed_Won" || d.status === "Pending").length,
+    target: a.agentTargets[0]?.target || 0,
   }));
 
   return (

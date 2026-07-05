@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { User, Settings, PhoneCall, Briefcase, ListTodo, LogOut, Upload, RotateCcw, Users, BarChart3, Calendar, Handshake, TrendingUp, PlusSquare, Package, AlertTriangle, Crown, Shield, Monitor, Search, Megaphone, ShoppingCart, Palette, Film, Layout, DollarSign, ClipboardList, Building2, UserCheck } from "lucide-react";
+import { User, Settings, PhoneCall, Briefcase, ListTodo, LogOut, Upload, RotateCcw, Users, BarChart3, Calendar, Handshake, TrendingUp, PlusSquare, Package, AlertTriangle, Crown, Shield, Monitor, Search, Megaphone, ShoppingCart, Palette, Film, Layout, DollarSign, ClipboardList, Building2, UserCheck, Target } from "lucide-react";
 
 import LogoutButton from "@/components/LogoutButton";
 import AutoRefresher from "@/components/AutoRefresher";
@@ -148,6 +148,10 @@ export default async function DashboardLayout({
                     <TrendingUp className="mr-3 h-5 w-5 opacity-75" />
                     My Progress
                   </Link>
+                  <Link href="/dashboard/telesales/my-target" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
+                    <Target className="mr-3 h-5 w-5 opacity-75" />
+                    My Target
+                  </Link>
                   <Link href="/dashboard/telesales/cold-leads" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
                     <PlusSquare className="mr-3 h-5 w-5 opacity-75" />
                     Add Cold Leads
@@ -193,10 +197,16 @@ export default async function DashboardLayout({
                 </>
               )}
               {role === "sales_agent" && (
-                <Link href="/dashboard/sales/my-progress" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
-                  <TrendingUp className="mr-3 h-5 w-5 opacity-75" />
-                  My Progress
-                </Link>
+                <>
+                  <Link href="/dashboard/sales/my-progress" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
+                    <TrendingUp className="mr-3 h-5 w-5 opacity-75" />
+                    My Progress
+                  </Link>
+                  <Link href="/dashboard/sales/my-target" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
+                    <Target className="mr-3 h-5 w-5 opacity-75" />
+                    My Target
+                  </Link>
+                </>
               )}
             </>
           )}

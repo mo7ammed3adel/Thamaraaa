@@ -23,6 +23,7 @@ export async function createClosedDeal(input: {
     totalAmount,
     firstAmount,
     paymentMethod,
+    paymentBreakdown,
     installments,
     contractImageUrl,
     receiptUrl,
@@ -58,9 +59,33 @@ export async function createClosedDeal(input: {
   const gatewayFeeConfig = await findGatewayFeeConfig();
   const gatewayFee = gatewayFeeConfig ? parseFloat(gatewayFeeConfig.value) : 0.07;
 
-  let netTarget = parseFloat(totalAmount);
-  if (paymentMethod === "Tabby" || paymentMethod === "Tamara") {
-    netTarget = netTarget * (1 - gatewayFee);
+  // Normalize an optional split-payment breakdown. Each entry pairs a method
+  // with the amount paid through it; only the Tabby/Tamara portions incur the
+  // gateway fee, so a split deal can lose less to fees than a fully-gateway one.
+  let normalizedBreakdown:
+    | { method: string; amount: number }[]
+    | null = null;
+  if (Array.isArray(paymentBreakdown) && paymentBreakdown.length > 0) {
+    normalizedBreakdown = paymentBreakdown
+      .map((entry: any) => ({
+        method: String(entry?.method || "").trim(),
+        amount: parseFloat(entry?.amount),
+      }))
+      .filter((entry) => entry.method && Number.isFinite(entry.amount) && entry.amount > 0);
+    if (normalizedBreakdown.length === 0) normalizedBreakdown = null;
+  }
+
+  const total = parseFloat(totalAmount);
+  let netTarget = total;
+  if (normalizedBreakdown) {
+    // Apply the gateway fee only to the Tabby/Tamara share of the contract.
+    const gatewayAmount = normalizedBreakdown
+      .filter((entry) => entry.method === "Tabby" || entry.method === "Tamara")
+      .reduce((sum, entry) => sum + entry.amount, 0);
+    const feeableShare = total > 0 ? Math.min(gatewayAmount, total) : 0;
+    netTarget = total - feeableShare * gatewayFee;
+  } else if (paymentMethod === "Tabby" || paymentMethod === "Tamara") {
+    netTarget = total * (1 - gatewayFee);
   }
 
   const { deal } = await createDealWithProject({
@@ -70,9 +95,10 @@ export async function createClosedDeal(input: {
     packageType,
     contractStart,
     contractEnd,
-    totalAmount: parseFloat(totalAmount),
+    totalAmount: total,
     firstAmount: firstAmount ? parseFloat(firstAmount) : null,
-    paymentMethod,
+    paymentMethod: normalizedBreakdown ? "Split" : paymentMethod,
+    paymentBreakdown: normalizedBreakdown ? JSON.stringify(normalizedBreakdown) : null,
     netTarget,
     contractImageUrl: safeContractImageUrl,
     receiptUrl: safeReceiptUrl,

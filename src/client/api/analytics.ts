@@ -9,6 +9,10 @@ export function getMyProgress(params: DateRange) {
   return getJson(`/api/analytics/my-progress${buildQueryString(params)}`);
 }
 
+export function getMyTarget() {
+  return getJson("/api/analytics/my-target");
+}
+
 export function getTeleSalesTeamAnalytics(params: DateRange) {
   return getJson(`/api/analytics/team${buildQueryString(params)}`);
 }

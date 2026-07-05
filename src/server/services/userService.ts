@@ -265,6 +265,16 @@ export async function setAgentMonthlyTarget(input: {
     return { status: "forbidden" as const };
   }
 
+  // A Sales Manager sets targets for their own sales agents (and orphan agents
+  // not yet routed to a manager), mirroring the My Team scope.
+  if (
+    actor.role === "sales_manager" &&
+    (targetUser.role !== "sales_agent" ||
+      (targetUser.directManagerId !== null && targetUser.directManagerId !== actor.id))
+  ) {
+    return { status: "forbidden" as const };
+  }
+
   const targetMonth = month || new Date().toISOString().slice(0, 7);
   const updatedTarget = await upsertAgentTarget({ agentId: id, month: targetMonth, target });
   return { status: "ok" as const, target: updatedTarget };

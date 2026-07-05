@@ -5,10 +5,10 @@ import { notify } from "@/components/toast";
 import { todayInputValue, isPastMeetingDate } from "@/lib/meetingDate";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Calendar, PhoneCall, ChevronDown, ChevronUp, CheckCircle2, XCircle, FileText, Send, X, Clock, AlertTriangle, ExternalLink, Video, Repeat, RotateCcw } from "lucide-react";
+import { Calendar, PhoneCall, ChevronDown, ChevronUp, CheckCircle2, XCircle, FileText, Send, X, Clock, AlertTriangle, ExternalLink, Video, Repeat, RotateCcw, UserX } from "lucide-react";
 import CreateWarningModal from "@/components/CreateWarningModal";
 import { createDeal } from "@/client/api/deals";
-import { updateLead } from "@/client/api/leads";
+import { updateLead, reportLeadNoShow } from "@/client/api/leads";
 import { sendNotification } from "@/client/api/notifications";
 import { HttpError } from "@/client/transport/http";
 import { updateUserStatus } from "@/client/api/users";
@@ -121,6 +121,8 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     firstAmount: "",
     paymentType: "Full",
     paymentMethod: "Cash",
+    splitPayment: false,
+    paymentSplits: [{ method: "Cash", amount: "" }] as { method: string; amount: string }[],
     installments: [] as any[],
     contractImageUrl: "",
     receiptUrl: ""
@@ -201,6 +203,26 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
   const endTask = () => {
     setShowFeedbackForm(true);
     setFeedbackDraft(true);
+  };
+
+  // Client didn't attend: bounce the meeting back to TeleSales instead of starting
+  // the task. The tele agent is notified to follow up and re-book.
+  const [noShowLeadId, setNoShowLeadId] = useState<string | null>(null);
+  const reportNoShow = async (lead: any) => {
+    if (!confirm(`Report that "${lead.name}" did not attend? The meeting will be returned to TeleSales for a re-booking.`)) {
+      return;
+    }
+    setNoShowLeadId(lead.id);
+    try {
+      await reportLeadNoShow(lead.id);
+      setLeads(prev => prev.filter(l => l.id !== lead.id));
+      notify("Client marked as no-show. TeleSales has been notified to follow up.");
+      router.refresh();
+    } catch (error) {
+      notify(error instanceof HttpError ? error.message : "Failed to report no-show", "error");
+    } finally {
+      setNoShowLeadId(null);
+    }
   };
 
   const closeFeedbackTemporarily = () => {
@@ -312,7 +334,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
       return;
     }
 
-    const payload = { ...dealData, packageType };
+    const payload: any = { ...dealData, packageType };
     // Default firstAmount to totalAmount if not provided
     if (!payload.firstAmount) {
       payload.firstAmount = payload.totalAmount;
@@ -320,6 +342,29 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     if (payload.paymentType === "Full") {
       payload.installments = [];
     }
+
+    // When the client pays across several methods (e.g. part Tabby, part Tamara,
+    // part cash), send the breakdown so the gateway fee is applied only to the
+    // Tabby/Tamara share of the contract.
+    if (dealData.splitPayment) {
+      const splits = dealData.paymentSplits
+        .map(s => ({ method: s.method, amount: parseFloat(s.amount) }))
+        .filter(s => s.method && Number.isFinite(s.amount) && s.amount > 0);
+      if (splits.length === 0) {
+        notify("Add at least one payment split with an amount.");
+        return;
+      }
+      const splitSum = splits.reduce((sum, s) => sum + s.amount, 0);
+      const total = parseFloat(dealData.totalAmount || "0");
+      if (Math.abs(splitSum - total) > 0.01) {
+        notify(`Payment splits must add up to the total amount (${total} SAR). They currently add up to ${splitSum} SAR.`);
+        return;
+      }
+      payload.paymentBreakdown = splits;
+      payload.paymentMethod = "Split";
+    }
+    delete payload.splitPayment;
+    delete payload.paymentSplits;
 
     try {
       await createDeal({
@@ -345,7 +390,8 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
       packageMode: "unified", packageServices: [], monthlyPackages: [{ services: [] }],
       contractStart: "", contractEnd: "",
       totalAmount: "", firstAmount: "", paymentType: "Full",
-      paymentMethod: "Cash", installments: [], contractImageUrl: "", receiptUrl: ""
+      paymentMethod: "Cash", splitPayment: false, paymentSplits: [{ method: "Cash", amount: "" }],
+      installments: [], contractImageUrl: "", receiptUrl: ""
     });
     router.refresh();
   };
@@ -382,10 +428,20 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
 
     setReassigning(true);
     try {
-      await updateLead(reassignLead.id, { assignedSalesAgentId: reassignAgentId });
+      // Reassigning a lost meeting revives it as a fresh, startable meeting for the
+      // new agent — otherwise it would stay Closed_Lost and only show under the
+      // Lost filter, never in the new agent's active workspace.
+      const body: any = { assignedSalesAgentId: reassignAgentId };
+      const wasLost = reassignLead.status === "Closed_Lost";
+      if (wasLost) {
+        body.status = "In_Sales";
+        body.meetingStartedAt = null;
+        body.meetingEndedAt = null;
+      }
+      await updateLead(reassignLead.id, body);
       const agent = teamAgents.find(a => a.id === reassignAgentId);
       setLeads(prev => prev.map(l => l.id === reassignLead.id
-        ? { ...l, assignedSalesAgentId: reassignAgentId, salesAgent: agent ? { id: agent.id, name: agent.name } : l.salesAgent, meetingStartedAt: null, meetingEndedAt: null }
+        ? { ...l, assignedSalesAgentId: reassignAgentId, salesAgent: agent ? { id: agent.id, name: agent.name } : l.salesAgent, meetingStartedAt: null, meetingEndedAt: null, ...(wasLost ? { status: "In_Sales" } : {}) }
         : l));
       notify(`Meeting reassigned to ${agent?.name || "the selected agent"}`);
       setReassignLead(null);
@@ -460,9 +516,11 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     return isDateInRange(scheduleDate, { from: fromDate, to: toDate });
   });
 
-  // KPI counts — Total Meets is the universe (all meetings in the period),
-  // not just active leads, so Total Meets >= Win Deal + Closed Lost.
-  const totalMeets = timeFilteredLeads.length;
+  // KPI counts. Total Leads is the universe (every lead in the period). Total
+  // Meets is narrower: only the ones the sales agent actually started (pressed
+  // Start Task, which sets meetingStartedAt).
+  const totalLeads = timeFilteredLeads.length;
+  const totalMeets = timeFilteredLeads.filter(l => l.meetingStartedAt).length;
   const closedWon = timeFilteredLeads.filter(l => l.status === "Closed_Won" || l._count?.deals > 0).length;
   const followUp = timeFilteredLeads.filter(l => l.status === "Follow_Up").length;
   const rescheduled = timeFilteredLeads.filter(l => l.status === "Rescheduled").length;
@@ -471,6 +529,8 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
   const filteredLeads = timeFilteredLeads.filter(l => {
     if (logFilter === "All") {
       return !["Closed_Won", "Closed_Lost"].includes(l.status);
+    } else if (logFilter === "Meets") {
+      if (!l.meetingStartedAt) return false;
     } else if (logFilter === "Closed_Won") {
       if (l.status !== "Closed_Won" && !(l._count?.deals > 0)) return false;
     } else {
@@ -546,20 +606,31 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
       {activeTab === "leads" ? (
         <>
           {/* Workspace Summary Filters */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-        <div 
-          onClick={() => setLogFilter("All")} 
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+        <div
+          onClick={() => setLogFilter("All")}
           className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "All" ? "border-blue-500 bg-blue-50" : "border-transparent bg-white hover:bg-gray-50"}`}
         >
           <div className="flex items-center gap-2 mb-2">
             <PhoneCall className="h-5 w-5 text-blue-500" />
+            <span className="text-xs font-bold uppercase text-gray-500">Total Leads</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-900">{totalLeads}</p>
+        </div>
+
+        <div
+          onClick={() => setLogFilter("Meets")}
+          className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Meets" ? "border-teal-500 bg-teal-50" : "border-transparent bg-white hover:bg-gray-50"}`}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <Video className="h-5 w-5 text-teal-500" />
             <span className="text-xs font-bold uppercase text-gray-500">Total Meets</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{totalMeets}</p>
         </div>
 
-        <div 
-          onClick={() => setLogFilter("Closed_Won")} 
+        <div
+          onClick={() => setLogFilter("Closed_Won")}
           className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "Closed_Won" ? "border-green-500 bg-green-50" : "border-transparent bg-white hover:bg-gray-50"}`}
         >
           <div className="flex items-center gap-2 mb-2">
@@ -680,10 +751,10 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       <div className="flex items-center gap-2">
                         {l.salesAgent?.name || <span className="text-gray-400 italic">Unassigned</span>}
-                        {!["Closed_Won", "Closed_Lost"].includes(l.status) && (
+                        {l.status !== "Closed_Won" && (
                           <button
                             onClick={() => { setReassignLead(l); setReassignAgentId(""); }}
-                            title="Reassign meeting to another agent"
+                            title={l.status === "Closed_Lost" ? "Reassign this lost meeting to another agent for a fresh attempt" : "Reassign meeting to another agent"}
                             className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-md transition-colors"
                           >
                             <Repeat className="h-3 w-3" />
@@ -757,7 +828,18 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                     ) : activeLead?.id === l.id ? (
                       <button onClick={endTask} className="px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700">End Task</button>
                     ) : (
-                      <button onClick={() => startTask(l)} disabled={!!activeLead} className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 disabled:opacity-50">Start Task</button>
+                      <div className="inline-flex items-center gap-2 justify-end">
+                        <button onClick={() => startTask(l)} disabled={!!activeLead} className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 disabled:opacity-50">Start Task</button>
+                        <button
+                          onClick={() => reportNoShow(l)}
+                          disabled={!!activeLead || noShowLeadId === l.id}
+                          title="Client didn't attend — send back to TeleSales to follow up and re-book"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 rounded-md text-xs font-bold transition-colors disabled:opacity-50"
+                        >
+                          <UserX className="h-3.5 w-3.5" />
+                          {noShowLeadId === l.id ? "Sending..." : "No-Show"}
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -1203,13 +1285,31 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Payment Method</label>
-                  <select className="w-full border p-2 rounded" value={dealData.paymentMethod} onChange={e => setDealData({...dealData, paymentMethod: e.target.value})}>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-sm font-medium">Payment Method</label>
+                    <label className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={dealData.splitPayment}
+                        onChange={e => setDealData({ ...dealData, splitPayment: e.target.checked })}
+                      />
+                      Split across methods
+                    </label>
+                  </div>
+                  <select
+                    className="w-full border p-2 rounded disabled:bg-gray-100 disabled:text-gray-400"
+                    value={dealData.paymentMethod}
+                    disabled={dealData.splitPayment}
+                    onChange={e => setDealData({...dealData, paymentMethod: e.target.value})}
+                  >
                     <option>Cash</option>
                     <option>Transfer</option>
                     <option>Tabby</option>
                     <option>Tamara</option>
                   </select>
+                  {dealData.splitPayment && (
+                    <p className="text-[10px] text-indigo-500 mt-1">Set the amount paid via each method below.</p>
+                  )}
                 </div>
 
                 <div>
@@ -1221,7 +1321,71 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                   <input required type="date" className="w-full border p-2 rounded" value={dealData.contractEnd} onChange={e => setDealData({...dealData, contractEnd: e.target.value})} />
                 </div>
               </div>
-              
+
+              {/* Split Payment Breakdown */}
+              {dealData.splitPayment && (() => {
+                const total = parseFloat(dealData.totalAmount || "0");
+                const splitSum = dealData.paymentSplits.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
+                const balanced = Math.abs(splitSum - total) < 0.01 && total > 0;
+                return (
+                  <div className="border-2 border-indigo-200 rounded-lg p-3 bg-indigo-50/40">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-bold text-sm text-indigo-800">Payment Split</h4>
+                      <button
+                        type="button"
+                        onClick={() => setDealData({ ...dealData, paymentSplits: [...dealData.paymentSplits, { method: "Cash", amount: "" }] })}
+                        className="px-3 py-1 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 text-xs font-semibold rounded"
+                      >
+                        + Add Method
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {dealData.paymentSplits.map((split, idx) => (
+                        <div key={idx} className="flex gap-2 items-center">
+                          <select
+                            className="w-1/2 border p-2 rounded text-sm"
+                            value={split.method}
+                            onChange={e => setDealData({
+                              ...dealData,
+                              paymentSplits: dealData.paymentSplits.map((s, i) => i === idx ? { ...s, method: e.target.value } : s),
+                            })}
+                          >
+                            <option>Cash</option>
+                            <option>Transfer</option>
+                            <option>Tabby</option>
+                            <option>Tamara</option>
+                          </select>
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="Amount (SAR)"
+                            className="flex-1 border p-2 rounded text-sm"
+                            value={split.amount}
+                            onChange={e => setDealData({
+                              ...dealData,
+                              paymentSplits: dealData.paymentSplits.map((s, i) => i === idx ? { ...s, amount: e.target.value } : s),
+                            })}
+                          />
+                          {dealData.paymentSplits.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => setDealData({ ...dealData, paymentSplits: dealData.paymentSplits.filter((_, i) => i !== idx) })}
+                              className="text-red-500 font-bold hover:text-red-700 px-2"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <div className={`mt-2 text-xs font-semibold flex justify-between ${balanced ? "text-emerald-600" : "text-red-500"}`}>
+                      <span>Split total: {splitSum.toLocaleString()} SAR</span>
+                      <span>{balanced ? "✓ Matches total amount" : `Must equal total (${total.toLocaleString()} SAR)`}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* File Uploads */}
               <div className="grid grid-cols-2 gap-4 mt-2">
                 <div>

@@ -16,6 +16,10 @@ export function distributeLeadMeeting(id: string) {
   return postJson(`/api/leads/${id}/distribute-meeting`);
 }
 
+export function reportLeadNoShow(id: string) {
+  return postJson(`/api/leads/${id}/no-show`);
+}
+
 export function bulkPromoteLeads(body: unknown) {
   return postJson("/api/leads/bulk/promote", body);
 }

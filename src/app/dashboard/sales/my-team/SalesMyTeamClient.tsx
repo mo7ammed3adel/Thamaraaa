@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
 import { Users, Flame, Snowflake, Sun, Handshake, XCircle, DollarSign, Briefcase, Calendar, ChevronDown } from "lucide-react";
-import { updateUserSpecialization } from "@/client/api/users";
+import { updateUserSpecialization, updateUserTarget } from "@/client/api/users";
 
 interface Agent {
   id: string;
@@ -16,6 +16,7 @@ interface Agent {
   lostCount: number;
   revenue: number;
   dealsWonCount: number;
+  target: number;
   _count: {
     salesLeads: number;
     salesDeals: number;
@@ -63,6 +64,16 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
       notify(error instanceof Error ? error.message : "Network error");
     }
     setLoading(null);
+  };
+
+  const updateTarget = async (agentId: string, newTarget: number) => {
+    try {
+      await updateUserTarget(agentId, { target: newTarget });
+      setAgents(agents.map(a => a.id === agentId ? { ...a, target: newTarget } : a));
+      notify("Monthly target updated");
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Network error");
+    }
   };
 
   const hotCount = agents.filter(a => a.specialization === "Hot").length;
@@ -282,6 +293,7 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
                 >
                   Closed Deals {sortBy === "won" ? "↓" : ""}
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monthly Target</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Win Rate</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Specialization</th>
@@ -318,8 +330,34 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm font-semibold text-gray-900">{agent.dealsWonCount}</span>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col gap-1.5">
+                        {agent.target > 0 && (
+                          <div className="w-24 bg-gray-200 rounded-full h-1.5">
+                            <div
+                              className={`h-1.5 rounded-full ${
+                                (agent.dealsWonCount / agent.target) >= 1 ? 'bg-green-500' :
+                                (agent.dealsWonCount / agent.target) >= 0.5 ? 'bg-yellow-400' : 'bg-red-400'
+                              }`}
+                              style={{ width: `${Math.min(100, (agent.dealsWonCount / agent.target) * 100)}%` }}
+                            />
+                          </div>
+                        )}
+                        <input
+                          type="number"
+                          min={0}
+                          defaultValue={agent.target}
+                          onBlur={(e) => {
+                            const val = parseInt(e.target.value) || 0;
+                            if (val !== agent.target) updateTarget(agent.id, val);
+                          }}
+                          className="w-20 border border-gray-200 rounded-md px-2 py-1 text-sm focus:ring-2 focus:ring-green-500"
+                          title="Deals target for the current month"
+                        />
+                      </div>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {agent.dealsWonCount + agent.lostCount > 0 
+                      {agent.dealsWonCount + agent.lostCount > 0
                         ? `${Math.round((agent.dealsWonCount / (agent.dealsWonCount + agent.lostCount)) * 100)}%` 
                         : "0%"}
                     </td>
@@ -358,7 +396,7 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
                 );
               })}
               {sortedAndFilteredAgents.length === 0 && (
-                <tr><td colSpan={9} className="px-6 py-8 text-center text-sm text-gray-500">No agents found{filterSpec !== "All" ? ` with ${filterSpec} specialization` : " under your management"}.</td></tr>
+                <tr><td colSpan={10} className="px-6 py-8 text-center text-sm text-gray-500">No agents found{filterSpec !== "All" ? ` with ${filterSpec} specialization` : " under your management"}.</td></tr>
               )}
             </tbody>
           </table>

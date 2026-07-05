@@ -9,7 +9,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     const actor = session?.user as any;
 
     // Only allow managers or super admins
-    if (!session || !["super_admin", "tele_sales_manager"].includes(actor?.role)) {
+    if (!session || !["super_admin", "tele_sales_manager", "sales_manager"].includes(actor?.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -29,7 +29,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
     if (result.status === "forbidden") {
-      return NextResponse.json({ error: "Forbidden: you can only set targets for your direct TeleSales agents" }, { status: 403 });
+      return NextResponse.json({ error: "Forbidden: you can only set targets for your own direct agents" }, { status: 403 });
     }
 
     return NextResponse.json(result.target);
