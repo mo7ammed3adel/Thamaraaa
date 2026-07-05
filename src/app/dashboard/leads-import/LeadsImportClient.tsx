@@ -2,6 +2,8 @@
 import { useState, useRef, useCallback } from "react";
 import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, X, Users, Download } from "lucide-react";
 import * as XLSX from "xlsx";
+import { importLeads } from "@/client/api/leads";
+import { HttpError } from "@/client/transport/http";
 
 interface Agent {
   id: string;
@@ -141,21 +143,14 @@ export default function LeadsImportClient({
       if (canChooseImportOwner && selectedAgent) formData.append("assignToAgentId", selectedAgent);
       if (canChooseImportOwner && selectedCompany) formData.append("companyId", selectedCompany);
 
-      const res = await fetch("/api/leads/import", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "حدث خطأ أثناء الرفع");
-        return;
+      const data = await importLeads(formData);
+      setResult(data as ImportResult);
+    } catch (err) {
+      if (err instanceof HttpError) {
+        setError(err.message || "حدث خطأ أثناء الرفع");
+      } else {
+        setError("فشل الاتصال بالسيرفر");
       }
-
-      setResult(data);
-    } catch {
-      setError("فشل الاتصال بالسيرفر");
     } finally {
       setUploading(false);
     }

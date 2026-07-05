@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { resolveWarning } from "@/client/api/warnings";
 
 /**
  * Props for the WarningResolveButton component.
@@ -67,15 +68,7 @@ export default function WarningResolveButton({
     setErrorMessage("");
 
     try {
-      const response = await fetch(`/api/warnings/${warningId}/resolve`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to resolve warning");
-      }
+      await resolveWarning(warningId);
 
       setIsResolved(true);
       onSuccess?.();

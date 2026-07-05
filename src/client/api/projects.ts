@@ -21,7 +21,7 @@ export function distributeProject(body: unknown) {
 }
 
 export function reassignAccountManager(projectId: string, body: unknown) {
-  return patchJson(`/api/projects/${projectId}/reassign-am`, body);
+  return postJson(`/api/projects/${projectId}/reassign-am`, body);
 }
 
 export function assignHeadAccountManager(projectId: string, body: unknown) {
@@ -38,4 +38,8 @@ export function addProjectFile(projectId: string, body: unknown) {
 
 export function deleteProjectFile(projectId: string, fileId: string) {
   return deleteJson(`/api/projects/${projectId}/files?id=${encodeURIComponent(fileId)}`);
+}
+
+export function changeProjectLifecycle(body: unknown) {
+  return patchJson("/api/projects/lifecycle", body);
 }

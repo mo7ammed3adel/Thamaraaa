@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { notify } from "@/components/toast";
 import { X } from "lucide-react";
+import { createWarning } from "@/client/api/warnings";
+import { HttpError } from "@/client/transport/http";
 
 interface CreateWarningModalProps {
   isOpen: boolean;
@@ -37,31 +39,27 @@ export default function CreateWarningModal({ isOpen, onClose, clientId, projectI
 
     setLoading(true);
     try {
-      const res = await fetch("/api/warnings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subject,
-          message,
-          severity,
-          recipientRoles,
-          clientId,
-          projectId
-        })
+      await createWarning({
+        subject,
+        message,
+        severity,
+        recipientRoles,
+        clientId,
+        projectId
       });
 
-      if (res.ok) {
-        onClose();
-        setSubject("");
-        setMessage("");
-        setSeverity("Medium");
-        setRecipientRoles(defaultRecipientRole ? [defaultRecipientRole] : []);
-      } else {
-        notify("Failed to send warning");
-      }
+      onClose();
+      setSubject("");
+      setMessage("");
+      setSeverity("Medium");
+      setRecipientRoles(defaultRecipientRole ? [defaultRecipientRole] : []);
     } catch (err) {
-      console.error(err);
-      notify("Error sending warning");
+      if (err instanceof HttpError) {
+        notify("Failed to send warning");
+      } else {
+        console.error(err);
+        notify("Error sending warning");
+      }
     } finally {
       setLoading(false);
     }

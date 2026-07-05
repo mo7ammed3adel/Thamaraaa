@@ -84,3 +84,9 @@ export function putJson<T>(url: string, body?: unknown, init?: RequestInit) {
 export function deleteJson<T>(url: string, init?: RequestInit) {
   return requestJson<T>(url, { method: "DELETE", ...init });
 }
+
+/** POST multipart form data (file uploads). The browser sets the Content-Type
+ * boundary itself, so no JSON headers are attached. */
+export function postFormData<T>(url: string, formData: FormData) {
+  return requestJson<T>(url, { method: "POST", body: formData });
+}

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { listUsers } from "@/client/api/users";
+import { reassignAccountManager } from "@/client/api/projects";
 
 /**
  * Props for the ClientReassignModal component.
@@ -56,9 +58,7 @@ export default function ClientReassignModal({
   async function loadAccountManagers() {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/users");
-      if (!response.ok) throw new Error("Failed to load account managers");
-      const data = await response.json();
+      const data: any = await listUsers();
 
       const filtered = (data.users || data || []).filter(
         (user: AccountManagerOption & { role: string }) =>
@@ -92,16 +92,7 @@ export default function ClientReassignModal({
     setErrorMessage("");
 
     try {
-      const response = await fetch(`/api/projects/${projectId}/reassign-am`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ newAccountManagerId: selectedManagerId }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to reassign client");
-      }
+      await reassignAccountManager(projectId, { newAccountManagerId: selectedManagerId });
 
       setSelectedManagerId("");
       onSuccess();

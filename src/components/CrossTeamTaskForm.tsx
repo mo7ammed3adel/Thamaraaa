@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CROSS_TEAM_TASK_TYPES } from "@/lib/constants";
+import { createTask } from "@/client/api/tasks";
 
 /**
  * Returns allowed cross-team task types based on the requesting user's role.
@@ -45,16 +46,7 @@ export default function CrossTeamTaskForm({ projectId, onClose, userRole = "", l
     setError(null);
 
     try {
-      const res = await fetch("/api/tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, taskType, brief, taskLink: taskLink || undefined, priority }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || `Failed to create task (${res.status})`);
-      }
+      await createTask({ projectId, taskType, brief, taskLink: taskLink || undefined, priority });
 
       onClose();
     } catch (err: any) {

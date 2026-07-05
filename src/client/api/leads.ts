@@ -1,4 +1,4 @@
-import { deleteJson, patchJson, postJson } from "@/client/transport/http";
+import { deleteJson, patchJson, postFormData, postJson } from "@/client/transport/http";
 
 export function createLead(body: unknown) {
   return postJson("/api/leads", body);
@@ -22,4 +22,8 @@ export function bulkPromoteLeads(body: unknown) {
 
 export function bulkDeleteLeads(body: unknown) {
   return postJson("/api/leads/bulk/delete", body);
+}
+
+export function importLeads(formData: FormData) {
+  return postFormData("/api/leads/import", formData);
 }

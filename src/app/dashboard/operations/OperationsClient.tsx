@@ -2,6 +2,8 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { setupProject, updateProjectStatus } from "@/client/api/projects";
+import { generateTasks } from "@/client/api/tasks";
 
 /**
  * Operations Hub strictly for Account Managers.
@@ -65,22 +67,14 @@ export default function OperationsClient({
     const formData = new FormData(e.target as HTMLFormElement);
     
     try {
-      const res = await fetch(`/api/projects/${setupModal.id}/setup`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          niche: formData.get("niche"),
-          storeUrl: formData.get("storeUrl"),
-          driveLink: formData.get("driveLink"),
-          finalDeadline: formData.get("finalDeadline") ? new Date(formData.get("finalDeadline") as string).toISOString() : null,
-          notes: formData.get("notes"),
-          projectStatus: "setup"
-        }),
+      await setupProject(setupModal.id, {
+        niche: formData.get("niche"),
+        storeUrl: formData.get("storeUrl"),
+        driveLink: formData.get("driveLink"),
+        finalDeadline: formData.get("finalDeadline") ? new Date(formData.get("finalDeadline") as string).toISOString() : null,
+        notes: formData.get("notes"),
+        projectStatus: "setup"
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to save setup");
-      }
       setSetupModal(null);
       router.refresh();
     } catch (err: any) {
@@ -100,22 +94,14 @@ export default function OperationsClient({
       const tlMedia = teamLeaders.find((l: any) => l.role === "team_leader_media_buyer");
       const tlDesign = teamLeaders.find((l: any) => l.role === "leader_graphic_designer");
       
-      const res = await fetch("/api/tasks/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          projectId, 
-          packageType, 
-          seoLeaderId: tlSeo?.id, 
-          socialLeaderId: tlSocial?.id,
-          mediaBuyerLeaderId: tlMedia?.id,
-          designLeaderId: tlDesign?.id
-        }),
+      await generateTasks({
+        projectId,
+        packageType,
+        seoLeaderId: tlSeo?.id,
+        socialLeaderId: tlSocial?.id,
+        mediaBuyerLeaderId: tlMedia?.id,
+        designLeaderId: tlDesign?.id
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to push to teams");
-      }
       router.refresh();
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to push tasks to teams.");
@@ -129,15 +115,7 @@ export default function OperationsClient({
     setErrorMsg(null);
     
     try {
-      const res = await fetch(`/api/projects/${projectId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectStatus: status }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to change status");
-      }
+      await updateProjectStatus(projectId, { projectStatus: status });
       setStatusModal(null);
       router.refresh();
     } catch (err: any) {

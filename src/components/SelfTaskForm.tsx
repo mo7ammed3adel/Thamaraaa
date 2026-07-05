@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createSelfTask } from "@/client/api/tasks";
 
 /**
  * Maps agent roles to their corresponding department task type.
@@ -62,22 +63,13 @@ export default function SelfTaskForm({ projectId, userRole, onClose }: SelfTaskF
     setError(null);
 
     try {
-      const res = await fetch("/api/tasks/self", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          projectId,
-          brief: brief.trim(),
-          priority,
-          deadline: deadline || undefined,
-          taskType: getTaskTypeForRole(userRole),
-        }),
+      await createSelfTask({
+        projectId,
+        brief: brief.trim(),
+        priority,
+        deadline: deadline || undefined,
+        taskType: getTaskTypeForRole(userRole),
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to create task");
-      }
 
       onClose();
     } catch (err: any) {

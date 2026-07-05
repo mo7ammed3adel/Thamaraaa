@@ -3,6 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import WarningResolveButton from "@/components/WarningResolveButton";
+import { createWarning } from "@/client/api/warnings";
+import { HttpError } from "@/client/transport/http";
+
+/** This flow always closed the form and refreshed even on a rejected request,
+ * so an HTTP failure is swallowed to keep that behavior; network errors still throw. */
+function swallowHttpError(error: unknown) {
+  if (!(error instanceof HttpError)) throw error;
+}
 
 const ALL_TEAM_ROLES = [
   "account_manager", "head_account_manager", "chief_sales",
@@ -34,15 +42,11 @@ export default function WarningsCenterClient({ warnings, leads, userRole, userId
   const handleCreate = async () => {
     if (!message.trim()) return;
     setSending(true);
-    await fetch("/api/warnings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message,
-        projectId: selectedClient,
-        recipientRoles: selectedRoles,
-      }),
-    });
+    await createWarning({
+      message,
+      projectId: selectedClient,
+      recipientRoles: selectedRoles,
+    }).catch(swallowHttpError);
     setMessage("");
     setSelectedClient("");
     setSending(false);

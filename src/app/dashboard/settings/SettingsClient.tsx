@@ -3,6 +3,14 @@
 import { useState } from "react";
 import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
+import { saveCommissionRule, saveSetting } from "@/client/api/settings";
+import { HttpError } from "@/client/transport/http";
+
+/** These flows always refreshed even on a rejected request, so an HTTP
+ * failure is swallowed to keep that behavior; network errors still throw. */
+function swallowHttpError(error: unknown) {
+  if (!(error instanceof HttpError)) throw error;
+}
 
 const DEFAULT_TIERS = [
   { minNet: 1000, maxNet: 15000, pct: 0.015 },
@@ -56,11 +64,7 @@ export default function SettingsClient({
 
   const handleUpdate = async (key: string, value: string) => {
     setLoading(true);
-    await fetch("/api/settings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key, value }),
-    });
+    await saveSetting({ key, value }).catch(swallowHttpError);
     setLoading(false);
     router.refresh();
   };
@@ -367,11 +371,7 @@ function CommissionRulesSection({ commissions, loading, setLoading, router }: { 
                     onBlur={async (e) => {
                       if (parseFloat(e.target.value) !== c.percentage) {
                         setLoading(true);
-                        await fetch("/api/settings/commissions", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ role: c.role, percentage: e.target.value }),
-                        });
+                        await saveCommissionRule({ role: c.role, percentage: e.target.value }).catch(swallowHttpError);
                         setLoading(false);
                         router.refresh();
                       }
@@ -398,11 +398,7 @@ function CommissionRulesSection({ commissions, loading, setLoading, router }: { 
               e.preventDefault();
               const form = e.target as HTMLFormElement;
               setLoading(true);
-              await fetch("/api/settings/commissions", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ role: form.roleName.value, percentage: form.percentageVal.value }),
-              });
+              await saveCommissionRule({ role: form.roleName.value, percentage: form.percentageVal.value }).catch(swallowHttpError);
               form.reset();
               setLoading(false);
               router.refresh();

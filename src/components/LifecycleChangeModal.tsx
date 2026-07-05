@@ -4,6 +4,8 @@ import { useState } from "react";
 import { X, ArrowRight, AlertCircle } from "lucide-react";
 import { LIFECYCLE_TRANSITIONS, LIFECYCLE_STATE } from "@/lib/constants";
 import LifecycleStateBadge from "./LifecycleStateBadge";
+import { changeProjectLifecycle } from "@/client/api/projects";
+import { HttpError } from "@/client/transport/http";
 
 interface LifecycleChangeModalProps {
   /** Is the modal open? */
@@ -53,23 +55,13 @@ export default function LifecycleChangeModal({
     setError("");
 
     try {
-      const response = await fetch("/api/projects/lifecycle", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, newState: selectedState }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        setError(data.error || "Failed to change lifecycle state");
-        return;
-      }
+      await changeProjectLifecycle({ projectId, newState: selectedState });
 
       onChanged();
       onClose();
       setSelectedState("");
-    } catch {
-      setError("Network error. Please try again.");
+    } catch (err) {
+      setError(err instanceof HttpError ? err.message || "Failed to change lifecycle state" : "Network error. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

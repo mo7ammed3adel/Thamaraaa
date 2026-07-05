@@ -24,3 +24,8 @@ export function markNotificationRead(id: string) {
 export function sendNotification(body: unknown) {
   return postJson("/api/notifications/send", body);
 }
+
+/** Full history (read + unread), not just the unread ones the bell shows. */
+export function listNotificationHistory() {
+  return getJson<{ data?: NotificationItem[] }>("/api/notifications?type=history");
+}

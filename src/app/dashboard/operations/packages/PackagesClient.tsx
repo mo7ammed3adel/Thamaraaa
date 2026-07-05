@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { createPackage, listPackages } from "@/client/api/packages";
 
 interface PackageData {
   id: string;
@@ -32,11 +33,8 @@ export default function PackagesClient() {
    */
   async function fetchPackages() {
     try {
-      const response = await fetch("/api/packages");
-      if (response.ok) {
-        const data = await response.json();
-        setPackages(data);
-      }
+      const data = await listPackages();
+      setPackages(data as PackageData[]);
     } catch (error) {
       console.error("Failed to fetch packages:", error);
     } finally {
@@ -57,21 +55,14 @@ export default function PackagesClient() {
       .filter(Boolean);
 
     try {
-      const response = await fetch("/api/packages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: newName.trim(),
-          servicesJson: JSON.stringify(servicesArray),
-        }),
+      await createPackage({
+        name: newName.trim(),
+        servicesJson: JSON.stringify(servicesArray),
       });
-
-      if (response.ok) {
-        setNewName("");
-        setNewServices("");
-        setShowCreate(false);
-        fetchPackages();
-      }
+      setNewName("");
+      setNewServices("");
+      setShowCreate(false);
+      fetchPackages();
     } catch (error) {
       console.error("Failed to create package:", error);
     } finally {

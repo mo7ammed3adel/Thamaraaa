@@ -3,6 +3,17 @@
 import { useState, type FormEvent } from "react";
 import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
+import { createTask, updateTask } from "@/client/api/tasks";
+import { createNote } from "@/client/api/notes";
+import { addProjectFile, updateProjectTeamAssignment } from "@/client/api/projects";
+import { createWarning } from "@/client/api/warnings";
+import { HttpError } from "@/client/transport/http";
+
+/** These fire-and-forget flows always refreshed even on a rejected request,
+ * so an HTTP failure is swallowed to keep that behavior; network errors still throw. */
+function swallowHttpError(error: unknown) {
+  if (!(error instanceof HttpError)) throw error;
+}
 
 type ClientJourneyActionsParams = {
   project: {
@@ -37,18 +48,14 @@ export function useClientJourneyActions({ project, lead }: ClientJourneyActionsP
   async function handleCreateTask() {
     if (!newTaskBrief) return notify("Please enter task details");
     setCreatingTask(true);
-    await fetch("/api/tasks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        projectId: project.id,
-        taskType: newTaskType,
-        brief: newTaskBrief,
-        priority: newTaskPriority,
-        deadline: newTaskDeadline || undefined,
-        taskLink: newTaskLink.trim() || undefined,
-      }),
-    });
+    await createTask({
+      projectId: project.id,
+      taskType: newTaskType,
+      brief: newTaskBrief,
+      priority: newTaskPriority,
+      deadline: newTaskDeadline || undefined,
+      taskLink: newTaskLink.trim() || undefined,
+    }).catch(swallowHttpError);
     setNewTaskBrief("");
     setNewTaskLink("");
     setCreatingTask(false);
@@ -58,11 +65,7 @@ export function useClientJourneyActions({ project, lead }: ClientJourneyActionsP
   async function handleAddNote() {
     if (!noteContent.trim()) return;
     setSaving(true);
-    await fetch("/api/notes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectId: project.id, content: noteContent, category: noteCategory }),
-    });
+    await createNote({ projectId: project.id, content: noteContent, category: noteCategory }).catch(swallowHttpError);
     setNoteContent("");
     setSaving(false);
     router.refresh();
@@ -74,22 +77,13 @@ export function useClientJourneyActions({ project, lead }: ClientJourneyActionsP
 
     setUploadingFile(true);
     try {
-      const res = await fetch(`/api/projects/${project.id}/files`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileUrl: fileUrl.trim(), fileType }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        notify(data.error || "Failed to upload project file");
-        return;
-      }
+      await addProjectFile(project.id, { fileUrl: fileUrl.trim(), fileType });
 
       setFileUrl("");
       setFileType("other");
       router.refresh();
     } catch (err) {
-      notify("Network error — could not reach server.");
+      notify(err instanceof HttpError ? err.message : "Network error — could not reach server.");
     } finally {
       setUploadingFile(false);
     }
@@ -98,41 +92,28 @@ export function useClientJourneyActions({ project, lead }: ClientJourneyActionsP
   async function handleCreateWarning() {
     const message = prompt("Warning message for all teams:");
     if (!message) return;
-    await fetch("/api/warnings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: `⚠️ ${lead?.name}: ${message}`,
-        clientId: lead?.id,
-        projectId: project.id,
-        recipientRoles: [
-          "account_manager", "head_account_manager", "head_technical", "head_seo",
-          "team_leader_seo", "team_leader_social_media", "team_leader_media_buyer",
-          "agent_seo", "agent_social_media", "agent_media_buyer",
-          "leader_graphic_designer", "agent_graphic_designer",
-          "leader_motion_graphic", "agent_motion_graphic", "leader_ui", "agent_ui",
-        ],
-      }),
-    });
+    await createWarning({
+      message: `⚠️ ${lead?.name}: ${message}`,
+      clientId: lead?.id,
+      projectId: project.id,
+      recipientRoles: [
+        "account_manager", "head_account_manager", "head_technical", "head_seo",
+        "team_leader_seo", "team_leader_social_media", "team_leader_media_buyer",
+        "agent_seo", "agent_social_media", "agent_media_buyer",
+        "leader_graphic_designer", "agent_graphic_designer",
+        "leader_motion_graphic", "agent_motion_graphic", "leader_ui", "agent_ui",
+      ],
+    }).catch(swallowHttpError);
     router.refresh();
   }
 
   async function handleAssignUser(taskId: string, field: "leaderId" | "agentId", newValue: string) {
     if (!taskId || !newValue) return;
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [field]: newValue }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        notify(`Assignment failed: ${data.error || "Unknown error"}`);
-        return;
-      }
+      await updateTask(taskId, { [field]: newValue });
       router.refresh();
     } catch (err) {
-      notify("Network error — could not reach server.");
+      notify(err instanceof HttpError ? `Assignment failed: ${err.message}` : "Network error — could not reach server.");
     }
   }
 
@@ -140,56 +121,29 @@ export function useClientJourneyActions({ project, lead }: ClientJourneyActionsP
     try {
       const payload: { status: string; completedAt?: string } = { status };
       if (status === "done") payload.completedAt = new Date().toISOString();
-      const res = await fetch(`/api/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        notify(data.error || "Failed to update status");
-        return;
-      }
+      await updateTask(taskId, payload);
       router.refresh();
     } catch (err) {
-      notify("Network error — could not reach server.");
+      notify(err instanceof HttpError ? err.message : "Network error — could not reach server.");
     }
   }
 
   async function handleUpdateProgress(taskId: string, progressPct: number) {
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ progressPct }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        notify(data.error || "Failed to update progress");
-        return;
-      }
+      await updateTask(taskId, { progressPct });
       router.refresh();
     } catch (err) {
-      notify("Network error — could not reach server.");
+      notify(err instanceof HttpError ? err.message : "Network error — could not reach server.");
     }
   }
 
   async function handleTeamAssignment(department: string, roleType: "leader" | "agent", newUserId: string) {
     if (!department || !newUserId) return;
     try {
-      const res = await fetch(`/api/projects/${project.id}/team-assignment`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ department, assignedRoleType: roleType, newUserId }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        notify(`Assignment failed: ${data.error || "Unknown error"}`);
-        return;
-      }
+      await updateProjectTeamAssignment(project.id, { department, assignedRoleType: roleType, newUserId });
       router.refresh();
     } catch (err) {
-      notify("Network error — could not reach server.");
+      notify(err instanceof HttpError ? `Assignment failed: ${err.message}` : "Network error — could not reach server.");
     }
   }
 

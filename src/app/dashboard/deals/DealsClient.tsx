@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { DollarSign, X, PhoneCall, Calendar, Handshake, ArrowRight, Clock } from "lucide-react";
 import DateRangeFilter from "@/components/dashboard/DateRangeFilter";
 import { isDateInRange } from "@/lib/dateRange";
+import { listDeals } from "@/client/api/deals";
 
 interface Deal {
   id: string;
@@ -47,10 +48,7 @@ export default function DealsClient({ userRole }: { userRole: string }) {
 
   const fetchDeals = async () => {
     try {
-      const res = await fetch("/api/deals/list");
-      if (res.ok) {
-        setDeals(await res.json());
-      }
+      setDeals((await listDeals()) as any);
     } catch {
       console.error("Failed to fetch deals");
     }

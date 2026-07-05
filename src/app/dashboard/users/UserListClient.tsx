@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Pencil, Trash2, LogIn, Search } from "lucide-react";
 import { HttpError } from "@/client/transport/http";
 import { impersonateUser } from "@/client/api/admin";
+import { createUser, deleteUser, updateUser } from "@/client/api/users";
 
 export default function UserListClient({ initialUsers, managers, companies = [], canImpersonate = false, canDelete = false }: { initialUsers: any[]; managers: any[]; companies?: any[]; canImpersonate?: boolean; canDelete?: boolean }) {
   const router = useRouter();
@@ -68,21 +69,14 @@ export default function UserListClient({ initialUsers, managers, companies = [],
     e.preventDefault();
     setLoading(true);
 
-    const res = await fetch("/api/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
-
-    if (res.ok) {
-      const newUser = await res.json();
+    try {
+      const newUser = await createUser(formData);
       setShowModal(false);
       setFormData({ name: "", email: "", phone: "", password: "", role: "sales_agent", level: "Junior", status: "Active", directManagerId: "", company: "", companyId: "", baseSalary: "", monthlyTarget: "" });
       setUsers([newUser, ...users]);
       router.refresh();
-    } else {
-      const data = await res.json().catch(() => ({}));
-      notify(data.error || "Error creating user");
+    } catch (error) {
+      notify(error instanceof HttpError ? error.message : "Error creating user");
     }
     setLoading(false);
   };
@@ -107,10 +101,8 @@ export default function UserListClient({ initialUsers, managers, companies = [],
     e.preventDefault();
     setLoading(true);
 
-    const res = await fetch(`/api/users/${editingUser.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    try {
+      const updatedUser: any = await updateUser(editingUser.id, {
         name: editData.name,
         email: editData.email,
         phone: editData.phone,
@@ -120,17 +112,12 @@ export default function UserListClient({ initialUsers, managers, companies = [],
         status: editData.status,
         level: editData.level,
         companyId: editData.companyId === "" ? null : editData.companyId,
-      }),
-    });
-
-    if (res.ok) {
-      const updatedUser = await res.json();
+      });
       setEditingUser(null);
       setUsers(users.map(u => u.id === updatedUser.id ? { ...u, ...updatedUser } : u));
       router.refresh();
-    } else {
-      const data = await res.json().catch(() => ({}));
-      notify(data.error || "Error updating user");
+    } catch (error) {
+      notify(error instanceof HttpError ? error.message : "Error updating user");
     }
     setLoading(false);
   };
@@ -139,17 +126,13 @@ export default function UserListClient({ initialUsers, managers, companies = [],
     if (!deletingUser) return;
     setLoading(true);
 
-    const res = await fetch(`/api/users/${deletingUser.id}`, {
-      method: "DELETE",
-    });
-
-    if (res.ok) {
+    try {
+      await deleteUser(deletingUser.id);
       setUsers(users.filter(u => u.id !== deletingUser.id));
       setDeletingUser(null);
       router.refresh();
-    } else {
-      const data = await res.json();
-      notify(data.error || "Error deleting user");
+    } catch (error) {
+      notify(error instanceof HttpError ? error.message : "Error deleting user");
     }
     setLoading(false);
   };

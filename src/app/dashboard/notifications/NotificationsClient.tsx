@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Bell, CheckCircle2 } from "lucide-react";
+import { listNotificationHistory, markNotificationRead } from "@/client/api/notifications";
 
 interface Notification {
   id: string;
@@ -23,11 +24,8 @@ export default function NotificationsClient() {
   const fetchNotifications = async () => {
     try {
       // Full history (read + unread), not just the unread ones the bell shows.
-      const res = await fetch("/api/notifications?type=history");
-      if (res.ok) {
-        const { data } = await res.json();
-        setNotifications(data || []);
-      }
+      const { data } = await listNotificationHistory();
+      setNotifications((data as Notification[]) || []);
     } catch (err) {
       console.error("Failed to fetch notifications");
     } finally {
@@ -38,7 +36,7 @@ export default function NotificationsClient() {
   const markAsRead = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await fetch(`/api/notifications/${id}`, { method: "PATCH" });
+      await markNotificationRead(id);
       // Keep it in the list as history — just flip it to read.
       setNotifications(prev => prev.map(n => (n.id === id ? { ...n, read: true } : n)));
     } catch (err) {
@@ -51,7 +49,7 @@ export default function NotificationsClient() {
     if (unread.length === 0) return;
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     await Promise.all(
-      unread.map(n => fetch(`/api/notifications/${n.id}`, { method: "PATCH" }).catch(() => null))
+      unread.map(n => markNotificationRead(n.id).catch(() => null))
     );
   };
 

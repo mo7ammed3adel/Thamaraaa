@@ -22,3 +22,7 @@ export function acknowledgeWarning(id: string) {
 export function createWarning(body: unknown) {
   return postJson("/api/warnings", body);
 }
+
+export function resolveWarning(id: string) {
+  return postJson(`/api/warnings/${id}/resolve`);
+}

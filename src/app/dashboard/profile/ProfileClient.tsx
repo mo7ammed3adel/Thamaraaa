@@ -2,6 +2,14 @@
 import { useState } from "react";
 import { notify } from "@/components/toast";
 import { Clock, FileText, UploadCloud, Calendar, User } from "lucide-react";
+import { createDocument, submitLeaveRequest } from "@/client/api/hr";
+import { HttpError } from "@/client/transport/http";
+
+/** These flows always showed success and reloaded even on a rejected request,
+ * so an HTTP failure is swallowed to keep that behavior; network errors still throw. */
+function swallowHttpError(error: unknown) {
+  if (!(error instanceof HttpError)) throw error;
+}
 
 export default function ProfileClient({ profile }: { profile: any }) {
   const [requestForm, setRequestForm] = useState(false);
@@ -11,22 +19,14 @@ export default function ProfileClient({ profile }: { profile: any }) {
 
   const submitRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    await fetch("/api/hr/requests", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(reqData)
-    });
+    await submitLeaveRequest(reqData).catch(swallowHttpError);
     notify("Request submitted successfully to HR.");
     window.location.reload();
   };
 
   const uploadDoc = async (e: React.FormEvent) => {
     e.preventDefault();
-    await fetch("/api/hr/documents", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(docData)
-    });
+    await createDocument(docData).catch(swallowHttpError);
     notify("Document uploaded.");
     window.location.reload();
   };
