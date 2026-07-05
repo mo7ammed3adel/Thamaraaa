@@ -4,11 +4,17 @@ import {
   recomputeMonth,
   recomputeTelesalesBonuses,
   sumLineItems,
+  COMMISSION_PARAMS_KEY,
+  COMMISSION_RATE_KEYS,
+  DEFAULT_COMMISSION_PARAMS,
 } from "@/lib/commissions";
 import { computePayslip, monthRange } from "@/lib/payslip";
+import { safeTrigger } from "@/lib/pusher";
 import * as XLSX from "xlsx";
 import {
   aggregateFinanceApprovedDeductionsByUser,
+  createReminderNotification,
+  findActiveAccountant,
   findCommissionsByMonth,
   findCommissionForEdit,
   findCommissionsForExport,
@@ -17,9 +23,12 @@ import {
   findFinancePayrollHrRecords,
   findInstallmentForUpdate,
   findPendingInstallments,
+  findRecentNotificationMatch,
+  findUnpaidInstallmentsWithDeal,
   updateCommission,
   updateInstallmentPaidWithLog,
 } from "@/server/repositories/financeRepository";
+import { upsertSystemConfig } from "@/server/repositories/settingsRepository";
 
 export async function getFinanceOverview() {
   const deals = await findFinanceOverviewDeals();
@@ -226,4 +235,199 @@ export async function listFinancePayroll(month: string) {
   );
 
   return { month, rows, totals };
+}
+
+// ── Commission config editing (accountant/super_admin) ──
+
+const COMMISSION_RATE_KEY_SET = new Set<string>(Object.values(COMMISSION_RATE_KEYS));
+
+function isValidCommissionParams(value: string): boolean {
+  try {
+    const parsed = JSON.parse(value);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return false;
+    // Every provided key must be a known param and a finite number.
+    return Object.entries(parsed).every(
+      ([key, v]) => key in DEFAULT_COMMISSION_PARAMS && Number.isFinite(Number(v))
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isValidRateTable(value: string): boolean {
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed) || parsed.length === 0) return false;
+    return parsed.every(
+      (tier) =>
+        tier &&
+        typeof tier === "object" &&
+        Number.isFinite(Number(tier.min)) &&
+        Number.isFinite(Number(tier.pct)) &&
+        Number(tier.pct) >= 0 &&
+        Number(tier.pct) <= 1 &&
+        (tier.max === null || tier.max === undefined || tier.max === "" || Number.isFinite(Number(tier.max)))
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Persists a commission rate table / formula params / gateway fee to
+ * SystemConfig and immediately recomputes the current month so payouts
+ * reflect the new rates.
+ */
+export async function updateCommissionConfig(input: { adminId: string; key: any; value: any }) {
+  const key = typeof input.key === "string" ? input.key : "";
+  const value = typeof input.value === "string" ? input.value : "";
+  if (!key || !value) return { status: "missing_fields" as const };
+
+  if (COMMISSION_RATE_KEY_SET.has(key)) {
+    if (!isValidRateTable(value)) {
+      return {
+        status: "invalid_value" as const,
+        message: "Rate table must be a JSON array of { min, max, pct }, with pct between 0 and 1",
+      };
+    }
+  } else if (key === COMMISSION_PARAMS_KEY) {
+    if (!isValidCommissionParams(value)) {
+      return {
+        status: "invalid_value" as const,
+        message: "Formula parameters must be a JSON object of known numeric keys",
+      };
+    }
+  } else if (key === "gateway_fee_pct") {
+    const fee = parseFloat(value);
+    if (Number.isNaN(fee) || fee < 0 || fee >= 1) {
+      return { status: "invalid_value" as const, message: "gateway_fee_pct must be a decimal between 0 and 1" };
+    }
+  } else {
+    return { status: "invalid_value" as const, message: "Unsupported commission config key" };
+  }
+
+  await upsertSystemConfig({ key, value, updatedById: input.adminId });
+
+  const month = new Date().toISOString().slice(0, 7);
+  let recomputed = false;
+  try {
+    await Promise.all([recomputeMonth(month), recomputeTelesalesBonuses(month)]);
+    recomputed = true;
+    await safeTrigger("finance-channel", "config-updated", { key, month });
+  } catch (e) {
+    console.error("Recompute after commission-config change failed:", e);
+  }
+
+  return { status: "ok" as const, recomputed };
+}
+
+// ── Daily installment payment reminders (cron) ──
+
+async function createNotificationOnce(
+  data: {
+    userId: string;
+    title: string;
+    message: string;
+    type: string;
+    link: string;
+    relatedId: string;
+  },
+  since: Date
+) {
+  const existing = await findRecentNotificationMatch({
+    userId: data.userId,
+    type: data.type,
+    relatedId: data.relatedId,
+    title: data.title,
+    since,
+  });
+  if (existing) return false;
+  await createReminderNotification(data);
+  return true;
+}
+
+/** Intended to run daily: reminds sales agents and the accountant about
+ * upcoming and overdue unpaid installments (deduplicated per day). */
+export async function sendInstallmentReminders() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const intervals = [15, 10, 5, 1]; // Reminder milestone days (before due)
+  const overdueIntervals = [1, 3, 7, 15]; // Overdue milestone days (after due)
+
+  const installments = await findUnpaidInstallmentsWithDeal();
+
+  let notificationsCreated = 0;
+
+  for (const inst of installments) {
+    const dueDate = new Date(inst.dueDate);
+    dueDate.setHours(0, 0, 0, 0);
+    const diffTime = dueDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (intervals.includes(diffDays) || diffDays === 0) {
+      // Notify Sales Agent
+      const createdSalesReminder = await createNotificationOnce(
+        {
+          userId: inst.deal.salesAgentId,
+          title: `Payment Reminder: ${diffDays === 0 ? "DUE TODAY" : `${diffDays} days left`}`,
+          message: `Installment of SAR ${inst.amount} is due ${diffDays === 0 ? "TODAY" : `in ${diffDays} days`}.`,
+          type: "payment_reminder",
+          link: "/dashboard/sales",
+          relatedId: inst.id,
+        },
+        today
+      );
+      if (createdSalesReminder) notificationsCreated++;
+
+      // Notify Accountant
+      const accountant = await findActiveAccountant();
+      if (accountant) {
+        const createdAccountantReminder = await createNotificationOnce(
+          {
+            userId: accountant.id,
+            title: `Payment Follow-up: ${diffDays === 0 ? "DUE TODAY" : `${diffDays} days left`}`,
+            message: `An installment of SAR ${inst.amount} is set to be paid ${diffDays === 0 ? "TODAY" : `in ${diffDays} days`}.`,
+            type: "payment_reminder",
+            link: "/dashboard/finance",
+            relatedId: inst.id,
+          },
+          today
+        );
+        if (createdAccountantReminder) notificationsCreated++;
+      }
+    } else if (diffDays < 0 && overdueIntervals.includes(Math.abs(diffDays))) {
+      // Overdue: installment past its due date — alert the agent + accountant.
+      const daysOverdue = Math.abs(diffDays);
+      const createdSalesOverdue = await createNotificationOnce(
+        {
+          userId: inst.deal.salesAgentId,
+          title: `Payment OVERDUE: ${daysOverdue} days`,
+          message: `Installment of SAR ${inst.amount} is overdue by ${daysOverdue} day${daysOverdue === 1 ? "" : "s"}.`,
+          type: "payment_overdue",
+          link: "/dashboard/sales",
+          relatedId: inst.id,
+        },
+        today
+      );
+      if (createdSalesOverdue) notificationsCreated++;
+
+      const overdueAccountant = await findActiveAccountant();
+      if (overdueAccountant) {
+        const createdAccountantOverdue = await createNotificationOnce(
+          {
+            userId: overdueAccountant.id,
+            title: `Payment OVERDUE: ${daysOverdue} days`,
+            message: `Installment of SAR ${inst.amount} is overdue by ${daysOverdue} day${daysOverdue === 1 ? "" : "s"}.`,
+            type: "payment_overdue",
+            link: "/dashboard/finance",
+            relatedId: inst.id,
+          },
+          today
+        );
+        if (createdAccountantOverdue) notificationsCreated++;
+      }
+    }
+  }
+
+  return { processedInstallments: installments.length, notificationsCreated };
 }

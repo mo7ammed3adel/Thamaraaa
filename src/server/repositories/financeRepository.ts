@@ -135,3 +135,46 @@ export function updateInstallmentPaidWithLog(input: {
     return updated;
   });
 }
+
+// ── Installment reminders (cron) ──
+
+export function findUnpaidInstallmentsWithDeal() {
+  return prisma.installment.findMany({
+    where: { isPaid: false },
+    include: { deal: true },
+  });
+}
+
+export function findActiveAccountant() {
+  return prisma.user.findFirst({ where: { role: "accountant", status: "Active" } });
+}
+
+export function findRecentNotificationMatch(input: {
+  userId: string;
+  type: string;
+  relatedId: string;
+  title: string;
+  since: Date;
+}) {
+  return prisma.notification.findFirst({
+    where: {
+      userId: input.userId,
+      type: input.type,
+      relatedId: input.relatedId,
+      title: input.title,
+      createdAt: { gte: input.since },
+    },
+    select: { id: true },
+  });
+}
+
+export function createReminderNotification(data: {
+  userId: string;
+  title: string;
+  message: string;
+  type: string;
+  link: string;
+  relatedId: string;
+}) {
+  return prisma.notification.create({ data });
+}
