@@ -39,7 +39,7 @@ export default async function DashboardLayout({
   return (
     <>
       {/* Auto-refreshes server data across all dashboard pages (no manual reload). */}
-      <AutoRefresher />
+      <AutoRefresher intervalMs={8000} />
 
       {impersonatedBy && <ImpersonationBanner name={session.user.name} role={role} />}
 
