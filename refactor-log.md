@@ -1,5 +1,46 @@
 # Refactor Log
 
+## 2026-07-05 - Route Boundary Completion: every API route off direct Prisma
+
+Scope (one commit per slice):
+
+- HR self-service routes (central-requests GET, complaints, departments + documents, salary advances) -> `hrService`/`hrRepository`.
+- User management routes (list/create/edit/delete, status, specialization, target) -> new `userService`/`userRepository`.
+- Reference data routes (niches, packages, custom columns + values, companies) -> new `referenceDataService`/`referenceDataRepository`.
+- Call logging -> `leadService.logLeadCall`; attendance check-in/out + deduction decisions -> `hrService`.
+- Settings, commission rules, manual notification send, warning log, own-password change -> `settingsService`, `notificationService`, `warningService`, `userService`; impersonation route reads users via `userRepository`.
+- Project detail/files/logs/head-AM/edit -> `projectLifecycleService`; AM-to-AM transfer + team assignment listing/removal -> `projectDistributionService`.
+- Commission config editing and the installment reminder cron -> `financeService`/`financeRepository`.
+
+Smell -> principle -> fix:
+
+- 35 API routes still imported Prisma directly and mixed delivery with authorization, validation, transactions and notification side effects -> controller-service-repository boundary -> routes now only parse requests, gate sessions and map typed service results to the same HTTP responses. `rg 'from "@/lib/prisma"' src/app/api`: no matches.
+
+Behavior preserved by:
+
+- `npx tsc --noEmit`: passed after every slice.
+- `npm test`: passed after every slice (22 files, 106 tests at completion).
+- `npm run build`: passed at completion.
+- Response shapes, status codes, error messages and console.error lines kept identical per route.
+
+## 2026-07-05 - Phase 4 Completion: last 16 UI files off raw fetch
+
+Scope:
+
+- Replaced direct `fetch` in ten dashboard clients (notifications, users, leads-import, profile, settings, client journey actions, deals, warnings center, operations + packages) and six shared components (lifecycle modal, cross-team task form, warning modal, client reassign modal, self task form, warning resolve button).
+- Added `settings` and `packages` client API modules; extended notifications/users/leads/deals/projects/warnings modules; added a `postFormData` transport helper for the Excel upload.
+- Fixed the unused `reassignAccountManager` client helper to POST, matching its route contract.
+
+Smell -> principle -> fix:
+
+- UI components owned URLs, JSON headers and non-2xx parsing -> client transport boundary / single API surface -> calls now go through `src/client/api/*`; fire-and-forget flows swallow `HttpError` explicitly to keep their old always-continue behavior.
+
+Behavior preserved by:
+
+- `rg "fetch\\(" src/app/dashboard src/components`: no matches.
+- `npx tsc --noEmit`, `npm test` (22 files, 106 tests), `npm run build`: passed.
+- `npm run lint`: same six pre-existing React hook dependency warnings as the recorded baseline.
+
 ## 2026-06-28 - Phase 5 Slice: Head Technical Dashboard
 
 Scope:
