@@ -13,6 +13,7 @@ import {
   hardDeleteUserCascade,
   softDeleteUser,
   updateUserDetails,
+  updateUserPassword,
   updateUserPresenceStatus,
   updateUserSpecialization,
   upsertAgentTarget,
