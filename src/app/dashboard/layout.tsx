@@ -6,6 +6,7 @@ import { User, Settings, PhoneCall, Briefcase, ListTodo, LogOut, Upload, RotateC
 
 import LogoutButton from "@/components/LogoutButton";
 import AutoRefresher from "@/components/AutoRefresher";
+import RealtimeRefresher from "@/components/RealtimeRefresher";
 import NotificationBell from "@/components/NotificationBell";
 import WarningPopup from "@/components/WarningPopup";
 import GlobalWarningAlert from "@/components/GlobalWarningAlert";
@@ -38,8 +39,11 @@ export default async function DashboardLayout({
 
   return (
     <>
-      {/* Auto-refreshes server data across all dashboard pages (no manual reload). */}
-      <AutoRefresher intervalMs={8000} />
+      {/* Live data: Pusher pushes changes instantly when configured; the poller
+          is the fallback (fast when there's no Pusher, gentle safety-net when
+          real-time is handling immediacy). */}
+      <RealtimeRefresher />
+      <AutoRefresher intervalMs={process.env.NEXT_PUBLIC_PUSHER_KEY ? 30000 : 8000} />
 
       {impersonatedBy && <ImpersonationBanner name={session.user.name} role={role} />}
 

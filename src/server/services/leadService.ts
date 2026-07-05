@@ -1,3 +1,4 @@
+import { broadcastDataChange } from "@/lib/pusher";
 import { resolveManualLeadAssigneeId } from "@/lib/manualLeadAssignment";
 import { autoAssignLead } from "@/lib/autoAssign";
 import { canManuallyDistributeMeeting } from "@/lib/meetingDistribution";
@@ -407,6 +408,7 @@ export async function updateLead(input: { id: string; user: LeadUser; body: any 
     });
   }
 
+  await broadcastDataChange();
   return { status: "ok" as const, lead };
 }
 
@@ -467,6 +469,7 @@ export async function reportClientNoShow(input: { id: string; user: LeadUser }) 
   }
 
   const lead = await findDistributedLead(input.id);
+  await broadcastDataChange();
   return { status: "ok" as const, lead };
 }
 
@@ -548,6 +551,7 @@ export async function logLeadCall(input: { user: LeadUser; body: any }) {
   }
 
   const fullLead = await findDistributedLead(leadId);
+  await broadcastDataChange();
   return { status: "ok" as const, lead: fullLead };
 }
 
@@ -604,6 +608,7 @@ export async function distributeLeadMeeting(input: { id: string; user: LeadUser 
   }
 
   const leadAfterDistribution = await findDistributedLead(input.id);
+  await broadcastDataChange();
   return { status: "ok" as const, result, lead: leadAfterDistribution };
 }
 

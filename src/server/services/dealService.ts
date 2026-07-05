@@ -1,4 +1,4 @@
-import { safeTrigger } from "@/lib/pusher";
+import { broadcastDataChange, safeTrigger } from "@/lib/pusher";
 import { normalizeWebUrl } from "@/lib/safe-url";
 import { notifyHeadAccountManagersOfNewProject } from "@/lib/projectSetup";
 import {
@@ -123,6 +123,7 @@ export async function createClosedDeal(input: {
     });
   }
 
+  await broadcastDataChange();
   return { status: "ok" as const, deal };
 }
 
