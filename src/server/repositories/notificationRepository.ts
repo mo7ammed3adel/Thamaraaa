@@ -44,3 +44,22 @@ export function markNotificationRead(notificationId: string) {
     data: { read: true },
   });
 }
+
+export function findNotificationTargetStatus(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, status: true },
+  });
+}
+
+export function createNotificationRecord(data: {
+  userId: string;
+  title: string;
+  message: string;
+  type: string | null;
+  link: string | null;
+  relatedId: string | null;
+  read: boolean;
+}) {
+  return prisma.notification.create({ data });
+}

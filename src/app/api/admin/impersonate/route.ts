@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
-import { prisma } from "@/lib/prisma";
 import { IMPERSONATION_COOKIE } from "@/lib/auth";
+import { findUserExists } from "@/server/repositories/userRepository";
 
 /**
  * Super-admin impersonation. Authorization always uses the raw JWT (getToken),
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid target user" }, { status: 400 });
   }
 
-  const target = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+  const target = await findUserExists(userId);
   if (!target) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }

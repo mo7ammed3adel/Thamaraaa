@@ -268,3 +268,13 @@ export async function setAgentMonthlyTarget(input: {
   const updatedTarget = await upsertAgentTarget({ agentId: id, month: targetMonth, target });
   return { status: "ok" as const, target: updatedTarget };
 }
+
+/** Any logged-in user can set a new password for themselves; clears the
+ * must-change-password flag (used by the forced first-login flow). */
+export async function changeOwnPassword(input: { userId: string; newPassword: unknown }) {
+  const newPassword = typeof input.newPassword === "string" ? input.newPassword : "";
+  if (newPassword.length < 6) return { status: "too_short" as const };
+
+  await updateUserPassword(input.userId, await bcrypt.hash(newPassword, 10));
+  return { status: "ok" as const };
+}

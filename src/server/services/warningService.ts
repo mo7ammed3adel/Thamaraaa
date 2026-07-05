@@ -3,6 +3,7 @@ import {
   findWarningById,
   findUnreadWarningReceiptsForUser,
   findWarningReceiptForUser,
+  findWarningsForLog,
   resolveWarningWithLog,
 } from "@/server/repositories/warningRepository";
 import { canResolveWarning } from "@/lib/distribution";
@@ -248,4 +249,29 @@ export async function createProjectWarning(input: {
     status: "ok" as const,
     warning: { id: w.id, receiptsCreated: affectedUserIdsArray.length },
   };
+}
+
+/**
+ * Admin warning log with filters. A head technical only sees warnings on
+ * projects they manage; head AM and super admin see everything.
+ */
+export function listWarningLog(input: {
+  user: { id: string; role: string };
+  filters: { projectId?: string | null; severity?: string | null; from?: string | null; to?: string | null };
+}) {
+  const { user, filters } = input;
+
+  const where: any = {};
+  if (filters.projectId) where.projectId = filters.projectId;
+  if (user.role === "head_technical") {
+    where.project = { headTechnicalId: user.id };
+  }
+  if (filters.severity && filters.severity !== "All") where.severity = filters.severity;
+  if (filters.from || filters.to) {
+    where.createdAt = {};
+    if (filters.from) where.createdAt.gte = new Date(filters.from);
+    if (filters.to) where.createdAt.lte = new Date(filters.to);
+  }
+
+  return findWarningsForLog(where);
 }

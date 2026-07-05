@@ -81,3 +81,15 @@ export function resolveWarningWithLog(input: {
     return warning;
   });
 }
+
+export function findWarningsForLog(where: any) {
+  return prisma.warning.findMany({
+    where,
+    include: {
+      sender: { select: { id: true, name: true, role: true } },
+      receipts: { include: { user: { select: { id: true, name: true, role: true } } } },
+      project: { include: { deal: { include: { lead: { select: { name: true } } } } } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+}

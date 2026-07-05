@@ -174,3 +174,14 @@ export function upsertAgentTarget(input: { agentId: string; month: string; targe
     create: { agentId: input.agentId, month: input.month, target: input.target },
   });
 }
+
+export function findUserExists(id: string) {
+  return prisma.user.findUnique({ where: { id }, select: { id: true } });
+}
+
+export function updateUserPassword(id: string, passwordHash: string) {
+  return prisma.user.update({
+    where: { id },
+    data: { passwordHash, mustChangePassword: false },
+  });
+}

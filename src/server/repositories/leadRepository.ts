@@ -236,3 +236,10 @@ export function findLeadTeleAgentOwner(leadId: string) {
     select: { assignedTeleAgentId: true },
   });
 }
+
+export function findLeadAssignedAgents(leadId: string) {
+  return prisma.lead.findUnique({
+    where: { id: leadId },
+    select: { assignedSalesAgentId: true, assignedTeleAgentId: true },
+  });
+}
