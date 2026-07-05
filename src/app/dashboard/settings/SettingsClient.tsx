@@ -4,6 +4,7 @@ import { useState } from "react";
 import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
 import { saveCommissionRule, saveSetting } from "@/client/api/settings";
+import { wipeTestData } from "@/client/api/admin";
 import { HttpError } from "@/client/transport/http";
 
 /** These flows always refreshed even on a rejected request, so an HTTP
@@ -90,9 +91,12 @@ export default function SettingsClient({
         <TabButton active={activeTab === "commissions"} onClick={() => setActiveTab("commissions")} label="🧮 Commission Rules" />
         <TabButton active={activeTab === "config"} onClick={() => setActiveTab("config")} label="⚙️ System Config" />
         <TabButton active={activeTab === "permissions"} onClick={() => setActiveTab("permissions")} label="🔐 Permission Matrix" />
+        <TabButton active={activeTab === "testing"} onClick={() => setActiveTab("testing")} label="🧪 Testing" />
       </div>
 
       {activeTab === "permissions" && <PermissionMatrix />}
+
+      {activeTab === "testing" && <TestDataSection router={router} />}
 
       {activeTab === "finance" && (
         <div className="space-y-6">
@@ -499,6 +503,99 @@ function PermissionMatrix() {
           </table>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Testing — reset operational CRM data for a clean test run.
+// Wipes leads/clients, meetings, calls, deals, projects, tasks, and their
+// dependents. Keeps users, companies, packages, HR, and all configuration.
+// Super-admin only; enforced again server-side in /api/admin/wipe-test-data.
+// ─────────────────────────────────────────────────────────────────────
+const WIPE_KEEPS = ["المستخدمين (Users)", "الشركات (Companies)", "الباقات (Packages)", "بيانات HR", "الإعدادات (Config)"];
+const WIPE_DELETES = [
+  "العملاء / الـ Leads",
+  "الاجتماعات (Meetings)",
+  "المكالمات (Call Logs)",
+  "الصفقات (Deals) + الأقساط",
+  "المشاريع (Projects) + التاسكات",
+  "الإشعارات، التارجت، الملاحظات، التحذيرات",
+];
+
+function TestDataSection({ router }: { router: any }) {
+  const [confirmText, setConfirmText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const armed = confirmText.trim().toUpperCase() === "WIPE";
+
+  const handleWipe = async () => {
+    if (!armed || loading) return;
+    setLoading(true);
+    try {
+      const result = await wipeTestData();
+      notify(`تم مسح البيانات التجريبية — ${result.total} صف اتشال. اليوزرات والشركات والباقات و HR زي ما هما.`, "success");
+      setConfirmText("");
+      router.refresh();
+    } catch (error) {
+      const message = error instanceof HttpError ? error.message : "حصل خطأ أثناء المسح. جرّب تاني.";
+      notify(message, "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border-2 border-red-200">
+      <div className="px-6 py-4 border-b border-red-100 bg-red-50 rounded-t-xl">
+        <h3 className="text-base font-semibold text-red-800">🧨 Danger Zone — مسح البيانات التجريبية</h3>
+        <p className="text-xs text-red-600 mt-1">
+          للتجربة فقط. بيمسح البيانات التشغيلية كلها من قاعدة البيانات <span className="font-bold">اللايف</span> ومفيش رجوع.
+          راجع كويس قبل ما تضغط.
+        </p>
+      </div>
+      <div className="p-6 space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="rounded-lg border border-red-200 bg-red-50/50 p-4">
+            <h4 className="text-sm font-bold text-red-700 mb-2">هيتمسح ❌</h4>
+            <ul className="list-disc list-inside space-y-1">
+              {WIPE_DELETES.map((item) => (
+                <li key={item} className="text-xs text-red-700">{item}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-4">
+            <h4 className="text-sm font-bold text-emerald-700 mb-2">هيفضل زي ما هو ✅</h4>
+            <ul className="list-disc list-inside space-y-1">
+              {WIPE_KEEPS.map((item) => (
+                <li key={item} className="text-xs text-emerald-700">{item}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <div className="border-t border-gray-100 pt-6">
+          <label className="block text-sm font-bold text-gray-700 mb-1">
+            اكتب <code className="px-1.5 py-0.5 bg-gray-100 rounded text-red-600 font-mono">WIPE</code> للتأكيد
+          </label>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mt-2">
+            <input
+              type="text"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder="WIPE"
+              disabled={loading}
+              className="border px-3 py-2 rounded text-sm w-40 font-mono focus:ring-red-500 focus:border-red-500 outline-none"
+            />
+            <button
+              onClick={handleWipe}
+              disabled={!armed || loading}
+              className="px-5 py-2 rounded text-sm font-semibold text-white transition disabled:opacity-40 disabled:cursor-not-allowed bg-red-600 hover:bg-red-700"
+            >
+              {loading ? "جاري المسح…" : "امسح البيانات التجريبية"}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
