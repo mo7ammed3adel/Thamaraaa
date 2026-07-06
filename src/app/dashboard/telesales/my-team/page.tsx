@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { ACTUAL_MEETING_STATUSES } from "@/lib/meetings";
 import MyTeamClient from "./MyTeamClient";
 
 export default async function MyTeamPage({ searchParams }: { searchParams: any }) {
@@ -64,11 +65,31 @@ export default async function MyTeamPage({ searchParams }: { searchParams: any }
     orderBy: { name: "asc" },
   });
 
+  // Target progress is measured on actual meetings — ones the client really
+  // attended — in the target's month, the same metric the agent sees on their
+  // My Target page.
+  const monthStart = new Date(currentMonth + "-01T00:00:00Z");
+  const monthEnd = new Date(monthStart);
+  monthEnd.setUTCMonth(monthEnd.getUTCMonth() + 1);
+  const actualMeetingCounts = agents.length
+    ? await prisma.meeting.groupBy({
+        by: ["teleAgentId"],
+        where: {
+          teleAgentId: { in: agents.map(a => a.id) },
+          status: { in: ACTUAL_MEETING_STATUSES },
+          meetingDate: { gte: monthStart, lt: monthEnd },
+        },
+        _count: { _all: true },
+      })
+    : [];
+  const actualByAgent = new Map(actualMeetingCounts.map(m => [m.teleAgentId, m._count._all]));
+
   // Flatten the data for the client
   const agentsWithKPI = agents.map(a => ({
     ...a,
     transferredCount: a.teleSalesLeads.length,
     target: a.agentTargets[0]?.target || 0,
+    actualMeetings: actualByAgent.get(a.id) || 0,
     teleSalesLeads: undefined, // don't send full leads array
     agentTargets: undefined,
   }));

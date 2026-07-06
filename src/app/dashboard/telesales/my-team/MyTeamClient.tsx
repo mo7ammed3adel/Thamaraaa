@@ -16,6 +16,8 @@ interface Agent {
   level: string | null;
   transferredCount: number;
   target: number;
+  /** Meetings the client actually attended in the target's month — the target metric. */
+  actualMeetings: number;
   _count: {
     teleSalesLeads: number;
     callLogs: number;
@@ -303,14 +305,20 @@ export default function MyTeamClient({
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-purple-700">{agent._count.meetingsAsTele}</span>
                         {agent.target > 0 && (
-                          <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full ${
-                                (agent._count.meetingsAsTele / agent.target) >= 1 ? 'bg-green-500' :
-                                (agent._count.meetingsAsTele / agent.target) >= 0.5 ? 'bg-yellow-400' : 'bg-red-400'
-                              }`} 
-                              style={{ width: `${Math.min(100, (agent._count.meetingsAsTele / agent.target) * 100)}%` }} 
-                            />
+                          <div
+                            className="flex items-center gap-1.5"
+                            title={`Actual meetings (client attended) this month: ${agent.actualMeetings} of ${agent.target} target`}
+                          >
+                            <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full ${
+                                  (agent.actualMeetings / agent.target) >= 1 ? 'bg-green-500' :
+                                  (agent.actualMeetings / agent.target) >= 0.5 ? 'bg-yellow-400' : 'bg-red-400'
+                                }`}
+                                style={{ width: `${Math.min(100, (agent.actualMeetings / agent.target) * 100)}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-bold text-teal-600">{agent.actualMeetings}</span>
                           </div>
                         )}
                       </div>

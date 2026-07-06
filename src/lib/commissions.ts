@@ -1,6 +1,7 @@
 import { prisma } from "./prisma";
 import { parseCommissionTiers, sumFinanceLineItems, stringifyFinanceLineItems } from "@/server/parsers/finance";
 import { mergeAutoBonuses } from "./telesalesBonus";
+import { ACTUAL_MEETING_STATUSES } from "./meetings";
 
 /**
  * Finance commission engine.
@@ -208,7 +209,6 @@ export function parseCommissionParams(json: string | null | undefined): Commissi
 
 const DEFAULT_GATEWAY_FEE_PCT = 0.07;
 const FINANCE_COMMISSION_ROLES = ["sales_agent", "sales_manager", "tele_sales_agent", "tele_sales_manager"];
-const BOOKED_MEETING_STATUS = "Accept and book meeting";
 
 export async function loadCommissionConfig(): Promise<{
   tiers: CommissionTier[];
@@ -410,7 +410,8 @@ export function computeSalesTeamLeaderCommission(input: {
 
 export function computeTelesalesAgentCommission(input: {
   deals: DealForCommission[];
-  meetingsBooked: number;
+  /** Meetings the client actually attended (status Attended/Won/Lost). */
+  actualMeetings: number;
   meetingsTarget: number;
   gatewayFeePct?: number;
   telesalesColdTiers?: FlatTier[];
@@ -430,8 +431,8 @@ export function computeTelesalesAgentCommission(input: {
   const vipColdCommission = round2(sumRows(vipColdRows, "net") * params.telesalesVipColdPct);
   const vipHotCommission = round2(sumRows(vipHotRows, "net") * params.telesalesVipHotPct);
   const targetAchievementPct =
-    input.meetingsTarget > 0 ? (input.meetingsBooked / input.meetingsTarget) * 100 : 0;
-  const targetBonus = telesalesTargetBonus(input.meetingsBooked, input.meetingsTarget, params);
+    input.meetingsTarget > 0 ? (input.actualMeetings / input.meetingsTarget) * 100 : 0;
+  const targetBonus = telesalesTargetBonus(input.actualMeetings, input.meetingsTarget, params);
   const commissionAmount = round2(
     standardColdCommission + standardHotCommission + vipColdCommission + vipHotCommission
   );
@@ -453,7 +454,7 @@ export function computeTelesalesAgentCommission(input: {
       standardHotDeals: standardHotRows.length,
       vipColdDeals: vipColdRows.length,
       vipHotDeals: vipHotRows.length,
-      meetingsBooked: input.meetingsBooked,
+      actualMeetings: input.actualMeetings,
       meetingsTarget: input.meetingsTarget,
       targetAchievementPct: round2(targetAchievementPct),
     },
@@ -468,6 +469,7 @@ export function computeTelesalesAgentCommission(input: {
       "Cold tier is based on Standard Cold deal count.",
       "Percentages are applied to net deal values after gateway fees.",
       "Target bonus is stored as an automatic bonus line item.",
+      "Target achievement counts actual meetings the client attended, not bookings.",
     ],
   };
 }
@@ -597,7 +599,7 @@ export async function recomputeTelesalesBonuses(month: string) {
   const results: any[] = [];
 
   for (const agent of agents) {
-    const [deals, meetingsBooked, targetRow] = await Promise.all([
+    const [deals, actualMeetings, targetRow] = await Promise.all([
       prisma.deal.findMany({
         where: {
           status: "Closed_Won",
@@ -606,11 +608,11 @@ export async function recomputeTelesalesBonuses(month: string) {
         },
         include: { lead: { select: { classification: true, customerType: true } } },
       }),
-      prisma.callLog.count({
+      prisma.meeting.count({
         where: {
-          agentId: agent.id,
-          callStatus: BOOKED_MEETING_STATUS,
-          createdAt: { gte: start, lt: end },
+          teleAgentId: agent.id,
+          status: { in: ACTUAL_MEETING_STATUSES },
+          meetingDate: { gte: start, lt: end },
         },
       }),
       prisma.agentTarget.findUnique({
@@ -621,7 +623,7 @@ export async function recomputeTelesalesBonuses(month: string) {
     const meetingsTarget = targetRow?.target ?? agent.hrRecord?.monthlyTarget ?? 0;
     const breakdown = computeTelesalesAgentCommission({
       deals,
-      meetingsBooked,
+      actualMeetings,
       meetingsTarget,
       gatewayFeePct,
       telesalesColdTiers: rules.telesalesColdTiers,
@@ -638,11 +640,11 @@ export async function recomputeTelesalesBonuses(month: string) {
     const teamAgentIds = teamAgents.map((agent) => agent.id);
 
     let deals: DealForCommission[] = [];
-    let bookedMeetings = 0;
+    let actualMeetings = 0;
     let hotMeetings = 0;
     let totalLeads = 0;
     if (teamAgentIds.length) {
-      [deals, bookedMeetings, hotMeetings, totalLeads] = await Promise.all([
+      [deals, actualMeetings, hotMeetings, totalLeads] = await Promise.all([
         prisma.deal.findMany({
           where: {
             status: "Closed_Won",
@@ -651,18 +653,18 @@ export async function recomputeTelesalesBonuses(month: string) {
           },
           include: { lead: { select: { classification: true, customerType: true } } },
         }),
-        prisma.callLog.count({
+        prisma.meeting.count({
           where: {
-            agentId: { in: teamAgentIds },
-            callStatus: BOOKED_MEETING_STATUS,
-            createdAt: { gte: start, lt: end },
+            teleAgentId: { in: teamAgentIds },
+            status: { in: ACTUAL_MEETING_STATUSES },
+            meetingDate: { gte: start, lt: end },
           },
         }),
-        prisma.callLog.count({
+        prisma.meeting.count({
           where: {
-            agentId: { in: teamAgentIds },
-            callStatus: BOOKED_MEETING_STATUS,
-            createdAt: { gte: start, lt: end },
+            teleAgentId: { in: teamAgentIds },
+            status: { in: ACTUAL_MEETING_STATUSES },
+            meetingDate: { gte: start, lt: end },
             lead: { classification: "Hot" },
           },
         }),
@@ -677,7 +679,7 @@ export async function recomputeTelesalesBonuses(month: string) {
 
     const breakdown = computeTelesalesManagerCommission({
       deals,
-      coldMeetingsPerAgent: teamAgentIds.length ? bookedMeetings / teamAgentIds.length : 0,
+      coldMeetingsPerAgent: teamAgentIds.length ? actualMeetings / teamAgentIds.length : 0,
       hotMeetings,
       totalLeads,
       gatewayFeePct,
@@ -736,7 +738,7 @@ export async function buildCommissionBreakdownForUserMonth(input: {
   }
 
   if (input.role === "tele_sales_agent") {
-    const [agent, deals, meetingsBooked, targetRow] = await Promise.all([
+    const [agent, deals, actualMeetings, targetRow] = await Promise.all([
       prisma.user.findUnique({ where: { id: input.userId }, include: { hrRecord: true } }),
       prisma.deal.findMany({
         where: {
@@ -746,11 +748,11 @@ export async function buildCommissionBreakdownForUserMonth(input: {
         },
         include: { lead: { select: { classification: true, customerType: true } } },
       }),
-      prisma.callLog.count({
+      prisma.meeting.count({
         where: {
-          agentId: input.userId,
-          callStatus: BOOKED_MEETING_STATUS,
-          createdAt: { gte: start, lt: end },
+          teleAgentId: input.userId,
+          status: { in: ACTUAL_MEETING_STATUSES },
+          meetingDate: { gte: start, lt: end },
         },
       }),
       prisma.agentTarget.findUnique({
@@ -759,7 +761,7 @@ export async function buildCommissionBreakdownForUserMonth(input: {
     ]);
     return computeTelesalesAgentCommission({
       deals,
-      meetingsBooked,
+      actualMeetings,
       meetingsTarget: targetRow?.target ?? agent?.hrRecord?.monthlyTarget ?? 0,
       gatewayFeePct,
       telesalesColdTiers: rules.telesalesColdTiers,
@@ -774,11 +776,11 @@ export async function buildCommissionBreakdownForUserMonth(input: {
   const teamAgentIds = teamAgents.map((agent) => agent.id);
 
   let deals: DealForCommission[] = [];
-  let bookedMeetings = 0;
+  let actualMeetings = 0;
   let hotMeetings = 0;
   let totalLeads = 0;
   if (teamAgentIds.length) {
-    [deals, bookedMeetings, hotMeetings, totalLeads] = await Promise.all([
+    [deals, actualMeetings, hotMeetings, totalLeads] = await Promise.all([
       prisma.deal.findMany({
         where: {
           status: "Closed_Won",
@@ -787,18 +789,18 @@ export async function buildCommissionBreakdownForUserMonth(input: {
         },
         include: { lead: { select: { classification: true, customerType: true } } },
       }),
-      prisma.callLog.count({
+      prisma.meeting.count({
         where: {
-          agentId: { in: teamAgentIds },
-          callStatus: BOOKED_MEETING_STATUS,
-          createdAt: { gte: start, lt: end },
+          teleAgentId: { in: teamAgentIds },
+          status: { in: ACTUAL_MEETING_STATUSES },
+          meetingDate: { gte: start, lt: end },
         },
       }),
-      prisma.callLog.count({
+      prisma.meeting.count({
         where: {
-          agentId: { in: teamAgentIds },
-          callStatus: BOOKED_MEETING_STATUS,
-          createdAt: { gte: start, lt: end },
+          teleAgentId: { in: teamAgentIds },
+          status: { in: ACTUAL_MEETING_STATUSES },
+          meetingDate: { gte: start, lt: end },
           lead: { classification: "Hot" },
         },
       }),
@@ -813,7 +815,7 @@ export async function buildCommissionBreakdownForUserMonth(input: {
 
   return computeTelesalesManagerCommission({
     deals,
-    coldMeetingsPerAgent: teamAgentIds.length ? bookedMeetings / teamAgentIds.length : 0,
+    coldMeetingsPerAgent: teamAgentIds.length ? actualMeetings / teamAgentIds.length : 0,
     hotMeetings,
     totalLeads,
     gatewayFeePct,
@@ -922,11 +924,11 @@ function salesTeamLeaderTargetBonusPct(achievementPct: number, params: Commissio
   return 0;
 }
 
-function telesalesTargetBonus(meetingsBooked: number, meetingsTarget: number, params: CommissionParams = DEFAULT_COMMISSION_PARAMS): number {
+function telesalesTargetBonus(actualMeetings: number, meetingsTarget: number, params: CommissionParams = DEFAULT_COMMISSION_PARAMS): number {
   if (meetingsTarget <= 0) return 0;
-  const achievementPct = (meetingsBooked / meetingsTarget) * 100;
+  const achievementPct = (actualMeetings / meetingsTarget) * 100;
   if (achievementPct >= params.telesalesTargetBonusHighThreshold) return params.telesalesTargetBonusHigh;
-  if (meetingsBooked === meetingsTarget) return params.telesalesTargetBonusExact;
+  if (actualMeetings === meetingsTarget) return params.telesalesTargetBonusExact;
   if (achievementPct > 100) return params.telesalesTargetBonusOver;
   return 0;
 }

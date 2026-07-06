@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { ACTUAL_MEETING_STATUSES } from "@/lib/meetings";
 
 export type MonthlyTargetRow = {
   month: string; // YYYY-MM
@@ -13,8 +14,8 @@ function monthKey(date: Date): string {
 /**
  * Per-month target vs achieved history for a single agent, newest month first.
  *
- * - Tele-sales agents are measured on meetings they booked (by meeting date),
- *   the same metric the Tele-Sales Manager tracks when setting the target.
+ * - Tele-sales agents are measured on actual meetings — ones the client really
+ *   attended (by meeting date), not merely booked.
  * - Sales agents are measured on deals they won (by close date).
  *
  * Every month that has either a target set or recorded activity is included so
@@ -34,7 +35,7 @@ export async function getAgentTargetHistory(input: { id: string; role: string })
 
   if (input.role === "tele_sales_agent") {
     const meetings = await prisma.meeting.findMany({
-      where: { teleAgentId: input.id },
+      where: { teleAgentId: input.id, status: { in: ACTUAL_MEETING_STATUSES } },
       select: { meetingDate: true },
     });
     for (const m of meetings) {
@@ -68,7 +69,7 @@ export async function getAgentTargetHistory(input: { id: string; role: string })
     status: "ok" as const,
     data: {
       role: input.role,
-      metric: input.role === "tele_sales_agent" ? "Meetings Booked" : "Deals Won",
+      metric: input.role === "tele_sales_agent" ? "Actual Meetings" : "Deals Won",
       months: rows,
     },
   };

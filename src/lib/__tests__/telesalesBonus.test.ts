@@ -27,7 +27,7 @@ describe("computeTelesalesBonusItems", () => {
 
   it("adds a meeting bonus and a per-conversion bonus", () => {
     const items = computeTelesalesBonusItems({
-      meetingsBooked: 30,
+      actualMeetings: 30,
       meetingsTarget: 20, // 150%
       conversions: 3,
       rules,
@@ -40,11 +40,11 @@ describe("computeTelesalesBonusItems", () => {
 
   it("adds no meeting bonus when target is zero or unmet", () => {
     expect(
-      computeTelesalesBonusItems({ meetingsBooked: 5, meetingsTarget: 0, conversions: 0, rules })
+      computeTelesalesBonusItems({ actualMeetings: 5, meetingsTarget: 0, conversions: 0, rules })
     ).toHaveLength(0);
 
     const belowTarget = computeTelesalesBonusItems({
-      meetingsBooked: 5,
+      actualMeetings: 5,
       meetingsTarget: 20,
       conversions: 0,
       rules,

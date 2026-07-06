@@ -52,7 +52,7 @@ describe("PDF commission rules", () => {
         { totalAmount: 3000, netTarget: 3000, paymentMethod: "Cash", lead: { classification: "Cold", customerType: "Special" } },
         { totalAmount: 4000, netTarget: 4000, paymentMethod: "Cash", lead: { classification: "Hot", customerType: "Special" } },
       ],
-      meetingsBooked: 10,
+      actualMeetings: 10,
       meetingsTarget: 10,
     });
 

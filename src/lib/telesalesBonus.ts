@@ -4,7 +4,8 @@ import type { BonusItem } from "./commissions";
  * TeleSales bonus rules (spec §14.4).
  *
  *   - A meetings-target bonus when the agent reaches 100% / 125% / 150% of their
- *     monthly meetings target (AgentTarget).
+ *     monthly meetings target (AgentTarget), measured on actual meetings — ones
+ *     the client really attended, not merely booked.
  *   - An extra per-conversion bonus for leads the agent handled that closed as
  *     Closed_Won deals.
  *
@@ -87,19 +88,20 @@ export function meetingBonusForAchievement(
  * without clobbering manual adjustments an accountant may have added.
  */
 export function computeTelesalesBonusItems(input: {
-  meetingsBooked: number;
+  /** Meetings the client actually attended (status Attended/Won/Lost). */
+  actualMeetings: number;
   meetingsTarget: number;
   conversions: number;
   rules: TelesalesBonusRules;
 }): BonusItem[] {
-  const { meetingsBooked, meetingsTarget, conversions, rules } = input;
+  const { actualMeetings, meetingsTarget, conversions, rules } = input;
   const items: BonusItem[] = [];
 
-  const achievementPct = meetingsTarget > 0 ? (meetingsBooked / meetingsTarget) * 100 : 0;
+  const achievementPct = meetingsTarget > 0 ? (actualMeetings / meetingsTarget) * 100 : 0;
   const tier = meetingBonusForAchievement(achievementPct, rules);
   if (tier && tier.amount > 0) {
     items.push({
-      reason: `Meetings target ${tier.achievementPct}% reached (${meetingsBooked}/${meetingsTarget})`,
+      reason: `Meetings target ${tier.achievementPct}% reached (${actualMeetings}/${meetingsTarget})`,
       amount: tier.amount,
       auto: true,
     });
