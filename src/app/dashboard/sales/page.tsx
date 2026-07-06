@@ -13,9 +13,11 @@ export default async function SalesWorkspacePage() {
   }
 
   const allowedStatuses = ["In_Sales", "Waiting", "Follow_Up", "Rescheduled", "Closed_Won", "Closed_Lost"];
-  const whereClause = user.role === "sales_agent" 
-    ? { assignedSalesAgentId: user.id, status: { in: allowedStatuses } } 
-    : { status: { in: allowedStatuses } };
+  // Managers oversee the whole funnel (they manage the TeleSales Manager too),
+  // so they see every lead including ones still being worked by TeleSales.
+  const whereClause = user.role === "sales_agent"
+    ? { assignedSalesAgentId: user.id, status: { in: allowedStatuses } }
+    : { status: { not: "Archived" } };
 
   const leads = await prisma.lead.findMany({
     where: whereClause,

@@ -253,11 +253,18 @@ export async function setAgentMonthlyTarget(input: {
 }) {
   const { actor, id, target, month } = input;
 
-  if (typeof target !== "number") return { status: "invalid_target" as const };
+  if (typeof target !== "number" || !Number.isFinite(target) || target < 0 || !Number.isInteger(target)) {
+    return { status: "invalid_target" as const };
+  }
 
   const targetUser = await findUserAuthorityFields(id);
   if (!targetUser) return { status: "not_found" as const };
 
+  // Each manager sets targets one level down the org chart: Chief Sales sets
+  // fund targets for Sales Managers; a Sales Manager sets a meetings target for
+  // "their" TeleSales Manager and fund targets for their own sales agents
+  // (plus orphan agents not yet routed to a manager); a TeleSales Manager sets
+  // meetings targets for their own tele agents. super_admin is unrestricted.
   if (
     actor.role === "tele_sales_manager" &&
     (targetUser.role !== "tele_sales_agent" || targetUser.directManagerId !== actor.id)
@@ -265,12 +272,23 @@ export async function setAgentMonthlyTarget(input: {
     return { status: "forbidden" as const };
   }
 
-  // A Sales Manager sets targets for their own sales agents (and orphan agents
-  // not yet routed to a manager), mirroring the My Team scope.
   if (
     actor.role === "sales_manager" &&
-    (targetUser.role !== "sales_agent" ||
-      (targetUser.directManagerId !== null && targetUser.directManagerId !== actor.id))
+    !(
+      (targetUser.role === "sales_agent" &&
+        (targetUser.directManagerId === null || targetUser.directManagerId === actor.id)) ||
+      (targetUser.role === "tele_sales_manager" && targetUser.directManagerId === actor.id)
+    )
+  ) {
+    return { status: "forbidden" as const };
+  }
+
+  if (
+    actor.role === "chief_sales" &&
+    !(
+      targetUser.role === "sales_manager" &&
+      (targetUser.directManagerId === null || targetUser.directManagerId === actor.id)
+    )
   ) {
     return { status: "forbidden" as const };
   }

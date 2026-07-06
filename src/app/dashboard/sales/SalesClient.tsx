@@ -17,6 +17,11 @@ import { isDateInRange } from "@/lib/dateRange";
 import { getLeadFollowUpDisplay, getLeadMeetingDisplay } from "@/lib/leadScheduleDisplay";
 import { PACKAGE_SERVICES, buildDealPackageLabel } from "@/lib/dealPackage";
 
+// Leads in these statuses are still being worked by the TeleSales team — the
+// sales manager sees them (he oversees TeleSales too) but they are view-only
+// here: no sales task can start until the lead is handed over.
+const TELESALES_STAGE_STATUSES = ["New", "Contacted", "No_Answer", "Interested", "Transferred"];
+
 export default function SalesClient({ initialLeads, userRole, userId, initialStatus, postSaleProjects = [], teamAgents = [] }: { initialLeads: any[], userRole: string, userId: string, initialStatus: string, postSaleProjects?: any[], teamAgents?: { id: string; name: string; status: string }[] }) {
   const router = useRouter();
   const isManager = ["sales_manager", "super_admin"].includes(userRole);
@@ -516,7 +521,8 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
     return isDateInRange(scheduleDate, { from: fromDate, to: toDate });
   });
 
-  // KPI counts. Total Leads is the universe (every lead in the period). Total
+  // KPI counts. Total Leads is the universe (every lead in the period — for
+  // managers that includes leads still being worked by TeleSales). Total
   // Meets is narrower: only the ones the sales agent actually started (pressed
   // Start Task, which sets meetingStartedAt).
   const totalLeads = timeFilteredLeads.length;
@@ -525,10 +531,13 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
   const followUp = timeFilteredLeads.filter(l => l.status === "Follow_Up").length;
   const rescheduled = timeFilteredLeads.filter(l => l.status === "Rescheduled").length;
   const closedLost = timeFilteredLeads.filter(l => l.status === "Closed_Lost").length;
+  const inTeleSales = timeFilteredLeads.filter(l => TELESALES_STAGE_STATUSES.includes(l.status)).length;
 
   const filteredLeads = timeFilteredLeads.filter(l => {
     if (logFilter === "All") {
-      return !["Closed_Won", "Closed_Lost"].includes(l.status);
+      return !["Closed_Won", "Closed_Lost"].includes(l.status) && !TELESALES_STAGE_STATUSES.includes(l.status);
+    } else if (logFilter === "TeleSales") {
+      if (!TELESALES_STAGE_STATUSES.includes(l.status)) return false;
     } else if (logFilter === "Meets") {
       if (!l.meetingStartedAt) return false;
     } else if (logFilter === "Closed_Won") {
@@ -606,7 +615,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
       {activeTab === "leads" ? (
         <>
           {/* Workspace Summary Filters */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+          <div className={`grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 ${isManager ? "lg:grid-cols-7" : "lg:grid-cols-6"}`}>
         <div
           onClick={() => setLogFilter("All")}
           className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "All" ? "border-blue-500 bg-blue-50" : "border-transparent bg-white hover:bg-gray-50"}`}
@@ -617,6 +626,19 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
           </div>
           <p className="text-2xl font-bold text-gray-900">{totalLeads}</p>
         </div>
+
+        {isManager && (
+          <div
+            onClick={() => setLogFilter(logFilter === "TeleSales" ? "All" : "TeleSales")}
+            className={`cursor-pointer rounded-xl p-4 shadow-sm transition-all border-2 ${logFilter === "TeleSales" ? "border-indigo-500 bg-indigo-50" : "border-transparent bg-white hover:bg-gray-50"}`}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <PhoneCall className="h-5 w-5 text-indigo-500" />
+              <span className="text-xs font-bold uppercase text-gray-500">In TeleSales</span>
+            </div>
+            <p className="text-2xl font-bold text-gray-900">{inTeleSales}</p>
+          </div>
+        )}
 
         <div
           onClick={() => setLogFilter("Meets")}
@@ -751,7 +773,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       <div className="flex items-center gap-2">
                         {l.salesAgent?.name || <span className="text-gray-400 italic">Unassigned</span>}
-                        {l.status !== "Closed_Won" && (
+                        {l.status !== "Closed_Won" && !TELESALES_STAGE_STATUSES.includes(l.status) && (
                           <button
                             onClick={() => { setReassignLead(l); setReassignAgentId(""); }}
                             title={l.status === "Closed_Lost" ? "Reassign this lost meeting to another agent for a fresh attempt" : "Reassign meeting to another agent"}
@@ -809,7 +831,11 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                    {l.status === "Closed_Won" ? (
+                    {TELESALES_STAGE_STATUSES.includes(l.status) ? (
+                      <span className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-md text-xs font-bold" title="Still being worked by TeleSales — not yet handed over to Sales">
+                        In TeleSales
+                      </span>
+                    ) : l.status === "Closed_Won" ? (
                       <span className="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-md text-xs font-bold">✓ Won</span>
                     ) : l.status === "Closed_Lost" ? (
                       <span className="inline-flex items-center gap-2">

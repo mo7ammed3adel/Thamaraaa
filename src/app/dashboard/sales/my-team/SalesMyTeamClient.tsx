@@ -4,6 +4,7 @@ import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
 import { Users, Flame, Snowflake, Sun, Handshake, XCircle, DollarSign, Briefcase, Calendar, ChevronDown } from "lucide-react";
 import { updateUserSpecialization, updateUserTarget } from "@/client/api/users";
+import { formatSarSuffix } from "@/shared/formatters/currency";
 
 interface Agent {
   id: string;
@@ -16,6 +17,8 @@ interface Agent {
   lostCount: number;
   revenue: number;
   dealsWonCount: number;
+  /** This month's contracted deal value (Closed_Won + Pending), compared against the fund target. */
+  monthlyFund: number;
   target: number;
   _count: {
     salesLeads: number;
@@ -168,7 +171,7 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
               <span className="text-xs font-semibold uppercase opacity-80">Total Revenue</span>
             </div>
           </div>
-          <p className="text-3xl font-bold">{dRevenue.toLocaleString()} <span className="text-sm font-normal opacity-80">SAR</span></p>
+          <p className="text-3xl font-bold">{formatSarSuffix(dRevenue, { maximumFractionDigits: 0 })}</p>
         </div>
       </div>
 
@@ -293,7 +296,7 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
                 >
                   Closed Deals {sortBy === "won" ? "↓" : ""}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monthly Target</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monthly Fund Target (SAR)</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Win Rate</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Specialization</th>
@@ -333,16 +336,22 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col gap-1.5">
                         {agent.target > 0 && (
-                          <div className="w-24 bg-gray-200 rounded-full h-1.5">
+                          <div
+                            className="w-28 bg-gray-200 rounded-full h-1.5"
+                            title={`This month: ${formatSarSuffix(agent.monthlyFund, { maximumFractionDigits: 0 })} / ${formatSarSuffix(agent.target, { maximumFractionDigits: 0 })}`}
+                          >
                             <div
                               className={`h-1.5 rounded-full ${
-                                (agent.dealsWonCount / agent.target) >= 1 ? 'bg-green-500' :
-                                (agent.dealsWonCount / agent.target) >= 0.5 ? 'bg-yellow-400' : 'bg-red-400'
+                                (agent.monthlyFund / agent.target) >= 1 ? 'bg-green-500' :
+                                (agent.monthlyFund / agent.target) >= 0.5 ? 'bg-yellow-400' : 'bg-red-400'
                               }`}
-                              style={{ width: `${Math.min(100, (agent.dealsWonCount / agent.target) * 100)}%` }}
+                              style={{ width: `${Math.min(100, (agent.monthlyFund / agent.target) * 100)}%` }}
                             />
                           </div>
                         )}
+                        <span className="text-xs font-semibold text-gray-600">
+                          {formatSarSuffix(agent.monthlyFund, { maximumFractionDigits: 0 })}
+                        </span>
                         <input
                           type="number"
                           min={0}
@@ -351,8 +360,8 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
                             const val = parseInt(e.target.value) || 0;
                             if (val !== agent.target) updateTarget(agent.id, val);
                           }}
-                          className="w-20 border border-gray-200 rounded-md px-2 py-1 text-sm focus:ring-2 focus:ring-green-500"
-                          title="Deals target for the current month"
+                          className="w-24 border border-gray-200 rounded-md px-2 py-1 text-sm focus:ring-2 focus:ring-green-500"
+                          title="Fund target (SAR) for the current month"
                         />
                       </div>
                     </td>

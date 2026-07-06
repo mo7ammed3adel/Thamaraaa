@@ -9,7 +9,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     const actor = session?.user as any;
 
     // Only allow managers or super admins
-    if (!session || !["super_admin", "tele_sales_manager", "sales_manager"].includes(actor?.role)) {
+    if (!session || !["super_admin", "tele_sales_manager", "sales_manager", "chief_sales"].includes(actor?.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -23,13 +23,13 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     });
 
     if (result.status === "invalid_target") {
-      return NextResponse.json({ error: "Invalid target value" }, { status: 400 });
+      return NextResponse.json({ error: "Target must be a non-negative whole number" }, { status: 400 });
     }
     if (result.status === "not_found") {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
     if (result.status === "forbidden") {
-      return NextResponse.json({ error: "Forbidden: you can only set targets for your own direct agents" }, { status: 403 });
+      return NextResponse.json({ error: "Forbidden: you can only set targets inside your reporting hierarchy" }, { status: 403 });
     }
 
     return NextResponse.json(result.target);

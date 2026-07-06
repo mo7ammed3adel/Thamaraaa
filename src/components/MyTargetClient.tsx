@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Target, TrendingUp, Trophy, CalendarDays } from "lucide-react";
+import { CalendarDays, Target, TrendingUp, Trophy } from "lucide-react";
 import { getMyTarget } from "@/client/api/analytics";
+import { formatSarSuffix } from "@/shared/formatters/currency";
 
 interface MonthlyTargetRow {
   month: string; // YYYY-MM
@@ -12,6 +13,7 @@ interface MonthlyTargetRow {
 interface TargetData {
   role: string;
   metric: string;
+  unit?: "meetings" | "SAR";
   months: MonthlyTargetRow[];
 }
 
@@ -26,6 +28,13 @@ function barColor(pct: number): string {
   if (pct >= 60) return "bg-blue-500";
   if (pct >= 30) return "bg-amber-500";
   return "bg-red-500";
+}
+
+function formatTargetValue(value: number | null | undefined, unit?: string): string {
+  if (unit === "SAR") {
+    return formatSarSuffix(value, { maximumFractionDigits: 0 });
+  }
+  return Number(value ?? 0).toLocaleString();
 }
 
 export default function MyTargetClient() {
@@ -48,7 +57,7 @@ export default function MyTargetClient() {
   }, []);
 
   if (loading) {
-    return <div className="text-sm text-gray-500 py-10 text-center">Loading your target history…</div>;
+    return <div className="text-sm text-gray-500 py-10 text-center">Loading your target history...</div>;
   }
 
   if (!data || data.months.length === 0) {
@@ -57,7 +66,7 @@ export default function MyTargetClient() {
         <Target className="h-10 w-10 text-gray-300 mx-auto mb-3" />
         <p className="text-sm font-semibold text-gray-600">No target set yet</p>
         <p className="text-xs text-gray-400 mt-1">
-          Your manager hasn&apos;t assigned a monthly target. Once they do, your monthly progress will appear here.
+          Your manager has not assigned a monthly target. Once they do, your monthly progress will appear here.
         </p>
       </div>
     );
@@ -66,24 +75,20 @@ export default function MyTargetClient() {
   const currentMonthKey = new Date().toISOString().slice(0, 7);
   const currentRow = data.months.find((m) => m.month === currentMonthKey);
   const currentPct =
-    currentRow && currentRow.target > 0
-      ? Math.round((currentRow.achieved / currentRow.target) * 100)
-      : 0;
+    currentRow && currentRow.target > 0 ? Math.round((currentRow.achieved / currentRow.target) * 100) : 0;
 
   return (
     <div className="space-y-6">
-      {/* Current month highlight */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-xl p-5 text-white shadow-lg">
           <div className="flex items-center gap-2 mb-2 opacity-90">
             <CalendarDays className="h-4 w-4" />
             <span className="text-xs font-semibold uppercase tracking-wide">This Month</span>
           </div>
-          <p className="text-3xl font-bold">{currentRow?.achieved ?? 0}</p>
-          <p className="text-xs opacity-80 mt-1">
-            of {currentRow?.target ?? 0} {data.metric.toLowerCase()}
-          </p>
+          <p className="text-3xl font-bold">{formatTargetValue(currentRow?.achieved ?? 0, data.unit)}</p>
+          <p className="text-xs opacity-80 mt-1">of {formatTargetValue(currentRow?.target ?? 0, data.unit)}</p>
         </div>
+
         <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-2 text-gray-500">
             <TrendingUp className="h-4 w-4" />
@@ -94,6 +99,7 @@ export default function MyTargetClient() {
           </p>
           <p className="text-xs text-gray-400 mt-1">of your monthly target</p>
         </div>
+
         <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-2 text-gray-500">
             <Trophy className="h-4 w-4" />
@@ -104,7 +110,6 @@ export default function MyTargetClient() {
         </div>
       </div>
 
-      {/* Monthly bars */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
         <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-4">Monthly Performance</h3>
         <div className="space-y-4">
@@ -113,8 +118,8 @@ export default function MyTargetClient() {
             const width = Math.min(100, pct);
             const isCurrent = row.month === currentMonthKey;
             return (
-              <div key={row.month} className={`${isCurrent ? "bg-indigo-50/60 -mx-2 px-2 py-2 rounded-lg" : ""}`}>
-                <div className="flex items-center justify-between mb-1.5">
+              <div key={row.month} className={isCurrent ? "bg-indigo-50/60 -mx-2 px-2 py-2 rounded-lg" : ""}>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-gray-800">{formatMonthLabel(row.month)}</span>
                     {isCurrent && (
@@ -125,8 +130,11 @@ export default function MyTargetClient() {
                   </div>
                   <div className="flex items-center gap-3 text-sm">
                     <span className="font-bold text-gray-900">
-                      {row.achieved}
-                      <span className="text-gray-400 font-normal"> / {row.target || "—"}</span>
+                      {formatTargetValue(row.achieved, data.unit)}
+                      <span className="text-gray-400 font-normal">
+                        {" / "}
+                        {row.target ? formatTargetValue(row.target, data.unit) : "-"}
+                      </span>
                     </span>
                     {row.target > 0 && (
                       <span
@@ -141,10 +149,7 @@ export default function MyTargetClient() {
                 </div>
                 <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden">
                   {row.target > 0 ? (
-                    <div
-                      className={`h-3 rounded-full transition-all ${barColor(pct)}`}
-                      style={{ width: `${width}%` }}
-                    />
+                    <div className={`h-3 rounded-full transition-all ${barColor(pct)}`} style={{ width: `${width}%` }} />
                   ) : (
                     <div className="h-3 flex items-center pl-2">
                       <span className="text-[10px] text-gray-400 italic">No target set for this month</span>

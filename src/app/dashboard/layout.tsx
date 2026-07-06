@@ -107,6 +107,16 @@ export default async function DashboardLayout({
                 <TrendingUp className="mr-3 h-5 w-5 opacity-75" />
                 Pipeline
               </Link>
+              <Link href="/dashboard/chief-sales/sales-managers" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
+                <Users className="mr-3 h-5 w-5 opacity-75" />
+                Sales Managers
+              </Link>
+              {role === "chief_sales" && (
+                <Link href="/dashboard/chief-sales/my-target" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
+                  <Target className="mr-3 h-5 w-5 opacity-75" />
+                  My Target
+                </Link>
+              )}
             </>
           )}
 
@@ -136,6 +146,12 @@ export default async function DashboardLayout({
                     <BarChart3 className="mr-3 h-5 w-5 opacity-75" />
                     Team Analytics
                   </Link>
+                  {role === "tele_sales_manager" && (
+                    <Link href="/dashboard/telesales/my-target" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
+                      <Target className="mr-3 h-5 w-5 opacity-75" />
+                      My Target
+                    </Link>
+                  )}
                   <Link href="/dashboard/telesales/recycle" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
                     <RotateCcw className="mr-3 h-5 w-5 opacity-75" />
                     Recycle Hot Leads
@@ -194,6 +210,12 @@ export default async function DashboardLayout({
                     <BarChart3 className="mr-3 h-5 w-5 opacity-75" />
                     Team Analytics
                   </Link>
+                  {role === "sales_manager" && (
+                    <Link href="/dashboard/sales/my-target" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
+                      <Target className="mr-3 h-5 w-5 opacity-75" />
+                      My Target
+                    </Link>
+                  )}
                   <Link href="/dashboard/sales/recycle-bin" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
                     <RotateCcw className="mr-3 h-5 w-5 opacity-75" />
                     Recycle Bin
