@@ -19,6 +19,10 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# This project keeps its assets under src/app and has no public/ directory.
+# Creating it unconditionally keeps the runtime COPY below valid either way.
+RUN mkdir -p public
+
 # The build only needs a syntactically valid URL: Prisma reads the real one at
 # runtime, and no page queries the database while building.
 ENV DATABASE_URL="postgresql://user:pass@localhost:5432/db"
