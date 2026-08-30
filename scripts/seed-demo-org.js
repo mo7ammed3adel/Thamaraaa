@@ -11,9 +11,27 @@
  * Every seeded account signs in with the password in DEMO_PASSWORD below.
  */
 const { PrismaClient } = require("@prisma/client");
-const bcrypt = require("bcryptjs");
 
 const prisma = new PrismaClient();
+
+/**
+ * The production runtime image is a Next.js standalone build, which carries
+ * only the dependencies the server traced — bcryptjs is bundled into the app
+ * chunks and is not resolvable as a module there. So the hash may be supplied
+ * ready-made through DEMO_PASSWORD_HASH, and bcryptjs is used only when it is
+ * actually installed (a normal dev checkout).
+ */
+async function resolvePasswordHash() {
+  if (process.env.DEMO_PASSWORD_HASH) return process.env.DEMO_PASSWORD_HASH;
+  try {
+    const bcrypt = require("bcryptjs");
+    return bcrypt.hash(DEMO_PASSWORD, 10);
+  } catch {
+    throw new Error(
+      "bcryptjs is not available here — pass a ready-made hash in DEMO_PASSWORD_HASH"
+    );
+  }
+}
 
 const DEMO_PASSWORD = "Thamaraa@2026";
 const COMPANY_NAME = "Thamara";
@@ -91,7 +109,7 @@ const email = (key) => `${key}@thamaraa.com`;
 const pad = (n, width = 3) => String(n).padStart(width, "0");
 
 async function main() {
-  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+  const passwordHash = await resolvePasswordHash();
 
   const company =
     (await prisma.company.findUnique({ where: { name: COMPANY_NAME } })) ||
