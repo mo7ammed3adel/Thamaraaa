@@ -44,7 +44,9 @@ services:
   # two can be backed up, upgraded and broken independently. Never published to
   # the host: only the app container reaches it, over the private network.
   db:
-    image: postgres:16-alpine
+    # Matches the Postgres major version the data was dumped from, so a restore
+    # never has to go from a newer server to an older one.
+    image: postgres:17-alpine
     container_name: thamaraa-db
     restart: unless-stopped
     environment:
