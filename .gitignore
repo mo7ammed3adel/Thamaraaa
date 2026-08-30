@@ -55,3 +55,10 @@ ts_errors.txt
 
 # never commit real secrets
 .env.production
+
+# one-off data-migration scratch files (may contain user records)
+restore-users.json
+restore-users.js
+neon-backup.dump
+*.dump
+server-leads-*.sql
