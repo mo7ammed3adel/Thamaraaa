@@ -1,3 +1,4 @@
+import type { AutoAssignLeadResult } from "@/lib/autoAssign";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -32,11 +33,10 @@ export async function POST(_request: Request, { params }: { params: { id: string
       return NextResponse.json({ error: "This meeting is already distributed." }, { status: 409 });
     }
     if (result.status === "auto_assign_failed") {
-      const message =
-        result.result.reason === "no_available_sales_agents"
-          ? "No available sales agents right now. The lead was moved to Waiting."
-          : "Lead not found";
-      return NextResponse.json({ error: message, result: result.result }, { status: 409 });
+      return NextResponse.json(
+        { error: describeAutoAssignFailure(result.result), result: result.result },
+        { status: 409 }
+      );
     }
 
     return NextResponse.json({ success: true, result: result.result, lead: result.lead });
@@ -44,4 +44,30 @@ export async function POST(_request: Request, { params }: { params: { id: string
     console.error("Failed to distribute meeting:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
+}
+
+/**
+ * Turns an auto-assign failure into a message the Tele Sales manager can act on.
+ * An empty roster is a setup problem to fix; everyone being busy or absent is a
+ * transient state that clears on its own, so the two read differently.
+ */
+function describeAutoAssignFailure(result: AutoAssignLeadResult): string {
+  if (result.assigned) return "";
+
+  if (result.reason === "no_sales_agents_in_company") {
+    const company = result.companyName ? `"${result.companyName}"` : "this client's company";
+    return `No sales agent belongs to ${company}, so the lead was moved to Waiting. Add a sales agent to that company, or move the client to a company that has one — retrying will not help on its own.`;
+  }
+
+  if (result.reason === "no_available_sales_agents") {
+    const { total, absent, busy, inMeeting } = result.blockers;
+    const parts: string[] = [];
+    if (absent > 0) parts.push(`${absent} not checked in`);
+    if (busy > 0) parts.push(`${busy} marked busy`);
+    if (inMeeting > 0) parts.push(`${inMeeting} inside a meeting`);
+    const detail = parts.length > 0 ? ` (${parts.join(", ")})` : "";
+    return `All ${total} sales agents are unavailable right now${detail}. The lead was moved to Waiting — distribute it again once someone is free.`;
+  }
+
+  return "Lead not found";
 }

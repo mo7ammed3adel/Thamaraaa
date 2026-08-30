@@ -1,0 +1,40 @@
+# Thamaraa CRM — runs alongside the existing hermes stack on this host.
+#
+# The container joins hermes' network so the Caddy container (hermes_dashboard,
+# which owns 80/443) can reach it as http://thamaraa-crm:3000 and terminate TLS
+# for it. The published port is bound to 127.0.0.1 so the app is never served
+# over plain HTTP from the outside — cookies here are Secure-only in production.
+services:
+  thamaraa-crm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: thamaraa-crm:latest
+    container_name: thamaraa-crm
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${APP_PORT:-3001}:3000"
+    env_file:
+      - .env.production
+    healthcheck:
+      # /login is public, so a healthy response proves the app booted and can
+      # render, without needing a session.
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/login"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - default
+      - hermes
+
+networks:
+  # Created by the hermes stack; referenced, never managed, from here.
+  hermes:
+    name: hermes_hermes
+    external: true
