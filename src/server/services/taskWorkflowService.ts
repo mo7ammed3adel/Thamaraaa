@@ -7,6 +7,7 @@ import {
   userCanAccessProject,
 } from "@/lib/distribution";
 import { getDefaultChecklistForTaskType } from "@/lib/constants";
+import { isWorkBlockedByLifecycle } from "@/lib/lifecycle";
 import {
   ACCOUNT_MANAGER_ROLES,
   AGENT_ASSIGNER_ROLES,
@@ -35,6 +36,7 @@ import {
   findParentTaskForSubTask,
   findProjectForTaskGeneration,
   findProjectHeadSeo,
+  findProjectLifecycleState,
   findProjectNameForTask,
   findProjectTasksForProgress,
   findTasksForList,
@@ -182,6 +184,18 @@ const SERVICE_CONFIG = {
     ],
   },
 } as const;
+
+/**
+ * Guards every write that moves delivery work forward. A client on Hold or Lost
+ * accepts no new tasks and no forward task progress until the Account Manager
+ * puts them back to Active or Renewer.
+ * @returns a blocking result to return to the caller, or null when work may proceed
+ */
+async function findLifecycleBlock(projectId: string) {
+  const project = await findProjectLifecycleState(projectId);
+  if (!project || !isWorkBlockedByLifecycle(project.lifecycleState)) return null;
+  return { status: "lifecycle_blocked" as const, lifecycleState: project.lifecycleState };
+}
 
 function getBodyLeaderId(body: any, keys: readonly string[]) {
   for (const key of keys) {
@@ -360,6 +374,9 @@ export async function createSelfTask(input: {
     return { status: "project_forbidden" as const };
   }
 
+  const lifecycleBlock = await findLifecycleBlock(projectId);
+  if (lifecycleBlock) return lifecycleBlock;
+
   const trimmedBrief = brief.trim();
   const task = await createSelfAssignedTaskWithLog({
     projectId,
@@ -420,6 +437,9 @@ export async function createProjectTask(input: {
   if (!projectAllowed) {
     return { status: "project_forbidden" as const };
   }
+
+  const lifecycleBlock = await findLifecycleBlock(projectId);
+  if (lifecycleBlock) return lifecycleBlock;
 
   let finalLeaderId = leaderId;
   let finalAssignedRole = assignedRole;
@@ -624,6 +644,9 @@ export async function updateTask(input: {
     }
 
     if (["in_progress", "review", "done"].includes(body.status)) {
+      const lifecycleBlock = await findLifecycleBlock(existingTask.projectId);
+      if (lifecycleBlock) return lifecycleBlock;
+
       const blockers = await checkProjectBlockers(existingTask.projectId);
       if (blockers.isBlocked) {
         return { status: "blocked" as const, warnings: blockers.warnings };
@@ -784,6 +807,9 @@ export async function generateProjectTasks(input: {
   if (!projectAllowed) {
     return { status: "project_forbidden" as const };
   }
+
+  const lifecycleBlock = await findLifecycleBlock(projectId);
+  if (lifecycleBlock) return lifecycleBlock;
 
   if (parentTaskId) {
     const taskType = packageType || "graphic_design";

@@ -1,6 +1,7 @@
 import { getSessionUser } from "@/server/auth/session";
 import { errorJson, successJson, unauthorizedJson } from "@/server/http/responses";
 import { createProjectTask, listTasksForUser } from "@/server/services/taskWorkflowService";
+import { lifecycleBlockedMessage } from "@/lib/lifecycle";
 
 export async function POST(req: Request) {
   try {
@@ -18,6 +19,11 @@ export async function POST(req: Request) {
     if (result.status === "missing_project_or_task_type") return errorJson("projectId and taskType are required", 400);
     if (result.status === "invalid_task_link") return errorJson("taskLink must be a valid http(s) URL", 400);
     if (result.status === "project_forbidden") return errorJson("Forbidden: you are not on this project", 403);
+    if (result.status === "lifecycle_blocked") {
+      return errorJson(lifecycleBlockedMessage(result.lifecycleState), 409, {
+        lifecycleState: result.lifecycleState,
+      });
+    }
     if (result.status === "leader_not_found") {
       return errorJson(
         `Cannot find a leader for task type "${result.taskType}". Please ensure a leader with the correct role exists in the system.`,

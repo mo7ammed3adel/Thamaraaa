@@ -69,10 +69,10 @@ export default function LifecycleChangeModal({
 
   /** Labels and descriptions for each state for better UX */
   const stateDescriptions: Record<string, string> = {
-    [LIFECYCLE_STATE.ACTIVE]: "Client is active and operations are running",
-    [LIFECYCLE_STATE.HOLD]: "Temporarily pause operations for this client",
-    [LIFECYCLE_STATE.RENEWER]: "Client renewed their contract for another period",
-    [LIFECYCLE_STATE.LOST]: "Client has left or contract terminated",
+    [LIFECYCLE_STATE.ACTIVE]: "العميل شغال والفرق بتشتغل عليه عادي",
+    [LIFECYCLE_STATE.HOLD]: "إيقاف مؤقت — مفيش تاسكات جديدة ولا تقدم في التاسكات الحالية",
+    [LIFECYCLE_STATE.RENEWER]: "العميل جدّد العقد لفترة جديدة — الشغل مستمر",
+    [LIFECYCLE_STATE.LOST]: "العميل فقد أو العقد اتلغى — الشغل بيقف",
   };
 
   return (

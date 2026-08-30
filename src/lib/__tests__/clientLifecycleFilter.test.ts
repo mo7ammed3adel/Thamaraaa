@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { matchesClientLifecycleFilters } from "../clientLifecycleFilter";
+import { countProjectsByLifecycleState, matchesClientLifecycleFilters } from "../clientLifecycleFilter";
 
 const lifecycleLog = (to: string, createdAt: string) => ({
   action: "lifecycle_changed",
@@ -73,5 +73,23 @@ describe("client lifecycle filters", () => {
         to: "2026-07-05",
       })
     ).toBe(false);
+  });
+});
+
+describe("countProjectsByLifecycleState", () => {
+  it("counts every state and reports zero for the ones with no clients", () => {
+    const counts = countProjectsByLifecycleState([
+      { lifecycleState: "Active" },
+      { lifecycleState: "Active" },
+      { lifecycleState: "Lost" },
+    ]);
+
+    expect(counts).toEqual({ Active: 2, Hold: 0, Renewer: 0, Lost: 1 });
+  });
+
+  it("counts a project with no stored state as Active", () => {
+    const counts = countProjectsByLifecycleState([{ lifecycleState: null }, {}]);
+
+    expect(counts.Active).toBe(2);
   });
 });

@@ -1,11 +1,11 @@
 "use client";
 
 import React from "react";
-import { AlertTriangle, FileEdit, Send } from "lucide-react";
+import { AlertTriangle, FileEdit, KeyRound, Send } from "lucide-react";
 import LifecycleStateBadge from "@/components/LifecycleStateBadge";
 import TeamOverview from "@/components/TeamOverview";
 import DateRangeFilter from "@/components/dashboard/DateRangeFilter";
-import { LIFECYCLE_STATE } from "@/lib/constants";
+import { LIFECYCLE_STATE, getLifecycleLabelAr } from "@/lib/constants";
 
 type AccountManagerClientsTableProps = {
   filteredProjects: any[];
@@ -28,6 +28,7 @@ type AccountManagerClientsTableProps = {
   setTechnicalModalProject: (project: any) => void;
   setDistributeModalProject: (project: any) => void;
   setLifecycleModalProject: (project: any) => void;
+  setClientAccountProject: (project: any) => void;
 };
 
 const getProgressColor = (val: number) => val < 30 ? "bg-red-500" : val < 70 ? "bg-amber-400" : "bg-emerald-500";
@@ -105,6 +106,7 @@ export default function AccountManagerClientsTable({
   setTechnicalModalProject,
   setDistributeModalProject,
   setLifecycleModalProject,
+  setClientAccountProject,
 }: AccountManagerClientsTableProps) {
   const hasActiveClientFilters = Boolean(
     searchQuery || filterLifecycle !== "all" || lifecycleFromDate || lifecycleToDate
@@ -134,10 +136,11 @@ export default function AccountManagerClientsTable({
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
               >
                 <option value="all">All statuses</option>
-                <option value={LIFECYCLE_STATE.ACTIVE}>Active</option>
-                <option value={LIFECYCLE_STATE.HOLD}>Hold</option>
-                <option value={LIFECYCLE_STATE.RENEWER}>Renewer</option>
-                <option value={LIFECYCLE_STATE.LOST}>Lost</option>
+                {Object.values(LIFECYCLE_STATE).map((state) => (
+                  <option key={state} value={state}>
+                    {getLifecycleLabelAr(state)}
+                  </option>
+                ))}
               </select>
             </label>
           </div>
@@ -202,7 +205,14 @@ export default function AccountManagerClientsTable({
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <LifecycleStateBadge state={project.lifecycleState || "Active"} />
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setLifecycleModalProject(project); }}
+                        title="تغيير حالة العميل"
+                        className="inline-flex flex-col items-center gap-1 rounded-lg px-2 py-1 hover:bg-slate-100 transition"
+                      >
+                        <LifecycleStateBadge state={project.lifecycleState || LIFECYCLE_STATE.ACTIVE} />
+                        <span className="text-[10px] font-bold text-indigo-600">تغيير الحالة</span>
+                      </button>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex flex-col gap-1 items-center">
@@ -249,6 +259,12 @@ export default function AccountManagerClientsTable({
                           className="px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg text-xs font-bold hover:bg-red-100 transition inline-flex items-center justify-center gap-2"
                         >
                           <AlertTriangle className="w-3 h-3" /> Issue Warning
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setClientAccountProject(project); }}
+                          className="px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold hover:bg-emerald-100 transition inline-flex items-center justify-center gap-2"
+                        >
+                          <KeyRound className="w-3 h-3" /> بيانات دخول العميل
                         </button>
                       </div>
                     </td>
@@ -299,15 +315,6 @@ export default function AccountManagerClientsTable({
                                   )}
                                 </div>
 
-                                <div className="flex justify-between items-center pt-2 border-t mt-2">
-                                  <span className="text-xs text-slate-500 font-medium">Lifecycle State:</span>
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); setLifecycleModalProject(project); }}
-                                      className="text-xs font-bold px-3 py-1 bg-slate-100 text-slate-700 border rounded hover:bg-slate-200 transition"
-                                    >
-                                      Manage State
-                                    </button>
-                                </div>
                               </div>
                             </div>
 

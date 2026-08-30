@@ -1,6 +1,7 @@
 import { getSessionUser } from "@/server/auth/session";
 import { errorJson, successJson, unauthorizedJson } from "@/server/http/responses";
 import { createSelfTask } from "@/server/services/taskWorkflowService";
+import { lifecycleBlockedMessage } from "@/lib/lifecycle";
 
 /**
  * POST /api/tasks/self
@@ -28,6 +29,11 @@ export async function POST(req: Request) {
     if (result.status === "missing_task_type") return errorJson("Task type is required", 400);
     if (result.status === "project_not_found") return errorJson("Project not found", 404);
     if (result.status === "project_forbidden") return errorJson("You are not assigned to this project", 403);
+    if (result.status === "lifecycle_blocked") {
+      return errorJson(lifecycleBlockedMessage(result.lifecycleState), 409, {
+        lifecycleState: result.lifecycleState,
+      });
+    }
 
     return successJson({ success: true, task: result.task });
   } catch (error: any) {

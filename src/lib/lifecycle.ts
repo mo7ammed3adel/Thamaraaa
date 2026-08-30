@@ -1,4 +1,10 @@
-import { LIFECYCLE_STATE, LIFECYCLE_TRANSITIONS, LIFECYCLE_CHANGE_ROLES } from "./constants";
+import {
+  LIFECYCLE_STATE,
+  LIFECYCLE_TRANSITIONS,
+  LIFECYCLE_CHANGE_ROLES,
+  WORK_BLOCKING_LIFECYCLE_STATES,
+  getLifecycleLabelAr,
+} from "./constants";
 
 /**
  * Validates whether a lifecycle state transition is allowed.
@@ -63,4 +69,25 @@ export function canChangeLifecycle(
   }
 
   return false;
+}
+
+/**
+ * Whether a project's lifecycle state pauses delivery work on it.
+ * Hold and Lost clients accept no new tasks and no forward task progress;
+ * Active and Renewer clients work normally. An unset state is treated as Active
+ * so legacy rows are never blocked.
+ * @param lifecycleState The project's current lifecycle state
+ * @returns true when work on the project must be blocked
+ */
+export function isWorkBlockedByLifecycle(lifecycleState: string | null | undefined): boolean {
+  if (!lifecycleState) return false;
+  return (WORK_BLOCKING_LIFECYCLE_STATES as readonly string[]).includes(lifecycleState);
+}
+
+/**
+ * The single message every blocked endpoint returns, naming the state with the
+ * same Arabic label the user sees on the client's badge.
+ */
+export function lifecycleBlockedMessage(lifecycleState: string | null | undefined): string {
+  return `Client status is "${getLifecycleLabelAr(lifecycleState)}" — work on this client is paused. The Account Manager must set the client back to Active or Renewer first.`;
 }

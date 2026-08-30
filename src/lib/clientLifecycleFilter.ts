@@ -1,4 +1,5 @@
 import { DateRangeValue, isDateInRange } from "@/lib/dateRange";
+import { LIFECYCLE_STATE } from "@/lib/constants";
 
 type LifecycleLog = {
   action?: string | null;
@@ -55,4 +56,23 @@ export function matchesClientLifecycleFilters(project: LifecycleProject, filters
 
   const lifecycleDate = getClientLifecycleFilterDate(project, selectedState);
   return isDateInRange(lifecycleDate, { from: filters.from, to: filters.to });
+}
+
+/**
+ * Counts projects per lifecycle state so a dashboard can show one tile per
+ * state. Every state is present in the result (0 when nothing matches), and a
+ * project with no stored state counts as Active — the schema default.
+ */
+export function countProjectsByLifecycleState(
+  projects: LifecycleProject[]
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const state of Object.values(LIFECYCLE_STATE)) counts[state] = 0;
+
+  for (const project of projects) {
+    const state = project.lifecycleState || LIFECYCLE_STATE.ACTIVE;
+    counts[state] = (counts[state] || 0) + 1;
+  }
+
+  return counts;
 }

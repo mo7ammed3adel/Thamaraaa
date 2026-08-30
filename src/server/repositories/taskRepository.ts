@@ -69,6 +69,13 @@ export function findProjectHeadSeo(projectId: string) {
   });
 }
 
+export function findProjectLifecycleState(projectId: string) {
+  return prisma.project.findUnique({
+    where: { id: projectId },
+    select: { lifecycleState: true },
+  });
+}
+
 export function findProjectNameForTask(projectId: string) {
   return prisma.project.findUnique({
     where: { id: projectId },

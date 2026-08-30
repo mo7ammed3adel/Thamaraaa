@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import ClientDetailModal from "@/components/ClientDetailModal";
 import CreateWarningModal from "@/components/CreateWarningModal";
 import LifecycleChangeModal from "@/components/LifecycleChangeModal";
+import ClientAccountModal from "@/components/ClientAccountModal";
 import DistributeModal from "@/components/DistributeModal";
 import { setupProject } from "@/client/api/projects";
 import { generateTasks } from "@/client/api/tasks";
@@ -41,8 +42,9 @@ export default function AccountManagerClient({ userId, projects, kpis, headTechn
   const [distributeModalProject, setDistributeModalProject] = useState<any>(null);
   const [lifecycleModalProject, setLifecycleModalProject] = useState<any>(null);
   const [setupModalProject, setSetupModalProject] = useState<any>(null);
+  const [clientAccountProject, setClientAccountProject] = useState<any>(null);
 
-  const { filteredProjects, filteredTasks } = useAccountManagerDerivedData({
+  const { filteredProjects, filteredTasks, lifecycleCounts } = useAccountManagerDerivedData({
     projects,
     searchQuery,
     activeKpi,
@@ -129,7 +131,14 @@ export default function AccountManagerClient({ userId, projects, kpis, headTechn
       )}
 
       {/* ── KPI Grid ── */}
-      <AccountManagerKpiGrid kpis={kpis} activeKpi={activeKpi} setActiveKpi={setActiveKpi} />
+      <AccountManagerKpiGrid
+        kpis={kpis}
+        activeKpi={activeKpi}
+        setActiveKpi={setActiveKpi}
+        lifecycleCounts={lifecycleCounts}
+        filterLifecycle={filterLifecycle}
+        setFilterLifecycle={setFilterLifecycle}
+      />
 
       {/* ── My Clients List ── */}
       <AccountManagerClientsTable
@@ -153,6 +162,7 @@ export default function AccountManagerClient({ userId, projects, kpis, headTechn
         setTechnicalModalProject={setTechnicalModalProject}
         setDistributeModalProject={setDistributeModalProject}
         setLifecycleModalProject={setLifecycleModalProject}
+        setClientAccountProject={setClientAccountProject}
       />
 
       <AccountManagerTaskMonitoringPanel
@@ -219,6 +229,15 @@ export default function AccountManagerClient({ userId, projects, kpis, headTechn
             setTechnicalModalProject(null);
             router.refresh();
           }}
+        />
+      )}
+
+      {clientAccountProject && (
+        <ClientAccountModal
+          isOpen={!!clientAccountProject}
+          onClose={() => setClientAccountProject(null)}
+          leadId={clientAccountProject.deal?.leadId}
+          clientName={clientAccountProject.deal?.lead?.name || "Client"}
         />
       )}
 

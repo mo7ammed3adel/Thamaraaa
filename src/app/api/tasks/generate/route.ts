@@ -1,6 +1,7 @@
 import { getSessionUser } from "@/server/auth/session";
 import { errorJson, successJson } from "@/server/http/responses";
 import { generateProjectTasks } from "@/server/services/taskWorkflowService";
+import { lifecycleBlockedMessage } from "@/lib/lifecycle";
 
 export async function POST(req: Request) {
   try {
@@ -15,6 +16,11 @@ export async function POST(req: Request) {
 
     if (result.status === "missing_project_id") return errorJson("projectId is required", 400);
     if (result.status === "project_forbidden") return errorJson("Forbidden: you are not on this project", 403);
+    if (result.status === "lifecycle_blocked") {
+      return errorJson(lifecycleBlockedMessage(result.lifecycleState), 409, {
+        lifecycleState: result.lifecycleState,
+      });
+    }
     if (result.status === "unsupported_sub_task_type") return errorJson("Unsupported sub-task type", 400);
     if (result.status === "parent_task_invalid") {
       return errorJson("Parent task does not belong to this project", 400);

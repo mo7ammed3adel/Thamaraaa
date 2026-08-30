@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { matchesClientLifecycleFilters } from "@/lib/clientLifecycleFilter";
+import { countProjectsByLifecycleState, matchesClientLifecycleFilters } from "@/lib/clientLifecycleFilter";
 
 type UseAccountManagerDerivedDataParams = {
   projects: any[];
@@ -54,6 +54,10 @@ export function useAccountManagerDerivedData({
     });
   }, [projects, searchQuery, activeKpi, filterLifecycle, lifecycleFromDate, lifecycleToDate]);
 
+  // Counted over every project, not the filtered list, so the tiles keep showing
+  // the full picture while one of them is the active filter.
+  const lifecycleCounts = useMemo(() => countProjectsByLifecycleState(projects), [projects]);
+
   const filteredTasks = useMemo(() => {
     let allTasks = projects.flatMap((p: any) => (p.tasks || []).map((t: any) => ({ ...t, project: p })));
 
@@ -79,5 +83,5 @@ export function useAccountManagerDerivedData({
     });
   }, [projects, taskFilterClient, taskFilterStatus, taskFilterTeam, activeKpi]);
 
-  return { filteredProjects, filteredTasks };
+  return { filteredProjects, filteredTasks, lifecycleCounts };
 }

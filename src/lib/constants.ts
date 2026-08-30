@@ -104,6 +104,29 @@ export const LIFECYCLE_STATE = {
   LOST: "Lost",
 } as const;
 
+// ── Arabic labels shown in the UI for each lifecycle state ──
+export const LIFECYCLE_STATE_LABELS_AR: Record<string, string> = {
+  [LIFECYCLE_STATE.ACTIVE]: "اكتف",
+  [LIFECYCLE_STATE.HOLD]: "هولد",
+  [LIFECYCLE_STATE.RENEWER]: "تم التجديد",
+  [LIFECYCLE_STATE.LOST]: "فقد",
+};
+
+/** Arabic label for a lifecycle state, falling back to the raw value. */
+export function getLifecycleLabelAr(state: string | null | undefined): string {
+  if (!state) return "";
+  return LIFECYCLE_STATE_LABELS_AR[state] || state;
+}
+
+// ── Lifecycle states that pause delivery work ──
+// A client on Hold is temporarily paused and a Lost client has left, so neither
+// may receive new tasks or move existing ones forward. Active and Renewer are
+// both "the client is being served" states and never block.
+export const WORK_BLOCKING_LIFECYCLE_STATES = [
+  LIFECYCLE_STATE.HOLD,
+  LIFECYCLE_STATE.LOST,
+] as const;
+
 // ── Allowed Lifecycle Transitions ──
 // Any state can move to any other: the Account Manager stays in full control
 // and can correct a wrong status (e.g. bring a Lost client back).

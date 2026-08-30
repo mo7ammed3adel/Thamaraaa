@@ -1,6 +1,7 @@
 import { getSessionUser } from "@/server/auth/session";
 import { errorJson, successJson, unauthorizedJson } from "@/server/http/responses";
 import { updateTask } from "@/server/services/taskWorkflowService";
+import { lifecycleBlockedMessage } from "@/lib/lifecycle";
 
 /**
  * PATCH /api/tasks/[id]
@@ -40,6 +41,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     if (result.status === "invalid_status") return errorJson(`Invalid status: ${result.taskStatus}`, 400);
     if (result.status === "agent_done_forbidden") {
       return errorJson("Submit the task for review before it can be marked done.", 403);
+    }
+    if (result.status === "lifecycle_blocked") {
+      return errorJson(lifecycleBlockedMessage(result.lifecycleState), 409, {
+        lifecycleState: result.lifecycleState,
+      });
     }
     if (result.status === "blocked") {
       return errorJson("Action blocked by unresolved project warnings.", 403, {

@@ -4,8 +4,44 @@ import { buildNewProjectData, projectSetupLogDetails } from "@/lib/projectSetup"
 export function findProjectLifecycleAuth(projectId: string) {
   return prisma.project.findUnique({
     where: { id: projectId },
-    select: { id: true, lifecycleState: true, accountManagerId: true },
+    select: {
+      id: true,
+      lifecycleState: true,
+      accountManagerId: true,
+      deal: { select: { lead: { select: { name: true } } } },
+    },
   });
+}
+
+/**
+ * Everyone attached to a project: the account management chain, the technical
+ * and SEO heads, the sales agent who closed the deal, and every active team
+ * assignment. Used to fan out project-wide notifications.
+ */
+export async function findProjectStakeholderIds(projectId: string): Promise<string[]> {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: {
+      accountManagerId: true,
+      headAccountManagerId: true,
+      headTechnicalId: true,
+      headSeoId: true,
+      deal: { select: { salesAgentId: true } },
+      teamAssignments: { where: { status: "active" }, select: { userId: true } },
+    },
+  });
+
+  if (!project) return [];
+
+  const ids = new Set<string>();
+  if (project.accountManagerId) ids.add(project.accountManagerId);
+  if (project.headAccountManagerId) ids.add(project.headAccountManagerId);
+  if (project.headTechnicalId) ids.add(project.headTechnicalId);
+  if (project.headSeoId) ids.add(project.headSeoId);
+  if (project.deal?.salesAgentId) ids.add(project.deal.salesAgentId);
+  project.teamAssignments.forEach((assignment) => ids.add(assignment.userId));
+
+  return Array.from(ids);
 }
 
 export function updateProjectLifecycleWithLog(input: {

@@ -1,4 +1,6 @@
 import { canChangeLifecycle, validateLifecycleTransition } from "@/lib/lifecycle";
+import { getLifecycleLabelAr } from "@/lib/constants";
+import { notifyUsers } from "@/lib/notify";
 import { safeTrigger } from "@/lib/pusher";
 import { backfillReceiptsForNewMember, checkProjectBlockers, userCanAccessProject } from "@/lib/distribution";
 import { normalizeWebUrl } from "@/lib/safe-url";
@@ -18,6 +20,7 @@ import {
   findProjectLifecycleAuth,
   findProjectLogs,
   findProjectSetupAuth,
+  findProjectStakeholderIds,
   findProjectStatusAuth,
   updateProjectFields,
   updateProjectHeadAccountManager,
@@ -56,6 +59,22 @@ export async function changeProjectLifecycle(input: {
     projectId: input.projectId,
     newState: input.newState,
     changedBy: input.userName,
+  });
+
+  // Everyone working on the client needs to know it moved — a Hold or Lost
+  // client stops accepting new tasks and task progress immediately.
+  const stakeholderIds = (await findProjectStakeholderIds(input.projectId)).filter(
+    (id) => id !== input.userId
+  );
+  const clientName = project.deal?.lead?.name || "a client";
+  await notifyUsers(stakeholderIds, {
+    title: "Client Status Changed",
+    message: `${clientName}: ${getLifecycleLabelAr(project.lifecycleState)} → ${getLifecycleLabelAr(
+      input.newState
+    )} (by ${input.userName})`,
+    type: "lifecycle_changed",
+    relatedId: input.projectId,
+    link: `/dashboard/clients/${input.projectId}`,
   });
 
   return { status: "ok" as const, project: updatedProject };
