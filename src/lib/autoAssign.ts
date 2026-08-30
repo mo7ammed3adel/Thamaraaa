@@ -23,9 +23,50 @@ import { prisma } from "./prisma";
  *    skipping unavailable agents.
  * 5. Assign lead + update meeting + notify. If nobody is free → Waiting queue.
  */
+/**
+ * Why a lead could not be handed to a Sales agent. The two failure modes are
+ * deliberately distinct: "no_sales_agents_in_company" is a setup problem that
+ * retrying will never solve, while "no_available_sales_agents" is transient and
+ * clears as soon as someone checks in or finishes their meeting.
+ */
 export type AutoAssignLeadResult =
   | { assigned: true; salesAgent: { id: string; name: string } }
-  | { assigned: false; reason: "lead_not_found" | "no_available_sales_agents" };
+  | { assigned: false; reason: "lead_not_found" }
+  | { assigned: false; reason: "no_sales_agents_in_company"; companyName: string | null }
+  | {
+      assigned: false;
+      reason: "no_available_sales_agents";
+      blockers: AgentBlockerSummary;
+    };
+
+/** How many agents each availability blocker is holding back right now. */
+export type AgentBlockerSummary = {
+  total: number;
+  absent: number;
+  busy: number;
+  inMeeting: number;
+};
+
+/**
+ * Counts why each agent in the cycle is unavailable, so the caller can tell the
+ * manager what to actually do about it. An agent blocked by several reasons is
+ * counted once against the first that applies, in the order absent → busy →
+ * in-meeting, so the numbers add up to the unavailable total.
+ * @param agents Availability inputs for every agent in scope
+ */
+export function summarizeUnavailability(
+  agents: Array<{ present: boolean; status: string | null; inStartedMeeting: boolean }>
+): AgentBlockerSummary {
+  const summary: AgentBlockerSummary = { total: agents.length, absent: 0, busy: 0, inMeeting: 0 };
+
+  for (const agent of agents) {
+    if (!agent.present) summary.absent += 1;
+    else if (agent.status === "Busy" || agent.status === "In_Call") summary.busy += 1;
+    else if (agent.inStartedMeeting) summary.inMeeting += 1;
+  }
+
+  return summary;
+}
 
 /**
  * The company whose Sales agents may receive a lead: the lead's own company,
@@ -129,9 +170,18 @@ export async function autoAssignLead(leadId: string): Promise<AutoAssignLeadResu
   });
 
   if (agents.length === 0) {
-    // No agents in scope at all — put lead in waiting queue.
+    // The company has no sales agents at all. This is a setup problem, not a
+    // busy moment — surface it as its own reason so the manager is told to fix
+    // the roster instead of waiting for a retry that can never succeed.
     await prisma.lead.update({ where: { id: leadId }, data: { status: "Waiting" } });
-    return { assigned: false, reason: "no_available_sales_agents" };
+    const company = companyId
+      ? await prisma.company.findUnique({ where: { id: companyId }, select: { name: true } })
+      : null;
+    return {
+      assigned: false,
+      reason: "no_sales_agents_in_company",
+      companyName: company?.name ?? null,
+    };
   }
 
   const agentIds = agents.map((a) => a.id);
@@ -162,14 +212,16 @@ export async function autoAssignLead(leadId: string): Promise<AutoAssignLeadResu
 
   // An agent is available when present, not Busy/In_Call, and not inside a
   // started meeting.
-  const rotation: RotationAgent[] = agents.map((a) => ({
+  const availabilityInputs = agents.map((a) => ({
+    present: isAgentPresent(attendanceByUser.get(a.id)),
+    status: a.status,
+    inStartedMeeting: inMeetingAgentIds.has(a.id),
+  }));
+
+  const rotation: RotationAgent[] = agents.map((a, index) => ({
     id: a.id,
     order: a.createdAt.getTime(),
-    available: isAgentAvailableForMeeting({
-      present: isAgentPresent(attendanceByUser.get(a.id)),
-      status: a.status,
-      inStartedMeeting: inMeetingAgentIds.has(a.id),
-    }),
+    available: isAgentAvailableForMeeting(availabilityInputs[index]),
   }));
 
   // 4. Continue the rotation after whoever received the most recent meeting,
@@ -182,9 +234,14 @@ export async function autoAssignLead(leadId: string): Promise<AutoAssignLeadResu
   const chosen = chooseNextAgentRoundRobin(rotation, lastMeeting?.salesAgentId ?? null);
 
   if (!chosen) {
-    // Everyone is checked out / absent / busy — hold the lead for a retry.
+    // Everyone is checked out / absent / busy — hold the lead for a retry and
+    // report which blocker is holding how many agents.
     await prisma.lead.update({ where: { id: leadId }, data: { status: "Waiting" } });
-    return { assigned: false, reason: "no_available_sales_agents" };
+    return {
+      assigned: false,
+      reason: "no_available_sales_agents",
+      blockers: summarizeUnavailability(availabilityInputs),
+    };
   }
   const classification = lead.classification || "Cold";
   const chosenAgent = agents.find((a) => a.id === chosen.id)!;

@@ -4,6 +4,7 @@ import {
   isAgentAvailableForMeeting,
   isAgentPresent,
   resolveDistributionCompanyId,
+  summarizeUnavailability,
   type RotationAgent,
 } from "../autoAssign";
 
@@ -114,5 +115,35 @@ describe("lead distribution company scoping", () => {
   it("returns null (org-wide) only when neither lead nor tele agent has a company", () => {
     expect(resolveDistributionCompanyId({ companyId: null, assignedTeleAgentId: "t1" }, null)).toBeNull();
     expect(resolveDistributionCompanyId({ companyId: null, assignedTeleAgentId: null }, "A")).toBeNull();
+  });
+});
+
+describe("unavailability breakdown", () => {
+  it("counts each blocker so the manager knows what to fix", () => {
+    const summary = summarizeUnavailability([
+      { present: false, status: "Active", inStartedMeeting: false },
+      { present: false, status: "Active", inStartedMeeting: false },
+      { present: true, status: "Busy", inStartedMeeting: false },
+      { present: true, status: "Active", inStartedMeeting: true },
+      { present: true, status: "Active", inStartedMeeting: false },
+    ]);
+
+    expect(summary).toEqual({ total: 5, absent: 2, busy: 1, inMeeting: 1 });
+  });
+
+  it("counts an agent blocked by several reasons only once", () => {
+    const summary = summarizeUnavailability([
+      { present: false, status: "Busy", inStartedMeeting: true },
+    ]);
+
+    expect(summary).toEqual({ total: 1, absent: 1, busy: 0, inMeeting: 0 });
+  });
+
+  it("reports no blockers when everyone is free", () => {
+    const summary = summarizeUnavailability([
+      { present: true, status: "Active", inStartedMeeting: false },
+    ]);
+
+    expect(summary).toEqual({ total: 1, absent: 0, busy: 0, inMeeting: 0 });
   });
 });

@@ -51,3 +51,6 @@ debug-user.js
 test_live.js
 generate_pdf.js
 ts_errors.txt
+
+# docker runtime env
+.env.production
