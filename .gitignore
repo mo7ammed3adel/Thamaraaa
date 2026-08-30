@@ -52,5 +52,6 @@ test_live.js
 generate_pdf.js
 ts_errors.txt
 
-# docker runtime env
+
+# never commit real secrets
 .env.production
