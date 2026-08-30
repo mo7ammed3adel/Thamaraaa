@@ -29,9 +29,43 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
       - default
       - hermes
+
+  # ---------- PostgreSQL ----------------------------------------------------
+  # The CRM's own database, separate from the hermes stack's postgres so the
+  # two can be backed up, upgraded and broken independently. Never published to
+  # the host: only the app container reaches it, over the private network.
+  db:
+    image: postgres:16-alpine
+    container_name: thamaraa-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-thamaraa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-thamaraa}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-thamaraa} -d ${POSTGRES_DB:-thamaraa}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - default
+
+volumes:
+  db_data:
 
 networks:
   # Created by the hermes stack; referenced, never managed, from here.
