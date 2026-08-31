@@ -55,6 +55,12 @@ COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder /app/prisma ./prisma
 
+# Screenshot storage. Docker creates a named volume's mount point owned by root,
+# and the app runs as nextjs, so without this the very first upload fails with
+# EACCES. Creating the directory here means a fresh volume inherits the right
+# ownership; an existing root-owned volume still has to be chowned once.
+RUN mkdir -p /data/screenshots && chown -R nextjs:nodejs /data
+
 USER nextjs
 EXPOSE 3000
 
