@@ -55,8 +55,8 @@ model User {
   performanceReviews  PerformanceReview[] @relation("PerfReviewSubject")
   authoredReviews     PerformanceReview[] @relation("PerfReviewAuthor")
   onboardingTasks     OnboardingTask[]    @relation("OnboardingTaskUser")
-  MonitoredDevice     MonitoredDevice[]
-  Screenshot          Screenshot[]
+  monitoredDevices    MonitoredDevice[]
+  screenshots         Screenshot[]
 }
 
 model Niche {
@@ -110,8 +110,6 @@ model Lead {
   meetings           Meeting[]
   customColumnValues CustomColumnValue[]
   clientAccount      ClientAccount?
-  monitoredDevices   MonitoredDevice[]
-  screenshots        Screenshot[]
 
   @@index([companyId])
   @@index([assignedTeleAgentId])
@@ -1394,8 +1392,6 @@ model MonitoredDevice {
   createdAt        DateTime  @default(now())
 
   screenshots Screenshot[]
-  Lead        Lead?        @relation(fields: [leadId], references: [id])
-  leadId      String?
 
   @@index([userId])
   @@index([status])
@@ -1414,8 +1410,6 @@ model Screenshot {
   sizeBytes  Int?
   capturedAt DateTime // when the agent took it (device clock)
   createdAt  DateTime        @default(now()) // when the server received it
-  Lead       Lead?           @relation(fields: [leadId], references: [id])
-  leadId     String?
 
   @@index([userId, capturedAt])
   @@index([deviceId, capturedAt])
