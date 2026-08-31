@@ -54,6 +54,10 @@ export default function MonitoringClient({
 
   // Screenshot review
   const [filterUser, setFilterUser] = useState("");
+  const [filterFrom, setFilterFrom] = useState("");
+  const [filterTo, setFilterTo] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageInfo, setPageInfo] = useState({ total: 0, pages: 1 });
   const [shots, setShots] = useState<ScreenshotRow[]>([]);
   const [loadingShots, setLoadingShots] = useState(false);
   const [lightbox, setLightbox] = useState<ScreenshotRow | null>(null);
@@ -82,8 +86,16 @@ export default function MonitoringClient({
   const loadShots = useCallback(async () => {
     setLoadingShots(true);
     try {
-      const result = await listScreenshots({ userId: filterUser || undefined, page: 1 });
+      const result = await listScreenshots({
+        userId: filterUser || undefined,
+        // A date input is a calendar day; widen it to cover the whole day in
+        // local time so "to" includes captures taken up to 23:59.
+        from: filterFrom ? new Date(filterFrom + "T00:00:00").toISOString() : undefined,
+        to: filterTo ? new Date(filterTo + "T23:59:59.999").toISOString() : undefined,
+        page,
+      });
       setShots(result.screenshots);
+      setPageInfo({ total: result.pagination.total, pages: result.pagination.pages });
       // Drop the selection with the list, so a delete can only ever hit shots
       // that are actually on screen.
       setSelected(new Set());
@@ -92,7 +104,13 @@ export default function MonitoringClient({
     } finally {
       setLoadingShots(false);
     }
-  }, [filterUser]);
+  }, [filterUser, filterFrom, filterTo, page]);
+
+  // Any filter change resets to the first page, so you never land on an empty
+  // page 3 of a result set that now only has one page.
+  useEffect(() => {
+    setPage(1);
+  }, [filterUser, filterFrom, filterTo]);
 
   useEffect(() => {
     loadShots();
@@ -404,18 +422,97 @@ export default function MonitoringClient({
 
       {/* Screenshots */}
       <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-sm font-bold text-slate-700">آخر اللقطات</h2>
-          <select
-            value={filterUser}
-            onChange={(e) => setFilterUser(e.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="">كل الموظفين</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>{u.name}</option>
-            ))}
-          </select>
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-bold text-slate-700">اللقطات</h2>
+            {pageInfo.total > 0 && (
+              <p className="mt-0.5 text-xs text-slate-400">
+                إجمالي <strong className="text-slate-600">{pageInfo.total}</strong> لقطة
+              </p>
+            )}
+          </div>
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="block">
+              <span className="mb-1 block text-[11px] font-semibold text-slate-500">الموظف</span>
+              <select
+                value={filterUser}
+                onChange={(e) => setFilterUser(e.target.value)}
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">كل الموظفين</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>{u.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[11px] font-semibold text-slate-500">من يوم</span>
+              <input
+                type="date"
+                value={filterFrom}
+                max={filterTo || undefined}
+                onChange={(e) => setFilterFrom(e.target.value)}
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[11px] font-semibold text-slate-500">لحد يوم</span>
+              <input
+                type="date"
+                value={filterTo}
+                min={filterFrom || undefined}
+                onChange={(e) => setFilterTo(e.target.value)}
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </label>
+            {(filterUser || filterFrom || filterTo) && (
+              <button
+                onClick={() => {
+                  setFilterUser("");
+                  setFilterFrom("");
+                  setFilterTo("");
+                }}
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+              >
+                مسح الفلتر
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Quick day ranges */}
+        <div className="mb-4 flex flex-wrap gap-2">
+          {[
+            { label: "النهاردة", days: 0 },
+            { label: "امبارح", days: 1 },
+            { label: "آخر 7 أيام", days: 7 },
+            { label: "آخر 30 يوم", days: 30 },
+          ].map((preset) => (
+            <button
+              key={preset.label}
+              onClick={() => {
+                const today = new Date();
+                const toDay = (d: Date) => d.toISOString().slice(0, 10);
+                if (preset.days === 0) {
+                  setFilterFrom(toDay(today));
+                  setFilterTo(toDay(today));
+                } else if (preset.days === 1) {
+                  const y = new Date(today);
+                  y.setDate(y.getDate() - 1);
+                  setFilterFrom(toDay(y));
+                  setFilterTo(toDay(y));
+                } else {
+                  const from = new Date(today);
+                  from.setDate(from.getDate() - (preset.days - 1));
+                  setFilterFrom(toDay(from));
+                  setFilterTo(toDay(today));
+                }
+              }}
+              className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600 transition hover:border-indigo-300 hover:text-indigo-600"
+            >
+              {preset.label}
+            </button>
+          ))}
         </div>
 
         {loadingShots ? (
@@ -496,6 +593,29 @@ export default function MonitoringClient({
                 );
               })}
             </div>
+
+            {/* Pagination */}
+            {pageInfo.pages > 1 && (
+              <div className="mt-4 flex items-center justify-center gap-3">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-40"
+                >
+                  السابق
+                </button>
+                <span className="text-sm text-slate-500">
+                  صفحة <strong className="text-slate-800">{page}</strong> من {pageInfo.pages}
+                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(pageInfo.pages, p + 1))}
+                  disabled={page >= pageInfo.pages}
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-40"
+                >
+                  التالي
+                </button>
+              </div>
+            )}
           </>
         )}
       </section>
