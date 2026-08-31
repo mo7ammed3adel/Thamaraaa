@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Monitor, Clock, Copy, Pause, Play, Ban, Plus, RefreshCw, Trash2, X, CheckSquare, Square } from "lucide-react";
+import { Monitor, Clock, Copy, Pause, Play, Ban, Plus, RefreshCw, Trash2, X, CheckSquare, Square, KeyRound, Pencil, UserCog } from "lucide-react";
 import { formatDateTime } from "@/shared/formatters/date";
 import {
   enrolDevice,
@@ -11,6 +11,9 @@ import {
   setInterval as setIntervalApi,
   setRetention as setRetentionApi,
   deleteScreenshots as deleteScreenshotsApi,
+  reissueDeviceToken as reissueDeviceTokenApi,
+  updateDevice as updateDeviceApi,
+  deleteDevice as deleteDeviceApi,
   type MonitoredDevice,
   type ScreenshotRow,
 } from "@/client/api/devices";
@@ -57,6 +60,16 @@ export default function MonitoringClient({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Per-device management: edit (owner/label), delete, or a freshly issued token
+  const [editDevice, setEditDevice] = useState<MonitoredDevice | null>(null);
+  const [editUserId, setEditUserId] = useState("");
+  const [editLabel, setEditLabel] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deleteDeviceTarget, setDeleteDeviceTarget] = useState<MonitoredDevice | null>(null);
+  const [deletingDevice, setDeletingDevice] = useState(false);
+  const [reissued, setReissued] = useState<{ device: MonitoredDevice; token: string } | null>(null);
+  const [reissueCopied, setReissueCopied] = useState(false);
 
   const refreshDevices = useCallback(async () => {
     try {
@@ -135,6 +148,59 @@ export default function MonitoringClient({
       setError(err instanceof HttpError ? err.message : "Failed to delete screenshots");
     } finally {
       setDeleting(false);
+    }
+  }
+
+  function openEdit(d: MonitoredDevice) {
+    setEditDevice(d);
+    setEditUserId(d.user.id);
+    setEditLabel(d.label || "");
+    setError("");
+  }
+
+  async function saveEdit() {
+    if (!editDevice) return;
+    setSavingEdit(true);
+    setError("");
+    try {
+      await updateDeviceApi(editDevice.id, {
+        userId: editUserId,
+        label: editLabel.trim() || null,
+      });
+      setEditDevice(null);
+      await refreshDevices();
+    } catch (err) {
+      setError(err instanceof HttpError ? err.message : "Failed to update device");
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
+  async function handleReissue(d: MonitoredDevice) {
+    setError("");
+    try {
+      const result = await reissueDeviceTokenApi(d.id);
+      setReissued({ device: d, token: result.token });
+      setReissueCopied(false);
+      await refreshDevices();
+    } catch (err) {
+      setError(err instanceof HttpError ? err.message : "Failed to reissue token");
+    }
+  }
+
+  async function confirmDeleteDevice() {
+    if (!deleteDeviceTarget) return;
+    setDeletingDevice(true);
+    setError("");
+    try {
+      await deleteDeviceApi(deleteDeviceTarget.id);
+      setDeleteDeviceTarget(null);
+      await refreshDevices();
+      await loadShots();
+    } catch (err) {
+      setError(err instanceof HttpError ? err.message : "Failed to delete device");
+    } finally {
+      setDeletingDevice(false);
     }
   }
 
@@ -316,6 +382,16 @@ export default function MonitoringClient({
                             <Ban className="h-4 w-4" />
                           </button>
                         )}
+                        <span className="mx-0.5 h-4 w-px bg-slate-200" />
+                        <button onClick={() => handleReissue(d)} title="توكن جديد" className="rounded p-1.5 text-indigo-600 hover:bg-indigo-50">
+                          <KeyRound className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => openEdit(d)} title="تعديل (الموظف / الاسم)" className="rounded p-1.5 text-slate-600 hover:bg-slate-100">
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => setDeleteDeviceTarget(d)} title="حذف الجهاز نهائيًا" className="rounded p-1.5 text-red-600 hover:bg-red-50">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -554,6 +630,151 @@ export default function MonitoringClient({
               <button
                 onClick={() => setConfirmDelete(false)}
                 disabled={deleting}
+                className="flex-1 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-white disabled:opacity-60"
+              >
+                رجوع
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit device — reassign owner and/or rename */}
+      {editDevice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md overflow-hidden rounded-xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-5 py-4">
+              <h3 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+                <UserCog className="h-5 w-5 text-slate-500" /> تعديل الجهاز
+              </h3>
+              <button onClick={() => setEditDevice(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-4 px-5 py-5">
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-slate-700">الموظف صاحب الجهاز</span>
+                <select
+                  value={editUserId}
+                  onChange={(e) => setEditUserId(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  {/* the current owner may not be in the enrollable list (e.g. left),
+                      so keep them as an explicit option */}
+                  {!users.some((u) => u.id === editDevice.user.id) && (
+                    <option value={editDevice.user.id}>{editDevice.user.name} (الحالي)</option>
+                  )}
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>{u.name} — {u.role.replace(/_/g, " ")}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-slate-700">اسم الجهاز</span>
+                <input
+                  value={editLabel}
+                  onChange={(e) => setEditLabel(e.target.value)}
+                  placeholder="مثال: كمبيوتر المكتب"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </label>
+              <p className="rounded-lg bg-slate-50 p-2.5 text-xs text-slate-500">
+                نقل الجهاز لموظف تاني مش بيغيّر التوكن — نفس الجهاز يكمّل تصوير، بس اللقطات الجديدة تتحسب على الموظف الجديد. اللقطات القديمة تفضل باسم صاحبها وقتها.
+              </p>
+            </div>
+            <div className="flex gap-2 border-t border-slate-100 bg-slate-50 px-5 py-3">
+              <button
+                onClick={saveEdit}
+                disabled={savingEdit}
+                className="flex-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:opacity-60"
+              >
+                {savingEdit ? "بيحفظ..." : "حفظ"}
+              </button>
+              <button
+                onClick={() => setEditDevice(null)}
+                disabled={savingEdit}
+                className="flex-1 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-white disabled:opacity-60"
+              >
+                رجوع
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Freshly issued token — shown once, exactly like enrolment */}
+      {reissued && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md overflow-hidden rounded-xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-5 py-4">
+              <h3 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+                <KeyRound className="h-5 w-5 text-indigo-600" /> توكن جديد للجهاز
+              </h3>
+              <button onClick={() => setReissued(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-3 px-5 py-5">
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <p className="mb-2 text-xs font-bold text-amber-800">
+                  التوكن القديم بطل دلوقتي. ده الجديد لـ «{reissued.device.label || reissued.device.user.name}» — مش هيظهر تاني. حطّه في الـ Agent على الجهاز.
+                </p>
+                <p dir="ltr" className="mb-2 break-all rounded bg-white px-2 py-2 text-center font-mono text-xs text-slate-900">
+                  {reissued.token}
+                </p>
+                <button
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(reissued.token);
+                      setReissueCopied(true);
+                    } catch {
+                      setError("المتصفح منع النسخ — انسخ التوكن يدوي.");
+                    }
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-amber-700"
+                >
+                  <Copy className="h-4 w-4" /> {reissueCopied ? "تم النسخ" : "نسخ التوكن"}
+                </button>
+              </div>
+              <button
+                onClick={() => setReissued(null)}
+                className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                تمام
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete device confirmation */}
+      {deleteDeviceTarget && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm overflow-hidden rounded-xl bg-white shadow-2xl">
+            <div className="px-5 py-5">
+              <div className="mb-3 flex items-center gap-2">
+                <span className="rounded-full bg-red-100 p-2">
+                  <Trash2 className="h-5 w-5 text-red-600" />
+                </span>
+                <h3 className="text-lg font-semibold text-slate-900">حذف الجهاز</h3>
+              </div>
+              <p className="text-sm text-slate-600">
+                هتحذف جهاز «{deleteDeviceTarget.label || deleteDeviceTarget.user.name}» نهائيًا ومعاه
+                كل لقطاته (<strong className="text-slate-900">{deleteDeviceTarget._count.screenshots}</strong>).
+                التوكن بتاعه بيموت، ومفيش رجوع
+              </p>
+            </div>
+            <div className="flex gap-2 border-t border-slate-100 bg-slate-50 px-5 py-3">
+              <button
+                onClick={confirmDeleteDevice}
+                disabled={deletingDevice}
+                className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-60"
+              >
+                {deletingDevice ? "بيحذف..." : "أيوه، احذفه"}
+              </button>
+              <button
+                onClick={() => setDeleteDeviceTarget(null)}
+                disabled={deletingDevice}
                 className="flex-1 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-white disabled:opacity-60"
               >
                 رجوع

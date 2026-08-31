@@ -15,6 +15,7 @@ import {
   countScreenshotsBefore,
   createMonitoredDevice,
   createScreenshotRecord,
+  deleteDeviceById,
   deleteScreenshotsByIds,
   findScreenshotKeysBefore,
   findScreenshotKeysByIds,
@@ -23,9 +24,12 @@ import {
   findDeviceByTokenHash,
   findEnrollableUsers,
   findScreenshotForView,
+  findScreenshotKeysByDevice,
   findScreenshots,
   setDeviceStatus,
   touchDeviceLastSeen,
+  updateDeviceOwnerAndLabel,
+  updateDeviceTokenHash,
 } from "@/server/repositories/deviceRepository";
 import { deleteScreenshotFile, saveScreenshotFile } from "@/server/services/screenshotStorage";
 import { prisma } from "@/lib/prisma";
@@ -207,6 +211,90 @@ export async function changeDeviceStatus(input: {
 
   const updated = await setDeviceStatus(input.deviceId, next);
   return { status: "ok" as const, device: updated };
+}
+
+/**
+ * Issues a fresh token for an existing device and invalidates the old one in the
+ * same write. Use it when a token leaked or the employee lost it -- the device,
+ * its owner and its screenshot history stay put; only the credential changes.
+ * Returns the new plaintext token once, exactly like enrolment.
+ */
+export async function reissueDeviceToken(input: { actorRole: string; deviceId: string }) {
+  if (!isSuperAdmin(input.actorRole)) return { status: "forbidden" as const };
+
+  const device = await findDeviceById(input.deviceId);
+  if (!device) return { status: "not_found" as const };
+
+  const token = generateEnrolmentToken();
+  await updateDeviceTokenHash(input.deviceId, hashDeviceToken(token));
+  return { status: "ok" as const, token };
+}
+
+/**
+ * Reassigns a device to another employee and/or renames it. Moving the owner
+ * does NOT reissue the token: the same machine keeps reporting, its captures are
+ * simply attributed to the new person from now on. Past screenshots keep the
+ * userId they were stored with, so history is not silently rewritten.
+ */
+export async function updateDevice(input: {
+  actorRole: string;
+  deviceId: string;
+  userId?: unknown;
+  label?: unknown;
+}) {
+  if (!isSuperAdmin(input.actorRole)) return { status: "forbidden" as const };
+
+  const device = await findDeviceById(input.deviceId);
+  if (!device) return { status: "not_found" as const };
+
+  const data: { userId?: string; label?: string | null } = {};
+
+  if (input.userId !== undefined) {
+    const userId = typeof input.userId === "string" ? input.userId.trim() : "";
+    if (!userId) return { status: "missing_user" as const };
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!user) return { status: "user_not_found" as const };
+    data.userId = userId;
+  }
+
+  if (input.label !== undefined) {
+    const label = typeof input.label === "string" ? input.label.trim() : "";
+    data.label = label ? label.slice(0, 80) : null;
+  }
+
+  if (Object.keys(data).length === 0) return { status: "no_changes" as const };
+
+  const updated = await updateDeviceOwnerAndLabel(input.deviceId, data);
+  return { status: "ok" as const, device: updated };
+}
+
+/**
+ * Permanently removes a device and everything it captured. Files go first, then
+ * the device row (its screenshot rows cascade), so an interrupted delete leaves
+ * at worst orphaned rows the next call clears -- never files with nothing
+ * pointing at them. A file that will not delete keeps the device, so the whole
+ * thing does not half-vanish from the dashboard.
+ */
+export async function deleteDevice(input: { actorRole: string; deviceId: string }) {
+  if (!isSuperAdmin(input.actorRole)) return { status: "forbidden" as const };
+
+  const device = await findDeviceById(input.deviceId);
+  if (!device) return { status: "not_found" as const };
+
+  const shots = await findScreenshotKeysByDevice(input.deviceId);
+  let failed = 0;
+  for (const shot of shots) {
+    try {
+      await deleteScreenshotFile(shot.storageKey);
+    } catch (error) {
+      failed += 1;
+      console.error("Screenshot file delete failed for", shot.id, error);
+    }
+  }
+  if (failed > 0) return { status: "files_failed" as const, failed };
+
+  await deleteDeviceById(input.deviceId);
+  return { status: "ok" as const, deletedScreenshots: shots.length };
 }
 
 export async function listDevices(actorRole: string) {

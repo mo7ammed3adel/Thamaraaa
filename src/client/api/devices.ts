@@ -36,6 +36,24 @@ export function setDeviceStatus(deviceId: string, status: "Active" | "Paused" | 
   );
 }
 
+/** Re-issues the device's token and kills the old one. Returns the new token once. */
+export function reissueDeviceToken(deviceId: string) {
+  return postJson<{ token: string }>(`/api/devices/${deviceId}/reissue-token`);
+}
+
+/** Reassigns the owner and/or renames the device. */
+export function updateDevice(deviceId: string, body: { userId?: string; label?: string | null }) {
+  return patchJson<{ device: { id: string; userId: string; label: string | null } }>(
+    `/api/devices/${deviceId}`,
+    body
+  );
+}
+
+/** Permanently removes the device and all its screenshots. */
+export function deleteDevice(deviceId: string) {
+  return deleteJson<{ deletedScreenshots: number }>(`/api/devices/${deviceId}`);
+}
+
 export function getInterval() {
   return getJson<{ minutes: number }>("/api/devices/interval");
 }

@@ -37,6 +37,43 @@ export function touchDeviceLastSeen(deviceId: string) {
   });
 }
 
+/** Replaces a device's token hash — used when the super admin re-issues a token
+ * for an existing device without enrolling it afresh. */
+export function updateDeviceTokenHash(deviceId: string, tokenHash: string) {
+  return prisma.monitoredDevice.update({
+    where: { id: deviceId },
+    data: { tokenHash },
+    select: { id: true },
+  });
+}
+
+/** Moves a device to a different employee and edits its label in one write. */
+export function updateDeviceOwnerAndLabel(deviceId: string, data: { userId?: string; label?: string | null }) {
+  return prisma.monitoredDevice.update({
+    where: { id: deviceId },
+    data,
+    select: { id: true, userId: true, label: true },
+  });
+}
+
+/** Storage keys for every screenshot of one device, so its files can be removed
+ * before the device (and its rows) are deleted. */
+export function findScreenshotKeysByDevice(deviceId: string) {
+  return prisma.screenshot.findMany({
+    where: { deviceId },
+    select: { id: true, storageKey: true },
+  });
+}
+
+/** Deletes a device and its screenshot rows. The screenshots' FK cascades, but
+ * we delete files first, so this only removes what is left in the database. */
+export function deleteDeviceById(deviceId: string) {
+  return prisma.monitoredDevice.delete({
+    where: { id: deviceId },
+    select: { id: true },
+  });
+}
+
 export function setDeviceStatus(deviceId: string, status: string) {
   return prisma.monitoredDevice.update({
     where: { id: deviceId },
