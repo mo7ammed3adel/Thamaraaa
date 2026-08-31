@@ -1182,7 +1182,7 @@ export const en = {
   "portal.loadFailed": "Could not load the account.",
   "portal.actionFailed": "Something went wrong. Try again.",
   "portal.copyBlocked": "The browser blocked copying — copy the details manually.",
-} as const;
+  "nav.monitoring": "Device Monitoring",} as const;
 
 export type MessageKey = keyof typeof en;
 
@@ -2345,6 +2345,6 @@ export const ar: Record<MessageKey, string> = {
   "portal.loadFailed": "متعرفناش نحمّل الحساب.",
   "portal.actionFailed": "حصل خطأ. حاول تاني.",
   "portal.copyBlocked": "المتصفح منع النسخ — انسخ البيانات يدوي.",
-};
+  "nav.monitoring": "مراقبة الأجهزة",};
 
 export const MESSAGES: Record<Locale, Record<MessageKey, string>> = { ar, en };

@@ -19,6 +19,10 @@ services:
     # two would mean keeping the database password in two places.
     env_file:
       - .env
+    environment:
+      SCREENSHOT_STORAGE_DIR: /data/screenshots
+    volumes:
+      - screenshots:/data/screenshots
     healthcheck:
       # /login is public, so a healthy response proves the app booted and can
       # render, without needing a session.
@@ -71,6 +75,7 @@ services:
 
 volumes:
   db_data:
+  screenshots:
 
 networks:
   # Created by the hermes stack; referenced, never managed, from here.

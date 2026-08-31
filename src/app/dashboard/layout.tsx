@@ -100,6 +100,10 @@ export default async function DashboardLayout({
                 <Settings className="me-3 h-5 w-5 opacity-75" />
                 {t("nav.systemConfig")}
               </Link>
+              <Link href="/dashboard/monitoring" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
+                <Monitor className="mr-3 h-5 w-5 opacity-75" />
+                {t("nav.monitoring")}
+              </Link>
             </>
           )}
 

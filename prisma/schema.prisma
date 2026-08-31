@@ -55,6 +55,8 @@ model User {
   performanceReviews  PerformanceReview[] @relation("PerfReviewSubject")
   authoredReviews     PerformanceReview[] @relation("PerfReviewAuthor")
   onboardingTasks     OnboardingTask[]    @relation("OnboardingTaskUser")
+  MonitoredDevice     MonitoredDevice[]
+  Screenshot          Screenshot[]
 }
 
 model Niche {
@@ -108,6 +110,8 @@ model Lead {
   meetings           Meeting[]
   customColumnValues CustomColumnValue[]
   clientAccount      ClientAccount?
+  monitoredDevices   MonitoredDevice[]
+  screenshots        Screenshot[]
 
   @@index([companyId])
   @@index([assignedTeleAgentId])
@@ -1367,4 +1371,53 @@ model ClientAccount {
   createdAt           DateTime  @default(now())
 
   @@index([status])
+}
+
+// ── Device Monitoring ──
+// A desktop agent installed on an employee's machine, enrolled once and
+// identified thereafter by a hashed token. Monitoring is disclosed to the
+// employee — the agent shows a visible tray icon and requires consent at
+// install — so this is an attendance/oversight tool, not covert surveillance.
+model MonitoredDevice {
+  id               String    @id @default(uuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label            String? // e.g. "Office PC", "Laptop" — set by the employee at enrolment
+  hostname         String?
+  platform         String? // win32, darwin, linux
+  // Only the SHA-256 of the enrolment token is stored; the token itself lives
+  // on the device and is never recoverable from the server.
+  tokenHash        String    @unique
+  status           String    @default("Active") // Active, Paused, Revoked
+  lastSeenAt       DateTime?
+  enrolledByUserId String
+  createdAt        DateTime  @default(now())
+
+  screenshots Screenshot[]
+  Lead        Lead?        @relation(fields: [leadId], references: [id])
+  leadId      String?
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Screenshot {
+  id         String          @id @default(uuid())
+  deviceId   String
+  device     MonitoredDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Path on disk, relative to the screenshots root — never an absolute path.
+  storageKey String
+  width      Int?
+  height     Int?
+  sizeBytes  Int?
+  capturedAt DateTime // when the agent took it (device clock)
+  createdAt  DateTime        @default(now()) // when the server received it
+  Lead       Lead?           @relation(fields: [leadId], references: [id])
+  leadId     String?
+
+  @@index([userId, capturedAt])
+  @@index([deviceId, capturedAt])
+  @@index([capturedAt])
 }

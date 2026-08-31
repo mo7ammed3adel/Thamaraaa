@@ -5,9 +5,10 @@ import { withAuth } from "next-auth/middleware";
  * Redirects unauthenticated users to /login for all dashboard and API routes.
  * The /api/auth/* routes are excluded to allow the login flow itself.
  *
- * The client portal (/portal and /api/portal/*) is intentionally outside this
- * matcher: customers are not NextAuth users, so they carry no employee session.
- * Those routes authenticate themselves via readClientSession().
+ * The client portal (/portal and /api/portal/*) and the desktop monitoring agent
+ * (/api/agent/*) are intentionally outside this matcher: neither is a NextAuth
+ * user. The portal authenticates via readClientSession(); the agent presents a
+ * device token its routes verify themselves.
  */
 export default withAuth({
   pages: {
@@ -18,6 +19,6 @@ export default withAuth({
 export const config = {
   matcher: [
     "/dashboard/:path*",
-    "/api/((?!auth|portal).*)",
+    "/api/((?!auth|portal|agent).*)",
   ],
 };
