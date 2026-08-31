@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { AlertTriangle, FileEdit, Send } from "lucide-react";
+import { AlertTriangle, FileEdit, KeyRound, Send } from "lucide-react";
 import LifecycleStateBadge from "@/components/LifecycleStateBadge";
 import TeamOverview from "@/components/TeamOverview";
 import DateRangeFilter from "@/components/dashboard/DateRangeFilter";
@@ -28,6 +28,7 @@ type AccountManagerClientsTableProps = {
   setWarningModalOpen: (isOpen: boolean) => void;
   setTechnicalModalProject: (project: any) => void;
   setDistributeModalProject: (project: any) => void;
+  setClientAccountProject: (project: any) => void;
   setLifecycleModalProject: (project: any) => void;
 };
 
@@ -105,6 +106,7 @@ export default function AccountManagerClientsTable({
   setWarningModalOpen,
   setTechnicalModalProject,
   setDistributeModalProject,
+  setClientAccountProject,
   setLifecycleModalProject,
 }: AccountManagerClientsTableProps) {
   const t = useTranslator();
@@ -250,7 +252,13 @@ export default function AccountManagerClientsTable({
                           onClick={(e) => { e.stopPropagation(); setWarningTarget({ projectId: project.id, clientId: project.deal?.leadId }); setWarningModalOpen(true); }}
                           className="px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg text-xs font-bold hover:bg-red-100 transition inline-flex items-center justify-center gap-2"
                         >
-                          <AlertTriangle className="w-3 h-3" /> Issue Warning
+                          <AlertTriangle className="w-3 h-3" /> {t("journey.issueWarning")}
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setClientAccountProject(project); }}
+                          className="px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold hover:bg-emerald-100 transition inline-flex items-center justify-center gap-2"
+                        >
+                          <KeyRound className="w-3 h-3" /> {t("portal.credentials")}
                         </button>
                       </div>
                     </td>

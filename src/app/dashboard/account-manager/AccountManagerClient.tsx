@@ -6,6 +6,7 @@ import ClientDetailModal from "@/components/ClientDetailModal";
 import CreateWarningModal from "@/components/CreateWarningModal";
 import LifecycleChangeModal from "@/components/LifecycleChangeModal";
 import DistributeModal from "@/components/DistributeModal";
+import ClientAccountModal from "@/components/ClientAccountModal";
 import { setupProject } from "@/client/api/projects";
 import { generateTasks } from "@/client/api/tasks";
 import AccountManagerClientsTable from "./AccountManagerClientsTable";
@@ -43,6 +44,7 @@ export default function AccountManagerClient({ userId, projects, kpis, headTechn
   const [distributeModalProject, setDistributeModalProject] = useState<any>(null);
   const [lifecycleModalProject, setLifecycleModalProject] = useState<any>(null);
   const [setupModalProject, setSetupModalProject] = useState<any>(null);
+  const [clientAccountProject, setClientAccountProject] = useState<any>(null);
 
   const { filteredProjects, filteredTasks } = useAccountManagerDerivedData({
     projects,
@@ -154,6 +156,7 @@ export default function AccountManagerClient({ userId, projects, kpis, headTechn
         setWarningModalOpen={setWarningModalOpen}
         setTechnicalModalProject={setTechnicalModalProject}
         setDistributeModalProject={setDistributeModalProject}
+        setClientAccountProject={setClientAccountProject}
         setLifecycleModalProject={setLifecycleModalProject}
       />
 
@@ -191,6 +194,15 @@ export default function AccountManagerClient({ userId, projects, kpis, headTechn
           onClose={() => { setWarningModalOpen(false); setWarningTarget(null); }}
           projectId={warningTarget.projectId}
           clientId={warningTarget.clientId}
+        />
+      )}
+
+      {clientAccountProject && (
+        <ClientAccountModal
+          isOpen={!!clientAccountProject}
+          onClose={() => setClientAccountProject(null)}
+          leadId={clientAccountProject.deal?.leadId}
+          clientName={clientAccountProject.deal?.lead?.name || "Client"}
         />
       )}
 

@@ -107,6 +107,7 @@ model Lead {
   deals              Deal[]
   meetings           Meeting[]
   customColumnValues CustomColumnValue[]
+  clientAccount      ClientAccount?
 
   @@index([companyId])
   @@index([assignedTeleAgentId])
@@ -1341,4 +1342,29 @@ model WarningReceipt {
   @@index([warningId])
   @@index([userId])
   @@index([userId, isRead])
+}
+
+// ── Client Portal Account ──
+// Login for the CUSTOMER, deliberately kept out of the User table: clients are
+// not employees, carry no role, and must never be reachable by any employee
+// role check, HR record, payroll row or distribution dropdown. One account per
+// Lead (customer); it grants read-only access to that customer's own projects.
+model ClientAccount {
+  id                  String    @id @default(uuid())
+  username            String    @unique
+  passwordHash        String
+  leadId              String    @unique
+  lead                Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  status              String    @default("Active") // Active, Suspended
+  mustChangePassword  Boolean   @default(true)
+  lastLoginAt         DateTime?
+  // Brute-force protection. Counting on the account (not the IP) is the only
+  // approach that holds on serverless, where every request may hit a fresh
+  // instance with its own memory.
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  createdByUserId     String
+  createdAt           DateTime  @default(now())
+
+  @@index([status])
 }
