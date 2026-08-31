@@ -1,6 +1,7 @@
 "use client";
 
 import LifecycleStateBadge from "@/components/LifecycleStateBadge";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 type HeadAccountManagerTasksPanelProps = {
   allTasks: any[];
@@ -21,6 +22,7 @@ export default function HeadAccountManagerTasksPanel({
   taskFilter,
   setTaskFilter,
 }: HeadAccountManagerTasksPanelProps) {
+  const t = useTranslator();
   const visibleTasks = allTasks
     .filter((task:any) => matchesTaskFilter(task, taskFilter))
     .sort((a:any, b:any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -28,14 +30,14 @@ export default function HeadAccountManagerTasksPanel({
   return (
     <div className="bg-white rounded-xl shadow border overflow-hidden">
       <div className="p-4 border-b bg-slate-50 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-bold text-slate-800">Global Tasks Execution</h2>
+        <h2 className="text-lg font-bold text-slate-800">{t("task.globalExecution")}</h2>
         <div className="flex items-center gap-3">
           <select value={taskFilter} onChange={(e) => setTaskFilter(e.target.value)} className="text-sm border rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500">
-            <option value="all">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="in_progress">In Progress</option>
-            <option value="delayed">Delayed</option>
-            <option value="done">Done</option>
+            <option value="all">{t("filter.allStatuses")}</option>
+            <option value="pending">{t("status.pending")}</option>
+            <option value="in_progress">{t("status.inProgress")}</option>
+            <option value="delayed">{t("status.delayed")}</option>
+            <option value="done">{t("status.done")}</option>
           </select>
           {taskFilter !== "all" && (
             <button
@@ -54,11 +56,11 @@ export default function HeadAccountManagerTasksPanel({
         <table className="min-w-full divide-y divide-gray-200 relative">
           <thead className="bg-slate-50 sticky top-0 z-10 shadow-sm">
             <tr>
-              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Target Client</th>
-              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Task Type & Brief</th>
-              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Assigned Leader</th>
-              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Deadline</th>
-              <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Status</th>
+              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("task.targetClient")}</th>
+              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("task.typeAndBrief")}</th>
+              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("task.assignedLeader")}</th>
+              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("task.deadline")}</th>
+              <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">{t("common.status")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 bg-white">
@@ -96,7 +98,7 @@ export default function HeadAccountManagerTasksPanel({
               );
             })}
             {allTasks.length === 0 && (
-              <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400 italic">No operational tasks generated yet.</td></tr>
+              <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400 italic">{t("task.noneGenerated")}</td></tr>
             )}
           </tbody>
         </table>

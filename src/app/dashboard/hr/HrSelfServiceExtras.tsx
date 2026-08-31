@@ -5,6 +5,7 @@ import { Wallet, MessageSquareWarning } from "lucide-react";
 import { notify } from "@/components/toast";
 import { HttpError } from "@/client/transport/http";
 import { listComplaints, listSalaryAdvances, submitComplaint, submitSalaryAdvance } from "@/client/api/hrRequests";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 function tone(s?: string | null) {
   const v = (s || "").toLowerCase();
@@ -16,6 +17,7 @@ function tone(s?: string | null) {
 const Badge = ({ s }: { s?: string | null }) => <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${tone(s)}`}>{(s || "").replace(/_/g, " ")}</span>;
 
 export default function HrSelfServiceExtras() {
+  const t = useTranslator();
   const [advances, setAdvances] = useState<any[]>([]);
   const [complaints, setComplaints] = useState<any[]>([]);
   const [busy, setBusy] = useState(false);
@@ -63,12 +65,12 @@ export default function HrSelfServiceExtras() {
         <form onSubmit={submitAdvance} className="space-y-2 mb-3">
           <div className="grid grid-cols-3 gap-2">
             <input name="amount" type="number" min="1" required placeholder="Amount (SAR)" className={`col-span-1 ${input}`} />
-            <input name="reason" required placeholder="Reason" className={`col-span-2 ${input}`} />
+            <input name="reason" required placeholder={t("common.reason")} className={`col-span-2 ${input}`} />
           </div>
           <button type="submit" disabled={busy} className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-lg disabled:opacity-50">Request Advance</button>
         </form>
         <ul className="divide-y">
-          {advances.length === 0 && <li className="py-2 text-sm text-gray-400 italic">No requests yet.</li>}
+          {advances.length === 0 && <li className="py-2 text-sm text-gray-400 italic">{t("empty.noRequests")}</li>}
           {advances.slice(0, 5).map((a) => (
             <li key={a.id} className="py-2 flex justify-between items-center text-sm">
               <span className="text-gray-700">SAR {Number(a.amount).toLocaleString()} · {a.reason}</span>
@@ -82,7 +84,7 @@ export default function HrSelfServiceExtras() {
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2"><MessageSquareWarning className="w-5 h-5 text-amber-600" /> Submit a Complaint</h2>
         <form onSubmit={submitComp} className="space-y-2 mb-3">
-          <input name="subject" required placeholder="Subject" className={input} />
+          <input name="subject" required placeholder={t("common.subject")} className={input} />
           <textarea name="details" required rows={2} placeholder="Describe your complaint…" className={input} />
           <select name="visibility" defaultValue="hr_only" className={`${input} bg-white`}>
             <option value="hr_only">Visible to HR only</option>
@@ -90,7 +92,7 @@ export default function HrSelfServiceExtras() {
             <option value="team_leader">HR + Team Leader</option>
             <option value="everyone">Everyone involved</option>
           </select>
-          <button type="submit" disabled={busy} className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold rounded-lg disabled:opacity-50">Submit Complaint</button>
+          <button type="submit" disabled={busy} className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold rounded-lg disabled:opacity-50">{t("hr.submitComplaint")}</button>
         </form>
         <ul className="divide-y">
           {complaints.length === 0 && <li className="py-2 text-sm text-gray-400 italic">No complaints yet.</li>}

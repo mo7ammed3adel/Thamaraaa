@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { notify } from "@/components/toast";
 import { MessageSquare, Send } from "lucide-react";
 import { createNote, listNotes } from "@/client/api/notes";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface Note {
   id: string;
@@ -22,6 +23,7 @@ interface NotesPanelProps {
 }
 
 export default function NotesPanel({ projectId, currentUserRole }: NotesPanelProps) {
+  const t = useTranslator();
   const [filterCategory, setFilterCategory] = useState("all");
 
   const [notes, setNotes] = useState<Note[]>([]);
@@ -98,12 +100,12 @@ export default function NotesPanel({ projectId, currentUserRole }: NotesPanelPro
             onChange={e => setFilterCategory(e.target.value)}
             className="border rounded px-2 py-1 outline-none focus:ring-1 focus:ring-indigo-500"
           >
-            <option value="all">All Departments</option>
-            <option value="sales">Sales</option>
+            <option value="all">{t("filter.allDepartments")}</option>
+            <option value="sales">{t("team.sales")}</option>
             <option value="account_manager">Account Management</option>
-            <option value="technical">Technical</option>
-            <option value="design">Design</option>
-            <option value="general">General</option>
+            <option value="technical">{t("team.technical")}</option>
+            <option value="design">{t("team.design")}</option>
+            <option value="general">{t("common.general")}</option>
           </select>
         </div>
       </div>

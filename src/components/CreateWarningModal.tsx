@@ -5,6 +5,7 @@ import { notify } from "@/components/toast";
 import { X } from "lucide-react";
 import { createWarning } from "@/client/api/warnings";
 import { HttpError } from "@/client/transport/http";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface CreateWarningModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ interface CreateWarningModalProps {
 }
 
 export default function CreateWarningModal({ isOpen, onClose, clientId, projectId, defaultRecipientRole }: CreateWarningModalProps) {
+  const t = useTranslator();
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [severity, setSeverity] = useState("Medium");
@@ -79,7 +81,7 @@ export default function CreateWarningModal({ isOpen, onClose, clientId, projectI
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Subject</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">{t("common.subject")}</label>
             <input
               type="text"
               required

@@ -1,3 +1,4 @@
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 type ProgressTask = {
   status?: string | null;
 };
@@ -15,6 +16,7 @@ type ClientProgressTabProps = {
 };
 
 export default function ClientProgressTab({ project }: ClientProgressTabProps) {
+  const t = useTranslator();
   const bars = [
     { label: "SEO Progress", value: project.seoProgress, color: "bg-blue-500" },
     { label: "Social Media Progress", value: project.socialMediaProgress, color: "bg-purple-500" },
@@ -41,9 +43,9 @@ export default function ClientProgressTab({ project }: ClientProgressTabProps) {
         ))}
       </div>
       <div className="mt-6 pt-4 border-t grid grid-cols-3 gap-4">
-        <div className="text-center"><p className="text-xs text-slate-400">Deadline</p><p className="text-sm font-bold text-slate-700">{project.finalDeadline ? new Date(project.finalDeadline).toLocaleDateString() : "Not Set"}</p></div>
+        <div className="text-center"><p className="text-xs text-slate-400">{t("task.deadline")}</p><p className="text-sm font-bold text-slate-700">{project.finalDeadline ? new Date(project.finalDeadline).toLocaleDateString() : "Not Set"}</p></div>
         <div className="text-center"><p className="text-xs text-slate-400">Total Tasks</p><p className="text-sm font-bold text-slate-700">{tasks.length}</p></div>
-        <div className="text-center"><p className="text-xs text-slate-400">Completed</p><p className="text-sm font-bold text-emerald-700">{tasks.filter((task) => task.status === "done").length}</p></div>
+        <div className="text-center"><p className="text-xs text-slate-400">{t("status.completed")}</p><p className="text-sm font-bold text-emerald-700">{tasks.filter((task) => task.status === "done").length}</p></div>
       </div>
     </div>
   );

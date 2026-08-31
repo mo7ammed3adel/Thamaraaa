@@ -2,8 +2,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import SalesTeamAnalyticsClient from "./SalesTeamAnalyticsClient";
+import { getTranslator } from "@/server/i18n/locale";
 
 export default async function SalesTeamAnalyticsPage() {
+  const t = getTranslator();
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
 
@@ -13,7 +15,7 @@ export default async function SalesTeamAnalyticsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">Sales Team Analytics</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">{t("analytics.salesTeam")}</h1>
       <p className="text-sm text-gray-500 mb-6">
         Monitor your sales team performance — leads, meetings, deals, and revenue with date filters.
       </p>

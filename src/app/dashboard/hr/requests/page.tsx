@@ -2,8 +2,10 @@
 import { useState, useEffect } from "react";
 import { Check, X, Clock } from "lucide-react";
 import { listHrRequests, updateHrRequest } from "@/client/api/hr";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 export default function HRRequestsPage() {
+  const t = useTranslator();
   const [requests, setRequests] = useState<any[]>([]);
 
   useEffect(() => {
@@ -39,10 +41,10 @@ export default function HRRequestsPage() {
                 </span>
                 {req.status === "Pending" && (
                   <div className="flex gap-2">
-                    <button onClick={() => handleDecision(req.id, "Approved")} className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200" title="Approve">
+                    <button onClick={() => handleDecision(req.id, "Approved")} className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200" title={t("common.approve")}>
                       <Check className="w-5 h-5"/>
                     </button>
-                    <button onClick={() => handleDecision(req.id, "Rejected")} className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200" title="Reject">
+                    <button onClick={() => handleDecision(req.id, "Rejected")} className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200" title={t("common.reject")}>
                       <X className="w-5 h-5"/>
                     </button>
                   </div>

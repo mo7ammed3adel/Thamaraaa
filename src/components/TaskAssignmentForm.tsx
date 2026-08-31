@@ -5,6 +5,7 @@ import { notify } from "@/components/toast";
 import { X, Plus, Trash2 } from "lucide-react";
 import { HttpError } from "@/client/transport/http";
 import { createTask } from "@/client/api/tasks";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface TaskAssignmentFormProps {
   projectId: string;
@@ -13,6 +14,7 @@ interface TaskAssignmentFormProps {
 }
 
 export default function TaskAssignmentForm({ projectId, projectNiche, onSuccess }: TaskAssignmentFormProps) {
+  const t = useTranslator();
   const [taskType, setTaskType] = useState("social_media");
   const [priority, setPriority] = useState("Medium");
   const [brief, setBrief] = useState("");
@@ -76,7 +78,7 @@ export default function TaskAssignmentForm({ projectId, projectNiche, onSuccess 
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-      <h3 className="text-lg font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Assign New Task</h3>
+      <h3 className="text-lg font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">{t("task.assignNew")}</h3>
       
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -94,22 +96,22 @@ export default function TaskAssignmentForm({ projectId, projectNiche, onSuccess 
           </div>
           
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Priority</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">{t("common.priority")}</label>
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value)}
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
             >
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
+              <option value="Low">{t("priority.low")}</option>
+              <option value="Medium">{t("priority.medium")}</option>
+              <option value="High">{t("priority.high")}</option>
               <option value="Critical">Critical</option>
             </select>
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1">Deadline (Optional)</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1">{t("task.deadlineOptional")}</label>
           <input
             type="datetime-local"
             value={deadline}

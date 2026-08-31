@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Briefcase, Calendar, Handshake, DollarSign, XCircle, TrendingUp, ChevronDown } from "lucide-react";
 import { getMyProgress } from "@/client/api/analytics";
 import DateRangeFilter from "@/components/dashboard/DateRangeFilter";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface SalesProgress {
   role: string;
@@ -19,6 +20,7 @@ interface SalesProgress {
 type DrillDown = "leads" | "meetings" | "won" | "lost" | "revenue" | null;
 
 export default function SalesProgressClient() {
+  const t = useTranslator();
   const [data, setData] = useState<SalesProgress | null>(null);
   const [loading, setLoading] = useState(true);
   const [fromDate, setFromDate] = useState("");
@@ -87,7 +89,7 @@ export default function SalesProgressClient() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Briefcase className="h-5 w-5 opacity-80" />
-              <span className="text-xs font-semibold uppercase opacity-80">Total Leads</span>
+              <span className="text-xs font-semibold uppercase opacity-80">{t("metric.totalLeads")}</span>
             </div>
             <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "leads" ? "rotate-180" : ""}`} />
           </div>
@@ -102,7 +104,7 @@ export default function SalesProgressClient() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Calendar className="h-5 w-5 opacity-80" />
-              <span className="text-xs font-semibold uppercase opacity-80">Meetings</span>
+              <span className="text-xs font-semibold uppercase opacity-80">{t("team.meetings")}</span>
             </div>
             <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "meetings" ? "rotate-180" : ""}`} />
           </div>
@@ -117,7 +119,7 @@ export default function SalesProgressClient() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Handshake className="h-5 w-5 opacity-80" />
-              <span className="text-xs font-semibold uppercase opacity-80">Deals Won</span>
+              <span className="text-xs font-semibold uppercase opacity-80">{t("metric.dealsWon")}</span>
             </div>
             <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "won" ? "rotate-180" : ""}`} />
           </div>
@@ -133,7 +135,7 @@ export default function SalesProgressClient() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <XCircle className="h-5 w-5 opacity-80" />
-              <span className="text-xs font-semibold uppercase opacity-80">Deals Lost</span>
+              <span className="text-xs font-semibold uppercase opacity-80">{t("metric.dealsLost")}</span>
             </div>
             <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "lost" ? "rotate-180" : ""}`} />
           </div>
@@ -148,7 +150,7 @@ export default function SalesProgressClient() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 opacity-80" />
-              <span className="text-xs font-semibold uppercase opacity-80">Revenue</span>
+              <span className="text-xs font-semibold uppercase opacity-80">{t("finance.revenue")}</span>
             </div>
             <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "revenue" ? "rotate-180" : ""}`} />
           </div>
@@ -160,7 +162,7 @@ export default function SalesProgressClient() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 opacity-80" />
-              <span className="text-xs font-semibold uppercase opacity-80">Conv. Rate</span>
+              <span className="text-xs font-semibold uppercase opacity-80">{t("metric.convRate")}</span>
             </div>
           </div>
           <p className="text-3xl font-bold">{conversionRate}%</p>
@@ -178,7 +180,7 @@ export default function SalesProgressClient() {
           </div>
           <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
             {data.leads.length === 0 ? (
-              <div className="px-6 py-8 text-center text-sm text-gray-500">No leads found for this period.</div>
+              <div className="px-6 py-8 text-center text-sm text-gray-500">{t("empty.noLeads")}</div>
             ) : data.leads.map((lead: any) => (
               <div key={lead.id} className="px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-3">
@@ -217,7 +219,7 @@ export default function SalesProgressClient() {
           </div>
           <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
             {data.meetings.length === 0 ? (
-              <div className="px-6 py-8 text-center text-sm text-gray-500">No meetings found for this period.</div>
+              <div className="px-6 py-8 text-center text-sm text-gray-500">{t("empty.noMeetings")}</div>
             ) : data.meetings.map((m: any) => (
               <div key={m.id} className="px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-3">
@@ -321,7 +323,7 @@ export default function SalesProgressClient() {
               </div>
             ))}
             <div className="px-6 py-3 bg-amber-50 flex justify-between items-center">
-              <p className="text-sm font-bold text-gray-900">Total Revenue</p>
+              <p className="text-sm font-bold text-gray-900">{t("finance.totalRevenue")}</p>
               <p className="text-lg font-bold text-amber-700">{data.revenue.toLocaleString()} SAR</p>
             </div>
           </div>

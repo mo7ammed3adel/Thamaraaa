@@ -4,6 +4,7 @@ import { notify } from "@/components/toast";
 import { Clock, FileText, UploadCloud, Calendar, User } from "lucide-react";
 import { createDocument, submitLeaveRequest } from "@/client/api/hr";
 import { HttpError } from "@/client/transport/http";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 /** These flows always showed success and reloaded even on a rejected request,
  * so an HTTP failure is swallowed to keep that behavior; network errors still throw. */
@@ -12,6 +13,7 @@ function swallowHttpError(error: unknown) {
 }
 
 export default function ProfileClient({ profile }: { profile: any }) {
+  const t = useTranslator();
   const [requestForm, setRequestForm] = useState(false);
   const [docForm, setDocForm] = useState(false);
   const [reqData, setReqData] = useState({ type: "Leave", date: "", reason: "" });
@@ -107,7 +109,7 @@ export default function ProfileClient({ profile }: { profile: any }) {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center gap-2 mb-4 border-b pb-2">
             <FileText className="w-5 h-5 text-gray-400"/>
-            <h3 className="text-lg font-bold text-gray-900">Documents</h3>
+            <h3 className="text-lg font-bold text-gray-900">{t("team.documents")}</h3>
           </div>
           <div className="space-y-3">
             {profile.documents.map((d: any) => (
@@ -141,15 +143,15 @@ export default function ProfileClient({ profile }: { profile: any }) {
             <h3 className="text-lg font-bold mb-4">New Request</h3>
             <form onSubmit={submitRequest} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Type</label>
+                <label className="block text-sm font-medium mb-1">{t("lead.type")}</label>
                 <select className="w-full border p-2 rounded" value={reqData.type} onChange={e => setReqData({...reqData, type: e.target.value})}>
-                  <option>Leave</option>
-                  <option>Remote Work</option>
+                  <option>{t("hr.leave")}</option>
+                  <option>{t("hr.remoteWork")}</option>
                   <option>Permission (Hours)</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Date</label>
+                <label className="block text-sm font-medium mb-1">{t("common.date")}</label>
                 <input required type="date" className="w-full border p-2 rounded" value={reqData.date} onChange={e => setReqData({...reqData, date: e.target.value})}/>
               </div>
               <div>
@@ -157,7 +159,7 @@ export default function ProfileClient({ profile }: { profile: any }) {
                 <textarea className="w-full border p-2 rounded" rows={3} value={reqData.reason} onChange={e => setReqData({...reqData, reason: e.target.value})}></textarea>
               </div>
               <div className="flex justify-end gap-2 mt-4">
-                <button type="button" onClick={() => setRequestForm(false)} className="px-4 py-2 border rounded text-gray-600 hover:bg-gray-50">Cancel</button>
+                <button type="button" onClick={() => setRequestForm(false)} className="px-4 py-2 border rounded text-gray-600 hover:bg-gray-50">{t("common.cancel")}</button>
                 <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Submit</button>
               </div>
             </form>
@@ -179,8 +181,8 @@ export default function ProfileClient({ profile }: { profile: any }) {
                 <input required type="url" className="w-full border p-2 rounded" value={docData.fileUrl} onChange={e => setDocData({...docData, fileUrl: e.target.value})}/>
               </div>
               <div className="flex justify-end gap-2 mt-4">
-                <button type="button" onClick={() => setDocForm(false)} className="px-4 py-2 border rounded text-gray-600 hover:bg-gray-50">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Save</button>
+                <button type="button" onClick={() => setDocForm(false)} className="px-4 py-2 border rounded text-gray-600 hover:bg-gray-50">{t("common.cancel")}</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">{t("common.save")}</button>
               </div>
             </form>
           </div>

@@ -6,8 +6,10 @@ import { Building2, Pencil, Trash2, Plus, Check, X } from "lucide-react";
 import { notify } from "@/components/toast";
 import { HttpError } from "@/client/transport/http";
 import { createCompany, deleteCompany, updateCompany } from "@/client/api/companies";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 export default function CompaniesClient({ initialCompanies }: { initialCompanies: any[] }) {
+  const t = useTranslator();
   const router = useRouter();
   const [companies, setCompanies] = useState(initialCompanies);
   const [newName, setNewName] = useState("");
@@ -85,10 +87,10 @@ export default function CompaniesClient({ initialCompanies }: { initialCompanies
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
             <tr>
-              <th className="px-6 py-3 text-start">Company</th>
+              <th className="px-6 py-3 text-start">{t("common.company")}</th>
               <th className="px-6 py-3 text-center">Users</th>
-              <th className="px-6 py-3 text-center">Leads</th>
-              <th className="px-6 py-3 text-end">Actions</th>
+              <th className="px-6 py-3 text-center">{t("team.leads")}</th>
+              <th className="px-6 py-3 text-end">{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 text-sm">
@@ -115,13 +117,13 @@ export default function CompaniesClient({ initialCompanies }: { initialCompanies
                 <td className="px-6 py-3 text-end space-x-1 whitespace-nowrap">
                   {editingId === c.id ? (
                     <>
-                      <button onClick={() => saveEdit(c.id)} disabled={busy} className="p-1.5 text-green-600 hover:bg-green-50 rounded-md" title="Save"><Check className="w-4 h-4" /></button>
-                      <button onClick={() => setEditingId(null)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-md" title="Cancel"><X className="w-4 h-4" /></button>
+                      <button onClick={() => saveEdit(c.id)} disabled={busy} className="p-1.5 text-green-600 hover:bg-green-50 rounded-md" title={t("common.save")}><Check className="w-4 h-4" /></button>
+                      <button onClick={() => setEditingId(null)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-md" title={t("common.cancel")}><X className="w-4 h-4" /></button>
                     </>
                   ) : (
                     <>
                       <button onClick={() => { setEditingId(c.id); setEditName(c.name); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md" title="Rename"><Pencil className="w-4 h-4" /></button>
-                      <button onClick={() => remove(c.id, c.name)} disabled={busy} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => remove(c.id, c.name)} disabled={busy} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md" title={t("common.delete")}><Trash2 className="w-4 h-4" /></button>
                     </>
                   )}
                 </td>

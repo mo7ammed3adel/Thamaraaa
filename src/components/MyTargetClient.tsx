@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { CalendarDays, Target, TrendingUp, Trophy } from "lucide-react";
 import { getMyTarget } from "@/client/api/analytics";
 import { formatSarSuffix } from "@/shared/formatters/currency";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface MonthlyTargetRow {
   month: string; // YYYY-MM
@@ -38,6 +39,7 @@ function formatTargetValue(value: number | null | undefined, unit?: string): str
 }
 
 export default function MyTargetClient() {
+  const t = useTranslator();
   const [data, setData] = useState<TargetData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -83,7 +85,7 @@ export default function MyTargetClient() {
         <div className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-xl p-5 text-white shadow-lg">
           <div className="flex items-center gap-2 mb-2 opacity-90">
             <CalendarDays className="h-4 w-4" />
-            <span className="text-xs font-semibold uppercase tracking-wide">This Month</span>
+            <span className="text-xs font-semibold uppercase tracking-wide">{t("dateRange.thisMonth")}</span>
           </div>
           <p className="text-3xl font-bold">{formatTargetValue(currentRow?.achieved ?? 0, data.unit)}</p>
           <p className="text-xs opacity-80 mt-1">of {formatTargetValue(currentRow?.target ?? 0, data.unit)}</p>

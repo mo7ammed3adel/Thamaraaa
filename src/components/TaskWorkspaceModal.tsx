@@ -5,6 +5,7 @@ import { X, Loader2, Plus, ExternalLink, Trash2, Flag, CheckCircle2 } from "luci
 import { createNote } from "@/client/api/notes";
 import { addProjectFile } from "@/client/api/projects";
 import { updateTask } from "@/client/api/tasks";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 /**
  * Maps an agent/leader role to the Note category it should write under,
@@ -73,6 +74,7 @@ export default function TaskWorkspaceModal({
   onSuccess,
   onFlag,
 }: TaskWorkspaceModalProps) {
+  const t = useTranslator();
   const [status, setStatus] = useState<string>(task.status || "pending");
   const [progress, setProgress] = useState<number>(Math.round(task.progressPct || 0));
   const [checklist, setChecklist] = useState<any[]>(() => safeParseArray(task.checklistItems));
@@ -214,14 +216,14 @@ export default function TaskWorkspaceModal({
           {/* Brief */}
           {task.brief && (
             <div>
-              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Brief</h4>
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{t("task.brief")}</h4>
               <p className="text-sm text-slate-700 bg-slate-50 border rounded-lg p-3 whitespace-pre-wrap">{task.brief}</p>
             </div>
           )}
 
           {/* Status workflow */}
           <div>
-            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Status</h4>
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{t("common.status")}</h4>
             <div className="flex flex-wrap gap-2">
               {[
                 { key: "pending", label: "Pending / On Hold" },
@@ -253,7 +255,7 @@ export default function TaskWorkspaceModal({
           {/* Progress */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Progress</h4>
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t("sales.progress")}</h4>
               <span className="text-sm font-black text-indigo-700">{progress}%</span>
             </div>
             <input
@@ -357,7 +359,7 @@ export default function TaskWorkspaceModal({
 
           {/* Add note */}
           <div>
-            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Add Note</h4>
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{t("journey.addNote")}</h4>
             <textarea
               rows={2}
               value={note}

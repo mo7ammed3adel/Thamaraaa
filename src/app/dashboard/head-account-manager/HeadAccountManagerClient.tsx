@@ -15,8 +15,10 @@ import HeadAccountManagerMasterList from "./HeadAccountManagerMasterList";
 import HeadAccountManagerTasksPanel from "./HeadAccountManagerTasksPanel";
 import HeadAccountManagerWorkload from "./HeadAccountManagerWorkload";
 import { useHeadAccountManagerDerivedData } from "./useHeadAccountManagerDerivedData";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 export default function HeadAccountManagerClient({ projects, accountManagers, headAccountManagers = [], currentUserRole, headTechnicals, headSeoUsers, kpis, userId }: any) {
+  const t = useTranslator();
   const router = useRouter();
   const isSuperAdmin = currentUserRole === "super_admin";
   const [assigningHeadId, setAssigningHeadId] = useState<string | null>(null);
@@ -84,9 +86,9 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
                 <tr>
-                  <th className="px-4 py-2 text-start">Client</th>
-                  <th className="px-4 py-2 text-start">Package</th>
-                  <th className="px-4 py-2 text-start">Head Account Manager</th>
+                  <th className="px-4 py-2 text-start">{t("common.client")}</th>
+                  <th className="px-4 py-2 text-start">{t("common.package")}</th>
+                  <th className="px-4 py-2 text-start">{t("role.headAccountManager")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-sm">

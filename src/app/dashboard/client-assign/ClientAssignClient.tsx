@@ -5,6 +5,7 @@ import { Building2, UserCheck, Loader2, Search, Inbox } from "lucide-react";
 import { notify } from "@/components/toast";
 import { assignHeadAccountManager } from "@/client/api/projects";
 import { HttpError } from "@/client/transport/http";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 type Client = {
   id: string;
@@ -26,6 +27,7 @@ export default function ClientAssignClient({
   clients: Client[];
   headAccountManagers: Head[];
 }) {
+  const t = useTranslator();
   const [clients, setClients] = useState<Client[]>(initial);
   const [tab, setTab] = useState<"pending" | "assigned">("pending");
   const [search, setSearch] = useState("");
@@ -115,9 +117,9 @@ export default function ClientAssignClient({
           <table className="min-w-full divide-y divide-slate-100">
             <thead className="bg-slate-50">
               <tr>
-                <th className="px-5 py-3 text-start text-xs font-bold uppercase tracking-wider text-slate-400">Client</th>
-                <th className="px-5 py-3 text-start text-xs font-bold uppercase tracking-wider text-slate-400">Package</th>
-                <th className="px-5 py-3 text-start text-xs font-bold uppercase tracking-wider text-slate-400">Account Manager</th>
+                <th className="px-5 py-3 text-start text-xs font-bold uppercase tracking-wider text-slate-400">{t("common.client")}</th>
+                <th className="px-5 py-3 text-start text-xs font-bold uppercase tracking-wider text-slate-400">{t("common.package")}</th>
+                <th className="px-5 py-3 text-start text-xs font-bold uppercase tracking-wider text-slate-400">{t("sales.accountManager")}</th>
                 <th className="px-5 py-3 text-start text-xs font-bold uppercase tracking-wider text-slate-400">
                   {tab === "pending" ? "Assign to Head AM" : "Head Account Manager"}
                 </th>

@@ -10,6 +10,7 @@ import { buildLeaveSummary } from "@/lib/leaveAccrual";
 import { computeSalaryReview } from "@/lib/salaryReview";
 import { HR_DOC_LABELS } from "@/lib/hrOverview";
 import HrSalaryEvalCard from "./HrSalaryEvalCard";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 const CREATE_ROLES = [
   "sales_agent", "sales_manager", "tele_sales_agent", "tele_sales_manager",
@@ -43,6 +44,7 @@ function statusTone(s?: string | null) {
 }
 
 export default function HrEmployees({ employees, departments, leaveRequests, salaryAdvances, complaints }: any) {
+  const t = useTranslator();
   const router = useRouter();
   const [q, setQ] = useState("");
   const [dept, setDept] = useState("all");
@@ -77,11 +79,11 @@ export default function HrEmployees({ employees, departments, leaveRequests, sal
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, email or employee ID…" className="w-full ps-9 pe-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
         </div>
         <select value={dept} onChange={(e) => setDept(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none">
-          <option value="all">All Departments</option>
+          <option value="all">{t("filter.allDepartments")}</option>
           {deptNames.map((d) => <option key={d} value={d}>{d}</option>)}
         </select>
         <select value={status} onChange={(e) => setStatus(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none capitalize">
-          <option value="all">All Statuses</option>
+          <option value="all">{t("filter.allStatuses")}</option>
           {["active", "suspended", "resigned", "terminated"].map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
         <span className="text-xs text-slate-400">{filtered.length} of {employees?.length || 0}</span>
@@ -103,11 +105,11 @@ export default function HrEmployees({ employees, departments, leaveRequests, sal
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50 text-xs font-bold text-slate-500 uppercase">
             <tr>
-              <th className="px-6 py-3 text-start">Employee</th>
-              <th className="px-6 py-3 text-start">Department</th>
+              <th className="px-6 py-3 text-start">{t("common.employee")}</th>
+              <th className="px-6 py-3 text-start">{t("common.department")}</th>
               <th className="px-6 py-3 text-start">Role / Title</th>
-              <th className="px-6 py-3 text-end">Salary</th>
-              <th className="px-6 py-3 text-center">Status</th>
+              <th className="px-6 py-3 text-end">{t("finance.salary")}</th>
+              <th className="px-6 py-3 text-center">{t("common.status")}</th>
               <th className="px-6 py-3 text-end">Profile</th>
             </tr>
           </thead>
@@ -145,6 +147,7 @@ export default function HrEmployees({ employees, departments, leaveRequests, sal
 }
 
 function CreateEmployeeDrawer({ departments, employees, onClose, onCreated }: any) {
+  const t = useTranslator();
   const blank = {
     name: "", phone: "", gender: "Male", dateOfBirth: "",
     email: "", password: genTempPassword(), role: "sales_agent",
@@ -200,32 +203,32 @@ function CreateEmployeeDrawer({ departments, employees, onClose, onCreated }: an
               </div>
               <p className="text-[11px] text-emerald-700 mt-2">The employee can sign in with either the Employee ID or their email, and will be asked to set a new password on first login.</p>
             </div>
-            <button onClick={onCreated} className="w-full mt-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700">Done</button>
+            <button onClick={onCreated} className="w-full mt-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700">{t("status.done")}</button>
           </div>
         ) : (
           <form onSubmit={submit} className="p-6 space-y-5">
             <div className="bg-white rounded-2xl border p-4 space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Personal Information</h4>
+              <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">{t("hr.personalInfo")}</h4>
               <div className="grid grid-cols-2 gap-3">
-                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Full Name *</span><input required value={form.name} onChange={(e) => set("name", e.target.value)} className={cls} /></label>
+                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">{t("form.fullNameRequired")}</span><input required value={form.name} onChange={(e) => set("name", e.target.value)} className={cls} /></label>
                 <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Mobile *</span><input required value={form.phone} onChange={(e) => set("phone", e.target.value)} className={cls} /></label>
-                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Gender</span><select value={form.gender} onChange={(e) => set("gender", e.target.value)} className={`${cls} bg-white`}><option>Male</option><option>Female</option></select></label>
-                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Date of Birth</span><input type="date" value={form.dateOfBirth} onChange={(e) => set("dateOfBirth", e.target.value)} className={cls} /></label>
+                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">{t("common.gender")}</span><select value={form.gender} onChange={(e) => set("gender", e.target.value)} className={`${cls} bg-white`}><option>{t("common.male")}</option><option>{t("common.female")}</option></select></label>
+                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">{t("hr.dateOfBirth")}</span><input type="date" value={form.dateOfBirth} onChange={(e) => set("dateOfBirth", e.target.value)} className={cls} /></label>
               </div>
             </div>
 
             <div className="bg-white rounded-2xl border p-4 space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Employment Information</h4>
+              <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">{t("hr.employmentInfo")}</h4>
               <p className="text-[11px] text-slate-400">Employee ID is generated automatically.</p>
               <div className="grid grid-cols-2 gap-3">
-                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Role *</span><select required value={form.role} onChange={(e) => set("role", e.target.value)} className={`${cls} bg-white capitalize`}>{CREATE_ROLES.map((r) => <option key={r} value={r}>{r.replace(/_/g, " ")}</option>)}</select></label>
-                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Department</span><select value={form.department} onChange={(e) => set("department", e.target.value)} className={`${cls} bg-white`}><option value="">— None —</option>{(departments || []).map((d: any) => <option key={d.id} value={d.name}>{d.name}</option>)}</select></label>
-                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Direct Manager</span><select value={form.directManagerId} onChange={(e) => set("directManagerId", e.target.value)} className={`${cls} bg-white`}><option value="">— None —</option>{(employees || []).filter((m: any) => m.status === "Active").map((m: any) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></label>
+                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">{t("form.roleRequired")}</span><select required value={form.role} onChange={(e) => set("role", e.target.value)} className={`${cls} bg-white capitalize`}>{CREATE_ROLES.map((r) => <option key={r} value={r}>{r.replace(/_/g, " ")}</option>)}</select></label>
+                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">{t("common.department")}</span><select value={form.department} onChange={(e) => set("department", e.target.value)} className={`${cls} bg-white`}><option value="">— None —</option>{(departments || []).map((d: any) => <option key={d.id} value={d.name}>{d.name}</option>)}</select></label>
+                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">{t("common.directManager")}</span><select value={form.directManagerId} onChange={(e) => set("directManagerId", e.target.value)} className={`${cls} bg-white`}><option value="">— None —</option>{(employees || []).filter((m: any) => m.status === "Active").map((m: any) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></label>
                 <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Monthly Salary (SAR)</span><input type="number" min="0" value={form.baseSalary} onChange={(e) => set("baseSalary", e.target.value)} className={cls} /></label>
-                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Hiring Date</span><input type="date" value={form.hiringDate} onChange={(e) => set("hiringDate", e.target.value)} className={cls} /></label>
+                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">{t("hr.hiringDate")}</span><input type="date" value={form.hiringDate} onChange={(e) => set("hiringDate", e.target.value)} className={cls} /></label>
                 <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Work Type</span><select value={form.employmentType} onChange={(e) => set("employmentType", e.target.value)} className={`${cls} bg-white`}><option value="full-time">Full Time</option><option value="part-time">Part Time</option></select></label>
                 <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Work Mode</span><select value={form.workMode} onChange={(e) => set("workMode", e.target.value)} className={`${cls} bg-white`}><option value="onsite">On Site</option><option value="remote">Remote</option></select></label>
-                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Employment Status</span><select value={form.employmentStatus} onChange={(e) => set("employmentStatus", e.target.value)} className={`${cls} bg-white capitalize`}>{["active", "suspended", "resigned", "terminated"].map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
+                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">{t("hr.employmentStatus")}</span><select value={form.employmentStatus} onChange={(e) => set("employmentStatus", e.target.value)} className={`${cls} bg-white capitalize`}>{["active", "suspended", "resigned", "terminated"].map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
               </div>
             </div>
 
@@ -236,13 +239,13 @@ function CreateEmployeeDrawer({ departments, employees, onClose, onCreated }: an
                 <span className="block text-xs font-bold text-slate-600 mb-1">Temporary Password *</span>
                 <div className="flex gap-2">
                   <input required value={form.password} onChange={(e) => set("password", e.target.value)} className={cls} />
-                  <button type="button" onClick={() => set("password", genTempPassword())} className="px-3 py-2 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold whitespace-nowrap">Generate</button>
+                  <button type="button" onClick={() => set("password", genTempPassword())} className="px-3 py-2 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold whitespace-nowrap">{t("common.generate")}</button>
                 </div>
               </label>
             </div>
 
             <div className="flex gap-3 pb-6">
-              <button type="button" onClick={onClose} className="flex-1 py-2.5 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">Cancel</button>
+              <button type="button" onClick={onClose} className="flex-1 py-2.5 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">{t("common.cancel")}</button>
               <button type="submit" disabled={saving} className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-50">{saving ? "Creating…" : "Create Employee"}</button>
             </div>
           </form>
@@ -279,6 +282,7 @@ function Balance({ label, used, remaining, total, unit }: { label: string; used:
 }
 
 function ProfileDrawer({ employee, departments, onClose, leaveRequests, salaryAdvances, complaints }: any) {
+  const t = useTranslator();
   const hr = employee.hrRecord || {};
   const leave = buildLeaveSummary(hr.hiringDate, leaveRequests);
 
@@ -320,7 +324,7 @@ function ProfileDrawer({ employee, departments, onClose, leaveRequests, salaryAd
         <div className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white rounded-2xl border p-4">
-              <Section icon={<User2 className="w-3.5 h-3.5" />} title="Personal Information">
+              <Section icon={<User2 className="w-3.5 h-3.5" />} title={t("hr.personalInfo")}>
                 <Field label="Mobile" value={employee.phone} />
                 <Field label="Gender" value={hr.gender} />
                 <Field label="Date of Birth" value={fmtDate(hr.dateOfBirth)} />
@@ -330,7 +334,7 @@ function ProfileDrawer({ employee, departments, onClose, leaveRequests, salaryAd
               </Section>
             </div>
             <div className="bg-white rounded-2xl border p-4">
-              <Section icon={<Briefcase className="w-3.5 h-3.5" />} title="Employment Information">
+              <Section icon={<Briefcase className="w-3.5 h-3.5" />} title={t("hr.employmentInfo")}>
                 <Field label="Employee ID" value={hr.employeeCode} />
                 <Field label="Department" value={hr.department} />
                 <Field label="Direct Manager" value={employee.directManager?.name} />
@@ -346,7 +350,7 @@ function ProfileDrawer({ employee, departments, onClose, leaveRequests, salaryAd
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-slate-50 border rounded-xl p-3"><p className="text-[11px] font-bold uppercase text-slate-400">Current</p><p className="text-lg font-black text-slate-800">{money(hr.currentSalary ?? hr.baseSalary)}</p></div>
                 <div className="bg-slate-50 border rounded-xl p-3"><p className="text-[11px] font-bold uppercase text-slate-400">Starting</p><p className="text-lg font-black text-slate-800">{money(hr.startingSalary ?? hr.baseSalary)}</p></div>
-                <div className="bg-slate-50 border rounded-xl p-3"><p className="text-[11px] font-bold uppercase text-slate-400">Allowances</p><p className="text-lg font-black text-slate-800">{money(hr.allowances)}</p></div>
+                <div className="bg-slate-50 border rounded-xl p-3"><p className="text-[11px] font-bold uppercase text-slate-400">{t("finance.allowances")}</p><p className="text-lg font-black text-slate-800">{money(hr.allowances)}</p></div>
               </div>
             </Section>
           </div>
@@ -364,7 +368,7 @@ function ProfileDrawer({ employee, departments, onClose, leaveRequests, salaryAd
           </div>
 
           <div className="bg-white rounded-2xl border p-4">
-            <Section icon={<FileWarning className="w-3.5 h-3.5" />} title="Documents">
+            <Section icon={<FileWarning className="w-3.5 h-3.5" />} title={t("team.documents")}>
               <div className="grid grid-cols-2 gap-2">
                 {docKeys.map((k) => (
                   <div key={k} className="flex items-center justify-between border rounded-lg px-3 py-2 text-sm">

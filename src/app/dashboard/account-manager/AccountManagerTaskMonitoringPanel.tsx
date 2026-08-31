@@ -1,4 +1,5 @@
 "use client";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 type AccountManagerTaskMonitoringPanelProps = {
   projects: any[];
@@ -23,6 +24,7 @@ export default function AccountManagerTaskMonitoringPanel({
   setTaskFilterTeam,
   openClientJourney,
 }: AccountManagerTaskMonitoringPanelProps) {
+  const t = useTranslator();
   return (
     <div className="bg-white rounded-xl shadow border overflow-hidden">
       <div className="p-4 border-b bg-slate-50 flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
@@ -36,21 +38,21 @@ export default function AccountManagerTaskMonitoringPanel({
             {projects.map((p: any) => <option key={p.id} value={p.id}>{p.deal?.lead?.name}</option>)}
           </select>
           <select value={taskFilterStatus} onChange={e => setTaskFilterStatus(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-indigo-500 flex-1 md:flex-none">
-            <option value="">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="in_progress">In Progress</option>
-            <option value="review">Review</option>
-            <option value="done">Done</option>
+            <option value="">{t("filter.allStatuses")}</option>
+            <option value="pending">{t("status.pending")}</option>
+            <option value="in_progress">{t("status.inProgress")}</option>
+            <option value="review">{t("status.review")}</option>
+            <option value="done">{t("status.done")}</option>
           </select>
           <select value={taskFilterTeam} onChange={e => setTaskFilterTeam(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-indigo-500 flex-1 md:flex-none">
-            <option value="">All Teams</option>
-            <option value="seo">SEO</option>
-            <option value="content_seo">Content SEO</option>
-            <option value="social_media">Social Media</option>
-            <option value="media_buyer">Media Buyer</option>
-            <option value="graphic_design">Graphic Design</option>
-            <option value="motion_graphic">Motion Graphic</option>
-            <option value="ui_design">UI/UX Design</option>
+            <option value="">{t("filter.allTeams")}</option>
+            <option value="seo">{t("team.seo")}</option>
+            <option value="content_seo">{t("team.contentSeo")}</option>
+            <option value="social_media">{t("team.socialMedia")}</option>
+            <option value="media_buyer">{t("team.mediaBuyer")}</option>
+            <option value="graphic_design">{t("team.graphicDesign")}</option>
+            <option value="motion_graphic">{t("team.motionGraphic")}</option>
+            <option value="ui_design">{t("team.uiUx")}</option>
           </select>
         </div>
       </div>
@@ -60,16 +62,16 @@ export default function AccountManagerTaskMonitoringPanel({
           <thead className="bg-slate-50 text-xs font-semibold text-slate-500 uppercase">
             <tr>
               <th className="px-6 py-3 text-start">Task Core</th>
-              <th className="px-6 py-3 text-start">Client</th>
+              <th className="px-6 py-3 text-start">{t("common.client")}</th>
               <th className="px-6 py-3 text-start">Assignment</th>
-              <th className="px-6 py-3 text-center">Deadline</th>
-              <th className="px-6 py-3 text-center">Status</th>
+              <th className="px-6 py-3 text-center">{t("task.deadline")}</th>
+              <th className="px-6 py-3 text-center">{t("common.status")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {(() => {
               if (filteredTasks.length === 0) return (
-                <tr><td colSpan={5} className="px-6 py-8 text-center text-sm text-slate-400 italic">No tasks match your filters.</td></tr>
+                <tr><td colSpan={5} className="px-6 py-8 text-center text-sm text-slate-400 italic">{t("task.noneMatch")}</td></tr>
               );
 
               return filteredTasks.map((t: any) => (

@@ -2,8 +2,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import DealsClient from "./DealsClient";
+import { getTranslator } from "@/server/i18n/locale";
 
 export default async function DealsPage() {
+  const t = getTranslator();
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
 
@@ -13,7 +15,7 @@ export default async function DealsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">Deals</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">{t("team.deals")}</h1>
       <p className="text-sm text-gray-500 mb-6">
         All clients who closed deals — click on any client to view their full journey.
       </p>

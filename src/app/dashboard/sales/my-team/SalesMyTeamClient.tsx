@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Users, Flame, Snowflake, Sun, Handshake, XCircle, DollarSign, Briefcase, Calendar, ChevronDown } from "lucide-react";
 import { updateUserSpecialization, updateUserTarget } from "@/client/api/users";
 import { formatSarSuffix } from "@/shared/formatters/currency";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface Agent {
   id: string;
@@ -40,6 +41,7 @@ const specIcons: Record<string, any> = {
 };
 
 export default function SalesMyTeamClient({ agents: initialAgents }: { agents: Agent[] }) {
+  const t = useTranslator();
   const router = useRouter();
   const [agents, setAgents] = useState(initialAgents);
   const [loading, setLoading] = useState<string | null>(null);
@@ -132,7 +134,7 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Briefcase className="h-5 w-5 opacity-80" />
-              <span className="text-xs font-semibold uppercase opacity-80">Total Leads</span>
+              <span className="text-xs font-semibold uppercase opacity-80">{t("metric.totalLeads")}</span>
             </div>
           </div>
           <p className="text-3xl font-bold">{dTotalLeads}</p>
@@ -144,7 +146,7 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Handshake className="h-5 w-5 opacity-80" />
-              <span className="text-xs font-semibold uppercase opacity-80">Deals Won</span>
+              <span className="text-xs font-semibold uppercase opacity-80">{t("metric.dealsWon")}</span>
             </div>
           </div>
           <p className="text-3xl font-bold">{dDealsWon}</p>
@@ -156,7 +158,7 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <XCircle className="h-5 w-5 opacity-80" />
-              <span className="text-xs font-semibold uppercase opacity-80">Deals Lost</span>
+              <span className="text-xs font-semibold uppercase opacity-80">{t("metric.dealsLost")}</span>
             </div>
           </div>
           <p className="text-3xl font-bold">{dDealsLost}</p>
@@ -168,7 +170,7 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 opacity-80" />
-              <span className="text-xs font-semibold uppercase opacity-80">Total Revenue</span>
+              <span className="text-xs font-semibold uppercase opacity-80">{t("finance.totalRevenue")}</span>
             </div>
           </div>
           <p className="text-3xl font-bold">{formatSarSuffix(dRevenue, { maximumFractionDigits: 0 })}</p>
@@ -187,7 +189,7 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{agents.length}</p>
-              <p className="text-xs text-gray-500">Total Agents</p>
+              <p className="text-xs text-gray-500">{t("metric.totalAgents")}</p>
             </div>
           </div>
         </div>
@@ -201,7 +203,7 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
             </div>
             <div>
               <p className="text-2xl font-bold text-red-600">{hotCount}</p>
-              <p className="text-xs text-gray-500">Hot Agents</p>
+              <p className="text-xs text-gray-500">{t("metric.hotAgents")}</p>
             </div>
           </div>
         </div>
@@ -215,7 +217,7 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
             </div>
             <div>
               <p className="text-2xl font-bold text-amber-600">{warmCount}</p>
-              <p className="text-xs text-gray-500">Warm Agents</p>
+              <p className="text-xs text-gray-500">{t("metric.warmAgents")}</p>
             </div>
           </div>
         </div>
@@ -229,7 +231,7 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
             </div>
             <div>
               <p className="text-2xl font-bold text-blue-600">{coldCount}</p>
-              <p className="text-xs text-gray-500">Cold Agents</p>
+              <p className="text-xs text-gray-500">{t("metric.coldAgents")}</p>
             </div>
           </div>
         </div>
@@ -239,7 +241,7 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
       {(sortBy !== "name" || filterSpec !== "All" || activeCardFilter !== "All") && (
         <div className="flex items-center justify-between bg-white px-4 py-3 border border-gray-200 rounded-xl shadow-sm">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-bold text-gray-700 me-2">Active Filters:</span>
+            <span className="text-sm font-bold text-gray-700 me-2">{t("filter.activeFilters")}</span>
             {activeCardFilter !== "All" && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 text-xs font-bold uppercase rounded border border-green-200">
                 {activeCardFilter === "won" ? "Deals Won" : activeCardFilter === "lost" ? "Deals Lost" : "Revenue Gen"}
@@ -275,9 +277,9 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Agent</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.agent")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.contact")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.level")}</th>
                 <th
                   onClick={() => setSortBy(sortBy === "leads" ? "name" : "leads")}
                   className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 transition-colors"
@@ -296,10 +298,10 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
                 >
                   Closed Deals {sortBy === "won" ? "↓" : ""}
                 </th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Monthly Fund Target (SAR)</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("form.monthlyFundTarget")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Win Rate</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Specialization</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.status")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.specialization")}</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -361,7 +363,7 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
                             if (val !== agent.target) updateTarget(agent.id, val);
                           }}
                           className="w-24 border border-gray-200 rounded-md px-2 py-1 text-sm focus:ring-2 focus:ring-green-500"
-                          title="Fund target (SAR) for the current month"
+                          title={t("form.fundTargetHint")}
                         />
                       </div>
                     </td>
@@ -395,7 +397,7 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
                           agent.specialization ? specColors[agent.specialization] : "bg-gray-50 text-gray-600 border-gray-200"
                         }`}
                       >
-                        <option value="">Unassigned</option>
+                        <option value="">{t("common.unassigned")}</option>
                         <option value="Hot">🔥 Hot</option>
                         <option value="Warm">☀️ Warm</option>
                         <option value="Cold">❄️ Cold</option>

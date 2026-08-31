@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import ClientWarningsTab from "./ClientWarningsTab";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 type ClientNote = {
   id: string;
@@ -50,20 +51,21 @@ export default function ClientNotesTab({
   saving,
   handleAddNote,
 }: ClientNotesTabProps) {
+  const t = useTranslator();
   return (
     <div className="space-y-4">
       <ClientWarningsTab warnings={warnings || []} />
 
       <div className="bg-white rounded-xl border shadow-sm p-6">
-        <h2 className="text-lg font-bold text-slate-800 mb-3">Add Note</h2>
+        <h2 className="text-lg font-bold text-slate-800 mb-3">{t("journey.addNote")}</h2>
         <div className="flex gap-3">
           <select value={noteCategory} onChange={(e) => setNoteCategory(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white min-w-[120px]">
-            <option value="general">General</option>
+            <option value="general">{t("common.general")}</option>
             <option value="telesales">TeleSales</option>
-            <option value="sales">Sales</option>
+            <option value="sales">{t("team.sales")}</option>
             <option value="account_manager">Account Mgr</option>
-            <option value="technical">Technical</option>
-            <option value="design">Design</option>
+            <option value="technical">{t("team.technical")}</option>
+            <option value="design">{t("team.design")}</option>
           </select>
           <textarea value={noteContent} onChange={(e) => setNoteContent(e.target.value)} placeholder="Write a note visible to all departments..." className="flex-1 border rounded-lg px-3 py-2 text-sm resize-none h-20" />
           <button onClick={handleAddNote} disabled={!noteContent.trim() || saving} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium self-end hover:bg-indigo-700 disabled:opacity-50 transition">

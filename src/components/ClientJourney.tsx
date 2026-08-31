@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface JourneyEntry {
   stage: string;
@@ -39,6 +40,7 @@ const stageColors: Record<string, { bg: string; border: string; dot: string; tex
 };
 
 export default function ClientJourney({ leadName, phone, callLogs, meetings, deals, projectNotes, tasks, globalNotes, warnings, payments, projectCreatedAt }: ClientJourneyProps) {
+  const t = useTranslator();
   const [expanded, setExpanded] = useState<string | null>(null);
 
   // Build timeline entries from all data
@@ -207,7 +209,7 @@ export default function ClientJourney({ leadName, phone, callLogs, meetings, dea
 
       {projectNotes && (
         <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <h4 className="text-xs font-bold text-yellow-700 uppercase mb-1">Account Manager Notes</h4>
+          <h4 className="text-xs font-bold text-yellow-700 uppercase mb-1">{t("journey.amNotes")}</h4>
           <p className="text-sm text-yellow-800">{projectNotes}</p>
         </div>
       )}

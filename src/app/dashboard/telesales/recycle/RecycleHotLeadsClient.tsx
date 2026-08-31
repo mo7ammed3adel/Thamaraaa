@@ -3,6 +3,7 @@ import { useState } from "react";
 import { notify } from "@/components/toast";
 import { RotateCcw, CheckSquare, Square, Users } from "lucide-react";
 import { updateLead } from "@/client/api/leads";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface Lead {
   id: string;
@@ -24,6 +25,7 @@ interface Agent {
 }
 
 export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: { leads: Lead[]; agents: Agent[] }) {
+  const t = useTranslator();
   const [leads, setLeads] = useState(initialLeads);
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
   const [lostFromAgent, setLostFromAgent] = useState("");
@@ -176,7 +178,7 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
               onChange={(e) => setAssignToAgent(e.target.value)}
               className="border border-blue-300 bg-blue-50 text-blue-800 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 min-w-[200px]"
             >
-              <option value="">Select Agent...</option>
+              <option value="">{t("form.selectAgentAlt")}</option>
               {agents.map(a => (
                 <option key={a.id} value={a.id}>{a.name}</option>
               ))}
@@ -220,8 +222,8 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
                     {selectedLeads.size === leads.length && leads.length > 0 ? <CheckSquare className="h-4 w-4 text-blue-600" /> : <Square className="h-4 w-4" />}
                   </button>
                 </th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Client</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Phone</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("common.client")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("common.phone")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Classification</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Previous Tele Agent</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Previous Sales Agent</th>

@@ -4,6 +4,7 @@ import { DollarSign, X, PhoneCall, Calendar, Handshake, ArrowRight, Clock } from
 import DateRangeFilter from "@/components/dashboard/DateRangeFilter";
 import { isDateInRange } from "@/lib/dateRange";
 import { listDeals } from "@/client/api/deals";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface Deal {
   id: string;
@@ -32,6 +33,7 @@ interface Deal {
 }
 
 export default function DealsClient({ userRole }: { userRole: string }) {
+  const t = useTranslator();
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
@@ -227,7 +229,7 @@ export default function DealsClient({ userRole }: { userRole: string }) {
                 <th onClick={() => handleSort('remaining')} className="group px-6 py-3 text-end text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Remaining <SortIcon columnKey="remaining"/></th>
                 <th onClick={() => handleSort('status')} className="group px-6 py-3 text-center text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Payment Status <SortIcon columnKey="status"/></th>
                 <th onClick={() => handleSort('date')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Date <SortIcon columnKey="date"/></th>
-                <th className="px-6 py-3 text-center text-xs font-bold text-gray-600 uppercase">Action</th>
+                <th className="px-6 py-3 text-center text-xs font-bold text-gray-600 uppercase">{t("common.action")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -252,7 +254,7 @@ export default function DealsClient({ userRole }: { userRole: string }) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
                     {Math.max(0, deal.totalAmount - calculatePaidAmount(deal)) === 0 ? (
-                      <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm">Completed</span>
+                      <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm">{t("status.completed")}</span>
                     ) : (
                       <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200 shadow-sm">Partial</span>
                     )}
@@ -294,28 +296,28 @@ export default function DealsClient({ userRole }: { userRole: string }) {
                 </div>
                 <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3 text-center">
                   <p className="text-xl font-bold text-indigo-700">{selectedDeal.package}</p>
-                  <p className="text-xs text-indigo-600">Package</p>
+                  <p className="text-xs text-indigo-600">{t("common.package")}</p>
                 </div>
                 <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-center">
                   <p className="text-xl font-bold text-blue-700">{selectedDeal.paymentMethod}</p>
-                  <p className="text-xs text-blue-600">Payment Method</p>
+                  <p className="text-xs text-blue-600">{t("deal.paymentMethod")}</p>
                 </div>
                 <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 text-center">
                   <p className="text-xl font-bold text-purple-700">{selectedDeal.salesAgent.name}</p>
-                  <p className="text-xs text-purple-600">Sales Agent</p>
+                  <p className="text-xs text-purple-600">{t("telesales.salesAgent")}</p>
                 </div>
               </div>
 
               {/* Timeline */}
               <div>
-                <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">Full Process Timeline</h4>
+                <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">{t("journey.timeline")}</h4>
                 <div className="relative border-s-2 border-gray-200 ps-6 space-y-4">
                   {/* Lead Entry */}
                   <div className="relative">
                     <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-blue-500 border-2 border-white" />
                     <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-bold text-blue-700 uppercase">Lead Created</span>
+                        <span className="text-xs font-bold text-blue-700 uppercase">{t("journey.leadCreated")}</span>
                         <span className="text-xs text-gray-400">{new Date(selectedDeal.lead.createdAt).toLocaleDateString("en-GB")}</span>
                       </div>
                       <p className="text-sm text-gray-600">

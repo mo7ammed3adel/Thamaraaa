@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createSelfTask } from "@/client/api/tasks";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 /**
  * Maps agent roles to their corresponding department task type.
@@ -42,6 +43,7 @@ interface SelfTaskFormProps {
  * creating agent (agentId = leaderId = current user).
  */
 export default function SelfTaskForm({ projectId, userRole, onClose }: SelfTaskFormProps) {
+  const t = useTranslator();
   const [brief, setBrief] = useState("");
   const [priority, setPriority] = useState("Medium");
   const [deadline, setDeadline] = useState("");
@@ -106,21 +108,21 @@ export default function SelfTaskForm({ projectId, userRole, onClose }: SelfTaskF
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-1">Priority</label>
+          <label className="block text-sm font-bold text-slate-700 mb-1">{t("common.priority")}</label>
           <select
             value={priority}
             onChange={(e) => setPriority(e.target.value)}
             className="w-full border-2 border-slate-200 rounded-lg p-2.5 outline-none focus:border-indigo-500 font-medium bg-slate-50 text-sm appearance-none transition"
           >
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-            <option value="Urgent">Urgent</option>
+            <option value="Low">{t("priority.low")}</option>
+            <option value="Medium">{t("priority.medium")}</option>
+            <option value="High">{t("priority.high")}</option>
+            <option value="Urgent">{t("priority.urgent")}</option>
           </select>
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-1">Deadline (Optional)</label>
+          <label className="block text-sm font-bold text-slate-700 mb-1">{t("task.deadlineOptional")}</label>
           <input
             type="date"
             value={deadline}

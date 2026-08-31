@@ -1,6 +1,7 @@
 "use client";
 
 import { Users, UserCheck } from "lucide-react";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface TeamMember {
   id: string;
@@ -48,6 +49,7 @@ const DEPARTMENT_COLORS: Record<string, string> = {
  * task status breakdown, and progress.
  */
 export default function TeamOverview({ teams }: TeamOverviewProps) {
+  const t = useTranslator();
   if (teams.length === 0) {
     return (
       <div className="text-sm text-gray-400 italic text-center py-6">
@@ -105,7 +107,7 @@ export default function TeamOverview({ teams }: TeamOverviewProps) {
             {/* Progress Bar */}
             <div>
               <div className="flex justify-between text-[10px] font-medium text-slate-500 mb-1">
-                <span>Progress</span>
+                <span>{t("sales.progress")}</span>
                 <span>{progressPct}%</span>
               </div>
               <div className="h-2 rounded-full bg-gray-100 overflow-hidden">

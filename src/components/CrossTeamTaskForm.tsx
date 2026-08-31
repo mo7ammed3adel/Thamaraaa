@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CROSS_TEAM_TASK_TYPES } from "@/lib/constants";
 import { createTask } from "@/client/api/tasks";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 /**
  * Returns allowed cross-team task types based on the requesting user's role.
@@ -32,6 +33,7 @@ interface CrossTeamTaskFormProps {
 }
 
 export default function CrossTeamTaskForm({ projectId, onClose, userRole = "", lockedTaskType }: CrossTeamTaskFormProps) {
+  const t = useTranslator();
   const allowedTypes = lockedTaskType ? [lockedTaskType] : getAllowedTaskTypes(userRole);
   const [taskType, setTaskType] = useState<string>(allowedTypes[0]);
   const [brief, setBrief] = useState("");
@@ -78,16 +80,16 @@ export default function CrossTeamTaskForm({ projectId, onClose, userRole = "", l
       )}
 
       <div>
-        <label className="block text-sm font-bold text-slate-700 mb-1">Priority</label>
+        <label className="block text-sm font-bold text-slate-700 mb-1">{t("common.priority")}</label>
         <select 
           value={priority}
           onChange={(e) => setPriority(e.target.value)}
           className="w-full border-2 border-slate-200 rounded-lg p-2 outline-none focus:border-indigo-500 font-medium bg-slate-50 appearance-none"
         >
-          <option value="Low">Low</option>
-          <option value="Medium">Medium</option>
-          <option value="High">High</option>
-          <option value="Urgent">Urgent</option>
+          <option value="Low">{t("priority.low")}</option>
+          <option value="Medium">{t("priority.medium")}</option>
+          <option value="High">{t("priority.high")}</option>
+          <option value="Urgent">{t("priority.urgent")}</option>
         </select>
       </div>
 

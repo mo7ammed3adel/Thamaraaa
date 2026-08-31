@@ -4,10 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, GripVertical } from "lucide-react";
 import { createApplicant, updateApplicant } from "@/client/api/hr";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 const STAGES = ["New", "HR_Interview", "Department_Interview", "Offer", "Hired", "Rejected"];
 
 export default function HiringClient({ initialApplicants }: { initialApplicants: any[] }) {
+  const t = useTranslator();
   const router = useRouter();
   const [applicants, setApplicants] = useState(initialApplicants);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -59,7 +61,7 @@ export default function HiringClient({ initialApplicants }: { initialApplicants:
                       <div className="dropdown relative">
                         <select 
                           className="opacity-0 group-hover:opacity-100 absolute right-0 w-6 cursor-pointer"
-                          title="Change Status"
+                          title={t("common.changeStatus")}
                           value={app.status}
                           onChange={(e) => updateStatus(app.id, e.target.value)}
                         >
@@ -86,30 +88,30 @@ export default function HiringClient({ initialApplicants }: { initialApplicants:
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-gray-900">New Applicant</h3>
+              <h3 className="text-lg font-bold text-gray-900">{t("hr.newApplicant")}</h3>
               <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600">&times;</button>
             </div>
             <form onSubmit={handleAddApplicant} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("form.fullNameRequired")}</label>
                 <input required type="text" className="w-full border rounded p-2" value={newApp.name} onChange={e => setNewApp({...newApp, name: e.target.value})} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t("form.emailRequired")}</label>
                   <input required type="email" className="w-full border rounded p-2" value={newApp.email} onChange={e => setNewApp({...newApp, email: e.target.value})} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t("form.phoneRequired")}</label>
                   <input required type="tel" className="w-full border rounded p-2" value={newApp.phone} onChange={e => setNewApp({...newApp, phone: e.target.value})} />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Role Applied For *</label>
-                <input required type="text" className="w-full border rounded p-2 placeholder-gray-400" placeholder="e.g. Senior Sales Agent" value={newApp.roleApplied} onChange={e => setNewApp({...newApp, roleApplied: e.target.value})} />
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("hr.roleAppliedFor")}</label>
+                <input required type="text" className="w-full border rounded p-2 placeholder-gray-400" placeholder={t("form.jobTitleExample")} value={newApp.roleApplied} onChange={e => setNewApp({...newApp, roleApplied: e.target.value})} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Initial Notes</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("hr.initialNotes")}</label>
                 <textarea rows={2} className="w-full border rounded p-2" value={newApp.notes} onChange={e => setNewApp({...newApp, notes: e.target.value})} />
               </div>
               <div className="flex justify-end pt-4">

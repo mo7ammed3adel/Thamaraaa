@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { generateTasks, updateTask } from "@/client/api/tasks";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface SubTaskType {
   value: string;
@@ -28,6 +29,7 @@ interface Props {
  * Now with advanced filtering, clickable KPIs, and full button interactivity.
  */
 export default function TeamDashboardClient({ tasks, agents, designLeaders, userRole, userId, teamName, teamColor, subTaskTypes }: Props) {
+  const t = useTranslator();
   const router = useRouter();
   const [createSubTask, setCreateSubTask] = useState<any>(null);
   const [subTaskType, setSubTaskType] = useState(subTaskTypes[0]?.value || "");
@@ -115,17 +117,17 @@ export default function TeamDashboardClient({ tasks, agents, designLeaders, user
       <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl border p-4 shadow-sm">
         <input type="text" placeholder="🔍 Search client, task, brief..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="flex-1 min-w-[200px] border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" />
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
-          <option value="all">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="in_progress">In Progress</option>
-          <option value="review">Review</option>
-          <option value="done">Done</option>
+          <option value="all">{t("filter.allStatuses")}</option>
+          <option value="pending">{t("status.pending")}</option>
+          <option value="in_progress">{t("status.inProgress")}</option>
+          <option value="review">{t("status.review")}</option>
+          <option value="done">{t("status.done")}</option>
         </select>
         <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
-          <option value="all">All Priorities</option>
-          <option value="High">High</option>
-          <option value="Medium">Medium</option>
-          <option value="Low">Low</option>
+          <option value="all">{t("filter.allPriorities")}</option>
+          <option value="High">{t("priority.high")}</option>
+          <option value="Medium">{t("priority.medium")}</option>
+          <option value="Low">{t("priority.low")}</option>
         </select>
         {(searchQuery || statusFilter !== "all" || priorityFilter !== "all") && (
           <button onClick={() => { setSearchQuery(""); setStatusFilter("all"); setPriorityFilter("all"); }} className="px-3 py-2 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition">✕ Clear</button>
@@ -173,10 +175,10 @@ export default function TeamDashboardClient({ tasks, agents, designLeaders, user
                     <button onClick={() => handleUpdateStatus(t.id, "in_progress")} className="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs font-medium hover:bg-amber-200">Start</button>
                   )}
                   {t.status === "in_progress" && (
-                    <button onClick={() => handleUpdateStatus(t.id, "review")} className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium hover:bg-blue-200">Review</button>
+                    <button onClick={() => handleUpdateStatus(t.id, "review")} className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium hover:bg-blue-200">{t("status.review")}</button>
                   )}
                   {t.status === "review" && (
-                    <button onClick={() => handleUpdateStatus(t.id, "done")} className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-medium hover:bg-emerald-200">Done</button>
+                    <button onClick={() => handleUpdateStatus(t.id, "done")} className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-medium hover:bg-emerald-200">{t("status.done")}</button>
                   )}
                   {designLeaders.length > 0 && (
                     <button onClick={() => setCreateSubTask(t)} className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-medium hover:bg-indigo-200">+ Sub-Task</button>
@@ -192,7 +194,7 @@ export default function TeamDashboardClient({ tasks, agents, designLeaders, user
             </div>
           </div>
         ))}
-        {filteredTasks.length === 0 && <p className="text-sm text-slate-400 italic text-center py-8">No tasks match your filters.</p>}
+        {filteredTasks.length === 0 && <p className="text-sm text-slate-400 italic text-center py-8">{t("task.noneMatch")}</p>}
       </div>
 
       {/* Sub-Task Modal */}
@@ -203,7 +205,7 @@ export default function TeamDashboardClient({ tasks, agents, designLeaders, user
             <p className="text-sm text-slate-500 mb-4">Client: {createSubTask.project?.deal?.lead?.name}</p>
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Type</label>
+                <label className="text-xs font-medium text-slate-600 block mb-1">{t("lead.type")}</label>
                 <select value={subTaskType} onChange={(e) => setSubTaskType(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
                   {subTaskTypes.map((st) => <option key={st.value} value={st.value}>{st.label}</option>)}
                 </select>
@@ -214,15 +216,15 @@ export default function TeamDashboardClient({ tasks, agents, designLeaders, user
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-slate-600 block mb-1">Deadline</label>
+                  <label className="text-xs font-medium text-slate-600 block mb-1">{t("task.deadline")}</label>
                   <input type="date" value={subTaskDeadline} onChange={(e) => setSubTaskDeadline(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-slate-600 block mb-1">Priority</label>
+                  <label className="text-xs font-medium text-slate-600 block mb-1">{t("common.priority")}</label>
                   <select value={subTaskPriority} onChange={(e) => setSubTaskPriority(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
-                    <option value="High">High</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Low">Low</option>
+                    <option value="High">{t("priority.high")}</option>
+                    <option value="Medium">{t("priority.medium")}</option>
+                    <option value="Low">{t("priority.low")}</option>
                   </select>
                 </div>
               </div>
@@ -235,7 +237,7 @@ export default function TeamDashboardClient({ tasks, agents, designLeaders, user
               </div>
             </div>
             <div className="flex gap-2 mt-4">
-              <button onClick={() => { setCreateSubTask(null); setSubTaskBrief(""); }} className="flex-1 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-200">Cancel</button>
+              <button onClick={() => { setCreateSubTask(null); setSubTaskBrief(""); }} className="flex-1 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-200">{t("common.cancel")}</button>
               <button onClick={handleCreateSubTask} disabled={!subTaskLeader} className="flex-1 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50">Create</button>
             </div>
           </div>

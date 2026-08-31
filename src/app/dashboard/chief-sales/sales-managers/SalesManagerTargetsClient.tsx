@@ -4,6 +4,7 @@ import { notify } from "@/components/toast";
 import { Users, DollarSign } from "lucide-react";
 import { updateUserTarget } from "@/client/api/users";
 import { formatSarSuffix } from "@/shared/formatters/currency";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface SalesManager {
   id: string;
@@ -16,6 +17,7 @@ interface SalesManager {
 }
 
 export default function SalesManagerTargetsClient({ managers: initialManagers }: { managers: SalesManager[] }) {
+  const t = useTranslator();
   const [managers, setManagers] = useState(initialManagers);
 
   const updateTarget = async (managerId: string, newTarget: number) => {
@@ -55,11 +57,11 @@ export default function SalesManagerTargetsClient({ managers: initialManagers }:
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Manager</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.manager")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.status")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Team Size</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">This Month's Fund (SAR)</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Monthly Fund Target (SAR)</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("form.monthlyFundTarget")}</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -102,7 +104,7 @@ export default function SalesManagerTargetsClient({ managers: initialManagers }:
                         if (val !== m.target) updateTarget(m.id, val);
                       }}
                       className="w-28 border border-gray-200 rounded-md px-2 py-1 text-sm focus:ring-2 focus:ring-emerald-500"
-                      title="Fund target (SAR) for the current month"
+                      title={t("form.fundTargetHint")}
                     />
                   </td>
                 </tr>

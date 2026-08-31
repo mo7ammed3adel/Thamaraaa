@@ -5,8 +5,10 @@ import { Bell } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { listUnreadNotifications, markNotificationRead } from "@/client/api/notifications";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 export default function NotificationBell({ variant = "dropdown" }: { variant?: "dropdown" | "sidebar" }) {
+  const t = useTranslator();
   const pathname = usePathname();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -64,7 +66,7 @@ export default function NotificationBell({ variant = "dropdown" }: { variant?: "
             </span>
           )}
         </div>
-        <span className="truncate">Notifications</span>
+        <span className="truncate">{t("common.notifications")}</span>
       </Link>
     );
   }
@@ -84,7 +86,7 @@ export default function NotificationBell({ variant = "dropdown" }: { variant?: "
       {showDropdown && (
         <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50">
           <div className="bg-slate-50 px-4 py-3 border-b flex justify-between items-center">
-            <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{t("common.notifications")}</h3>
             <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-medium">
               {notifications.length} New
             </span>

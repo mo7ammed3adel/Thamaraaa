@@ -4,8 +4,10 @@ import { useState, useEffect } from "react";
 import DrillDownModal from "@/components/DrillDownModal";
 import { DollarSign, CheckCircle2, TrendingUp, Users, Presentation, CalendarX } from "lucide-react";
 import { getChiefSalesAnalytics } from "@/client/api/analytics";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 export default function ChiefSalesClient() {
+  const t = useTranslator();
   const [range, setRange] = useState("today");
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -83,7 +85,7 @@ export default function ChiefSalesClient() {
         >
           <option value="today">Today</option>
           <option value="this_week">This Week</option>
-          <option value="this_month">This Month</option>
+          <option value="this_month">{t("dateRange.thisMonth")}</option>
           <option value="all">All Time</option>
         </select>
       </div>
@@ -97,8 +99,8 @@ export default function ChiefSalesClient() {
           className="bg-white border hover:border-emerald-300 hover:shadow-md cursor-pointer transition p-5 rounded-xl shadow-sm border-slate-200 space-y-2 relative overflow-hidden group"
         >
           <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition text-emerald-500"><DollarSign size={80} /></div>
-          <p className="text-sm font-medium text-slate-500">Total Revenue</p>
-          <h3 className="text-3xl font-bold text-slate-800">{overview.totalRevenue.toLocaleString()}<span className="text-lg text-slate-400 font-normal ms-1">SAR</span></h3>
+          <p className="text-sm font-medium text-slate-500">{t("finance.totalRevenue")}</p>
+          <h3 className="text-3xl font-bold text-slate-800">{overview.totalRevenue.toLocaleString()}<span className="text-lg text-slate-400 font-normal ms-1">{t("finance.sar")}</span></h3>
           <p className="text-xs text-slate-400">Target: {overview.totalNetTarget.toLocaleString()} SAR</p>
         </div>
 
@@ -108,7 +110,7 @@ export default function ChiefSalesClient() {
         >
           <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition text-indigo-500"><CheckCircle2 size={80} /></div>
           <p className="text-sm font-medium text-slate-500">Collected Payments</p>
-          <h3 className="text-3xl font-bold text-indigo-600">{overview.totalCollected.toLocaleString()}<span className="text-lg text-slate-400 font-normal ms-1">SAR</span></h3>
+          <h3 className="text-3xl font-bold text-indigo-600">{overview.totalCollected.toLocaleString()}<span className="text-lg text-slate-400 font-normal ms-1">{t("finance.sar")}</span></h3>
           <p className="text-xs text-slate-400">Actual money in bank</p>
         </div>
 
@@ -119,7 +121,7 @@ export default function ChiefSalesClient() {
           <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition text-purple-500"><TrendingUp size={80} /></div>
           <p className="text-sm font-medium text-slate-500">Conversion Vol</p>
           <div className="flex gap-4 items-end">
-            <h3 className="text-3xl font-bold text-slate-800">{overview.totalDeals} <span className="text-sm font-normal text-slate-400">Deals</span></h3>
+            <h3 className="text-3xl font-bold text-slate-800">{overview.totalDeals} <span className="text-sm font-normal text-slate-400">{t("team.deals")}</span></h3>
             <span className="text-sm font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded">{overview.totalLeads > 0 ? Math.round((overview.totalDeals / overview.totalLeads)*100) : 0}% Conv</span>
           </div>
           <p className="text-xs text-slate-400">Total Leads: {overview.totalLeads}</p>
@@ -130,7 +132,7 @@ export default function ChiefSalesClient() {
           className="bg-white border hover:border-blue-300 hover:shadow-md cursor-pointer transition p-5 rounded-xl shadow-sm border-slate-200 space-y-2 relative overflow-hidden group"
         >
           <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition text-blue-500"><Presentation size={80} /></div>
-          <p className="text-sm font-medium text-slate-500">Meetings Booked</p>
+          <p className="text-sm font-medium text-slate-500">{t("metric.meetingsBooked")}</p>
           <div className="flex gap-4 items-end">
             <h3 className="text-3xl font-bold text-slate-800">{overview.meetingsBooked}</h3>
             <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{overview.meetingsBooked > 0 ? Math.round((overview.meetingsAttended / overview.meetingsBooked)*100) : 0}% Attend</span>
@@ -147,14 +149,14 @@ export default function ChiefSalesClient() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
             <h3 className="font-bold text-slate-800 flex items-center gap-2"><Users size={18} className="text-purple-600"/> Sales Performance Leaderboard</h3>
-            <button onClick={() => openDrillDown("Sales Team Detailed", "salesTeam", salesTeamCols)} className="text-xs text-indigo-600 hover:underline font-semibold">View All</button>
+            <button onClick={() => openDrillDown("Sales Team Detailed", "salesTeam", salesTeamCols)} className="text-xs text-indigo-600 hover:underline font-semibold">{t("common.viewAll")}</button>
           </div>
           <table className="w-full text-sm text-start">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500">
               <tr>
-                <th className="px-4 py-2 font-semibold">Agent</th>
-                <th className="px-4 py-2 font-semibold text-center">Deals</th>
-                <th className="px-4 py-2 font-semibold text-end">Revenue</th>
+                <th className="px-4 py-2 font-semibold">{t("common.agent")}</th>
+                <th className="px-4 py-2 font-semibold text-center">{t("team.deals")}</th>
+                <th className="px-4 py-2 font-semibold text-end">{t("finance.revenue")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -174,14 +176,14 @@ export default function ChiefSalesClient() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
             <h3 className="font-bold text-slate-800 flex items-center gap-2"><CalendarX size={18} className="text-blue-600"/> TeleSales Leaderboard</h3>
-            <button onClick={() => openDrillDown("TeleSales Detailed", "teleSalesTeam", teleTeamCols)} className="text-xs text-indigo-600 hover:underline font-semibold">View All</button>
+            <button onClick={() => openDrillDown("TeleSales Detailed", "teleSalesTeam", teleTeamCols)} className="text-xs text-indigo-600 hover:underline font-semibold">{t("common.viewAll")}</button>
           </div>
           <table className="w-full text-sm text-start">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500">
               <tr>
-                <th className="px-4 py-2 font-semibold">Agent</th>
+                <th className="px-4 py-2 font-semibold">{t("common.agent")}</th>
                 <th className="px-4 py-2 font-semibold text-center">Booked</th>
-                <th className="px-4 py-2 font-semibold text-center">Attended</th>
+                <th className="px-4 py-2 font-semibold text-center">{t("status.attended")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

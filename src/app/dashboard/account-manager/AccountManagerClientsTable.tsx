@@ -6,6 +6,7 @@ import LifecycleStateBadge from "@/components/LifecycleStateBadge";
 import TeamOverview from "@/components/TeamOverview";
 import DateRangeFilter from "@/components/dashboard/DateRangeFilter";
 import { LIFECYCLE_STATE } from "@/lib/constants";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 type AccountManagerClientsTableProps = {
   filteredProjects: any[];
@@ -106,6 +107,7 @@ export default function AccountManagerClientsTable({
   setDistributeModalProject,
   setLifecycleModalProject,
 }: AccountManagerClientsTableProps) {
+  const t = useTranslator();
   const hasActiveClientFilters = Boolean(
     searchQuery || filterLifecycle !== "all" || lifecycleFromDate || lifecycleToDate
   );
@@ -134,10 +136,10 @@ export default function AccountManagerClientsTable({
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
               >
                 <option value="all">All statuses</option>
-                <option value={LIFECYCLE_STATE.ACTIVE}>Active</option>
-                <option value={LIFECYCLE_STATE.HOLD}>Hold</option>
-                <option value={LIFECYCLE_STATE.RENEWER}>Renewer</option>
-                <option value={LIFECYCLE_STATE.LOST}>Lost</option>
+                <option value={LIFECYCLE_STATE.ACTIVE}>{t("status.active")}</option>
+                <option value={LIFECYCLE_STATE.HOLD}>{t("status.hold")}</option>
+                <option value={LIFECYCLE_STATE.RENEWER}>{t("status.renewer")}</option>
+                <option value={LIFECYCLE_STATE.LOST}>{t("status.lost")}</option>
               </select>
             </label>
           </div>
@@ -159,10 +161,10 @@ export default function AccountManagerClientsTable({
               <th className="px-6 py-3 text-start">Client Info</th>
               <th className="px-6 py-3 text-start">Start Date</th>
               <th className="px-6 py-3 text-start">Technical Progress</th>
-              <th className="px-6 py-3 text-center">Lifecycle</th>
-              <th className="px-6 py-3 text-center">Tasks</th>
+              <th className="px-6 py-3 text-center">{t("journey.lifecycle")}</th>
+              <th className="px-6 py-3 text-center">{t("team.tasks")}</th>
               <th className="px-6 py-3 text-center">Last Activity</th>
-              <th className="px-6 py-3 text-end">Actions</th>
+              <th className="px-6 py-3 text-end">{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -178,7 +180,7 @@ export default function AccountManagerClientsTable({
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <div className="font-bold text-slate-900">{project.deal?.lead?.name}</div>
-                        {hasWarnings && <span title="Active Warnings"><AlertTriangle className="w-4 h-4 text-red-500" /></span>}
+                        {hasWarnings && <span title={t("sales.activeWarnings")}><AlertTriangle className="w-4 h-4 text-red-500" /></span>}
                       </div>
                       <div className="text-xs text-slate-500 mt-1 uppercase font-medium bg-slate-100 w-fit px-2 py-0.5 rounded">{project.package}</div>
                       <div className="text-[10px] text-slate-500 mt-2 font-bold uppercase">{project.projectStatus.replace(/_/g, " ")}</div>

@@ -6,8 +6,10 @@ import { formatSar } from "@/shared/formatters/currency";
 import { formatDate } from "@/shared/formatters/date";
 import { getFinanceOverview, updateInstallment } from "@/client/api/finance";
 import { CommissionsTab, PayrollTab } from "./FinanceTabs";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 export default function FinanceClient() {
+  const t = useTranslator();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
@@ -42,7 +44,7 @@ export default function FinanceClient() {
           className={`cursor-pointer transition-all p-5 rounded-2xl border-2 shadow-sm ${
             activeFilter === "all" ? "border-gray-500 bg-gray-100" : "border-transparent bg-white hover:bg-gray-50 border-gray-200"
           }`}>
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Total Revenue</p>
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">{t("finance.totalRevenue")}</p>
           <p className="text-3xl font-black text-gray-900">{formatSar(data.overview.totalRevenue)}</p>
         </div>
         <div 
@@ -97,7 +99,7 @@ export default function FinanceClient() {
                 <th className="px-6 py-3 text-start">Client & Agent</th>
                 <th className="px-6 py-3 text-start">Total Value</th>
                 <th className="px-6 py-3 text-start">Collected</th>
-                <th className="px-6 py-3 text-start">Status</th>
+                <th className="px-6 py-3 text-start">{t("common.status")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 text-sm">

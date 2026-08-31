@@ -1,4 +1,5 @@
 "use client";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 type Installment = {
   id: string;
@@ -28,12 +29,13 @@ const formatDate = (date?: string | Date | null) => {
 };
 
 export default function ClientDealTab({ deal }: ClientDealTabProps) {
+  const t = useTranslator();
   const installments = deal?.installments || [];
 
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-xl border shadow-sm p-6">
-        <h2 className="text-lg font-bold text-slate-800 mb-4">Deal Information</h2>
+        <h2 className="text-lg font-bold text-slate-800 mb-4">{t("journey.dealInfo")}</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
           {[
             { label: "Package", value: deal?.package, cls: "bg-purple-50 text-purple-800" },

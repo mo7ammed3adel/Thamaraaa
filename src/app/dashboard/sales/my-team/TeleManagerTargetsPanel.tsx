@@ -3,6 +3,7 @@ import { useState } from "react";
 import { notify } from "@/components/toast";
 import { PhoneCall } from "lucide-react";
 import { updateUserTarget } from "@/client/api/users";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface TeleManager {
   id: string;
@@ -14,6 +15,7 @@ interface TeleManager {
 }
 
 export default function TeleManagerTargetsPanel({ managers: initialManagers }: { managers: TeleManager[] }) {
+  const t = useTranslator();
   const [managers, setManagers] = useState(initialManagers);
 
   const updateTarget = async (managerId: string, newTarget: number) => {
@@ -36,8 +38,8 @@ export default function TeleManagerTargetsPanel({ managers: initialManagers }: {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Manager</th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.manager")}</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.status")}</th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Team Actual Meetings (Month)</th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Monthly Target</th>
             </tr>

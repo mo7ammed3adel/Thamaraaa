@@ -12,6 +12,7 @@ import {
   isHeadTechnicalTask,
 } from "./useHeadTechnicalDerivedData";
 
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 type HeadTechnicalClientsTableProps = {
   projects: any[];
   filteredProjects: any[];
@@ -33,6 +34,7 @@ export default function HeadTechnicalClientsTable({
   openClientTeam,
   openClientJourney,
 }: HeadTechnicalClientsTableProps) {
+  const t = useTranslator();
   return (
     <div className="bg-white rounded-xl shadow border overflow-hidden">
       <div className="p-4 border-b bg-slate-50 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
@@ -52,7 +54,7 @@ export default function HeadTechnicalClientsTable({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Search clients..."
+              placeholder={t("form.searchClients")}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="w-full ps-9 pe-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -67,11 +69,11 @@ export default function HeadTechnicalClientsTable({
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-slate-50">
             <tr>
-              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase w-1/4">Client Name</th>
+              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase w-1/4">{t("common.clientName")}</th>
               <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase w-1/4">Assigned Teams</th>
               <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase w-1/4">Progress %</th>
               <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase w-32">Status & Delays</th>
-              <th className="px-6 py-3 text-end text-xs font-semibold text-slate-500 uppercase">Actions</th>
+              <th className="px-6 py-3 text-end text-xs font-semibold text-slate-500 uppercase">{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">

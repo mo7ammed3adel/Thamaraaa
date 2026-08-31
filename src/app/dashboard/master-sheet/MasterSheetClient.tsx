@@ -2,8 +2,10 @@
 import React, { useState, useMemo } from "react";
 import * as XLSX from "xlsx";
 import { Download, Search, Filter, ChevronDown, ChevronUp, Calendar, Phone, CheckCircle, Clock } from "lucide-react";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 export default function MasterSheetClient({ leads }: { leads: any[] }) {
+  const t = useTranslator();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -93,10 +95,10 @@ export default function MasterSheetClient({ leads }: { leads: any[] }) {
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
             >
-              <option value="All">All Statuses</option>
-              <option value="New">New</option>
+              <option value="All">{t("filter.allStatuses")}</option>
+              <option value="New">{t("status.new")}</option>
               <option value="In_TeleSales">In TeleSales</option>
-              <option value="Transferred">Transferred</option>
+              <option value="Transferred">{t("status.transferred")}</option>
               <option value="In_Sales">In Sales</option>
               <option value="Closed_Won">Closed Won</option>
               <option value="Closed_Lost">Closed Lost</option>
@@ -119,9 +121,9 @@ export default function MasterSheetClient({ leads }: { leads: any[] }) {
             <tr>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">Customer</th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">Status & Agents</th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">Package</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">{t("common.package")}</th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">Finances (SAR)</th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">Account Manager</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">{t("sales.accountManager")}</th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">Ops Status</th>
             </tr>
           </thead>

@@ -6,8 +6,10 @@ import { FUND_DEAL_STATUSES } from "@/lib/deals";
 import { ACTUAL_MEETING_STATUSES } from "@/lib/meetings";
 import SalesMyTeamClient from "./SalesMyTeamClient";
 import TeleManagerTargetsPanel from "./TeleManagerTargetsPanel";
+import { getTranslator } from "@/server/i18n/locale";
 
 export default async function SalesMyTeamPage() {
+  const t = getTranslator();
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
 
@@ -157,7 +159,7 @@ export default async function SalesMyTeamPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">Sales Team Analytics</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">{t("analytics.salesTeam")}</h1>
       <p className="text-sm text-gray-500 mb-6">
         Manage your sales agents - assign specializations and monitor closed deals and active leads.
       </p>

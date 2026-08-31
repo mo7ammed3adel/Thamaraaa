@@ -6,6 +6,7 @@ import { bulkDeleteLeads, bulkPromoteLeads, createLead } from "@/client/api/lead
 import { createNiche, listNiches } from "@/client/api/niches";
 import DateRangeFilter from "@/components/dashboard/DateRangeFilter";
 import { isDateInRange } from "@/lib/dateRange";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface ColdLead {
   id: string;
@@ -25,6 +26,7 @@ export default function ColdLeadsClient({
   agentId: string;
   userRole: string;
 }) {
+  const t = useTranslator();
   const [leads, setLeads] = useState<ColdLead[]>(initialLeads);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -191,7 +193,7 @@ export default function ColdLeadsClient({
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Store Link</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("sales.storeLink")}</label>
                 <div className="relative">
                   <LinkIcon className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                   <input 
@@ -293,9 +295,9 @@ export default function ColdLeadsClient({
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer h-4 w-4"
                   />
                 </th>
-                <th className="px-2 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Store Link</th>
+                <th className="px-2 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.name")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.phone")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("sales.storeLink")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Niche</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Added On</th>
               </tr>

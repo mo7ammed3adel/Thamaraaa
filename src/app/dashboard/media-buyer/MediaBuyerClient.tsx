@@ -14,11 +14,13 @@ import TaskReassignModal from "@/components/TaskReassignModal";
 import TaskWorkspaceModal from "@/components/TaskWorkspaceModal";
 import { assignProjectAgent } from "@/client/api/projects";
 import { updateTask } from "@/client/api/tasks";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 const DEPT_TYPES = ["Media_Buyer", "media_buyer", "media_buying"];
 const SUBTASK_TYPES = ["graphic_design", "motion_graphic", "ui_design"];
 
 export default function MediaBuyerClient({ projects, teamMembers, userRole, userId }: any) {
+  const t = useTranslator();
   const router = useRouter();
   const [activeDistribution, setActiveDistribution] = useState<string | null>(null);
   const [crossTeamProject, setCrossTeamProject] = useState<string | null>(null);
@@ -157,7 +159,7 @@ export default function MediaBuyerClient({ projects, teamMembers, userRole, user
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Search client name or phone..."
+            placeholder={t("form.searchClientNameOrPhone")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full ps-9 pe-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -168,10 +170,10 @@ export default function MediaBuyerClient({ projects, teamMembers, userRole, user
           onChange={(e) => setTaskStatusFilter(e.target.value)}
           className="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
         >
-          <option value="all">All Task Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="in_progress">In Progress</option>
-          <option value="done">Done</option>
+          <option value="all">{t("filter.allTaskStatuses")}</option>
+          <option value="pending">{t("status.pending")}</option>
+          <option value="in_progress">{t("status.inProgress")}</option>
+          <option value="done">{t("status.done")}</option>
         </select>
         {hasActiveFilters && (
           <button
@@ -288,7 +290,7 @@ export default function MediaBuyerClient({ projects, teamMembers, userRole, user
                 <div className="p-4 bg-white space-y-4">
                   {recentNotes.length > 0 && (
                     <div className="border rounded-lg p-3 bg-slate-50">
-                      <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Latest Sales / Account Notes</h4>
+                      <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">{t("journey.latestNotes")}</h4>
                       <div className="space-y-1.5">
                         {recentNotes.slice(0, 2).map((note: any) => (
                           <div key={note.id} className="text-xs text-slate-600">
@@ -302,7 +304,7 @@ export default function MediaBuyerClient({ projects, teamMembers, userRole, user
                   {/* Agents List */}
                   {assignedAgents.length > 0 && (
                     <>
-                      <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Assigned Agents</h4>
+                      <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">{t("task.assignedAgents")}</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {assignedAgents.map((ta: any) => {
                           const agentTasks = projectTasks.filter((t: any) => t.agentId === ta.userId);
@@ -330,10 +332,10 @@ export default function MediaBuyerClient({ projects, teamMembers, userRole, user
                                       onChange={(e) => handleUpdateTaskStatus(task.id, e.target.value)}
                                       className="border rounded px-1.5 py-1 text-[10px] font-bold bg-white outline-none focus:border-indigo-500"
                                     >
-                                      <option value="pending">Pending</option>
-                                      <option value="in_progress">In Progress</option>
-                                      <option value="review">Review</option>
-                                      <option value="done">Done</option>
+                                      <option value="pending">{t("status.pending")}</option>
+                                      <option value="in_progress">{t("status.inProgress")}</option>
+                                      <option value="review">{t("status.review")}</option>
+                                      <option value="done">{t("status.done")}</option>
                                     </select>
                                     <button
                                       onClick={() => setReassignTask(task)}
@@ -343,7 +345,7 @@ export default function MediaBuyerClient({ projects, teamMembers, userRole, user
                                     </button>
                                   </div>
                                 ))}
-                                {agentTasks.length === 0 && <p className="text-xs text-slate-400 italic">No tasks created yet</p>}
+                                {agentTasks.length === 0 && <p className="text-xs text-slate-400 italic">{t("task.noneYet")}</p>}
                               </div>
                             </div>
                           )
@@ -389,7 +391,7 @@ export default function MediaBuyerClient({ projects, teamMembers, userRole, user
                   {/* Self-Task Section for TL */}
                   <div className="border-t pt-4 mt-4 space-y-3">
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">My Tasks</h4>
+                      <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">{t("task.mine")}</h4>
                       <button
                         onClick={() => setSelfTaskProject(project.id)}
                         className="inline-flex items-center gap-1.5 bg-emerald-600 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-emerald-700 transition shadow-sm"
@@ -430,9 +432,9 @@ export default function MediaBuyerClient({ projects, teamMembers, userRole, user
                                 onChange={(e) => handleUpdateTaskStatus(task.id, e.target.value)}
                                 className="border-2 border-slate-200 rounded-lg text-sm font-bold px-3 py-1.5 focus:border-indigo-500 outline-none bg-white"
                               >
-                                <option value="pending">Pending / On Hold</option>
-                                <option value="in_progress">In Progress</option>
-                                <option value="done">Done</option>
+                                <option value="pending">{t("status.pendingOnHold")}</option>
+                                <option value="in_progress">{t("status.inProgress")}</option>
+                                <option value="done">{t("status.done")}</option>
                               </select>
                               <button 
                                 onClick={() => setCrossTeamProject(project.id)}
@@ -459,7 +461,7 @@ export default function MediaBuyerClient({ projects, teamMembers, userRole, user
               {isAgent && (
                 <div className="p-4 space-y-3">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">My Tasks</h4>
+                    <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">{t("task.mine")}</h4>
                     <button
                       onClick={() => setSelfTaskProject(project.id)}
                       className="inline-flex items-center gap-1.5 bg-emerald-600 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-emerald-700 transition shadow-sm"
@@ -514,9 +516,9 @@ export default function MediaBuyerClient({ projects, teamMembers, userRole, user
                               onChange={(e) => handleUpdateTaskStatus(task.id, e.target.value)}
                               className="border-2 border-slate-200 rounded-lg text-sm font-bold px-3 py-1.5 focus:border-indigo-500 outline-none bg-white"
                             >
-                              <option value="pending">Pending / On Hold</option>
-                              <option value="in_progress">In Progress</option>
-                              <option value="review">Submit for Review</option>
+                              <option value="pending">{t("status.pendingOnHold")}</option>
+                              <option value="in_progress">{t("status.inProgress")}</option>
+                              <option value="review">{t("common.submitForReview")}</option>
                             </select>
                             <button
                               onClick={() => setCrossTeamProject(project.id)}
@@ -606,7 +608,7 @@ export default function MediaBuyerClient({ projects, teamMembers, userRole, user
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
                   <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
                     <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
-                      <h3 className="font-bold text-lg text-slate-800">Request Cross-Team Task</h3>
+                      <h3 className="font-bold text-lg text-slate-800">{t("task.requestCrossTeam")}</h3>
                       <button onClick={() => setCrossTeamProject(null)} className="text-slate-400 hover:text-slate-600 font-bold">&times;</button>
                     </div>
                     <div className="p-6">
@@ -645,17 +647,17 @@ export default function MediaBuyerClient({ projects, teamMembers, userRole, user
       {allTasks.length > 0 && (
         <div className="bg-white rounded-xl shadow border overflow-hidden">
           <div className="p-4 border-b bg-slate-50">
-            <h2 className="text-lg font-bold text-slate-800">My Tasks Overview</h2>
+            <h2 className="text-lg font-bold text-slate-800">{t("task.myOverview")}</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Client</th>
-                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Task Type</th>
-                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Brief</th>
-                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Deadline</th>
-                  <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Status</th>
+                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("common.client")}</th>
+                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("task.type")}</th>
+                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("task.brief")}</th>
+                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("task.deadline")}</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">{t("common.status")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">

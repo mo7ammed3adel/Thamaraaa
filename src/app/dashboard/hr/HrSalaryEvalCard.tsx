@@ -1,6 +1,7 @@
 "use client";
 
 import { TrendingUp, CalendarClock, Percent } from "lucide-react";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 function fmt(d?: string | null) {
   if (!d) return "—";
@@ -12,6 +13,7 @@ function money(v?: number | null) {
 }
 
 export default function HrSalaryEvalCard({ info }: { info: any }) {
+  const t = useTranslator();
   if (!info) return null;
   const rules: any[] = info.commission?.rules || [];
 
@@ -21,7 +23,7 @@ export default function HrSalaryEvalCard({ info }: { info: any }) {
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2"><TrendingUp className="w-5 h-5 text-emerald-600" /> Salary & Evaluation</h2>
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-slate-50 border rounded-xl p-3"><p className="text-[11px] font-bold uppercase text-slate-400">Current Salary</p><p className="text-lg font-black text-slate-800">{money(info.currentSalary)}</p></div>
+          <div className="bg-slate-50 border rounded-xl p-3"><p className="text-[11px] font-bold uppercase text-slate-400">{t("finance.currentSalary")}</p><p className="text-lg font-black text-slate-800">{money(info.currentSalary)}</p></div>
           <div className="bg-slate-50 border rounded-xl p-3"><p className="text-[11px] font-bold uppercase text-slate-400">Next Increase</p><p className="text-sm font-bold text-slate-800">{info.increaseType === "fixed" ? money(info.increaseValue) : `${info.increaseValue || 0}%`}</p><p className="text-[10px] text-slate-400">min eval {info.minEvalForIncrease || 0}%</p></div>
         </div>
         <div className="mt-3 space-y-2">

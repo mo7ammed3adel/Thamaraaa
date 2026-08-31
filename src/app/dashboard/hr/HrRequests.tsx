@@ -6,6 +6,7 @@ import { notify } from "@/components/toast";
 import { HttpError } from "@/client/transport/http";
 import { listHrRequests, updateHrRequest } from "@/client/api/hr";
 import { actOnSalaryAdvance, listComplaints, listSalaryAdvances, updateComplaint } from "@/client/api/hrRequests";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 function tone(s?: string | null) {
   const v = (s || "").toLowerCase();
@@ -17,6 +18,7 @@ function tone(s?: string | null) {
 const Badge = ({ s }: { s?: string | null }) => <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${tone(s)}`}>{(s || "").replace(/_/g, " ")}</span>;
 
 export default function HrRequests() {
+  const t = useTranslator();
   const [tab, setTab] = useState<"leave" | "advances" | "complaints">("leave");
   const [leave, setLeave] = useState<any[]>([]);
   const [advances, setAdvances] = useState<any[]>([]);
@@ -97,8 +99,8 @@ export default function HrRequests() {
                   <Badge s={a.status} />
                   {String(a.status).startsWith("pending") && (
                     <div className="flex gap-2">
-                      <button disabled={busy === a.id} onClick={() => run(a.id, () => actOnSalaryAdvance(a.id, { action: "approve" }))} className="px-2 py-1 text-xs font-bold bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200 disabled:opacity-50">Approve</button>
-                      <button disabled={busy === a.id} onClick={() => run(a.id, () => actOnSalaryAdvance(a.id, { action: "reject" }))} className="px-2 py-1 text-xs font-bold bg-rose-100 text-rose-700 rounded hover:bg-rose-200 disabled:opacity-50">Reject</button>
+                      <button disabled={busy === a.id} onClick={() => run(a.id, () => actOnSalaryAdvance(a.id, { action: "approve" }))} className="px-2 py-1 text-xs font-bold bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200 disabled:opacity-50">{t("common.approve")}</button>
+                      <button disabled={busy === a.id} onClick={() => run(a.id, () => actOnSalaryAdvance(a.id, { action: "reject" }))} className="px-2 py-1 text-xs font-bold bg-rose-100 text-rose-700 rounded hover:bg-rose-200 disabled:opacity-50">{t("common.reject")}</button>
                     </div>
                   )}
                   {a.status === "approved" && (

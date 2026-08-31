@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 type TeamMember = {
   id: string;
@@ -106,6 +107,7 @@ export default function ClientTasksTab({
   handleUpdateStatus,
   handleUpdateProgress,
 }: ClientTasksTabProps) {
+  const t = useTranslator();
   const tasks = project.tasks || [];
   const filteredTasks = filterTasks(tasks, taskFilterTeam, taskFilterStatus, taskFilterCreator);
   const hasFilters = taskFilterTeam !== "all" || taskFilterStatus !== "all" || taskFilterCreator !== "all";
@@ -125,17 +127,17 @@ export default function ClientTasksTab({
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-xl border shadow-sm p-6">
-        <h2 className="text-lg font-bold text-slate-800 mb-3">Assign New Task</h2>
+        <h2 className="text-lg font-bold text-slate-800 mb-3">{t("task.assignNew")}</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
           <select value={newTaskType} onChange={(e) => setNewTaskType(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white">
-            <option value="seo">SEO</option>
-            <option value="content_seo">Content SEO</option>
-            <option value="social_media">Social Media</option>
-            <option value="media_buyer">Media Buyer</option>
-            <option value="graphic_design">Graphic Design</option>
-            <option value="motion_graphic">Motion Graphic</option>
-            <option value="ui_design">UI/UX Design</option>
-            <option value="technical">Technical (Web)</option>
+            <option value="seo">{t("team.seo")}</option>
+            <option value="content_seo">{t("team.contentSeo")}</option>
+            <option value="social_media">{t("team.socialMedia")}</option>
+            <option value="media_buyer">{t("team.mediaBuyer")}</option>
+            <option value="graphic_design">{t("team.graphicDesign")}</option>
+            <option value="motion_graphic">{t("team.motionGraphic")}</option>
+            <option value="ui_design">{t("team.uiUx")}</option>
+            <option value="technical">{t("team.technicalWeb")}</option>
           </select>
           <select value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white">
             <option value="Low">Low Priority</option>
@@ -176,26 +178,26 @@ export default function ClientTasksTab({
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Team</label>
             <select value={taskFilterTeam} onChange={(e) => setTaskFilterTeam(e.target.value)} className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-white min-w-[140px] focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition">
-              <option value="all">All Teams</option>
-              <option value="seo">SEO</option>
-              <option value="content_seo">Content SEO</option>
-              <option value="social_media">Social Media</option>
-              <option value="media_buyer">Media Buyer</option>
-              <option value="graphic_design">Graphic Design</option>
-              <option value="motion_graphic">Motion Graphic</option>
-              <option value="ui_design">UI/UX Design</option>
-              <option value="technical">Technical (Web)</option>
+              <option value="all">{t("filter.allTeams")}</option>
+              <option value="seo">{t("team.seo")}</option>
+              <option value="content_seo">{t("team.contentSeo")}</option>
+              <option value="social_media">{t("team.socialMedia")}</option>
+              <option value="media_buyer">{t("team.mediaBuyer")}</option>
+              <option value="graphic_design">{t("team.graphicDesign")}</option>
+              <option value="motion_graphic">{t("team.motionGraphic")}</option>
+              <option value="ui_design">{t("team.uiUx")}</option>
+              <option value="technical">{t("team.technicalWeb")}</option>
             </select>
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Status</label>
+            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{t("common.status")}</label>
             <select value={taskFilterStatus} onChange={(e) => setTaskFilterStatus(e.target.value)} className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-white min-w-[130px] focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition">
-              <option value="all">All Statuses</option>
-              <option value="pending">Pending</option>
-              <option value="in_progress">In Progress</option>
-              <option value="review">In Review</option>
-              <option value="done">Done</option>
+              <option value="all">{t("filter.allStatuses")}</option>
+              <option value="pending">{t("status.pending")}</option>
+              <option value="in_progress">{t("status.inProgress")}</option>
+              <option value="review">{t("status.inReview")}</option>
+              <option value="done">{t("status.done")}</option>
             </select>
           </div>
 
@@ -296,7 +298,7 @@ export default function ClientTasksTab({
 
                   {canUpdateTask && task.status !== "done" ? (
                     <div className="mt-3 flex items-center gap-3">
-                      <span className="text-xs font-semibold text-slate-500 w-16">Progress</span>
+                      <span className="text-xs font-semibold text-slate-500 w-16">{t("sales.progress")}</span>
                       <input
                         type="range"
                         min="0"

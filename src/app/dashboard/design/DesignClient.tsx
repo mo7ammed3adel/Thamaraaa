@@ -11,6 +11,7 @@ import TaskReassignModal from "@/components/TaskReassignModal";
 import SelfTaskForm from "@/components/SelfTaskForm";
 import TaskWorkspaceModal from "@/components/TaskWorkspaceModal";
 import { updateTask } from "@/client/api/tasks";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 /**
  * Design & Creative department client component (Graphic, Motion, UI/UX).
@@ -18,6 +19,7 @@ import { updateTask } from "@/client/api/tasks";
  * and Agent-focused task execution view.
  */
 export default function DesignClient({ tasks, agents, userRole, userId, teamLabel, crossTeamTasks = [] }: any) {
+  const t = useTranslator();
   const router = useRouter();
   const isLeader = userRole.startsWith("leader_") || userRole === "super_admin";
   const [activeTab, setActiveTab] = useState(isLeader ? "incoming" : "tasks");
@@ -123,7 +125,7 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
           </div>
           {t.deadline && (
             <div className="text-end shrink-0">
-              <p className="text-xs text-gray-500 font-medium">Deadline</p>
+              <p className="text-xs text-gray-500 font-medium">{t("task.deadline")}</p>
               <p className={`text-sm font-bold ${isDelayed ? "text-red-600" : "text-gray-800"}`}>{new Date(t.deadline).toLocaleDateString()}</p>
             </div>
           )}
@@ -150,7 +152,7 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
             {/* Progress Bar */}
             <div>
               <div className="flex justify-between text-xs mb-1">
-                <span className="font-bold text-gray-600">Progress</span>
+                <span className="font-bold text-gray-600">{t("sales.progress")}</span>
                 <span className="font-bold text-violet-600">{t.progressPct}%</span>
               </div>
               <div className="w-full bg-gray-100 rounded-full h-2">
@@ -188,7 +190,7 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
                 <button onClick={() => handleUpdateStatus(t.id, "in_progress")} className="w-full py-2 bg-gray-800 text-white rounded-xl text-sm font-bold hover:bg-gray-900 shadow-sm transition">Start Task</button>
               )}
               {t.agentId === userId && t.status === "in_progress" && (
-                <button onClick={() => handleUpdateStatus(t.id, "review")} className="w-full py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 shadow-sm transition">Submit for Review</button>
+                <button onClick={() => handleUpdateStatus(t.id, "review")} className="w-full py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 shadow-sm transition">{t("common.submitForReview")}</button>
               )}
               {/* Only the leader approves the final delivery */}
               {isLeader && t.status === "review" && (
@@ -306,15 +308,15 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
                 </div>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-500">In Progress</span>
+                    <span className="text-gray-500">{t("status.inProgress")}</span>
                     <span className="font-bold text-amber-600">{activeT.length}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-500">Completed</span>
+                    <span className="text-gray-500">{t("status.completed")}</span>
                     <span className="font-bold text-emerald-600">{doneT.length}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-500">Delayed</span>
+                    <span className="text-gray-500">{t("status.delayed")}</span>
                     <span className={`font-bold ${delayedT.length > 0 ? "text-red-600" : "text-emerald-500"}`}>{delayedT.length}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
@@ -338,17 +340,17 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
           <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl border p-4 shadow-sm">
             <input type="text" placeholder="🔍 Search client, brief, requester..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="flex-1 min-w-[200px] border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none" />
             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-violet-500 outline-none">
-              <option value="all">All Statuses</option>
-              <option value="pending">Pending</option>
-              <option value="in_progress">In Progress</option>
-              <option value="review">In Review</option>
+              <option value="all">{t("filter.allStatuses")}</option>
+              <option value="pending">{t("status.pending")}</option>
+              <option value="in_progress">{t("status.inProgress")}</option>
+              <option value="review">{t("status.inReview")}</option>
               <option value="done">Delivered</option>
             </select>
             <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-violet-500 outline-none">
-              <option value="all">All Priorities</option>
-              <option value="High">High</option>
-              <option value="Medium">Medium</option>
-              <option value="Low">Low</option>
+              <option value="all">{t("filter.allPriorities")}</option>
+              <option value="High">{t("priority.high")}</option>
+              <option value="Medium">{t("priority.medium")}</option>
+              <option value="Low">{t("priority.low")}</option>
             </select>
             {(searchQuery || statusFilter !== "all" || priorityFilter !== "all") && (
               <button onClick={() => { setSearchQuery(""); setStatusFilter("all"); setPriorityFilter("all"); }} className="px-3 py-2 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition">✕ Clear</button>
@@ -379,18 +381,18 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
       {tasks.length > 0 && (
         <div className="bg-white rounded-xl shadow border overflow-hidden">
           <div className="p-4 border-b bg-slate-50">
-            <h2 className="text-lg font-bold text-slate-800">My Tasks Overview</h2>
+            <h2 className="text-lg font-bold text-slate-800">{t("task.myOverview")}</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Client</th>
-                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Task Type</th>
-                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Brief</th>
-                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Deadline</th>
-                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Progress</th>
-                  <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Status</th>
+                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("common.client")}</th>
+                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("task.type")}</th>
+                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("task.brief")}</th>
+                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("task.deadline")}</th>
+                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("sales.progress")}</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">{t("common.status")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">

@@ -7,6 +7,7 @@ import { SelfServiceSection } from "./HrWorkflowTabs";
 import HrSelfServiceExtras from "./HrSelfServiceExtras";
 import HrSalaryEvalCard from "./HrSalaryEvalCard";
 import HrMyTasks from "./HrMyTasks";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 /**
  * Employee view of the HR / Attendance page (every non-HR-manager user).
@@ -14,6 +15,7 @@ import HrMyTasks from "./HrMyTasks";
  * only carries the employee attendance + self-service experience.
  */
 export default function HrClient({ myTodayAttendance, history, salaryInfo }: any) {
+  const t = useTranslator();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -60,7 +62,7 @@ export default function HrClient({ myTodayAttendance, history, salaryInfo }: any
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Date</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("common.date")}</th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Check In</th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Check Out</th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Delay (Mins)</th>
@@ -71,7 +73,7 @@ export default function HrClient({ myTodayAttendance, history, salaryInfo }: any
               <tr key={h.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(h.date).toLocaleDateString()}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(h.checkIn).toLocaleTimeString()}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{h.checkOut ? new Date(h.checkOut).toLocaleTimeString() : <span className="text-yellow-600">Active</span>}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{h.checkOut ? new Date(h.checkOut).toLocaleTimeString() : <span className="text-yellow-600">{t("status.active")}</span>}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600">{h.lateMinutes > 0 ? h.lateMinutes : <span className="text-green-600">On Time</span>}</td>
               </tr>
             ))}

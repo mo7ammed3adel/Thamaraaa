@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { saveCommissionRule, saveSetting } from "@/client/api/settings";
 import { wipeTestData } from "@/client/api/admin";
 import { HttpError } from "@/client/transport/http";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 /** These flows always refreshed even on a rejected request, so an HTTP
  * failure is swallowed to keep that behavior; network errors still throw. */
@@ -55,6 +56,7 @@ export default function SettingsClient({
   initialConfigs: any[];
   initialCommissions?: any[];
 }) {
+  const t = useTranslator();
   const router = useRouter();
   const [configs] = useState(initialConfigs);
   const [commissions] = useState(initialCommissions);
@@ -210,6 +212,7 @@ function TelesalesBonusSection({
   loading: boolean;
   onUpdate: (k: string, v: string) => void;
 }) {
+  const t = useTranslator();
   const amountFor = (pct: number) =>
     rules.meetingTiers.find((t) => t.achievementPct === pct)?.amount ?? 0;
 
@@ -256,7 +259,7 @@ function TelesalesBonusSection({
                     }}
                     className="border px-3 py-2 rounded text-sm w-full focus:ring-blue-500 focus:border-blue-500 outline-none"
                   />
-                  <span className="text-xs text-gray-500">SAR</span>
+                  <span className="text-xs text-gray-500">{t("finance.sar")}</span>
                 </div>
               </div>
             ))}
@@ -427,6 +430,7 @@ function CommissionRulesSection({ commissions, loading, setLoading, router }: { 
 // enforced at the API layer, not configured here.
 // ─────────────────────────────────────────────────────────────────────
 function PermissionMatrix() {
+  const t = useTranslator();
   const ROLES_BY_DEPT: Record<string, { role: string; capabilities: string[] }[]> = {
     "Administration": [
       { role: "super_admin", capabilities: ["Full access (View/Create/Edit/Delete/Export)", "System config", "User management", "All distributions"] },
@@ -482,7 +486,7 @@ function PermissionMatrix() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
               <tr>
-                <th className="px-3 py-2 text-start w-1/3">Role</th>
+                <th className="px-3 py-2 text-start w-1/3">{t("common.role")}</th>
                 <th className="px-3 py-2 text-start">Capabilities</th>
               </tr>
             </thead>
@@ -524,6 +528,7 @@ const WIPE_DELETES = [
 ];
 
 function TestDataSection({ router }: { router: any }) {
+  const t = useTranslator();
   const [confirmText, setConfirmText] = useState("");
   const [loading, setLoading] = useState(false);
   const armed = confirmText.trim().toUpperCase() === "WIPE";

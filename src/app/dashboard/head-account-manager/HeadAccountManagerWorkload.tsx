@@ -1,4 +1,5 @@
 "use client";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 type HeadAccountManagerWorkloadProps = {
   accountManagers: any[];
@@ -13,6 +14,7 @@ export default function HeadAccountManagerWorkload({
   filterAM,
   setFilterAM,
 }: HeadAccountManagerWorkloadProps) {
+  const t = useTranslator();
   return (
     <div className="bg-white rounded-xl shadow-sm border p-6">
       <h2 className="text-lg font-bold text-slate-800 mb-4">Account Managers Workload</h2>
@@ -42,7 +44,7 @@ export default function HeadAccountManagerWorkload({
               </div>
               <div className="grid grid-cols-2 gap-2 mb-1">
                 <div>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">Active</p>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase">{t("status.active")}</p>
                   <p className={`text-xl font-black ${load > 15 ? "text-red-500" : load > 8 ? "text-amber-500" : "text-emerald-500"}`}>{load}</p>
                 </div>
                 <div>

@@ -1,4 +1,5 @@
 import type { Dispatch, FormEvent, SetStateAction } from "react";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 type FileTask = {
   id: string;
@@ -59,6 +60,7 @@ export default function ClientFilesTab({
   uploadingFile,
   handleUploadProjectFile,
 }: ClientFilesTabProps) {
+  const t = useTranslator();
   const taskLinks = (project.tasks || []).filter((task) => task.taskLink);
   const files = project.files || [];
 
@@ -75,13 +77,13 @@ export default function ClientFilesTab({
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Type</th>
+                  <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("lead.type")}</th>
                   <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Link</th>
                   <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Sent By</th>
-                  <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Role</th>
+                  <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("common.role")}</th>
                   <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Sent Date</th>
-                  <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Deadline</th>
-                  <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Status</th>
+                  <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("task.deadline")}</th>
+                  <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("common.status")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -139,7 +141,7 @@ export default function ClientFilesTab({
               <option value="contract">Contract</option>
               <option value="screenshot">Screenshot</option>
               <option value="report">Report</option>
-              <option value="brief">Brief</option>
+              <option value="brief">{t("task.brief")}</option>
               <option value="other">Other</option>
             </select>
             <input
@@ -156,7 +158,7 @@ export default function ClientFilesTab({
           </form>
         )}
         {files.length === 0 ? (
-          <p className="text-sm text-slate-400 italic py-4">No files uploaded yet.</p>
+          <p className="text-sm text-slate-400 italic py-4">{t("empty.noFiles")}</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {files.map((file) => (

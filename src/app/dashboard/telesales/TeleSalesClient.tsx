@@ -342,7 +342,7 @@ export default function TeleSalesClient({
             <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">{t("lead.status")}</label>
             <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }} className="border rounded-md px-3 py-1.5 text-sm">
               <option value="All">{t("telesales.allStatuses")}</option>
-              <option value="New">New</option>
+              <option value="New">{t("status.new")}</option>
               <option value="Contacted">{t("lead.status.contacted")}</option>
               <option value="No_Answer">{t("lead.call.noAnswer")}</option>
               <option value="Interested">{t("lead.status.interested")}</option>

@@ -2,6 +2,7 @@
 
 import { AlertTriangle } from "lucide-react";
 import LifecycleStateBadge from "@/components/LifecycleStateBadge";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 type HeadAccountManagerMasterListProps = {
   filteredProjects: any[];
@@ -54,6 +55,7 @@ export default function HeadAccountManagerMasterList({
   setReassignProject,
   openClientJourney,
 }: HeadAccountManagerMasterListProps) {
+  const t = useTranslator();
   return (
     <div className="bg-white rounded-xl shadow border overflow-hidden">
       <div className="p-4 border-b bg-slate-50 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
@@ -68,19 +70,19 @@ export default function HeadAccountManagerMasterList({
         <div className="flex flex-wrap gap-2 w-full md:w-auto">
           <input
             type="text"
-            placeholder="Search clients..."
+            placeholder={t("form.searchClients")}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="w-full md:w-48 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
           />
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none">
-            <option value="all">All Statuses</option>
-            <option value="new">New</option>
+            <option value="all">{t("filter.allStatuses")}</option>
+            <option value="new">{t("status.new")}</option>
             <option value="assigned">Assigned</option>
             <option value="setup">Setup</option>
-            <option value="in_progress">In Progress</option>
-            <option value="delayed">Delayed</option>
-            <option value="completed">Completed</option>
+            <option value="in_progress">{t("status.inProgress")}</option>
+            <option value="delayed">{t("status.delayed")}</option>
+            <option value="completed">{t("status.completed")}</option>
           </select>
           <select value={filterWarning} onChange={e => setFilterWarning(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none">
             <option value="all">Warnings: Any</option>
@@ -93,10 +95,10 @@ export default function HeadAccountManagerMasterList({
           </select>
           <select value={filterLifecycle} onChange={e => setFilterLifecycle(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none">
             <option value="all">Client Status: All</option>
-            <option value="Active">Active</option>
-            <option value="Hold">Hold</option>
-            <option value="Renewer">Renewer</option>
-            <option value="Lost">Lost</option>
+            <option value="Active">{t("status.active")}</option>
+            <option value="Hold">{t("status.hold")}</option>
+            <option value="Renewer">{t("status.renewer")}</option>
+            <option value="Lost">{t("status.lost")}</option>
           </select>
         </div>
       </div>
@@ -105,11 +107,11 @@ export default function HeadAccountManagerMasterList({
         <thead className="bg-slate-50 text-xs font-semibold text-slate-500 uppercase">
           <tr>
             <th className="px-6 py-3 text-start w-64">Client & Details</th>
-            <th className="px-6 py-3 text-start w-32">Lifecycle</th>
+            <th className="px-6 py-3 text-start w-32">{t("journey.lifecycle")}</th>
             <th className="px-6 py-3 text-start w-48">Assignments</th>
             <th className="px-6 py-3 text-start w-64">General Progress</th>
             <th className="px-6 py-3 text-center w-32">Status & Tasks</th>
-            <th className="px-6 py-3 text-end">Actions</th>
+            <th className="px-6 py-3 text-end">{t("common.actions")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
@@ -124,7 +126,7 @@ export default function HeadAccountManagerMasterList({
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2 mb-1">
                     <div className="font-bold text-slate-900">{p.deal?.lead?.name}</div>
-                    {hasWarnings && <span title="Active Warnings"><AlertTriangle className="w-4 h-4 text-orange-500" /></span>}
+                    {hasWarnings && <span title={t("sales.activeWarnings")}><AlertTriangle className="w-4 h-4 text-orange-500" /></span>}
                   </div>
                   <div className="text-xs text-slate-500 mb-1">{p.deal?.lead?.phone}</div>
                   <div className="flex gap-2 items-center">
@@ -146,7 +148,7 @@ export default function HeadAccountManagerMasterList({
                 <td className="px-6 py-4">
                   <div className="space-y-2">
                     <div>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Account Manager</p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">{t("sales.accountManager")}</p>
                       <select
                         value={p.accountManagerId || ""}
                         onChange={(e) => handleAssignAM(p.id, e.target.value)}
@@ -159,14 +161,14 @@ export default function HeadAccountManagerMasterList({
                       </select>
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Head Technical</p>
-                      <div className="text-xs font-semibold px-2 py-1 bg-slate-50 border rounded w-full truncate text-slate-500 cursor-not-allowed" title="Assigned through Client Full Journey Page">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">{t("role.headTechnical")}</p>
+                      <div className="text-xs font-semibold px-2 py-1 bg-slate-50 border rounded w-full truncate text-slate-500 cursor-not-allowed" title={t("journey.assignedVia")}>
                         {p.headTechnical?.name || "Pending Request"}
                       </div>
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Head SEO</p>
-                      <div className="text-xs font-semibold px-2 py-1 bg-slate-50 border rounded w-full truncate text-slate-500 cursor-not-allowed" title="Assigned through Client Full Journey Page">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">{t("role.headSeo")}</p>
+                      <div className="text-xs font-semibold px-2 py-1 bg-slate-50 border rounded w-full truncate text-slate-500 cursor-not-allowed" title={t("journey.assignedVia")}>
                         {p.headSeo?.name || "Pending Request"}
                       </div>
                     </div>

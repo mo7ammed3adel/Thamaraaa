@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface PipelineStage {
   key: string;
@@ -28,6 +29,7 @@ const DEAL_STAGES: PipelineStage[] = [
  * Provides Kanban and Table views for projects and deals.
  */
 export default function PipelineClient({ deals, projects }: any) {
+  const t = useTranslator();
   const [view, setView] = useState<"kanban" | "table">("kanban");
   const [pipelineType, setPipelineType] = useState<"projects" | "deals">("projects");
 
@@ -156,14 +158,14 @@ export default function PipelineClient({ deals, projects }: any) {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-slate-50">
               <tr>
-                <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Client</th>
-                <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Package</th>
+                <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("common.client")}</th>
+                <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("common.package")}</th>
                 <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">
                   {pipelineType === "projects" ? "Account Manager" : "Sales Agent"}
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Amount</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-end text-xs font-semibold text-slate-500 uppercase">Date</th>
+                <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">{t("common.amount")}</th>
+                <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">{t("common.status")}</th>
+                <th className="px-6 py-3 text-end text-xs font-semibold text-slate-500 uppercase">{t("common.date")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">

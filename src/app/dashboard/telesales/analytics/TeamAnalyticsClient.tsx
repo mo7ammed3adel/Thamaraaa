@@ -7,6 +7,7 @@ import {
   getTeleSalesTeamDrill,
 } from "@/client/api/analytics";
 import DateRangeFilter from "@/components/dashboard/DateRangeFilter";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface AgentAnalytics {
   id: string;
@@ -31,6 +32,7 @@ interface AgentDetail {
 type DrillDown = "calls" | "meetings" | "attended" | "deals" | "revenue" | null;
 
 export default function TeamAnalyticsClient() {
+  const t = useTranslator();
   const [analytics, setAnalytics] = useState<AgentAnalytics[]>([]);
   const [loading, setLoading] = useState(true);
   const [fromDate, setFromDate] = useState("");
@@ -116,7 +118,7 @@ export default function TeamAnalyticsClient() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <PhoneCall className="h-5 w-5 opacity-80" />
-              <span className="text-xs font-semibold uppercase opacity-80">Total Calls</span>
+              <span className="text-xs font-semibold uppercase opacity-80">{t("metric.totalCalls")}</span>
             </div>
             <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "calls" ? "rotate-180" : ""}`} />
           </div>
@@ -130,7 +132,7 @@ export default function TeamAnalyticsClient() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Calendar className="h-5 w-5 opacity-80" />
-              <span className="text-xs font-semibold uppercase opacity-80">Meetings Booked</span>
+              <span className="text-xs font-semibold uppercase opacity-80">{t("metric.meetingsBooked")}</span>
             </div>
             <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "meetings" ? "rotate-180" : ""}`} />
           </div>
@@ -144,7 +146,7 @@ export default function TeamAnalyticsClient() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Clock className="h-5 w-5 opacity-80" />
-              <span className="text-xs font-semibold uppercase opacity-80">Attended</span>
+              <span className="text-xs font-semibold uppercase opacity-80">{t("status.attended")}</span>
             </div>
             <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "attended" ? "rotate-180" : ""}`} />
           </div>
@@ -158,7 +160,7 @@ export default function TeamAnalyticsClient() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Handshake className="h-5 w-5 opacity-80" />
-              <span className="text-xs font-semibold uppercase opacity-80">Deals Closed</span>
+              <span className="text-xs font-semibold uppercase opacity-80">{t("metric.dealsClosed")}</span>
             </div>
             <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "deals" ? "rotate-180" : ""}`} />
           </div>
@@ -172,7 +174,7 @@ export default function TeamAnalyticsClient() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 opacity-80" />
-              <span className="text-xs font-semibold uppercase opacity-80">Revenue</span>
+              <span className="text-xs font-semibold uppercase opacity-80">{t("finance.revenue")}</span>
             </div>
             <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "revenue" ? "rotate-180" : ""}`} />
           </div>
@@ -206,7 +208,7 @@ export default function TeamAnalyticsClient() {
                 <div className="animate-spin h-6 w-6 border-3 border-blue-500 border-t-transparent rounded-full mx-auto" />
               </div>
             ) : drillData.length === 0 ? (
-              <div className="px-6 py-8 text-center text-sm text-gray-500">No data found for this period.</div>
+              <div className="px-6 py-8 text-center text-sm text-gray-500">{t("empty.noData")}</div>
             ) : drillDown === "calls" ? (
               drillData.map((log: any) => (
                 <div key={log.id} className="px-6 py-3 flex items-start gap-3 hover:bg-gray-50 transition-colors">
@@ -274,7 +276,7 @@ export default function TeamAnalyticsClient() {
                 ))}
                 {drillDown === "revenue" && drillData.length > 0 && (
                   <div className="px-6 py-3 bg-amber-50 flex justify-between items-center">
-                    <p className="text-sm font-bold text-gray-900">Total Revenue</p>
+                    <p className="text-sm font-bold text-gray-900">{t("finance.totalRevenue")}</p>
                     <p className="text-lg font-bold text-amber-700">{totals.revenue.toLocaleString()} SAR</p>
                   </div>
                 )}
@@ -287,27 +289,27 @@ export default function TeamAnalyticsClient() {
       {/* Agents Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Per-Agent Performance</h3>
+          <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">{t("analytics.perAgent")}</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Agent</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Specialization</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Calls</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Meetings Booked</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Attended</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Deals Closed</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Revenue (SAR)</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Details</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("common.agent")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("common.specialization")}</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">{t("team.calls")}</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">{t("metric.meetingsBooked")}</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">{t("status.attended")}</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">{t("metric.dealsClosed")}</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">{t("finance.revenueSar")}</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">{t("common.details")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
-                <tr><td colSpan={8} className="px-6 py-8 text-center text-sm text-gray-500">Loading analytics...</td></tr>
+                <tr><td colSpan={8} className="px-6 py-8 text-center text-sm text-gray-500">{t("empty.loadingAnalytics")}</td></tr>
               ) : analytics.length === 0 ? (
-                <tr><td colSpan={8} className="px-6 py-8 text-center text-sm text-gray-500">No agent data found.</td></tr>
+                <tr><td colSpan={8} className="px-6 py-8 text-center text-sm text-gray-500">{t("empty.noAgents")}</td></tr>
               ) : analytics.map((a) => (
                 <tr key={a.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => openAgentDetail(a.id)}>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -377,7 +379,7 @@ export default function TeamAnalyticsClient() {
                     </h4>
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                       {selectedAgent.callLogs.length === 0 ? (
-                        <p className="text-sm text-gray-400 py-3">No call logs found for this period.</p>
+                        <p className="text-sm text-gray-400 py-3">{t("empty.noCalls")}</p>
                       ) : selectedAgent.callLogs.map((log: any) => (
                         <div key={log.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
                           <div className="min-w-0 flex-1">
@@ -404,7 +406,7 @@ export default function TeamAnalyticsClient() {
                     </h4>
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                       {selectedAgent.meetings.length === 0 ? (
-                        <p className="text-sm text-gray-400 py-3">No meetings found for this period.</p>
+                        <p className="text-sm text-gray-400 py-3">{t("empty.noMeetings")}</p>
                       ) : selectedAgent.meetings.map((m: any) => (
                         <div key={m.id} className="p-3 bg-purple-50 rounded-lg border border-purple-100">
                           <div className="flex items-center justify-between">
@@ -440,7 +442,7 @@ export default function TeamAnalyticsClient() {
                     </h4>
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                       {selectedAgent.deals.length === 0 ? (
-                        <p className="text-sm text-gray-400 py-3">No deals found for this period.</p>
+                        <p className="text-sm text-gray-400 py-3">{t("empty.noDeals")}</p>
                       ) : selectedAgent.deals.map((d: any) => (
                         <div key={d.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100">
                           <div>

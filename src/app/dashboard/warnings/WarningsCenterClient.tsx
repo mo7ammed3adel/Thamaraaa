@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import WarningResolveButton from "@/components/WarningResolveButton";
 import { createWarning } from "@/client/api/warnings";
 import { HttpError } from "@/client/transport/http";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 /** This flow always closed the form and refreshed even on a rejected request,
  * so an HTTP failure is swallowed to keep that behavior; network errors still throw. */
@@ -31,6 +32,7 @@ const WARNING_ISSUER_ROLES = [
 ];
 
 export default function WarningsCenterClient({ warnings, leads, userRole, userId }: any) {
+  const t = useTranslator();
   const router = useRouter();
   const canCreateWarning = WARNING_ISSUER_ROLES.includes(userRole);
   const [showCreate, setShowCreate] = useState(false);
@@ -87,7 +89,7 @@ export default function WarningsCenterClient({ warnings, leads, userRole, userId
               <label className="text-sm font-medium text-red-700 block mb-2">Send to Roles</label>
               <div className="flex flex-wrap gap-2">
                 <button onClick={() => setSelectedRoles(ALL_TEAM_ROLES)} className="text-xs px-2 py-1 bg-red-200 text-red-800 rounded-full font-medium">Select All</button>
-                <button onClick={() => setSelectedRoles([])} className="text-xs px-2 py-1 bg-slate-200 text-slate-600 rounded-full font-medium">Clear</button>
+                <button onClick={() => setSelectedRoles([])} className="text-xs px-2 py-1 bg-slate-200 text-slate-600 rounded-full font-medium">{t("common.clear")}</button>
               </div>
               <div className="flex flex-wrap gap-2 mt-2">
                 {ALL_TEAM_ROLES.map((role) => (
@@ -98,7 +100,7 @@ export default function WarningsCenterClient({ warnings, leads, userRole, userId
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setShowCreate(false)} className="flex-1 py-2 bg-white border border-red-200 text-red-600 rounded-xl text-sm font-medium hover:bg-red-50">Cancel</button>
+              <button onClick={() => setShowCreate(false)} className="flex-1 py-2 bg-white border border-red-200 text-red-600 rounded-xl text-sm font-medium hover:bg-red-50">{t("common.cancel")}</button>
               <button onClick={handleCreate} disabled={sending || !message.trim() || !selectedClient || selectedRoles.length === 0} className="flex-1 py-2 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 disabled:opacity-50">
                 {sending ? "Sending..." : "🚨 Send Warning"}
               </button>

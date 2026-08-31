@@ -1,3 +1,4 @@
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 type LeadInfo = {
   name?: string | null;
   phone?: string | null;
@@ -21,6 +22,7 @@ type ClientInfoTabProps = {
 };
 
 export default function ClientInfoTab({ lead, project }: ClientInfoTabProps) {
+  const t = useTranslator();
   const items = [
     { label: "Full Name", value: lead?.name },
     { label: "Phone", value: lead?.phone },
@@ -35,7 +37,7 @@ export default function ClientInfoTab({ lead, project }: ClientInfoTabProps) {
 
   return (
     <div className="bg-white rounded-xl border shadow-sm p-6">
-      <h2 className="text-lg font-bold text-slate-800 mb-4">Client Information</h2>
+      <h2 className="text-lg font-bold text-slate-800 mb-4">{t("journey.clientInfo")}</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {items.map((item) => (
           <div key={item.label} className="border-b border-slate-100 pb-3">

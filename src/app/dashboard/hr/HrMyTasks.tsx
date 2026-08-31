@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ListTodo, Loader2, CalendarClock, Flag } from "lucide-react";
 import { listTasks } from "@/client/api/tasks";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 type Task = {
   id: string;
@@ -37,6 +38,7 @@ function prettyStatus(s: string) {
  * so it never clutters the page for sales/finance/etc.
  */
 export default function HrMyTasks() {
+  const t = useTranslator();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -75,7 +77,7 @@ export default function HrMyTasks() {
         <span className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
           <ListTodo className="w-4 h-4" />
         </span>
-        <h2 className="font-bold text-slate-800">My Tasks</h2>
+        <h2 className="font-bold text-slate-800">{t("task.mine")}</h2>
         <span className="ms-auto text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
           {open.length}
         </span>

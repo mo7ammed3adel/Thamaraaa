@@ -9,6 +9,7 @@ import {
   listDepartments, updateDepartment,
 } from "@/client/api/departments";
 
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 const DEFAULT_POLICY = {
   evaluationFrequency: "quarterly",
   passingScore: 70,
@@ -28,6 +29,7 @@ const DEFAULT_POLICY = {
 const blankDept = () => ({ id: "", name: "", description: "", status: "active", headId: "", teamLeaderIds: [] as string[], policy: { ...DEFAULT_POLICY }, documents: [] as any[], employeeCount: 0 });
 
 export default function HrDepartments({ employees = [] }: { employees?: any[] }) {
+  const t = useTranslator();
   const [departments, setDepartments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<any>(null);
@@ -115,6 +117,7 @@ function P({ label, children }: { label: string; children: React.ReactNode }) {
 const inputCls = "w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500";
 
 function DepartmentEditor({ editing, setEditing, employees, onClose, onSaved }: any) {
+  const t = useTranslator();
   const [saving, setSaving] = useState(false);
   const isNew = !editing.id;
   const setField = (k: string, v: any) => setEditing((p: any) => ({ ...p, [k]: v }));
@@ -195,8 +198,8 @@ function DepartmentEditor({ editing, setEditing, employees, onClose, onSaved }: 
               </P>
               <P label="Status">
                 <select value={editing.status} onChange={(e) => setField("status", e.target.value)} className={`${inputCls} bg-white`}>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
+                  <option value="active">{t("status.active")}</option>
+                  <option value="inactive">{t("status.inactive")}</option>
                 </select>
               </P>
             </div>
@@ -289,7 +292,7 @@ function DepartmentEditor({ editing, setEditing, employees, onClose, onSaved }: 
                 <form onSubmit={addDoc} className="grid grid-cols-12 gap-2">
                   <input name="name" required placeholder="Document name (SOP, KPIs…)" className="col-span-5 border rounded-lg px-2 py-1.5 text-xs" />
                   <input name="fileUrl" required type="url" placeholder="https://…" className="col-span-5 border rounded-lg px-2 py-1.5 text-xs" />
-                  <button type="submit" className="col-span-2 bg-slate-900 text-white rounded-lg text-xs font-bold">Add</button>
+                  <button type="submit" className="col-span-2 bg-slate-900 text-white rounded-lg text-xs font-bold">{t("common.add")}</button>
                 </form>
                 <div className="space-y-1.5">
                   {(editing.documents || []).map((doc: any) => (
@@ -308,7 +311,7 @@ function DepartmentEditor({ editing, setEditing, employees, onClose, onSaved }: 
           </div>
 
           <div className="flex gap-3 pb-6">
-            <button onClick={onClose} className="flex-1 py-2.5 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">Close</button>
+            <button onClick={onClose} className="flex-1 py-2.5 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">{t("common.close")}</button>
             <button onClick={save} disabled={saving} className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-50">
               {saving ? "Saving…" : isNew ? "Create Department" : "Save Changes"}
             </button>

@@ -4,8 +4,10 @@ import { notify } from "@/components/toast";
 import { useRouter } from "next/navigation";
 import { RotateCcw } from "lucide-react";
 import { updateLead } from "@/client/api/leads";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 export default function RecycleBinClient({ leads, salesAgents }: { leads: any[], salesAgents: any[] }) {
+  const t = useTranslator();
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [selectedAgentForLead, setSelectedAgentForLead] = useState<Record<string, string>>({});
@@ -58,7 +60,7 @@ export default function RecycleBinClient({ leads, salesAgents }: { leads: any[],
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Client Name & Phone</th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Previous Agent</th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">Feedback Notes</th>
-              <th className="px-6 py-3 text-end text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+              <th className="px-6 py-3 text-end text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.action")}</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -85,7 +87,7 @@ export default function RecycleBinClient({ leads, salesAgents }: { leads: any[],
                           value={selectedAgentForLead[l.id] || ""}
                           onChange={e => setSelectedAgentForLead({...selectedAgentForLead, [l.id]: e.target.value})}
                         >
-                          <option value="">Select Agent...</option>
+                          <option value="">{t("form.selectAgentAlt")}</option>
                           {salesAgents.map(ag => (
                             <option key={ag.id} value={ag.id}>{ag.name}</option>
                           ))}

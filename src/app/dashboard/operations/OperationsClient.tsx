@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { setupProject, updateProjectStatus } from "@/client/api/projects";
 import { generateTasks } from "@/client/api/tasks";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 /**
  * Operations Hub strictly for Account Managers.
@@ -12,6 +13,7 @@ import { generateTasks } from "@/client/api/tasks";
 export default function OperationsClient({
   userRole, userId, projects, teamLeaders,
 }: any) {
+  const t = useTranslator();
   const router = useRouter();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -165,7 +167,7 @@ export default function OperationsClient({
           className="flex-1 min-w-[200px] border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
         />
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none">
-          <option value="all">All Statuses</option>
+          <option value="all">{t("filter.allStatuses")}</option>
           <option value="active">Active (Setup/Assigned/In Progress)</option>
           {["new", "setup", "assigned", "in_progress", "on_hold", "delayed", "completed", "cancelled"].map(s => (
             <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
@@ -192,7 +194,7 @@ export default function OperationsClient({
               <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase tracking-wider">Client & Deal</th>
               <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase tracking-wider">Timelines</th>
               <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase tracking-wider">Operations Progress</th>
-              <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("common.status")}</th>
               <th className="px-6 py-3 text-end text-xs font-semibold text-slate-500 uppercase tracking-wider">Workflow Actions</th>
             </tr>
           </thead>
@@ -254,24 +256,24 @@ export default function OperationsClient({
           <div className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col">
             <div className="flex justify-between items-center p-6 border-b">
               <div>
-                <h2 className="text-xl font-bold text-slate-800">Setup Project</h2>
+                <h2 className="text-xl font-bold text-slate-800">{t("journey.setupProject")}</h2>
                 <p className="text-sm text-slate-500">{setupModal.deal?.lead?.name}</p>
               </div>
               <button onClick={() => setSetupModal(null)} className="p-2 bg-slate-100 rounded-lg hover:bg-slate-200">✕</button>
             </div>
             <form onSubmit={handleSaveSetup} className="p-6 flex-1 overflow-y-auto space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Client Niche / Industry</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">{t("journey.niche")}</label>
                 <input name="niche" defaultValue={setupModal.niche} required className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="e.g. E-commerce, Real Estate..." />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">Final Deadline</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">{t("journey.finalDeadline")}</label>
                   <input type="date" name="finalDeadline" defaultValue={setupModal.finalDeadline ? new Date(setupModal.finalDeadline).toISOString().split('T')[0] : ""} required className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Store / Website URL</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">{t("journey.storeUrl")}</label>
                 <input type="url" name="storeUrl" defaultValue={setupModal.storeUrl || setupModal.deal?.lead?.storeLink} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="https://" />
               </div>
               <div>
@@ -296,7 +298,7 @@ export default function OperationsClient({
       {statusModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full mx-4 p-6">
-            <h3 className="text-lg font-bold text-slate-800 mb-2">Change Status</h3>
+            <h3 className="text-lg font-bold text-slate-800 mb-2">{t("common.changeStatus")}</h3>
             <p className="text-sm text-slate-500 mb-4">{statusModal.deal?.lead?.name}</p>
             <div className="flex flex-wrap gap-2 mb-6">
               {["new", "setup", "in_progress", "on_hold", "delayed", "completed", "cancelled"].map((s) => (
@@ -309,7 +311,7 @@ export default function OperationsClient({
                 </button>
               ))}
             </div>
-            <button onClick={() => setStatusModal(null)} className="w-full py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200">Cancel</button>
+            <button onClick={() => setStatusModal(null)} className="w-full py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200">{t("common.cancel")}</button>
           </div>
         </div>
       )}

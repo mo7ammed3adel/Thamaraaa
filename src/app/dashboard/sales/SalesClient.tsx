@@ -1161,7 +1161,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                 <h4 className="font-bold text-sm text-gray-800 mb-3">{t("sales.clientProfile")}</h4>
                 <div className="grid grid-cols-2 gap-3 mb-3">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Has Store?</label>
+                    <label className="block text-sm font-medium mb-1">{t("journey.hasStore")}</label>
                     <select className="w-full border p-2 rounded focus:ring-blue-500" value={feedback.hasStore} onChange={e => setFeedback({...feedback, hasStore: e.target.value})}>
                       <option value="No">No</option>
                       <option value="Yes">Yes</option>
@@ -1511,7 +1511,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                 value={reassignAgentId}
                 onChange={e => setReassignAgentId(e.target.value)}
               >
-                <option value="">Select an agent...</option>
+                <option value="">{t("form.selectAgent")}</option>
                 {teamAgents
                   .filter(a => a.id !== (reassignLead.salesAgent?.id || reassignLead.assignedSalesAgentId))
                   .map(a => (
@@ -1563,7 +1563,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                   value={revertData.agentId}
                   onChange={e => setRevertData({ ...revertData, agentId: e.target.value })}
                 >
-                  <option value="">Select an agent...</option>
+                  <option value="">{t("form.selectAgent")}</option>
                   {teamAgents.map(a => (
                     <option key={a.id} value={a.id}>
                       {a.name}

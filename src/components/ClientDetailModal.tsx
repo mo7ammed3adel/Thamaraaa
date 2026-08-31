@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import ClientJourney from "./ClientJourney";
 import NotesPanel from "./NotesPanel";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface ClientDetailModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface ClientDetailModalProps {
 }
 
 export default function ClientDetailModal({ isOpen, onClose, project, currentUserRole }: ClientDetailModalProps) {
+  const t = useTranslator();
   if (!isOpen || !project) return null;
 
   const lead = project.deal?.lead || {};
@@ -42,23 +44,23 @@ export default function ClientDetailModal({ isOpen, onClose, project, currentUse
             <div className="space-y-6">
               {/* Basic Info */}
               <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-                <h3 className="font-bold text-slate-800 mb-4 pb-2 border-b border-slate-100">Client Information</h3>
+                <h3 className="font-bold text-slate-800 mb-4 pb-2 border-b border-slate-100">{t("journey.clientInfo")}</h3>
                 <div className="space-y-3 text-sm">
-                  <div><span className="text-slate-500 block text-xs">Phone</span><span className="font-medium">{lead.phone || "N/A"}</span></div>
+                  <div><span className="text-slate-500 block text-xs">{t("common.phone")}</span><span className="font-medium">{lead.phone || "N/A"}</span></div>
                   <div><span className="text-slate-500 block text-xs">Niche/Industry</span><span className="font-medium">{project.niche || lead.niche || "N/A"}</span></div>
-                  <div><span className="text-slate-500 block text-xs">Has Store?</span><span className="font-medium">{lead.hasStore ? "Yes" : "No"}</span></div>
-                  <div><span className="text-slate-500 block text-xs">Store Link</span><span className="font-medium text-blue-600 hover:underline">{project.storeUrl || lead.storeLink || "N/A"}</span></div>
+                  <div><span className="text-slate-500 block text-xs">{t("journey.hasStore")}</span><span className="font-medium">{lead.hasStore ? "Yes" : "No"}</span></div>
+                  <div><span className="text-slate-500 block text-xs">{t("sales.storeLink")}</span><span className="font-medium text-blue-600 hover:underline">{project.storeUrl || lead.storeLink || "N/A"}</span></div>
                   <div><span className="text-slate-500 block text-xs">Drive Link</span><span className="font-medium text-blue-600 hover:underline">{project.driveLink || "N/A"}</span></div>
                 </div>
               </div>
 
               {/* Deal Info */}
               <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-                <h3 className="font-bold text-slate-800 mb-4 pb-2 border-b border-slate-100">Deal Information</h3>
+                <h3 className="font-bold text-slate-800 mb-4 pb-2 border-b border-slate-100">{t("journey.dealInfo")}</h3>
                 <div className="space-y-3 text-sm">
                   <div><span className="text-slate-500 block text-xs">Total Amount</span><span className="font-medium">{deal.totalAmount?.toLocaleString() || 0} SAR</span></div>
-                  <div><span className="text-slate-500 block text-xs">Payment Method</span><span className="font-medium">{deal.paymentMethod || "N/A"}</span></div>
-                  <div><span className="text-slate-500 block text-xs">Sales Agent</span><span className="font-medium">{deal.salesAgent?.name || "N/A"}</span></div>
+                  <div><span className="text-slate-500 block text-xs">{t("deal.paymentMethod")}</span><span className="font-medium">{deal.paymentMethod || "N/A"}</span></div>
+                  <div><span className="text-slate-500 block text-xs">{t("telesales.salesAgent")}</span><span className="font-medium">{deal.salesAgent?.name || "N/A"}</span></div>
                   <div><span className="text-slate-500 block text-xs">Contract Date</span><span className="font-medium">{deal.contractStart ? new Date(deal.contractStart).toLocaleDateString() : "N/A"}</span></div>
                 </div>
               </div>

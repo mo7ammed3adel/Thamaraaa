@@ -3,6 +3,7 @@ import { useState } from "react";
 import { PhoneCall, Calendar, Handshake, DollarSign, X, Clock } from "lucide-react";
 import DateRangeFilter from "@/components/dashboard/DateRangeFilter";
 import { isDateInRange } from "@/lib/dateRange";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface Meeting {
   id: string;
@@ -57,6 +58,7 @@ export default function MeetsClient({
   performance: Performance | null;
   isAgent: boolean;
 }) {
+  const t = useTranslator();
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
 
   // Filters
@@ -139,7 +141,7 @@ export default function MeetsClient({
           <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-5 text-white shadow-lg">
             <div className="flex items-center gap-2 mb-2">
               <PhoneCall className="h-5 w-5 opacity-80" />
-              <span className="text-xs font-semibold uppercase opacity-80">Total Calls</span>
+              <span className="text-xs font-semibold uppercase opacity-80">{t("metric.totalCalls")}</span>
             </div>
             <p className="text-3xl font-bold">{performance.totalCalls}</p>
           </div>
@@ -153,17 +155,17 @@ export default function MeetsClient({
           <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-5 text-white shadow-lg">
             <div className="flex items-center gap-2 mb-2">
               <Handshake className="h-5 w-5 opacity-80" />
-              <span className="text-xs font-semibold uppercase opacity-80">Deals Closed</span>
+              <span className="text-xs font-semibold uppercase opacity-80">{t("metric.dealsClosed")}</span>
             </div>
             <p className="text-3xl font-bold">{performance.dealsCount}</p>
           </div>
           <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-5 text-white shadow-lg">
             <div className="flex items-center gap-2 mb-2">
               <DollarSign className="h-5 w-5 opacity-80" />
-              <span className="text-xs font-semibold uppercase opacity-80">Revenue</span>
+              <span className="text-xs font-semibold uppercase opacity-80">{t("finance.revenue")}</span>
             </div>
             <p className="text-3xl font-bold">{performance.revenue.toLocaleString()}</p>
-            <p className="text-xs opacity-70 mt-1">SAR</p>
+            <p className="text-xs opacity-70 mt-1">{t("finance.sar")}</p>
           </div>
         </div>
       )}
@@ -192,10 +194,10 @@ export default function MeetsClient({
               onChange={e => setStatusFilter(e.target.value)}
               className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
             >
-              <option value="All">All Statuses</option>
+              <option value="All">{t("filter.allStatuses")}</option>
               <option value="Scheduled">Scheduled</option>
-              <option value="Attended">Attended</option>
-              <option value="Lost">Lost</option>
+              <option value="Attended">{t("status.attended")}</option>
+              <option value="Lost">{t("status.lost")}</option>
               <option value="Won">Won</option>
             </select>
           </div>
@@ -297,14 +299,14 @@ export default function MeetsClient({
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {/* Timeline */}
               <div>
-                <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">Full Process Timeline</h4>
+                <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">{t("journey.timeline")}</h4>
                 <div className="relative border-s-2 border-gray-200 ps-6 space-y-4">
                   {/* Lead Entry */}
                   <div className="relative">
                     <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-blue-500 border-2 border-white" />
                     <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-bold text-blue-700 uppercase">Lead Created</span>
+                        <span className="text-xs font-bold text-blue-700 uppercase">{t("journey.leadCreated")}</span>
                         {selectedMeeting.lead.createdAt && (
                           <span className="text-xs text-gray-400">{new Date(selectedMeeting.lead.createdAt).toLocaleDateString("en-GB")}</span>
                         )}

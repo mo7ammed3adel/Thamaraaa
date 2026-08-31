@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { PhoneCall, Calendar, PhoneOff, PhoneMissed, CheckCircle2, XCircle, Clock, ChevronDown } from "lucide-react";
 import { getMyProgress } from "@/client/api/analytics";
 import DateRangeFilter from "@/components/dashboard/DateRangeFilter";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface TeleProgress {
   role: string;
@@ -19,6 +20,7 @@ interface TeleProgress {
 type DrillDown = "calls" | "booked" | "lost" | "busy" | "meetings" | null;
 
 export default function TeleProgressClient() {
+  const t = useTranslator();
   const [data, setData] = useState<TeleProgress | null>(null);
   const [loading, setLoading] = useState(true);
   const [fromDate, setFromDate] = useState("");
@@ -90,7 +92,7 @@ export default function TeleProgressClient() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <PhoneCall className="h-5 w-5 opacity-80" />
-              <span className="text-xs font-semibold uppercase opacity-80">Total Calls</span>
+              <span className="text-xs font-semibold uppercase opacity-80">{t("metric.totalCalls")}</span>
             </div>
             <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "calls" ? "rotate-180" : ""}`} />
           </div>
@@ -155,7 +157,7 @@ export default function TeleProgressClient() {
             </div>
             <div className="flex-1">
               <p className="text-2xl font-bold text-purple-600">{data.meetingsBooked}</p>
-              <p className="text-xs text-gray-500">Meetings Booked</p>
+              <p className="text-xs text-gray-500">{t("metric.meetingsBooked")}</p>
             </div>
             <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${drillDown === "meetings" ? "rotate-180" : ""}`} />
           </div>
@@ -281,7 +283,7 @@ export default function TeleProgressClient() {
           </div>
           <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
             {data.callLogs.length === 0 ? (
-              <div className="px-6 py-8 text-center text-sm text-gray-500">No call logs found for this period.</div>
+              <div className="px-6 py-8 text-center text-sm text-gray-500">{t("empty.noCalls")}</div>
             ) : data.callLogs.map((log: any) => (
               <div key={log.id} className="px-6 py-3 flex items-start gap-3 hover:bg-gray-50 transition-colors">
                 <div className={`mt-0.5 p-1.5 rounded-full shrink-0 ${

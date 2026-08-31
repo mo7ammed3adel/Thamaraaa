@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Users, Flame, Snowflake, Sun, PhoneCall, Calendar, ArrowRightLeft, BarChart3 } from "lucide-react";
 import { updateUserSpecialization, updateUserTarget } from "@/client/api/users";
 import DateRangeFilter from "@/components/dashboard/DateRangeFilter";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface Agent {
   id: string;
@@ -46,6 +47,7 @@ export default function MyTeamClient({
   initialFrom?: string, 
   initialTo?: string 
 }) {
+  const t = useTranslator();
   const router = useRouter();
   const [agents, setAgents] = useState(initialAgents);
   const [loading, setLoading] = useState<string | null>(null);
@@ -137,7 +139,7 @@ export default function MyTeamClient({
         >
           <div className="flex items-center gap-2 mb-2">
             <BarChart3 className="h-5 w-5 opacity-80" />
-            <span className="text-xs font-semibold uppercase opacity-80">Total Leads</span>
+            <span className="text-xs font-semibold uppercase opacity-80">{t("metric.totalLeads")}</span>
           </div>
           <p className="text-3xl font-bold">{displayAgents.reduce((s, a) => s + a._count.teleSalesLeads, 0)}</p>
         </div>
@@ -147,7 +149,7 @@ export default function MyTeamClient({
         >
           <div className="flex items-center gap-2 mb-2">
             <PhoneCall className="h-5 w-5 opacity-80" />
-            <span className="text-xs font-semibold uppercase opacity-80">Total Calls</span>
+            <span className="text-xs font-semibold uppercase opacity-80">{t("metric.totalCalls")}</span>
           </div>
           <p className="text-3xl font-bold">{displayAgents.reduce((s, a) => s + a._count.callLogs, 0)}</p>
         </div>
@@ -157,7 +159,7 @@ export default function MyTeamClient({
         >
           <div className="flex items-center gap-2 mb-2">
             <Calendar className="h-5 w-5 opacity-80" />
-            <span className="text-xs font-semibold uppercase opacity-80">Meetings Booked</span>
+            <span className="text-xs font-semibold uppercase opacity-80">{t("metric.meetingsBooked")}</span>
           </div>
           <p className="text-3xl font-bold">{displayAgents.reduce((s, a) => s + a._count.meetingsAsTele, 0)}</p>
         </div>
@@ -167,7 +169,7 @@ export default function MyTeamClient({
         >
           <div className="flex items-center gap-2 mb-2">
             <ArrowRightLeft className="h-5 w-5 opacity-80" />
-            <span className="text-xs font-semibold uppercase opacity-80">Transferred</span>
+            <span className="text-xs font-semibold uppercase opacity-80">{t("status.transferred")}</span>
           </div>
           <p className="text-3xl font-bold">{displayAgents.reduce((s, a) => s + (a.transferredCount || 0), 0)}</p>
         </div>
@@ -185,7 +187,7 @@ export default function MyTeamClient({
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{agents.length}</p>
-              <p className="text-xs text-gray-500 uppercase font-semibold">Total Agents</p>
+              <p className="text-xs text-gray-500 uppercase font-semibold">{t("metric.totalAgents")}</p>
             </div>
           </div>
         </div>
@@ -199,7 +201,7 @@ export default function MyTeamClient({
             </div>
             <div>
               <p className="text-2xl font-bold text-red-600">{hotCount}</p>
-              <p className="text-xs text-gray-500 uppercase font-semibold">Hot Agents</p>
+              <p className="text-xs text-gray-500 uppercase font-semibold">{t("metric.hotAgents")}</p>
             </div>
           </div>
         </div>
@@ -213,7 +215,7 @@ export default function MyTeamClient({
             </div>
             <div>
               <p className="text-2xl font-bold text-amber-600">{warmCount}</p>
-              <p className="text-xs text-gray-500 uppercase font-semibold">Warm Agents</p>
+              <p className="text-xs text-gray-500 uppercase font-semibold">{t("metric.warmAgents")}</p>
             </div>
           </div>
         </div>
@@ -227,7 +229,7 @@ export default function MyTeamClient({
             </div>
             <div>
               <p className="text-2xl font-bold text-blue-600">{coldCount}</p>
-              <p className="text-xs text-gray-500 uppercase font-semibold">Cold Agents</p>
+              <p className="text-xs text-gray-500 uppercase font-semibold">{t("metric.coldAgents")}</p>
             </div>
           </div>
         </div>
@@ -236,7 +238,7 @@ export default function MyTeamClient({
       {/* Active Filters Bar */}
       {(activeSpecs.length > 0 || sortBy !== "name") && (
         <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold text-blue-800 me-2 uppercase">Active Filters:</span>
+          <span className="text-xs font-semibold text-blue-800 me-2 uppercase">{t("filter.activeFilters")}</span>
           {sortBy !== "name" && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white border border-blue-200 text-blue-700 shadow-sm">
               Sorted by: <span className="capitalize">{sortBy}</span>
@@ -261,16 +263,16 @@ export default function MyTeamClient({
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Agent</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Leads</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Calls</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.agent")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.contact")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.level")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("team.leads")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("team.calls")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Meetings (Month)</th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Target</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Transferred</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Specialization</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("status.transferred")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.status")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.specialization")}</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -355,7 +357,7 @@ export default function MyTeamClient({
                           agent.specialization ? specColors[agent.specialization] : "bg-gray-50 text-gray-600 border-gray-200"
                         }`}
                       >
-                        <option value="">Unassigned</option>
+                        <option value="">{t("common.unassigned")}</option>
                         <option value="Hot">🔥 Hot</option>
                         <option value="Warm">☀️ Warm</option>
                         <option value="Cold">❄️ Cold</option>

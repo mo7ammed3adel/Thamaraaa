@@ -13,8 +13,10 @@ import AccountManagerKpiGrid from "./AccountManagerKpiGrid";
 import AccountManagerSetupModal from "./AccountManagerSetupModal";
 import AccountManagerTaskMonitoringPanel from "./AccountManagerTaskMonitoringPanel";
 import { useAccountManagerDerivedData } from "./useAccountManagerDerivedData";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 export default function AccountManagerClient({ userId, projects, kpis, headTechnicalUsers, headSeoUsers, teamLeaders }: any) {
+  const t = useTranslator();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
@@ -124,7 +126,7 @@ export default function AccountManagerClient({ userId, projects, kpis, headTechn
       {errorMsg && (
         <div className="flex items-center justify-between bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl text-sm">
           <span>{errorMsg}</span>
-          <button onClick={() => setErrorMsg(null)} className="text-red-600 font-bold hover:text-red-800">Close</button>
+          <button onClick={() => setErrorMsg(null)} className="text-red-600 font-bold hover:text-red-800">{t("common.close")}</button>
         </div>
       )}
 

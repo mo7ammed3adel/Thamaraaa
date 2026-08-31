@@ -1,3 +1,4 @@
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 type TeamMember = {
   id: string;
   name: string;
@@ -62,6 +63,7 @@ export default function ClientTeamTab({
   canManageTeamSlot,
   handleTeamAssignment,
 }: ClientTeamTabProps) {
+  const t = useTranslator();
   return (
     <div className="bg-white rounded-xl border shadow-sm p-6">
       <h2 className="text-lg font-bold text-slate-800 mb-4">Team Assignment</h2>
@@ -69,11 +71,11 @@ export default function ClientTeamTab({
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-slate-50">
             <tr>
-              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Department</th>
+              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("common.department")}</th>
               <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Leader</th>
-              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Agent</th>
-              <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Tasks</th>
-              <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Status</th>
+              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("common.agent")}</th>
+              <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">{t("team.tasks")}</th>
+              <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">{t("common.status")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
