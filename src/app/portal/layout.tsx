@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 
+// No company name anywhere the client can see it — not even the browser tab.
 export const metadata: Metadata = {
-  title: "متابعة مشروعك | ثمرة",
+  title: "متابعة مشروعك",
   description: "تابع تقدّم العمل على مشروعك ومدفوعاتك",
 };
 

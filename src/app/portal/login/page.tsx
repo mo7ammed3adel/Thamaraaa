@@ -30,10 +30,10 @@ export default function ClientPortalLoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-lg">
+        {/* No company name on the client-facing login — the heading stands alone. */}
         <div className="mb-8 text-center">
-          <div className="text-3xl font-extrabold tracking-tight text-emerald-600">ثمرة</div>
-          <h1 className="mt-4 text-xl font-semibold text-slate-800">متابعة مشروعك</h1>
-          <p className="mt-1 text-sm text-slate-500">ادخل ببيانات الدخول اللي وصلتك من مدير حسابك</p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-800">متابعة مشروعك</h1>
+          <p className="mt-2 text-sm text-slate-500">ادخل ببيانات الدخول اللي وصلتك من مدير حسابك</p>
         </div>
 
         {error && (
