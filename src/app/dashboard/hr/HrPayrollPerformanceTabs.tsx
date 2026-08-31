@@ -12,8 +12,10 @@ import {
   manageOnboarding,
   toggleOnboarding,
 } from "@/client/api/hr";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 export function PayrollTab() {
+  const t = useTranslator();
   const [month, setMonth] = useState(currentMonth());
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -35,29 +37,29 @@ export function PayrollTab() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl border p-4 shadow-sm">
         <DollarSign className="w-5 h-5 text-slate-500" />
-        <label className="text-sm font-semibold text-gray-600">Month</label>
+        <label className="text-sm font-semibold text-gray-600">{t("hr.month")}</label>
         <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="border rounded-lg px-3 py-2 text-sm" />
-        <span className="text-xs text-gray-400 ms-auto">Net = base + bonus − approved attendance deductions</span>
+        <span className="text-xs text-gray-400 ms-auto">{t("hr.netFormula")}</span>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
             <tr>
-              <th className="px-6 py-3 text-start">Employee</th>
-              <th className="px-6 py-3 text-start">Role</th>
-              <th className="px-6 py-3 text-end">Base</th>
-              <th className="px-6 py-3 text-end">Bonus</th>
-              <th className="px-6 py-3 text-end">Deductions</th>
-              <th className="px-6 py-3 text-end">Net (SAR)</th>
+              <th className="px-6 py-3 text-start">{t("common.employee")}</th>
+              <th className="px-6 py-3 text-start">{t("common.role")}</th>
+              <th className="px-6 py-3 text-end">{t("finance.base")}</th>
+              <th className="px-6 py-3 text-end">{t("finance.bonus")}</th>
+              <th className="px-6 py-3 text-end">{t("finance.deductions")}</th>
+              <th className="px-6 py-3 text-end">{t("hr.netSar")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 text-sm">
-            {loading && <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-400">Loading payroll…</td></tr>}
-            {!loading && rows.length === 0 && <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-400 italic">No salary records found.</td></tr>}
+            {loading && <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-400">{t("hr.loadingPayroll")}</td></tr>}
+            {!loading && rows.length === 0 && <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-400 italic">{t("hr.noSalaryRecords")}</td></tr>}
             {!loading && rows.map((r: any) => (
               <tr key={r.userId} className="hover:bg-gray-50">
-                <td className="px-6 py-3 font-bold text-gray-900">{r.name}{r.status === "Inactive" && <span className="ms-2 text-[10px] text-red-500 font-bold uppercase">Inactive</span>}</td>
+                <td className="px-6 py-3 font-bold text-gray-900">{r.name}{r.status === "Inactive" && <span className="ms-2 text-[10px] text-red-500 font-bold uppercase">{t("status.inactive")}</span>}</td>
                 <td className="px-6 py-3 text-gray-500 capitalize">{(r.role || "").replace(/_/g, " ")}</td>
                 <td className="px-6 py-3 text-end text-gray-700">{r.baseSalary.toLocaleString()}</td>
                 <td className="px-6 py-3 text-end text-emerald-700">{r.bonuses ? `+${r.bonuses.toLocaleString()}` : "—"}</td>
@@ -85,6 +87,7 @@ export function PayrollTab() {
 // Performance Tab — HR writes periodic reviews and browses past ones.
 // ─────────────────────────────────────────────────────────────────────
 export function PerformanceTab({ employees }: { employees: any[] }) {
+  const t = useTranslator();
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterUser, setFilterUser] = useState("all");
@@ -124,19 +127,19 @@ export function PerformanceTab({ employees }: { employees: any[] }) {
         <form onSubmit={submit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Employee *</label>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">{t("form.employeeRequired")}</label>
               <select value={form.userId} onChange={(e) => setForm({ ...form, userId: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
-                <option value="">Select…</option>
+                <option value="">{t("hr.selectPlaceholder")}</option>
                 {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Period</label>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">{t("hr.period")}</label>
               <input value={form.period} onChange={(e) => setForm({ ...form, period: e.target.value })} placeholder="2026-06" className="w-full border rounded-lg px-3 py-2 text-sm" />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Rating</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">{t("hr.rating")}</label>
             <div className="flex gap-1">
               {[1, 2, 3, 4, 5].map((n) => (
                 <button type="button" key={n} onClick={() => setForm({ ...form, rating: String(n) })} className="p-0.5">
@@ -146,15 +149,15 @@ export function PerformanceTab({ employees }: { employees: any[] }) {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Strengths</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">{t("hr.strengthsLabel")}</label>
             <textarea value={form.strengths} onChange={(e) => setForm({ ...form, strengths: e.target.value })} rows={2} className="w-full border rounded-lg px-3 py-2 text-sm" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Areas to Improve</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">{t("hr.areasToImprove")}</label>
             <textarea value={form.improvements} onChange={(e) => setForm({ ...form, improvements: e.target.value })} rows={2} className="w-full border rounded-lg px-3 py-2 text-sm" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Goals</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">{t("hr.goalsLabel")}</label>
             <textarea value={form.goals} onChange={(e) => setForm({ ...form, goals: e.target.value })} rows={2} className="w-full border rounded-lg px-3 py-2 text-sm" />
           </div>
           <button type="submit" disabled={saving} className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg disabled:opacity-50">{saving ? "Saving…" : "Save Review"}</button>
@@ -163,14 +166,14 @@ export function PerformanceTab({ employees }: { employees: any[] }) {
 
       <div className="space-y-3">
         <div className="flex items-center gap-3">
-          <label className="text-sm font-semibold text-gray-600">Filter</label>
+          <label className="text-sm font-semibold text-gray-600">{t("hr.filter")}</label>
           <select value={filterUser} onChange={(e) => setFilterUser(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white">
-            <option value="all">All employees</option>
+            <option value="all">{t("filter.allEmployees")}</option>
             {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
           </select>
         </div>
-        {loading ? <p className="text-sm text-gray-400">Loading…</p> : reviews.length === 0 ? (
-          <div className="bg-white border rounded-xl p-8 text-center text-gray-400 italic">No reviews yet.</div>
+        {loading ? <p className="text-sm text-gray-400">{t("common.loading")}</p> : reviews.length === 0 ? (
+          <div className="bg-white border rounded-xl p-8 text-center text-gray-400 italic">{t("empty.noReviews")}</div>
         ) : (
           <div className="space-y-3 max-h-[640px] overflow-y-auto pe-1">
             {reviews.map((r) => (
@@ -180,9 +183,9 @@ export function PerformanceTab({ employees }: { employees: any[] }) {
                   <span className="flex">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`w-4 h-4 ${i < r.rating ? "fill-amber-400 text-amber-400" : "text-gray-300"}`} />)}</span>
                 </div>
                 <p className="text-xs text-gray-400 mb-2">{r.period} • by {r.reviewer?.name} • {new Date(r.createdAt).toLocaleDateString()}</p>
-                {r.strengths && <p className="text-sm text-gray-600"><span className="font-semibold">Strengths:</span> {r.strengths}</p>}
-                {r.improvements && <p className="text-sm text-gray-600"><span className="font-semibold">Improve:</span> {r.improvements}</p>}
-                {r.goals && <p className="text-sm text-gray-600"><span className="font-semibold">Goals:</span> {r.goals}</p>}
+                {r.strengths && <p className="text-sm text-gray-600"><span className="font-semibold">{t("hr.strengths")}</span> {r.strengths}</p>}
+                {r.improvements && <p className="text-sm text-gray-600"><span className="font-semibold">{t("hr.improveLabel")}</span> {r.improvements}</p>}
+                {r.goals && <p className="text-sm text-gray-600"><span className="font-semibold">{t("hr.goals")}</span> {r.goals}</p>}
               </div>
             ))}
           </div>
@@ -196,6 +199,7 @@ export function PerformanceTab({ employees }: { employees: any[] }) {
 // Onboarding Tab — HR manages per-employee onboarding/offboarding checklists.
 // ─────────────────────────────────────────────────────────────────────
 export function OnboardingTab({ employees }: { employees: any[] }) {
+  const t = useTranslator();
   const [selectedUser, setSelectedUser] = useState("");
   const [kind, setKind] = useState<"onboarding" | "offboarding">("onboarding");
   const [tasks, setTasks] = useState<any[]>([]);
@@ -265,7 +269,7 @@ export function OnboardingTab({ employees }: { employees: any[] }) {
       <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl border p-4 shadow-sm">
         <ClipboardList className="w-5 h-5 text-slate-500" />
         <select value={selectedUser} onChange={(e) => setSelectedUser(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white">
-          <option value="">Select employee…</option>
+          <option value="">{t("form.selectEmployee")}</option>
           {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
         </select>
         <div className="flex bg-slate-100 rounded-lg p-0.5 text-xs font-semibold">
@@ -278,7 +282,7 @@ export function OnboardingTab({ employees }: { employees: any[] }) {
       {!selectedUser ? (
         <div className="bg-white border rounded-xl p-12 text-center text-gray-400 italic">Select an employee to manage their {kind} checklist.</div>
       ) : loading ? (
-        <div className="bg-white border rounded-xl p-12 text-center text-gray-400">Loading…</div>
+        <div className="bg-white border rounded-xl p-12 text-center text-gray-400">{t("common.loading")}</div>
       ) : (
         <div className="bg-white border rounded-xl p-6 space-y-4">
           {kindTasks.length === 0 ? (
@@ -302,7 +306,7 @@ export function OnboardingTab({ employees }: { employees: any[] }) {
                       {t.completed && <Check className="w-3.5 h-3.5 text-white" />}
                     </button>
                     <span className={`text-sm flex-1 ${t.completed ? "text-gray-400 line-through" : "text-gray-700"}`}>{t.title}</span>
-                    <button onClick={() => remove(t.id)} className="opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:text-red-700" title="Remove"><Trash2 className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => remove(t.id)} className="opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:text-red-700" title={t("sales.remove")}><Trash2 className="w-3.5 h-3.5" /></button>
                   </li>
                 ))}
               </ul>
@@ -310,7 +314,7 @@ export function OnboardingTab({ employees }: { employees: any[] }) {
           )}
           <form onSubmit={addItem} className="flex gap-2 pt-2 border-t">
             <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder={`Add ${kind} item…`} className="flex-1 border rounded-lg px-3 py-2 text-sm" />
-            <button type="submit" disabled={busy || !newTitle.trim()} className="px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-bold hover:bg-slate-900 disabled:opacity-50">Add</button>
+            <button type="submit" disabled={busy || !newTitle.trim()} className="px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-bold hover:bg-slate-900 disabled:opacity-50">{t("common.add")}</button>
           </form>
         </div>
       )}

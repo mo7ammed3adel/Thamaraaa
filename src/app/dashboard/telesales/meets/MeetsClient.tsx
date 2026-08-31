@@ -226,14 +226,14 @@ export default function MeetsClient({
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-white">
               <tr>
-                <th onClick={() => handleSort('lead')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">Lead <SortIcon columnKey="lead"/></th>
-                <th onClick={() => handleSort('phone')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">Phone <SortIcon columnKey="phone"/></th>
-                <th onClick={() => handleSort('classification')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">Class <SortIcon columnKey="classification"/></th>
-                <th onClick={() => handleSort('source')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">Source <SortIcon columnKey="source"/></th>
-                {!isAgent && <th onClick={() => handleSort('teleAgent')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">Tele Agent <SortIcon columnKey="teleAgent"/></th>}
-                <th onClick={() => handleSort('salesAgent')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">Sales Agent <SortIcon columnKey="salesAgent"/></th>
-                <th onClick={() => handleSort('date')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">Date & Time <SortIcon columnKey="date"/></th>
-                <th onClick={() => handleSort('status')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">Status <SortIcon columnKey="status"/></th>
+                <th onClick={() => handleSort('lead')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">{t("sales.lead")} <SortIcon columnKey="lead"/></th>
+                <th onClick={() => handleSort('phone')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">{t("common.phone")} <SortIcon columnKey="phone"/></th>
+                <th onClick={() => handleSort('classification')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">{t("meets.class")} <SortIcon columnKey="classification"/></th>
+                <th onClick={() => handleSort('source')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">{t("meets.source")} <SortIcon columnKey="source"/></th>
+                {!isAgent && <th onClick={() => handleSort('teleAgent')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">{t("meets.teleAgent")} <SortIcon columnKey="teleAgent"/></th>}
+                <th onClick={() => handleSort('salesAgent')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">{t("telesales.salesAgent")} <SortIcon columnKey="salesAgent"/></th>
+                <th onClick={() => handleSort('date')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">{t("meets.dateTime")} <SortIcon columnKey="date"/></th>
+                <th onClick={() => handleSort('status')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">{t("lead.status")} <SortIcon columnKey="status"/></th>
                 <th className="px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase tracking-wider">{t("meets.summary")}</th>
               </tr>
             </thead>

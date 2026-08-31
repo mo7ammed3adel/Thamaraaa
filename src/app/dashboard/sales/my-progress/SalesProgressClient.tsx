@@ -176,7 +176,7 @@ export default function SalesProgressClient() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in">
           <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-slate-50">
             <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">All Leads ({data.leads.length})</h3>
-            <button onClick={() => setDrillDown(null)} className="text-xs text-gray-500 hover:text-gray-800">Close ✕</button>
+            <button onClick={() => setDrillDown(null)} className="text-xs text-gray-500 hover:text-gray-800">{t("common.close")} ✕</button>
           </div>
           <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
             {data.leads.length === 0 ? (
@@ -215,7 +215,7 @@ export default function SalesProgressClient() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-indigo-50">
             <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Meetings ({data.meetings.length})</h3>
-            <button onClick={() => setDrillDown(null)} className="text-xs text-gray-500 hover:text-gray-800">Close ✕</button>
+            <button onClick={() => setDrillDown(null)} className="text-xs text-gray-500 hover:text-gray-800">{t("common.close")} ✕</button>
           </div>
           <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
             {data.meetings.length === 0 ? (
@@ -252,7 +252,7 @@ export default function SalesProgressClient() {
             <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-green-500" /> Deals Won ({wonDeals.length})
             </h3>
-            <button onClick={() => setDrillDown(null)} className="text-xs text-gray-500 hover:text-gray-800">Close ✕</button>
+            <button onClick={() => setDrillDown(null)} className="text-xs text-gray-500 hover:text-gray-800">{t("common.close")} ✕</button>
           </div>
           <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
             {wonDeals.length === 0 ? (
@@ -280,7 +280,7 @@ export default function SalesProgressClient() {
             <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
               <XCircle className="h-4 w-4 text-red-500" /> Deals Lost ({lostDeals.length})
             </h3>
-            <button onClick={() => setDrillDown(null)} className="text-xs text-gray-500 hover:text-gray-800">Close ✕</button>
+            <button onClick={() => setDrillDown(null)} className="text-xs text-gray-500 hover:text-gray-800">{t("common.close")} ✕</button>
           </div>
           <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
             {lostDeals.length === 0 ? (
@@ -308,7 +308,7 @@ export default function SalesProgressClient() {
             <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-amber-600" /> Revenue Breakdown ({wonDeals.length} deals)
             </h3>
-            <button onClick={() => setDrillDown(null)} className="text-xs text-gray-500 hover:text-gray-800">Close ✕</button>
+            <button onClick={() => setDrillDown(null)} className="text-xs text-gray-500 hover:text-gray-800">{t("common.close")} ✕</button>
           </div>
           <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
             {wonDeals.length === 0 ? (

@@ -65,7 +65,7 @@ export default function HrRequests() {
       <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
         {tab === "leave" && (
           <ul className="divide-y">
-            {leave.length === 0 && <li className="px-6 py-8 text-center text-slate-400 italic">No leave requests.</li>}
+            {leave.length === 0 && <li className="px-6 py-8 text-center text-slate-400 italic">{t("hr.noLeaveRequests")}</li>}
             {leave.map((r) => (
               <li key={r.id} className="px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div>
@@ -88,7 +88,7 @@ export default function HrRequests() {
 
         {tab === "advances" && (
           <ul className="divide-y">
-            {advances.length === 0 && <li className="px-6 py-8 text-center text-slate-400 italic">No salary advances.</li>}
+            {advances.length === 0 && <li className="px-6 py-8 text-center text-slate-400 italic">{t("hr.noAdvances")}</li>}
             {advances.map((a) => (
               <li key={a.id} className="px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div>
@@ -104,7 +104,7 @@ export default function HrRequests() {
                     </div>
                   )}
                   {a.status === "approved" && (
-                    <button disabled={busy === a.id} onClick={() => run(a.id, () => actOnSalaryAdvance(a.id, { action: "markPaid" }))} className="px-2 py-1 text-xs font-bold bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50">Mark Paid</button>
+                    <button disabled={busy === a.id} onClick={() => run(a.id, () => actOnSalaryAdvance(a.id, { action: "markPaid" }))} className="px-2 py-1 text-xs font-bold bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50">{t("hr.markPaid")}</button>
                   )}
                 </div>
               </li>
@@ -114,7 +114,7 @@ export default function HrRequests() {
 
         {tab === "complaints" && (
           <ul className="divide-y">
-            {complaints.length === 0 && <li className="px-6 py-8 text-center text-slate-400 italic">No complaints.</li>}
+            {complaints.length === 0 && <li className="px-6 py-8 text-center text-slate-400 italic">{t("hr.noComplaints")}</li>}
             {complaints.map((c) => (
               <li key={c.id} className="px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div className="min-w-0">

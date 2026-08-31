@@ -115,7 +115,7 @@ export default function TeamDashboardClient({ tasks, agents, designLeaders, user
 
       {/* Advanced Filter Bar */}
       <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl border p-4 shadow-sm">
-        <input type="text" placeholder="🔍 Search client, task, brief..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="flex-1 min-w-[200px] border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" />
+        <input type="text" placeholder={t("social.searchPlaceholder")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="flex-1 min-w-[200px] border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" />
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
           <option value="all">{t("filter.allStatuses")}</option>
           <option value="pending">{t("status.pending")}</option>
@@ -150,9 +150,9 @@ export default function TeamDashboardClient({ tasks, agents, designLeaders, user
                 </div>
                 {t.brief && <p className="text-sm text-slate-600 mb-1">{t.brief}</p>}
                 <div className="flex gap-3 text-xs text-slate-500 flex-wrap">
-                  {t.agent && <span>Agent: <strong>{t.agent.name}</strong></span>}
+                  {t.agent && <span>{t("social.agentLabel")} <strong>{t.agent.name}</strong></span>}
                   {t.deadline && <span>Due: {new Date(t.deadline).toLocaleDateString()}</span>}
-                  <span>Progress: <strong>{t.progressPct}%</strong></span>
+                  <span>{t("social.progressLabel")} <strong>{t.progressPct}%</strong></span>
                 </div>
                 <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2"><div className="bg-indigo-500 h-1.5 rounded-full transition-all" style={{ width: `${t.progressPct}%` }} /></div>
                 {t.subTasks?.length > 0 && (

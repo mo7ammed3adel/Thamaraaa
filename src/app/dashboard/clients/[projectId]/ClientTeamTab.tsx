@@ -132,7 +132,7 @@ export default function ClientTeamTab({
         </table>
       </div>
       <div className="mt-4 pt-4 border-t flex items-center gap-4 text-sm text-slate-500">
-        <span>Account Manager: <strong className="text-slate-800">{project.accountManager?.name || "N/A"}</strong></span>
+        <span>{t("journey.accountManagerLabel")} <strong className="text-slate-800">{project.accountManager?.name || "N/A"}</strong></span>
         <span>•</span>
         <span>Assigned: {project.assignedAt ? new Date(project.assignedAt).toLocaleDateString() : "N/A"}</span>
       </div>

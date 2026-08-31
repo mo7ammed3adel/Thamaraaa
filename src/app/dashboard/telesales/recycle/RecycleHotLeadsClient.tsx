@@ -224,7 +224,7 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
                 </th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("common.client")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("common.phone")}</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Classification</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("common.classification")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("recycle.previousTele")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("recycle.previousSales")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("recycle.lastNotes")}</th>
@@ -261,7 +261,7 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
                 </tr>
               ))}
               {filteredLeads.length === 0 && (
-                <tr><td colSpan={8} className="px-6 py-8 text-center text-sm text-gray-500">No lost leads match your criteria. 🎉</td></tr>
+                <tr><td colSpan={8} className="px-6 py-8 text-center text-sm text-gray-500">{t("recycle.noLostLeads")}</td></tr>
               )}
             </tbody>
           </table>

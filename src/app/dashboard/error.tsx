@@ -1,4 +1,5 @@
 "use client";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 /**
  * Global error boundary for all dashboard routes.
@@ -12,11 +13,12 @@ export default function DashboardError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useTranslator();
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
       <div className="bg-red-50 border border-red-200 rounded-2xl p-8 max-w-md w-full shadow-sm">
         <div className="text-4xl mb-4">⚠️</div>
-        <h2 className="text-xl font-bold text-red-800 mb-2">Something went wrong</h2>
+        <h2 className="text-xl font-bold text-red-800 mb-2">{t("error.generic")}</h2>
         <p className="text-sm text-red-600 mb-6">
           An error occurred while loading this page. Please try again or contact support if the problem persists.
         </p>

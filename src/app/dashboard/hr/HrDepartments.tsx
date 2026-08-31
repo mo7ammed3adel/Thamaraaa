@@ -67,9 +67,9 @@ export default function HrDepartments({ employees = [] }: { employees?: any[] })
       </div>
 
       {loading ? (
-        <div className="bg-white border rounded-xl p-12 text-center text-slate-400">Loading departments…</div>
+        <div className="bg-white border rounded-xl p-12 text-center text-slate-400">{t("hr.loadingDepartments")}</div>
       ) : departments.length === 0 ? (
-        <div className="bg-white border border-dashed rounded-xl p-12 text-center text-slate-400">No departments yet. Create your first one.</div>
+        <div className="bg-white border border-dashed rounded-xl p-12 text-center text-slate-400">{t("hr.noDepartments")}</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {departments.map((d) => (
@@ -186,7 +186,7 @@ function DepartmentEditor({ editing, setEditing, employees, onClose, onSaved }: 
         <div className="p-6 space-y-5">
           {/* Basic */}
           <div className="bg-white rounded-2xl border p-4 space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Basic Information</h4>
+            <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">{t("hr.basicInfo")}</h4>
             <P label="Department Name *"><input value={editing.name} onChange={(e) => setField("name", e.target.value)} className={inputCls} /></P>
             <P label="Description"><textarea value={editing.description} onChange={(e) => setField("description", e.target.value)} rows={2} className={inputCls} /></P>
             <div className="grid grid-cols-2 gap-3">
@@ -214,7 +214,7 @@ function DepartmentEditor({ editing, setEditing, employees, onClose, onSaved }: 
 
           {/* Evaluation policy */}
           <div className="bg-white rounded-2xl border p-4 space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Evaluation Policy</h4>
+            <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">{t("hr.evaluationPolicy")}</h4>
             <div className="grid grid-cols-2 gap-3">
               <P label="Frequency">
                 <select value={pol.evaluationFrequency} onChange={(e) => setPolicy("evaluationFrequency", e.target.value)} className={`${inputCls} bg-white`}>
@@ -225,8 +225,8 @@ function DepartmentEditor({ editing, setEditing, employees, onClose, onSaved }: 
               <P label="Salary Eligibility Score %"><input type="number" value={pol.salaryEligibilityScore} onChange={(e) => setPolicy("salaryEligibilityScore", Number(e.target.value))} className={inputCls} /></P>
               <P label="Evaluation Start Rule">
                 <select value={pol.evalStartRule} onChange={(e) => setPolicy("evalStartRule", e.target.value)} className={`${inputCls} bg-white`}>
-                  <option value="after_probation">After probation</option>
-                  <option value="from_hiring">From hiring date</option>
+                  <option value="after_probation">{t("hr.afterProbation")}</option>
+                  <option value="from_hiring">{t("hr.fromHiringDate")}</option>
                 </select>
               </P>
             </div>
@@ -234,14 +234,14 @@ function DepartmentEditor({ editing, setEditing, employees, onClose, onSaved }: 
 
           {/* Salary increment policy */}
           <div className="bg-white rounded-2xl border p-4 space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Salary Increment Policy</h4>
+            <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">{t("hr.incrementPolicy")}</h4>
             <div className="grid grid-cols-2 gap-3">
               <P label="First Review (months)"><input type="number" value={pol.firstReviewMonths} onChange={(e) => setPolicy("firstReviewMonths", Number(e.target.value))} className={inputCls} /></P>
               <P label="Regular Review (months)"><input type="number" value={pol.regularReviewMonths} onChange={(e) => setPolicy("regularReviewMonths", Number(e.target.value))} className={inputCls} /></P>
               <P label="Increase Type">
                 <select value={pol.increaseType} onChange={(e) => setPolicy("increaseType", e.target.value)} className={`${inputCls} bg-white`}>
-                  <option value="percentage">Percentage</option>
-                  <option value="fixed">Fixed amount</option>
+                  <option value="percentage">{t("hr.percentage")}</option>
+                  <option value="fixed">{t("hr.fixedAmount")}</option>
                 </select>
               </P>
               <P label={pol.increaseType === "fixed" ? "Increase Value (SAR)" : "Increase Value %"}><input type="number" value={pol.increaseValue} onChange={(e) => setPolicy("increaseValue", Number(e.target.value))} className={inputCls} /></P>
@@ -253,7 +253,7 @@ function DepartmentEditor({ editing, setEditing, employees, onClose, onSaved }: 
           {/* Commission policy */}
           <div className="bg-white rounded-2xl border p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Commission Policy</h4>
+              <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">{t("hr.commissionPolicy")}</h4>
               <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
                 <input type="checkbox" checked={pol.commissionEnabled} onChange={(e) => setPolicy("commissionEnabled", e.target.checked)} /> Enabled
               </label>
@@ -267,12 +267,12 @@ function DepartmentEditor({ editing, setEditing, employees, onClose, onSaved }: 
                 </P>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-500">Tier rules (min sales → %)</span>
+                    <span className="text-xs font-bold text-slate-500">{t("hr.tierRules")}</span>
                     <button type="button" onClick={() => setPolicy("commissionRules", [...(pol.commissionRules || []), { minSales: 0, pct: 0 }])} className="text-xs font-bold text-blue-600">+ Rule</button>
                   </div>
                   {(pol.commissionRules || []).map((r: any, i: number) => (
                     <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                      <input type="number" value={r.minSales} onChange={(e) => setPolicy("commissionRules", pol.commissionRules.map((x: any, j: number) => j === i ? { ...x, minSales: Number(e.target.value) } : x))} placeholder="Min sales" className="col-span-6 border rounded px-2 py-1 text-xs" />
+                      <input type="number" value={r.minSales} onChange={(e) => setPolicy("commissionRules", pol.commissionRules.map((x: any, j: number) => j === i ? { ...x, minSales: Number(e.target.value) } : x))} placeholder={t("hr.minSales")} className="col-span-6 border rounded px-2 py-1 text-xs" />
                       <input type="number" step="0.1" value={r.pct} onChange={(e) => setPolicy("commissionRules", pol.commissionRules.map((x: any, j: number) => j === i ? { ...x, pct: Number(e.target.value) } : x))} placeholder="%" className="col-span-5 border rounded px-2 py-1 text-xs" />
                       <button type="button" onClick={() => setPolicy("commissionRules", pol.commissionRules.filter((_: any, j: number) => j !== i))} className="col-span-1 text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
                     </div>
@@ -284,13 +284,13 @@ function DepartmentEditor({ editing, setEditing, employees, onClose, onSaved }: 
 
           {/* Documents */}
           <div className="bg-white rounded-2xl border p-4 space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Department Documents</h4>
+            <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">{t("hr.departmentDocuments")}</h4>
             {isNew ? (
-              <p className="text-xs text-slate-400 italic">Save the department first to attach documents.</p>
+              <p className="text-xs text-slate-400 italic">{t("hr.saveFirst")}</p>
             ) : (
               <>
                 <form onSubmit={addDoc} className="grid grid-cols-12 gap-2">
-                  <input name="name" required placeholder="Document name (SOP, KPIs…)" className="col-span-5 border rounded-lg px-2 py-1.5 text-xs" />
+                  <input name="name" required placeholder={t("hr.documentNameExample")} className="col-span-5 border rounded-lg px-2 py-1.5 text-xs" />
                   <input name="fileUrl" required type="url" placeholder="https://…" className="col-span-5 border rounded-lg px-2 py-1.5 text-xs" />
                   <button type="submit" className="col-span-2 bg-slate-900 text-white rounded-lg text-xs font-bold">{t("common.add")}</button>
                 </form>
@@ -304,7 +304,7 @@ function DepartmentEditor({ editing, setEditing, employees, onClose, onSaved }: 
                       </div>
                     </div>
                   ))}
-                  {(editing.documents || []).length === 0 && <p className="text-xs text-slate-400 italic">No documents yet.</p>}
+                  {(editing.documents || []).length === 0 && <p className="text-xs text-slate-400 italic">{t("hr.noDocumentsYet")}</p>}
                 </div>
               </>
             )}

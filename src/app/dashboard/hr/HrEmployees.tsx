@@ -76,7 +76,7 @@ export default function HrEmployees({ employees, departments, leaveRequests, sal
       <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl border p-4 shadow-sm">
         <div className="relative flex-1 min-w-[220px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, email or employee ID…" className="w-full ps-9 pe-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("hr.searchEmployees")} className="w-full ps-9 pe-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
         </div>
         <select value={dept} onChange={(e) => setDept(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none">
           <option value="all">{t("filter.allDepartments")}</option>
@@ -107,14 +107,14 @@ export default function HrEmployees({ employees, departments, leaveRequests, sal
             <tr>
               <th className="px-6 py-3 text-start">{t("common.employee")}</th>
               <th className="px-6 py-3 text-start">{t("common.department")}</th>
-              <th className="px-6 py-3 text-start">Role / Title</th>
+              <th className="px-6 py-3 text-start">{t("hr.roleTitle")}</th>
               <th className="px-6 py-3 text-end">{t("finance.salary")}</th>
               <th className="px-6 py-3 text-center">{t("common.status")}</th>
-              <th className="px-6 py-3 text-end">Profile</th>
+              <th className="px-6 py-3 text-end">{t("hr.profileShort")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-sm">
-            {filtered.length === 0 && <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-400 italic">No employees match the filters.</td></tr>}
+            {filtered.length === 0 && <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-400 italic">{t("hr.noEmployeesMatch")}</td></tr>}
             {filtered.map((e: any) => (
               <tr key={e.id} className="hover:bg-slate-50 cursor-pointer" onClick={() => setSelected(e)}>
                 <td className="px-6 py-3">
@@ -125,7 +125,7 @@ export default function HrEmployees({ employees, departments, leaveRequests, sal
                 <td className="px-6 py-3 text-slate-600">{e.hrRecord?.jobTitle || e.role?.replace(/_/g, " ")}</td>
                 <td className="px-6 py-3 text-end text-slate-700">{money(e.hrRecord?.currentSalary ?? e.hrRecord?.baseSalary)}</td>
                 <td className="px-6 py-3 text-center"><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${statusTone(e.hrRecord?.employmentStatus || e.status)}`}>{e.hrRecord?.employmentStatus || e.status}</span></td>
-                <td className="px-6 py-3 text-end"><span className="inline-flex items-center gap-1 text-blue-600 font-semibold text-xs">View <ChevronRight className="w-3.5 h-3.5" /></span></td>
+                <td className="px-6 py-3 text-end"><span className="inline-flex items-center gap-1 text-blue-600 font-semibold text-xs">{t("common.view")} <ChevronRight className="w-3.5 h-3.5" /></span></td>
               </tr>
             ))}
           </tbody>
@@ -185,21 +185,21 @@ function CreateEmployeeDrawer({ departments, employees, onClose, onCreated }: an
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40" onClick={onClose}>
       <div className="w-full max-w-xl bg-slate-50 h-full overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10">
-          <h3 className="font-black text-slate-900">New Employee</h3>
+          <h3 className="font-black text-slate-900">{t("hr.newEmployee")}</h3>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100"><X className="w-5 h-5 text-slate-500" /></button>
         </div>
 
         {created ? (
           <div className="p-6">
             <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 text-center">
-              <p className="font-bold text-emerald-800">Employee created 🎉</p>
+              <p className="font-bold text-emerald-800">{t("hr.employeeCreatedEmoji")}</p>
               <p className="text-sm text-emerald-700 mt-1">Share these credentials with the employee — the password is shown only once.</p>
               <div className="bg-white rounded-xl border mt-4 p-4 text-start space-y-2">
                 {created.employeeCode && (
-                  <div className="flex justify-between text-sm"><span className="text-slate-500">Employee ID (username)</span><span className="font-mono font-bold text-slate-800">{created.employeeCode}</span></div>
+                  <div className="flex justify-between text-sm"><span className="text-slate-500">{t("hr.employeeIdUsername")}</span><span className="font-mono font-bold text-slate-800">{created.employeeCode}</span></div>
                 )}
-                <div className="flex justify-between text-sm"><span className="text-slate-500">Email (also a username)</span><span className="font-mono font-bold text-slate-800">{created.email}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-slate-500">Temporary Password</span><span className="font-mono font-bold text-slate-800">{created.password}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-slate-500">{t("hr.emailAlsoUsername")}</span><span className="font-mono font-bold text-slate-800">{created.email}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-slate-500">{t("hr.tempPassword")}</span><span className="font-mono font-bold text-slate-800">{created.password}</span></div>
               </div>
               <p className="text-[11px] text-emerald-700 mt-2">The employee can sign in with either the Employee ID or their email, and will be asked to set a new password on first login.</p>
             </div>
@@ -211,7 +211,7 @@ function CreateEmployeeDrawer({ departments, employees, onClose, onCreated }: an
               <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">{t("hr.personalInfo")}</h4>
               <div className="grid grid-cols-2 gap-3">
                 <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">{t("form.fullNameRequired")}</span><input required value={form.name} onChange={(e) => set("name", e.target.value)} className={cls} /></label>
-                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Mobile *</span><input required value={form.phone} onChange={(e) => set("phone", e.target.value)} className={cls} /></label>
+                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">{t("hr.mobileRequired")}</span><input required value={form.phone} onChange={(e) => set("phone", e.target.value)} className={cls} /></label>
                 <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">{t("common.gender")}</span><select value={form.gender} onChange={(e) => set("gender", e.target.value)} className={`${cls} bg-white`}><option>{t("common.male")}</option><option>{t("common.female")}</option></select></label>
                 <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">{t("hr.dateOfBirth")}</span><input type="date" value={form.dateOfBirth} onChange={(e) => set("dateOfBirth", e.target.value)} className={cls} /></label>
               </div>
@@ -219,24 +219,24 @@ function CreateEmployeeDrawer({ departments, employees, onClose, onCreated }: an
 
             <div className="bg-white rounded-2xl border p-4 space-y-3">
               <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">{t("hr.employmentInfo")}</h4>
-              <p className="text-[11px] text-slate-400">Employee ID is generated automatically.</p>
+              <p className="text-[11px] text-slate-400">{t("hr.employeeIdAuto")}</p>
               <div className="grid grid-cols-2 gap-3">
                 <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">{t("form.roleRequired")}</span><select required value={form.role} onChange={(e) => set("role", e.target.value)} className={`${cls} bg-white capitalize`}>{CREATE_ROLES.map((r) => <option key={r} value={r}>{r.replace(/_/g, " ")}</option>)}</select></label>
                 <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">{t("common.department")}</span><select value={form.department} onChange={(e) => set("department", e.target.value)} className={`${cls} bg-white`}><option value="">— None —</option>{(departments || []).map((d: any) => <option key={d.id} value={d.name}>{d.name}</option>)}</select></label>
                 <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">{t("common.directManager")}</span><select value={form.directManagerId} onChange={(e) => set("directManagerId", e.target.value)} className={`${cls} bg-white`}><option value="">— None —</option>{(employees || []).filter((m: any) => m.status === "Active").map((m: any) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></label>
-                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Monthly Salary (SAR)</span><input type="number" min="0" value={form.baseSalary} onChange={(e) => set("baseSalary", e.target.value)} className={cls} /></label>
+                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">{t("hr.monthlySalary")}</span><input type="number" min="0" value={form.baseSalary} onChange={(e) => set("baseSalary", e.target.value)} className={cls} /></label>
                 <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">{t("hr.hiringDate")}</span><input type="date" value={form.hiringDate} onChange={(e) => set("hiringDate", e.target.value)} className={cls} /></label>
-                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Work Type</span><select value={form.employmentType} onChange={(e) => set("employmentType", e.target.value)} className={`${cls} bg-white`}><option value="full-time">Full Time</option><option value="part-time">Part Time</option></select></label>
-                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Work Mode</span><select value={form.workMode} onChange={(e) => set("workMode", e.target.value)} className={`${cls} bg-white`}><option value="onsite">On Site</option><option value="remote">Remote</option></select></label>
+                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">{t("hr.workType")}</span><select value={form.employmentType} onChange={(e) => set("employmentType", e.target.value)} className={`${cls} bg-white`}><option value="full-time">{t("hr.fullTimeAlt")}</option><option value="part-time">{t("hr.partTimeAlt")}</option></select></label>
+                <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">{t("hr.workMode")}</span><select value={form.workMode} onChange={(e) => set("workMode", e.target.value)} className={`${cls} bg-white`}><option value="onsite">{t("hr.onSite")}</option><option value="remote">{t("hr.remote")}</option></select></label>
                 <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">{t("hr.employmentStatus")}</span><select value={form.employmentStatus} onChange={(e) => set("employmentStatus", e.target.value)} className={`${cls} bg-white capitalize`}>{["active", "suspended", "resigned", "terminated"].map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
               </div>
             </div>
 
             <div className="bg-white rounded-2xl border p-4 space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Login Account</h4>
-              <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">Email (username) *</span><input required type="email" value={form.email} onChange={(e) => set("email", e.target.value)} className={cls} /></label>
+              <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">{t("hr.loginAccount")}</h4>
+              <label className="block"><span className="block text-xs font-bold text-slate-600 mb-1">{t("hr.emailUsernameRequired")}</span><input required type="email" value={form.email} onChange={(e) => set("email", e.target.value)} className={cls} /></label>
               <label className="block">
-                <span className="block text-xs font-bold text-slate-600 mb-1">Temporary Password *</span>
+                <span className="block text-xs font-bold text-slate-600 mb-1">{t("hr.tempPasswordRequired")}</span>
                 <div className="flex gap-2">
                   <input required value={form.password} onChange={(e) => set("password", e.target.value)} className={cls} />
                   <button type="button" onClick={() => set("password", genTempPassword())} className="px-3 py-2 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold whitespace-nowrap">{t("common.generate")}</button>
@@ -346,10 +346,10 @@ function ProfileDrawer({ employee, departments, onClose, leaveRequests, salaryAd
           </div>
 
           <div className="bg-white rounded-2xl border p-4">
-            <Section icon={<Wallet className="w-3.5 h-3.5" />} title="Salary Information">
+            <Section icon={<Wallet className="w-3.5 h-3.5" />} title={t("hr.salaryInfo")}>
               <div className="grid grid-cols-3 gap-3">
-                <div className="bg-slate-50 border rounded-xl p-3"><p className="text-[11px] font-bold uppercase text-slate-400">Current</p><p className="text-lg font-black text-slate-800">{money(hr.currentSalary ?? hr.baseSalary)}</p></div>
-                <div className="bg-slate-50 border rounded-xl p-3"><p className="text-[11px] font-bold uppercase text-slate-400">Starting</p><p className="text-lg font-black text-slate-800">{money(hr.startingSalary ?? hr.baseSalary)}</p></div>
+                <div className="bg-slate-50 border rounded-xl p-3"><p className="text-[11px] font-bold uppercase text-slate-400">{t("hr.current")}</p><p className="text-lg font-black text-slate-800">{money(hr.currentSalary ?? hr.baseSalary)}</p></div>
+                <div className="bg-slate-50 border rounded-xl p-3"><p className="text-[11px] font-bold uppercase text-slate-400">{t("hr.starting")}</p><p className="text-lg font-black text-slate-800">{money(hr.startingSalary ?? hr.baseSalary)}</p></div>
                 <div className="bg-slate-50 border rounded-xl p-3"><p className="text-[11px] font-bold uppercase text-slate-400">{t("finance.allowances")}</p><p className="text-lg font-black text-slate-800">{money(hr.allowances)}</p></div>
               </div>
             </Section>
@@ -381,7 +381,7 @@ function ProfileDrawer({ employee, departments, onClose, leaveRequests, salaryAd
           </div>
 
           <div className="bg-white rounded-2xl border p-4">
-            <Section icon={<Clock className="w-3.5 h-3.5" />} title="History">
+            <Section icon={<Clock className="w-3.5 h-3.5" />} title={t("hr.history")}>
               <div className="space-y-2 text-sm">
                 {[...leaveRequests.map((r: any) => ({ kind: r.type, status: r.status, date: r.date || r.startDate, label: `${r.type} request` })),
                   ...salaryAdvances.map((a: any) => ({ kind: "Advance", status: a.status, date: a.createdAt, label: `Salary advance · ${money(a.amount)}` })),
@@ -397,16 +397,16 @@ function ProfileDrawer({ employee, departments, onClose, leaveRequests, salaryAd
                       </span>
                     </div>
                   ))}
-                {leaveRequests.length + salaryAdvances.length + complaints.length === 0 && <p className="text-slate-400 italic">No history yet.</p>}
+                {leaveRequests.length + salaryAdvances.length + complaints.length === 0 && <p className="text-slate-400 italic">{t("hr.noHistory")}</p>}
               </div>
             </Section>
           </div>
 
           <div className="bg-white rounded-2xl border p-4">
-            <Section icon={<Plane className="w-3.5 h-3.5" />} title="Activity Timeline">
+            <Section icon={<Plane className="w-3.5 h-3.5" />} title={t("hr.activityTimeline")}>
               <ol className="relative border-l border-slate-200 ms-2 space-y-3">
-                <li className="ms-4"><span className="absolute -left-1.5 w-3 h-3 rounded-full bg-blue-500" /><p className="text-sm font-semibold text-slate-800">Employee created</p><p className="text-xs text-slate-400">{fmtDate(employee.createdAt)}</p></li>
-                {hr.hiringDate && <li className="ms-4"><span className="absolute -left-1.5 w-3 h-3 rounded-full bg-emerald-500" /><p className="text-sm font-semibold text-slate-800">Hiring date</p><p className="text-xs text-slate-400">{fmtDate(hr.hiringDate)}</p></li>}
+                <li className="ms-4"><span className="absolute -left-1.5 w-3 h-3 rounded-full bg-blue-500" /><p className="text-sm font-semibold text-slate-800">{t("hr.employeeCreated")}</p><p className="text-xs text-slate-400">{fmtDate(employee.createdAt)}</p></li>
+                {hr.hiringDate && <li className="ms-4"><span className="absolute -left-1.5 w-3 h-3 rounded-full bg-emerald-500" /><p className="text-sm font-semibold text-slate-800">{t("hr.hiringDateShort")}</p><p className="text-xs text-slate-400">{fmtDate(hr.hiringDate)}</p></li>}
                 <li className="ms-4"><span className="absolute -left-1.5 w-3 h-3 rounded-full bg-slate-300" /><p className="text-sm text-slate-500">{leave.monthsWorked} month(s) with the company</p></li>
               </ol>
             </Section>

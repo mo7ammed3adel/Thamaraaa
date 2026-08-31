@@ -64,10 +64,10 @@ export default function HrSelfServiceExtras() {
         <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2"><Wallet className="w-5 h-5 text-emerald-600" /> Salary Advance</h2>
         <form onSubmit={submitAdvance} className="space-y-2 mb-3">
           <div className="grid grid-cols-3 gap-2">
-            <input name="amount" type="number" min="1" required placeholder="Amount (SAR)" className={`col-span-1 ${input}`} />
+            <input name="amount" type="number" min="1" required placeholder={t("deal.amountPlaceholder")} className={`col-span-1 ${input}`} />
             <input name="reason" required placeholder={t("common.reason")} className={`col-span-2 ${input}`} />
           </div>
-          <button type="submit" disabled={busy} className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-lg disabled:opacity-50">Request Advance</button>
+          <button type="submit" disabled={busy} className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-lg disabled:opacity-50">{t("hr.requestAdvance")}</button>
         </form>
         <ul className="divide-y">
           {advances.length === 0 && <li className="py-2 text-sm text-gray-400 italic">{t("empty.noRequests")}</li>}
@@ -85,17 +85,17 @@ export default function HrSelfServiceExtras() {
         <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2"><MessageSquareWarning className="w-5 h-5 text-amber-600" /> Submit a Complaint</h2>
         <form onSubmit={submitComp} className="space-y-2 mb-3">
           <input name="subject" required placeholder={t("common.subject")} className={input} />
-          <textarea name="details" required rows={2} placeholder="Describe your complaint…" className={input} />
+          <textarea name="details" required rows={2} placeholder={t("hr.describeComplaint")} className={input} />
           <select name="visibility" defaultValue="hr_only" className={`${input} bg-white`}>
-            <option value="hr_only">Visible to HR only</option>
-            <option value="dept_head">HR + Department Head</option>
-            <option value="team_leader">HR + Team Leader</option>
-            <option value="everyone">Everyone involved</option>
+            <option value="hr_only">{t("hr.visibleHrOnly")}</option>
+            <option value="dept_head">{t("hr.visibleHrHead")}</option>
+            <option value="team_leader">{t("hr.visibleHrLeader")}</option>
+            <option value="everyone">{t("hr.visibleEveryone")}</option>
           </select>
           <button type="submit" disabled={busy} className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold rounded-lg disabled:opacity-50">{t("hr.submitComplaint")}</button>
         </form>
         <ul className="divide-y">
-          {complaints.length === 0 && <li className="py-2 text-sm text-gray-400 italic">No complaints yet.</li>}
+          {complaints.length === 0 && <li className="py-2 text-sm text-gray-400 italic">{t("hr.noComplaintsYet")}</li>}
           {complaints.slice(0, 5).map((c) => (
             <li key={c.id} className="py-2 flex justify-between items-center text-sm">
               <span className="text-gray-700 truncate max-w-[70%]">{c.subject}</span>

@@ -22,6 +22,7 @@ import HrRequests from "./HrRequests";
 import HrDocuments from "./HrDocuments";
 import { OnboardingTab, PayrollTab, PerformanceTab, PromotionEngineTab, RecruitmentTab } from "./HrWorkflowTabs";
 import ViralHrmClient from "./ViralHrmClient";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 const MODULE_GROUPS = [
   {
@@ -160,6 +161,7 @@ export default function HrAdminClient({
   salaryAdvances = [],
   complaints = [],
 }: HrAdminClientProps) {
+  const t = useTranslator();
   const [module, setModule] = useState("dashboard");
   const activeLabel = useMemo(() => MODULE_LABELS[module] || "Dashboard", [module]);
   const advancedModule = ADVANCED_MODULES[module];
@@ -227,7 +229,7 @@ export default function HrAdminClient({
       {module === "dashboard" && (
         <>
           <section>
-            <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Employee Statistics</h2>
+            <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">{t("hr.employeeStats")}</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
               <StatCard label="Total Employees" value={overview.totalEmployees} icon={<Users className="w-5 h-5" />} tone="slate" onClick={() => setModule("employees")} />
               <StatCard label="New This Month" value={overview.newThisMonth} icon={<UserPlus className="w-5 h-5" />} tone="blue" onClick={() => setModule("employees")} />
@@ -239,7 +241,7 @@ export default function HrAdminClient({
           </section>
 
           <section>
-            <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Waiting for HR Approval</h2>
+            <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">{t("hr.waitingApproval")}</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <StatCard label="Leave Requests" value={overview.pendingLeave} icon={<Plane className="w-5 h-5" />} tone="amber" onClick={() => setModule("requests")} />
               <StatCard label="Remote Requests" value={overview.pendingRemote} icon={<Laptop className="w-5 h-5" />} tone="violet" onClick={() => setModule("requests")} />
@@ -254,12 +256,12 @@ export default function HrAdminClient({
                 <span className="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center">
                   <FileWarning className="w-4 h-4" />
                 </span>
-                <h3 className="font-bold text-slate-800">Employees with Missing Documents</h3>
+                <h3 className="font-bold text-slate-800">{t("hr.missingDocuments")}</h3>
                 <span className="ms-auto text-xs font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">{overview.missingDocs.length}</span>
               </div>
               <div className="max-h-72 overflow-y-auto divide-y divide-slate-50">
                 {overview.missingDocs.length === 0 && (
-                  <p className="px-5 py-8 text-center text-sm text-slate-400 italic">All required documents are on file.</p>
+                  <p className="px-5 py-8 text-center text-sm text-slate-400 italic">{t("hr.documentsComplete")}</p>
                 )}
                 {overview.missingDocs.map((employee) => (
                   <button
@@ -287,12 +289,12 @@ export default function HrAdminClient({
                   <span className="w-8 h-8 rounded-lg bg-violet-100 text-violet-600 flex items-center justify-center">
                     <Cake className="w-4 h-4" />
                   </span>
-                  <h3 className="font-bold text-slate-800">Birthdays This Month</h3>
+                  <h3 className="font-bold text-slate-800">{t("hr.birthdays")}</h3>
                   <span className="ms-auto text-xs font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">{overview.birthdaysThisMonth.length}</span>
                 </div>
                 <div className="max-h-44 overflow-y-auto divide-y divide-slate-50">
                   {overview.birthdaysThisMonth.length === 0 && (
-                    <p className="px-5 py-6 text-center text-sm text-slate-400 italic">No birthdays this month.</p>
+                    <p className="px-5 py-6 text-center text-sm text-slate-400 italic">{t("hr.noBirthdays")}</p>
                   )}
                   {overview.birthdaysThisMonth.map((birthday) => (
                     <div key={birthday.userId} className="px-5 py-2.5 flex items-center justify-between text-sm">
@@ -308,7 +310,7 @@ export default function HrAdminClient({
               <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="mb-3 flex items-center gap-2">
                   <ChevronRight className="h-4 w-4 text-blue-600" />
-                  <h3 className="font-bold text-slate-900">Quick Actions</h3>
+                  <h3 className="font-bold text-slate-900">{t("hr.quickActions")}</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   {[

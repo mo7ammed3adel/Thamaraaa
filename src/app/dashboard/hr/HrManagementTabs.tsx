@@ -16,8 +16,10 @@ import {
   updateApplicant,
   updateHrRequest,
 } from "@/client/api/hr";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 export function PromotionEngineTab() {
+  const t = useTranslator();
   const router = useRouter();
   const [evaluations, setEvaluations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,7 +80,7 @@ export function PromotionEngineTab() {
           <p className="text-3xl font-black text-red-700">{counts.terminate}</p>
         </div>
         <div className="bg-blue-50 border border-blue-200 p-5 rounded-2xl flex flex-col justify-between">
-          <p className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-2">Auto-Evaluate</p>
+          <p className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-2">{t("hr.autoEvaluate")}</p>
           <button onClick={runAutoEval} className="text-xs px-3 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700 transition">
             Run 3-Month Eval
           </button>
@@ -98,18 +100,18 @@ export function PromotionEngineTab() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
             <tr>
-              <th className="px-4 py-3 text-start">Employee</th>
-              <th className="px-4 py-3 text-start">Role / Level</th>
-              <th className="px-4 py-3 text-center">Avg %</th>
-              <th className="px-4 py-3 text-center">Months</th>
-              <th className="px-4 py-3 text-center">Warnings</th>
-              <th className="px-4 py-3 text-start">Recommendation</th>
-              <th className="px-4 py-3 text-end">Actions</th>
+              <th className="px-4 py-3 text-start">{t("common.employee")}</th>
+              <th className="px-4 py-3 text-start">{t("hr.roleLevel")}</th>
+              <th className="px-4 py-3 text-center">{t("hr.avgPct")}</th>
+              <th className="px-4 py-3 text-center">{t("hr.months")}</th>
+              <th className="px-4 py-3 text-center">{t("team.warnings")}</th>
+              <th className="px-4 py-3 text-start">{t("hr.recommendation")}</th>
+              <th className="px-4 py-3 text-end">{t("sales.actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 text-sm">
-            {loading && (<tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">Loading evaluations…</td></tr>)}
-            {!loading && filtered.length === 0 && (<tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400 italic">No employees in this band.</td></tr>)}
+            {loading && (<tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">{t("hr.loadingEvaluations")}</td></tr>)}
+            {!loading && filtered.length === 0 && (<tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400 italic">{t("hr.noEmployeesBand")}</td></tr>)}
             {!loading && filtered.map((e) => (
               <tr key={e.userId} className="hover:bg-gray-50">
                 <td className="px-4 py-3"><div className="font-bold text-gray-900">{e.userName}</div><div className="text-xs text-gray-500">{e.userEmail}</div></td>
@@ -119,19 +121,19 @@ export function PromotionEngineTab() {
                 <td className="px-4 py-3 text-center">{e.warningCount}{e.terminationFlag && <span className="ms-1 text-red-500">⚑</span>}</td>
                 <td className="px-4 py-3">
                   {e.recommendation === "promote" && <span className="text-emerald-700 font-bold">Promote{e.nextLevel ? ` → ${e.nextLevel}` : ""}{e.nextRole ? ` (${e.nextRole.replace(/_/g, " ")})` : ""}</span>}
-                  {e.recommendation === "warn" && <span className="text-amber-700 font-bold">Issue Warning</span>}
-                  {e.recommendation === "terminate" && <span className="text-red-700 font-bold">Terminate</span>}
-                  {e.recommendation === "none" && <span className="text-gray-400">No action</span>}
+                  {e.recommendation === "warn" && <span className="text-amber-700 font-bold">{t("journey.issueWarning")}</span>}
+                  {e.recommendation === "terminate" && <span className="text-red-700 font-bold">{t("common.terminate")}</span>}
+                  {e.recommendation === "none" && <span className="text-gray-400">{t("hr.noAction")}</span>}
                   {e.recommendationReason && <div className="text-xs text-gray-500 mt-0.5">{e.recommendationReason}</div>}
                 </td>
                 <td className="px-4 py-3 text-end space-x-1 whitespace-nowrap">
                   {e.recommendation === "promote" && (
-                    <button disabled={busy === e.userId} onClick={() => runAction(e, "promote")} className="px-2 py-1 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700 disabled:opacity-50">Promote</button>
+                    <button disabled={busy === e.userId} onClick={() => runAction(e, "promote")} className="px-2 py-1 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700 disabled:opacity-50">{t("hr.promote")}</button>
                   )}
-                  <button disabled={busy === e.userId} onClick={() => runAction(e, "warn")} className="px-2 py-1 bg-amber-500 text-white rounded text-xs font-bold hover:bg-amber-600 disabled:opacity-50">Warn</button>
-                  <button disabled={busy === e.userId} onClick={() => runAction(e, "terminate")} className="px-2 py-1 bg-red-600 text-white rounded text-xs font-bold hover:bg-red-700 disabled:opacity-50">Terminate</button>
+                  <button disabled={busy === e.userId} onClick={() => runAction(e, "warn")} className="px-2 py-1 bg-amber-500 text-white rounded text-xs font-bold hover:bg-amber-600 disabled:opacity-50">{t("hr.warn")}</button>
+                  <button disabled={busy === e.userId} onClick={() => runAction(e, "terminate")} className="px-2 py-1 bg-red-600 text-white rounded text-xs font-bold hover:bg-red-700 disabled:opacity-50">{t("common.terminate")}</button>
                   {(e.warningCount > 0 || e.terminationFlag) && (
-                    <button disabled={busy === e.userId} onClick={() => runAction(e, "clear")} className="px-2 py-1 bg-slate-200 text-slate-700 rounded text-xs font-bold hover:bg-slate-300 disabled:opacity-50">Clear</button>
+                    <button disabled={busy === e.userId} onClick={() => runAction(e, "clear")} className="px-2 py-1 bg-slate-200 text-slate-700 rounded text-xs font-bold hover:bg-slate-300 disabled:opacity-50">{t("common.clear")}</button>
                   )}
                 </td>
               </tr>
@@ -147,6 +149,7 @@ export function PromotionEngineTab() {
 // Documents Tab — HR can view, upload, and delete employee documents.
 // ─────────────────────────────────────────────────────────────────────
 export function DocumentsTab({ employees }: { employees: any[] }) {
+  const t = useTranslator();
   const [docs, setDocs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<string>("all");
@@ -189,7 +192,7 @@ export function DocumentsTab({ employees }: { employees: any[] }) {
       <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl border p-4 shadow-sm">
         <FileText className="w-5 h-5 text-slate-500" />
         <select value={selectedUser} onChange={(e) => setSelectedUser(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none">
-          <option value="all">All employees</option>
+          <option value="all">{t("filter.allEmployees")}</option>
           {employees.map((emp: any) => (
             <option key={emp.id} value={emp.id}>{emp.name}</option>
           ))}
@@ -203,23 +206,23 @@ export function DocumentsTab({ employees }: { employees: any[] }) {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
             <tr>
-              <th className="px-4 py-3 text-start">Document</th>
-              <th className="px-4 py-3 text-start">Employee</th>
-              <th className="px-4 py-3 text-start">Uploaded</th>
-              <th className="px-4 py-3 text-end">Actions</th>
+              <th className="px-4 py-3 text-start">{t("hr.document")}</th>
+              <th className="px-4 py-3 text-start">{t("common.employee")}</th>
+              <th className="px-4 py-3 text-start">{t("hr.uploaded")}</th>
+              <th className="px-4 py-3 text-end">{t("sales.actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 text-sm">
-            {loading && (<tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">Loading…</td></tr>)}
-            {!loading && docs.length === 0 && (<tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400 italic">No documents found.</td></tr>)}
+            {loading && (<tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">{t("common.loading")}</td></tr>)}
+            {!loading && docs.length === 0 && (<tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400 italic">{t("hr.noDocumentsFound")}</td></tr>)}
             {!loading && docs.map((d) => (
               <tr key={d.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3 font-bold text-gray-900">{d.name}</td>
                 <td className="px-4 py-3"><div>{d.user?.name}</div><div className="text-xs text-gray-500 capitalize">{(d.user?.role || "").replace(/_/g, " ")}</div></td>
                 <td className="px-4 py-3 text-gray-500">{new Date(d.createdAt).toLocaleDateString()}</td>
                 <td className="px-4 py-3 text-end space-x-2">
-                  <a href={d.fileUrl} target="_blank" rel="noopener noreferrer" className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-bold hover:bg-blue-100">View</a>
-                  <button onClick={() => handleDelete(d.id, d.name)} className="p-1.5 bg-red-50 hover:bg-red-100 rounded transition" title="Delete">
+                  <a href={d.fileUrl} target="_blank" rel="noopener noreferrer" className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-bold hover:bg-blue-100">{t("common.view")}</a>
+                  <button onClick={() => handleDelete(d.id, d.name)} className="p-1.5 bg-red-50 hover:bg-red-100 rounded transition" title={t("common.delete")}>
                     <Trash2 className="w-3.5 h-3.5 text-red-600" />
                   </button>
                 </td>
@@ -233,28 +236,28 @@ export function DocumentsTab({ employees }: { employees: any[] }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-bold text-gray-900">Upload Document</h3>
+              <h3 className="text-lg font-bold text-gray-900">{t("hr.uploadDocument")}</h3>
               <button onClick={() => setShowUpload(false)} className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200"><X className="w-4 h-4" /></button>
             </div>
             <form onSubmit={handleUpload} className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Employee *</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">{t("form.employeeRequired")}</label>
                 <select name="userId" required className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
-                  <option value="">Select employee</option>
+                  <option value="">{t("hr.selectEmployeeShort")}</option>
                   {employees.map((emp: any) => (<option key={emp.id} value={emp.id}>{emp.name}</option>))}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Document Name *</label>
-                <input name="name" required placeholder="Contract / CV / ID" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                <label className="block text-sm font-semibold text-gray-700 mb-1">{t("hr.documentNameRequired")}</label>
+                <input name="name" required placeholder={t("hr.contractCvId")} className="w-full border rounded-lg px-3 py-2 text-sm" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">File URL *</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">{t("hr.fileUrlRequired")}</label>
                 <input name="fileUrl" required type="url" placeholder="https://drive.google.com/..." className="w-full border rounded-lg px-3 py-2 text-sm" />
-                <p className="text-xs text-gray-500 mt-1">Paste a shared cloud-storage link (Drive, Dropbox, S3 signed URL, etc.).</p>
+                <p className="text-xs text-gray-500 mt-1">{t("hr.pasteCloudLink")}</p>
               </div>
               <div className="pt-4 border-t flex gap-3">
-                <button type="button" onClick={() => setShowUpload(false)} className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">Cancel</button>
+                <button type="button" onClick={() => setShowUpload(false)} className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">{t("common.cancel")}</button>
                 <button type="submit" disabled={uploading} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-50 transition">
                   {uploading ? "Uploading…" : "Upload"}
                 </button>
@@ -271,6 +274,7 @@ export function DocumentsTab({ employees }: { employees: any[] }) {
 // Leave Requests Tab — HR reviews and approves/rejects leave & remote work.
 // ─────────────────────────────────────────────────────────────────────
 export function LeaveRequestsTab() {
+  const t = useTranslator();
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -318,8 +322,8 @@ export function LeaveRequestsTab() {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <ul className="divide-y">
-          {loading && <li className="px-6 py-8 text-center text-gray-400">Loading requests…</li>}
-          {!loading && filtered.length === 0 && <li className="px-6 py-8 text-center text-gray-400 italic">No requests in this band.</li>}
+          {loading && <li className="px-6 py-8 text-center text-gray-400">{t("hr.loadingRequests")}</li>}
+          {!loading && filtered.length === 0 && <li className="px-6 py-8 text-center text-gray-400 italic">{t("hr.noRequestsBand")}</li>}
           {!loading && filtered.map((req) => (
             <li key={req.id} className="px-6 py-4 flex flex-col md:flex-row md:justify-between md:items-center gap-3">
               <div>
@@ -340,8 +344,8 @@ export function LeaveRequestsTab() {
                 </span>
                 {req.status === "Pending" && (
                   <div className="flex gap-2">
-                    <button disabled={busy === req.id} onClick={() => decide(req.id, "Approved")} className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 disabled:opacity-50" title="Approve"><Check className="w-4 h-4" /></button>
-                    <button disabled={busy === req.id} onClick={() => decide(req.id, "Rejected")} className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50" title="Reject"><X className="w-4 h-4" /></button>
+                    <button disabled={busy === req.id} onClick={() => decide(req.id, "Approved")} className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 disabled:opacity-50" title={t("common.approve")}><Check className="w-4 h-4" /></button>
+                    <button disabled={busy === req.id} onClick={() => decide(req.id, "Rejected")} className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50" title={t("common.reject")}><X className="w-4 h-4" /></button>
                   </div>
                 )}
               </div>
@@ -359,6 +363,7 @@ const RECRUITMENT_STAGES = ["New", "HR_Interview", "Department_Interview", "Offe
 // Recruitment Tab — applicant pipeline (kanban) backed by JobApplicant.
 // ─────────────────────────────────────────────────────────────────────
 export function RecruitmentTab() {
+  const t = useTranslator();
   const [applicants, setApplicants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -415,7 +420,7 @@ export function RecruitmentTab() {
       </div>
 
       {loading ? (
-        <div className="bg-white border rounded-xl p-12 text-center text-gray-400">Loading pipeline…</div>
+        <div className="bg-white border rounded-xl p-12 text-center text-gray-400">{t("hr.loadingPipeline")}</div>
       ) : (
         <div className="flex gap-4 overflow-x-auto pb-4">
           {RECRUITMENT_STAGES.map((stage) => {
@@ -431,7 +436,7 @@ export function RecruitmentTab() {
                     <div key={app.id} className="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
                       <div className="flex justify-between items-start mb-1 gap-2">
                         <h4 className="font-bold text-gray-900 text-sm">{app.name}</h4>
-                        <select value={app.status} onChange={(e) => move(app.id, e.target.value)} title="Change stage" className="text-[10px] border rounded px-1 py-0.5 bg-slate-50">
+                        <select value={app.status} onChange={(e) => move(app.id, e.target.value)} title={t("hr.changeStage")} className="text-[10px] border rounded px-1 py-0.5 bg-slate-50">
                           {RECRUITMENT_STAGES.map((s) => <option key={s} value={s}>{s.replace(/_/g, " ")}</option>)}
                         </select>
                       </div>
@@ -440,7 +445,7 @@ export function RecruitmentTab() {
                       {app.notes && <p className="text-xs text-gray-400 mt-2 line-clamp-2 italic">&quot;{app.notes}&quot;</p>}
                     </div>
                   ))}
-                  {stageApps.length === 0 && <div className="text-center text-xs text-gray-400 py-4 italic border-2 border-dashed rounded-lg">Empty</div>}
+                  {stageApps.length === 0 && <div className="text-center text-xs text-gray-400 py-4 italic border-2 border-dashed rounded-lg">{t("hr.empty")}</div>}
                 </div>
               </div>
             );
@@ -452,34 +457,34 @@ export function RecruitmentTab() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
             <div className="px-6 py-4 border-b flex justify-between items-center">
-              <h3 className="text-lg font-bold text-gray-900">New Applicant</h3>
+              <h3 className="text-lg font-bold text-gray-900">{t("hr.newApplicant")}</h3>
               <button onClick={() => setShowAdd(false)} className="text-gray-400 hover:text-gray-600">&times;</button>
             </div>
             <form onSubmit={add} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("form.fullNameRequired")}</label>
                 <input name="name" required className="w-full border rounded p-2 text-sm" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t("form.emailRequired")}</label>
                   <input name="email" type="email" required className="w-full border rounded p-2 text-sm" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t("form.phoneRequired")}</label>
                   <input name="phone" required className="w-full border rounded p-2 text-sm" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Role Applied For *</label>
-                <input name="roleApplied" required placeholder="e.g. Senior Sales Agent" className="w-full border rounded p-2 text-sm" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("hr.roleAppliedFor")}</label>
+                <input name="roleApplied" required placeholder={t("form.jobTitleExample")} className="w-full border rounded p-2 text-sm" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Initial Notes</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("hr.initialNotes")}</label>
                 <textarea name="notes" rows={2} className="w-full border rounded p-2 text-sm" />
               </div>
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200">Cancel</button>
+                <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200">{t("common.cancel")}</button>
                 <button type="submit" disabled={saving} className="px-5 py-2 bg-blue-600 text-white rounded-md text-sm font-bold hover:bg-blue-700 disabled:opacity-50">{saving ? "Saving…" : "Save Applicant"}</button>
               </div>
             </form>

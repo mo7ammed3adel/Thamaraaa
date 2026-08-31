@@ -97,7 +97,7 @@ export default function MasterSheetClient({ leads }: { leads: any[] }) {
             >
               <option value="All">{t("filter.allStatuses")}</option>
               <option value="New">{t("status.new")}</option>
-              <option value="In_TeleSales">In TeleSales</option>
+              <option value="In_TeleSales">{t("sales.inTeleSales")}</option>
               <option value="Transferred">{t("status.transferred")}</option>
               <option value="In_Sales">{t("master.inSales")}</option>
               <option value="Closed_Won">{t("master.closedWon")}</option>
@@ -119,7 +119,7 @@ export default function MasterSheetClient({ leads }: { leads: any[] }) {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-slate-900">
             <tr>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">Customer</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">{t("telesales.customer")}</th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">{t("master.statusAgents")}</th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">{t("common.package")}</th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">{t("master.finances")}</th>
@@ -189,7 +189,7 @@ export default function MasterSheetClient({ leads }: { leads: any[] }) {
                           {/* 1. Lead Creation */}
                           <div className="relative ps-6">
                             <span className="absolute w-3 h-3 bg-blue-500 rounded-full -left-[7px] top-1"></span>
-                            <p className="text-sm font-bold text-gray-900">Lead Created <span className="text-xs font-normal text-gray-500 ms-2">{new Date(l.createdAt).toLocaleString()}</span></p>
+                            <p className="text-sm font-bold text-gray-900">{t("journey.leadCreated")} <span className="text-xs font-normal text-gray-500 ms-2">{new Date(l.createdAt).toLocaleString()}</span></p>
                             <p className="text-xs text-gray-600 mt-1">Source: {l.source || 'Direct'}, Assigned to: {l.teleAgent?.name || 'Unassigned'}</p>
                           </div>
 

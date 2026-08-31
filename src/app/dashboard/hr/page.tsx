@@ -6,8 +6,10 @@ import { buildHrOverview } from "@/lib/hrOverview";
 import { computeSalaryReview } from "@/lib/salaryReview";
 import HrClient from "./HrClient";
 import HrAdminClient from "./HrAdminClient";
+import { getTranslator } from "@/server/i18n/locale";
 
 export default async function HrPage() {
+  const t = getTranslator();
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
   if (!user) redirect("/login");
@@ -92,7 +94,7 @@ export default async function HrPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">My HR Portal</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">{t("hr.myPortal")}</h1>
       <HrClient myTodayAttendance={myAttendance} history={history} salaryInfo={salaryInfo} />
     </div>
   );

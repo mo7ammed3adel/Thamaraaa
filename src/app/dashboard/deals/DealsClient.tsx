@@ -221,14 +221,14 @@ export default function DealsClient({ userRole }: { userRole: string }) {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-white">
               <tr>
-                <th onClick={() => handleSort('client')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Client <SortIcon columnKey="client"/></th>
-                <th onClick={() => handleSort('phone')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Phone <SortIcon columnKey="phone"/></th>
-                <th onClick={() => handleSort('agent')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Sales Agent <SortIcon columnKey="agent"/></th>
-                <th onClick={() => handleSort('package')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Package <SortIcon columnKey="package"/></th>
-                <th onClick={() => handleSort('paid')} className="group px-6 py-3 text-end text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Paid / Total <SortIcon columnKey="paid"/></th>
-                <th onClick={() => handleSort('remaining')} className="group px-6 py-3 text-end text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Remaining <SortIcon columnKey="remaining"/></th>
-                <th onClick={() => handleSort('status')} className="group px-6 py-3 text-center text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Payment Status <SortIcon columnKey="status"/></th>
-                <th onClick={() => handleSort('date')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Date <SortIcon columnKey="date"/></th>
+                <th onClick={() => handleSort('client')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">{t("common.client")} <SortIcon columnKey="client"/></th>
+                <th onClick={() => handleSort('phone')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">{t("common.phone")} <SortIcon columnKey="phone"/></th>
+                <th onClick={() => handleSort('agent')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">{t("telesales.salesAgent")} <SortIcon columnKey="agent"/></th>
+                <th onClick={() => handleSort('package')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">{t("common.package")} <SortIcon columnKey="package"/></th>
+                <th onClick={() => handleSort('paid')} className="group px-6 py-3 text-end text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">{t("deals.paidTotal")} <SortIcon columnKey="paid"/></th>
+                <th onClick={() => handleSort('remaining')} className="group px-6 py-3 text-end text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">{t("common.remaining")} <SortIcon columnKey="remaining"/></th>
+                <th onClick={() => handleSort('status')} className="group px-6 py-3 text-center text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">{t("deals.paymentStatus")} <SortIcon columnKey="status"/></th>
+                <th onClick={() => handleSort('date')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">{t("common.date")} <SortIcon columnKey="date"/></th>
                 <th className="px-6 py-3 text-center text-xs font-bold text-gray-600 uppercase">{t("common.action")}</th>
               </tr>
             </thead>

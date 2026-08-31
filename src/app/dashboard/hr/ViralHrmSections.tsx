@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Briefcase, Building2, FileText, ShieldAlert, WalletCards } from "lucide-react";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 const WARNING_TYPES = ["attendance", "administrative", "technical", "performance", "behavioral"];
 const ADVANCE_STATUSES = ["pending_accountant", "approved", "rejected", "paid", "deducted"];
 const PAYROLL_STATUSES = ["Pending review", "Approved", "Published", "Locked", "Reopened"];
 
 export function Overview({ data }: { data: any }) {
+  const t = useTranslator();
   const stats = data.overview || {};
   return (
     <div className="space-y-5">
@@ -19,7 +21,7 @@ export function Overview({ data }: { data: any }) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <DataPanel title="Payroll Workflow">
+        <DataPanel title={t("hrm.payrollWorkflow")}>
           <SimpleTable
             columns={["Month", "Status", "Entries", "Net"]}
             rows={(data.payrollPeriods || []).slice(0, 6).map((period: any) => [
@@ -30,7 +32,7 @@ export function Overview({ data }: { data: any }) {
             ])}
           />
         </DataPanel>
-        <DataPanel title="Recent People Signals">
+        <DataPanel title={t("hrm.peopleSignals")}>
           <SimpleTable
             columns={["Type", "Employee", "Status"]}
             rows={[
@@ -46,8 +48,9 @@ export function Overview({ data }: { data: any }) {
 }
 
 export function Profiles({ employees }: { employees: any[] }) {
+  const t = useTranslator();
   return (
-    <DataPanel title="Employee Profiles">
+    <DataPanel title={t("hrm.employeeProfiles")}>
       <SimpleTable
         columns={["Code", "Employee", "Department", "Job title", "Type", "Status", "Salary", "Docs"]}
         rows={employees.map((employee) => {
@@ -69,9 +72,10 @@ export function Profiles({ employees }: { employees: any[] }) {
 }
 
 export function Departments({ departments, busy, onCreate, onDelete }: any) {
+  const t = useTranslator();
   return (
     <TwoColumn>
-      <DataPanel title="Create Department">
+      <DataPanel title={t("hr.createDepartment")}>
         <form
           className="space-y-3"
           onSubmit={(e) => {
@@ -81,17 +85,17 @@ export function Departments({ departments, busy, onCreate, onDelete }: any) {
         >
           <Field name="name" label="Department name" required />
           <Select name="parentId" label="Parent department" options={[["", "None"], ...departments.map((d: any) => [d.id, d.name])]} />
-          <PrimaryButton disabled={busy}>Create Department</PrimaryButton>
+          <PrimaryButton disabled={busy}>{t("hr.createDepartment")}</PrimaryButton>
         </form>
       </DataPanel>
-      <DataPanel title="Department Tree">
+      <DataPanel title={t("hrm.departmentTree")}>
         <SimpleTable
           columns={["Department", "Parent", "Employees", ""]}
           rows={departments.map((dept: any) => [
             dept.name,
             departments.find((d: any) => d.id === dept.parentId)?.name || "-",
             dept.employeeCount || 0,
-            <button key={dept.id} onClick={() => onDelete("department", dept.id)} className="text-xs font-bold text-red-600">Delete</button>,
+            <button key={dept.id} onClick={() => onDelete("department", dept.id)} className="text-xs font-bold text-red-600">{t("common.delete")}</button>,
           ])}
         />
       </DataPanel>
@@ -100,11 +104,12 @@ export function Departments({ departments, busy, onCreate, onDelete }: any) {
 }
 
 export function PayrollPeriods({ data, month, busy, onCreate, onUpdate }: any) {
+  const t = useTranslator();
   const periods = data.payrollPeriods || [];
   const active = periods.find((period: any) => period.month === month) || periods[0];
   return (
     <div className="space-y-5">
-      <DataPanel title="Generate Payroll Period">
+      <DataPanel title={t("hrm.generatePayroll")}>
         <form
           className="grid grid-cols-1 md:grid-cols-4 gap-3"
           onSubmit={(e) => {
@@ -115,11 +120,11 @@ export function PayrollPeriods({ data, month, busy, onCreate, onUpdate }: any) {
           <Field name="month" label="Month" type="month" defaultValue={month} required />
           <Field name="bonusSubmissionDeadline" label="Bonus deadline" type="date" />
           <Field name="notes" label="Notes" />
-          <div className="flex items-end"><PrimaryButton disabled={busy}>Generate</PrimaryButton></div>
+          <div className="flex items-end"><PrimaryButton disabled={busy}>{t("common.generate")}</PrimaryButton></div>
         </form>
       </DataPanel>
 
-      <DataPanel title="Periods">
+      <DataPanel title={t("hrm.periods")}>
         <SimpleTable
           columns={["Month", "Status", "Generated", "Entries", "Net", "Actions"]}
           rows={periods.map((period: any) => [
@@ -161,17 +166,18 @@ export function PayrollPeriods({ data, month, busy, onCreate, onUpdate }: any) {
 }
 
 export function Advances({ employees, advances, busy, onCreate, onUpdate }: any) {
+  const t = useTranslator();
   return (
     <TwoColumn>
-      <DataPanel title="Request Salary Advance">
+      <DataPanel title={t("hrm.requestAdvance")}>
         <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); onCreate("salaryAdvance", formValues(e.currentTarget), e.currentTarget); }}>
           <EmployeeSelect employees={employees} />
           <Field name="amount" label="Amount" type="number" required />
           <Field name="reason" label="Reason" required />
-          <PrimaryButton disabled={busy}>Create Advance</PrimaryButton>
+          <PrimaryButton disabled={busy}>{t("hrm.createAdvance")}</PrimaryButton>
         </form>
       </DataPanel>
-      <DataPanel title="Advance Workflow">
+      <DataPanel title={t("hrm.advanceWorkflow")}>
         <SimpleTable
           columns={["Employee", "Amount", "Status", "Actions"]}
           rows={advances.map((advance: any) => [
@@ -193,9 +199,10 @@ export function Advances({ employees, advances, busy, onCreate, onUpdate }: any)
 }
 
 export function Recruitment({ departments, requests, busy, onCreate, onUpdate, onDelete }: any) {
+  const t = useTranslator();
   return (
     <TwoColumn>
-      <DataPanel title="Create Recruitment Request">
+      <DataPanel title={t("hrm.createRecruitment")}>
         <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); onCreate("recruitmentRequest", formValues(e.currentTarget), e.currentTarget); }}>
           <Field name="positionTitle" label="Position title" required />
           <Select name="departmentName" label="Department" options={departments.map((d: any) => [d.name, d.name])} />
@@ -203,10 +210,10 @@ export function Recruitment({ departments, requests, busy, onCreate, onUpdate, o
           <Field name="minExperience" label="Minimum experience" />
           <Field name="requiredStartDate" label="Required start date" type="date" />
           <Field name="vacancies" label="Vacancies" type="number" defaultValue="1" />
-          <PrimaryButton disabled={busy}>Create Request</PrimaryButton>
+          <PrimaryButton disabled={busy}>{t("hr.createRequest")}</PrimaryButton>
         </form>
       </DataPanel>
-      <DataPanel title="Pipeline">
+      <DataPanel title={t("nav.pipeline")}>
         <SimpleTable
           columns={["Position", "Department", "Level", "Vacancies", "Status", "Actions"]}
           rows={requests.map((req: any) => [
@@ -219,7 +226,7 @@ export function Recruitment({ departments, requests, busy, onCreate, onUpdate, o
               {["in progress", "candidate selected", "hired", "closed"].map((status) => (
                 <button key={status} onClick={() => onUpdate("recruitmentRequest", { id: req.id, status })} className="text-xs font-bold text-blue-700">{status}</button>
               ))}
-              <button onClick={() => onDelete("recruitmentRequest", req.id)} className="text-xs font-bold text-red-600">Delete</button>
+              <button onClick={() => onDelete("recruitmentRequest", req.id)} className="text-xs font-bold text-red-600">{t("common.delete")}</button>
             </div>,
           ])}
         />
@@ -229,6 +236,7 @@ export function Recruitment({ departments, requests, busy, onCreate, onUpdate, o
 }
 
 export function Kpis({ departments, templates, busy, onCreate, onUpdate, onDelete }: any) {
+  const t = useTranslator();
   const [editing, setEditing] = useState<any>(null);
 
   return (
@@ -257,19 +265,19 @@ export function Kpis({ departments, templates, busy, onCreate, onUpdate, onDelet
             return (
               <div key={i} className="grid grid-cols-5 gap-2">
                 <input name={`item${i}`} defaultValue={item?.name || ""} placeholder={`KPI item ${i}`} className="col-span-2 border rounded-lg px-3 py-2 text-sm" />
-                <input name={`weight${i}`} type="number" defaultValue={item?.weight ?? ""} placeholder="Weight" className="border rounded-lg px-3 py-2 text-sm" />
-                <input name={`description${i}`} defaultValue={item?.description || ""} placeholder="Description" className="col-span-2 border rounded-lg px-3 py-2 text-sm" />
+                <input name={`weight${i}`} type="number" defaultValue={item?.weight ?? ""} placeholder={t("hrm.weight")} className="border rounded-lg px-3 py-2 text-sm" />
+                <input name={`description${i}`} defaultValue={item?.description || ""} placeholder={t("hrm.description")} className="col-span-2 border rounded-lg px-3 py-2 text-sm" />
               </div>
             );
           })}
           <p className="text-[11px] text-gray-400">Weights must total 100%. Saving a new version keeps every previous version intact, so completed evaluations stay linked to the structure they were scored against.</p>
           <div className="flex gap-2">
             <PrimaryButton disabled={busy}>{editing ? "Save New Version" : "Create Template"}</PrimaryButton>
-            {editing && <button type="button" onClick={() => setEditing(null)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-bold">Cancel</button>}
+            {editing && <button type="button" onClick={() => setEditing(null)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-bold">{t("common.cancel")}</button>}
           </div>
         </form>
       </DataPanel>
-      <DataPanel title="Templates (latest versions)">
+      <DataPanel title={t("hrm.templates")}>
         <SimpleTable
           columns={["Template", "Dept", "Role", "Items", "Weight", "Version", "Actions"]}
           rows={templates.map((template: any) => [
@@ -280,11 +288,11 @@ export function Kpis({ departments, templates, busy, onCreate, onUpdate, onDelet
             `${sum(template.items || [], "weight")}%`,
             <span key={`v-${template.id}`} className="text-xs font-bold text-slate-700">v{template.version}{template.versionCount > 1 ? ` · ${template.versionCount} versions` : ""}</span>,
             <div key={`a-${template.id}`} className="flex gap-2 flex-wrap">
-              <button onClick={() => setEditing(template)} className="text-xs font-bold text-emerald-700">New version</button>
+              <button onClick={() => setEditing(template)} className="text-xs font-bold text-emerald-700">{t("hrm.newVersion")}</button>
               <button onClick={() => onUpdate("kpiTemplate", { id: template.id, active: !template.active })} className="text-xs font-bold text-blue-700">
                 {template.active ? "Deactivate" : "Activate"}
               </button>
-              <button onClick={() => onDelete("kpiTemplate", template.id)} className="text-xs font-bold text-red-600">Delete</button>
+              <button onClick={() => onDelete("kpiTemplate", template.id)} className="text-xs font-bold text-red-600">{t("common.delete")}</button>
             </div>,
           ])}
         />
@@ -294,9 +302,10 @@ export function Kpis({ departments, templates, busy, onCreate, onUpdate, onDelet
 }
 
 export function DevicePasswords({ employees, entries, busy, onCreate, onDelete }: any) {
+  const t = useTranslator();
   return (
     <TwoColumn>
-      <DataPanel title="Set / Update Device Password">
+      <DataPanel title={t("hrm.setDevicePassword")}>
         <form className="space-y-3" onSubmit={(e) => {
           e.preventDefault();
           const raw = formValues(e.currentTarget);
@@ -305,10 +314,10 @@ export function DevicePasswords({ employees, entries, busy, onCreate, onDelete }
           <EmployeeSelect employees={employees} />
           <Field name="password" label="Device / computer password" required />
           <p className="text-[11px] text-gray-400">Only the latest password is stored — saving again replaces the previous one (no history). Employees cannot view this after it is set; this module is visible to HR only.</p>
-          <PrimaryButton disabled={busy}>Save Password</PrimaryButton>
+          <PrimaryButton disabled={busy}>{t("hrm.savePassword")}</PrimaryButton>
         </form>
       </DataPanel>
-      <DataPanel title="Device Passwords (HR only)">
+      <DataPanel title={t("hrm.devicePasswords")}>
         <SimpleTable
           columns={["Employee", "Code", "Device Password", "Last Updated", "Actions"]}
           rows={(entries || []).map((entry: any) => [
@@ -316,7 +325,7 @@ export function DevicePasswords({ employees, entries, busy, onCreate, onDelete }
             entry.employeeCode || "-",
             <span key={`p-${entry.id}`} className="font-mono text-slate-800">{entry.password}</span>,
             new Date(entry.updatedAt).toLocaleString(),
-            <button key={`d-${entry.id}`} onClick={() => onDelete("devicePassword", entry.id)} className="text-xs font-bold text-red-600">Delete</button>,
+            <button key={`d-${entry.id}`} onClick={() => onDelete("devicePassword", entry.id)} className="text-xs font-bold text-red-600">{t("common.delete")}</button>,
           ])}
         />
       </DataPanel>
@@ -325,6 +334,7 @@ export function DevicePasswords({ employees, entries, busy, onCreate, onDelete }
 }
 
 export function PeopleOps({ employees, data, busy, onCreate, onUpdate, onDelete }: any) {
+  const t = useTranslator();
   const [mode, setMode] = useState("complaints");
   return (
     <div className="space-y-4">
@@ -338,16 +348,16 @@ export function PeopleOps({ employees, data, busy, onCreate, onUpdate, onDelete 
 
       {mode === "complaints" && (
         <TwoColumn>
-          <DataPanel title="Submit Complaint">
+          <DataPanel title={t("hr.submitComplaint")}>
             <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); onCreate("complaint", formValues(e.currentTarget), e.currentTarget); }}>
               <EmployeeSelect employees={employees} />
               <Field name="subject" label="Subject" required />
               <TextArea name="details" label="Details" required />
               <Select name="visibility" label="Visibility" options={["hr_only", "manager_only", "dept_head_only", "all_involved"].map((v) => [v, v.replace(/_/g, " ")])} />
-              <PrimaryButton disabled={busy}>Create Complaint</PrimaryButton>
+              <PrimaryButton disabled={busy}>{t("hrm.createComplaint")}</PrimaryButton>
             </form>
           </DataPanel>
-          <DataPanel title="Complaints">
+          <DataPanel title={t("hrm.complaints")}>
             <SimpleTable columns={["Employee", "Subject", "Status", "Actions"]} rows={(data.complaints || []).map((row: any) => [
               row.employeeName,
               row.subject,
@@ -362,23 +372,23 @@ export function PeopleOps({ employees, data, busy, onCreate, onUpdate, onDelete 
 
       {mode === "warnings" && (
         <TwoColumn>
-          <DataPanel title="Issue Warning">
+          <DataPanel title={t("journey.issueWarning")}>
             <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); onCreate("warning", formValues(e.currentTarget), e.currentTarget); }}>
               <EmployeeSelect employees={employees} />
               <Select name="type" label="Type" options={WARNING_TYPES.map((v) => [v, v])} />
               <Field name="date" label="Date" type="date" required />
               <TextArea name="description" label="Description" required />
               <Field name="payrollDeduction" label="Payroll deduction" type="number" defaultValue="0" />
-              <PrimaryButton disabled={busy}>Issue Warning</PrimaryButton>
+              <PrimaryButton disabled={busy}>{t("journey.issueWarning")}</PrimaryButton>
             </form>
           </DataPanel>
-          <DataPanel title="Warnings">
+          <DataPanel title={t("team.warnings")}>
             <SimpleTable columns={["Employee", "Type", "Date", "Deduction", ""]} rows={(data.warnings || []).map((row: any) => [
               row.employeeName,
               row.type,
               formatDate(row.date),
               money(row.payrollDeduction),
-              <button key={row.id} onClick={() => onDelete("warning", row.id)} className="text-xs font-bold text-red-600">Delete</button>,
+              <button key={row.id} onClick={() => onDelete("warning", row.id)} className="text-xs font-bold text-red-600">{t("common.delete")}</button>,
             ])} />
           </DataPanel>
         </TwoColumn>
@@ -386,7 +396,7 @@ export function PeopleOps({ employees, data, busy, onCreate, onUpdate, onDelete 
 
       {mode === "exits" && (
         <TwoColumn>
-          <DataPanel title="Start Exit Process">
+          <DataPanel title={t("hrm.startExit")}>
             <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); onCreate("employeeExit", formValues(e.currentTarget), e.currentTarget); }}>
               <EmployeeSelect employees={employees} />
               <Select name="exitType" label="Exit type" options={[["resignation", "Resignation"], ["termination", "Termination"]]} />
@@ -394,17 +404,17 @@ export function PeopleOps({ employees, data, busy, onCreate, onUpdate, onDelete 
               <Field name="lastWorkingDay" label="Last working day" type="date" />
               <Field name="requiredNoticeDays" label="Required notice days" type="number" defaultValue="30" />
               <TextArea name="exitInterviewNotes" label="Exit interview notes" />
-              <PrimaryButton disabled={busy}>Create Exit</PrimaryButton>
+              <PrimaryButton disabled={busy}>{t("hrm.createExit")}</PrimaryButton>
             </form>
           </DataPanel>
-          <DataPanel title="Exit Cases">
+          <DataPanel title={t("hrm.exitCases")}>
             <SimpleTable columns={["Employee", "Type", "Last day", "Clearance", "Archive", "Actions"]} rows={(data.exits || []).map((row: any) => [
               row.employeeName,
               row.exitType,
               formatDate(row.lastWorkingDay),
               statusBadge(row.clearanceStatus),
               statusBadge(row.archiveStatus),
-              <button key={row.id} onClick={() => onUpdate("employeeExit", { id: row.id, clearanceStatus: "completed", finalSalaryStatus: "completed", archiveStatus: "archived" })} className="text-xs font-bold text-blue-700">Archive</button>,
+              <button key={row.id} onClick={() => onUpdate("employeeExit", { id: row.id, clearanceStatus: "completed", finalSalaryStatus: "completed", archiveStatus: "archived" })} className="text-xs font-bold text-blue-700">{t("status.archive")}</button>,
             ])} />
           </DataPanel>
         </TwoColumn>
@@ -412,23 +422,23 @@ export function PeopleOps({ employees, data, busy, onCreate, onUpdate, onDelete 
 
       {mode === "contracts" && (
         <TwoColumn>
-          <DataPanel title="Add Contract">
+          <DataPanel title={t("hr.addContract")}>
             <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); onCreate("contract", formValues(e.currentTarget), e.currentTarget); }}>
               <EmployeeSelect employees={employees} />
               <Field name="title" label="Title" required />
               <Field name="startDate" label="Start date" type="date" required />
               <Field name="endDate" label="End date" type="date" />
               <Field name="fileUrl" label="Signed file URL" />
-              <PrimaryButton disabled={busy}>Add Contract</PrimaryButton>
+              <PrimaryButton disabled={busy}>{t("hr.addContract")}</PrimaryButton>
             </form>
           </DataPanel>
-          <DataPanel title="Contracts">
+          <DataPanel title={t("hrm.contracts")}>
             <SimpleTable columns={["Employee", "Title", "Start", "End", ""]} rows={(data.contracts || []).map((row: any) => [
               row.employeeName,
               row.title,
               formatDate(row.startDate),
               formatDate(row.endDate),
-              <button key={row.id} onClick={() => onDelete("contract", row.id)} className="text-xs font-bold text-red-600">Delete</button>,
+              <button key={row.id} onClick={() => onDelete("contract", row.id)} className="text-xs font-bold text-red-600">{t("common.delete")}</button>,
             ])} />
           </DataPanel>
         </TwoColumn>
@@ -436,20 +446,20 @@ export function PeopleOps({ employees, data, busy, onCreate, onUpdate, onDelete 
 
       {mode === "assets" && (
         <TwoColumn>
-          <DataPanel title="Assign Asset">
+          <DataPanel title={t("hr.assignAsset")}>
             <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); onCreate("asset", formValues(e.currentTarget), e.currentTarget); }}>
               <EmployeeSelect employees={employees} />
               <Field name="assetType" label="Asset type" required />
               <TextArea name="notes" label="Notes" />
-              <PrimaryButton disabled={busy}>Assign Asset</PrimaryButton>
+              <PrimaryButton disabled={busy}>{t("hr.assignAsset")}</PrimaryButton>
             </form>
           </DataPanel>
-          <DataPanel title="Assets">
+          <DataPanel title={t("hrm.assets")}>
             <SimpleTable columns={["Employee", "Asset", "Returned", "Actions"]} rows={(data.assets || []).map((row: any) => [
               row.employeeName,
               row.assetType,
               row.returned ? "Yes" : "No",
-              <button key={row.id} onClick={() => onUpdate("asset", { id: row.id, returned: !row.returned })} className="text-xs font-bold text-blue-700">Toggle return</button>,
+              <button key={row.id} onClick={() => onUpdate("asset", { id: row.id, returned: !row.returned })} className="text-xs font-bold text-blue-700">{t("hrm.toggleReturn")}</button>,
             ])} />
           </DataPanel>
         </TwoColumn>
@@ -459,6 +469,7 @@ export function PeopleOps({ employees, data, busy, onCreate, onUpdate, onDelete 
 }
 
 export function Settings({ settings, busy, onUpdate }: any) {
+  const t = useTranslator();
   const keys = [
     ["hr_contact_name", "HR contact name"],
     ["company_name", "Company name"],
@@ -467,7 +478,7 @@ export function Settings({ settings, busy, onUpdate }: any) {
     ["leave_accrual_rate_per_month", "Leave accrual / month"],
   ];
   return (
-    <DataPanel title="HRM Settings">
+    <DataPanel title={t("hrm.settings")}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {keys.map(([key, label]) => (
           <form key={key} className="flex items-end gap-2" onSubmit={(e) => {
@@ -476,7 +487,7 @@ export function Settings({ settings, busy, onUpdate }: any) {
             onUpdate("setting", { key, value: values.value });
           }}>
             <Field name="value" label={label} defaultValue={settings[key] || ""} />
-            <button disabled={busy} className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold disabled:opacity-50">Save</button>
+            <button disabled={busy} className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold disabled:opacity-50">{t("common.save")}</button>
           </form>
         ))}
       </div>
@@ -510,6 +521,7 @@ export function TwoColumn({ children }: { children: React.ReactNode }) {
 }
 
 export function SimpleTable({ columns, rows }: { columns: string[]; rows: any[][] }) {
+  const t = useTranslator();
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200 text-sm">
@@ -518,7 +530,7 @@ export function SimpleTable({ columns, rows }: { columns: string[]; rows: any[][
         </thead>
         <tbody className="divide-y divide-gray-100">
           {rows.length === 0 ? (
-            <tr><td colSpan={columns.length} className="px-3 py-8 text-center text-gray-400 italic">No records yet.</td></tr>
+            <tr><td colSpan={columns.length} className="px-3 py-8 text-center text-gray-400 italic">{t("hrm.noRecords")}</td></tr>
           ) : rows.map((row, i) => (
             <tr key={i} className="hover:bg-gray-50">{row.map((cell, j) => <td key={j} className="px-3 py-3 align-top">{cell}</td>)}</tr>
           ))}

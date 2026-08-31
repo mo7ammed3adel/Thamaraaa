@@ -161,7 +161,7 @@ export default function OperationsClient({
       <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl border p-4 shadow-sm">
         <input
           type="text"
-          placeholder="🔍 Search client, phone, niche..."
+          placeholder={t("ops.searchPlaceholder")}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="flex-1 min-w-[200px] border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"

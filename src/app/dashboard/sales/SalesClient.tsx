@@ -1195,7 +1195,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
               <div>
                 <label className="block text-sm font-medium mb-1 flex items-center gap-1.5">
                   <Video className="h-4 w-4 text-gray-500" />
-                  Meeting Recording Link <span className="text-gray-400 font-normal">(optional)</span>
+                  Meeting Recording Link <span className="text-gray-400 font-normal">{t("common.optional")}</span>
                 </label>
                 <input
                   type="url"

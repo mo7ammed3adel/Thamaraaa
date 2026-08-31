@@ -30,14 +30,14 @@ export default function HrClient({ myTodayAttendance, history, salaryInfo }: any
     <div className="space-y-6">
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-gray-900 mb-1">Today&apos;s Attendance</h2>
+          <h2 className="text-lg font-bold text-gray-900 mb-1">{t("hr.todaysAttendance")}</h2>
           {myTodayAttendance ? (
             <p className="text-sm text-gray-500">
               Checked in at: {new Date(myTodayAttendance.checkIn).toLocaleTimeString()}
               {myTodayAttendance.checkOut && ` • Checked out at: ${new Date(myTodayAttendance.checkOut).toLocaleTimeString()}`}
             </p>
           ) : (
-            <p className="text-sm text-gray-500">You haven&apos;t checked in yet today.</p>
+            <p className="text-sm text-gray-500">{t("hr.notCheckedIn")}</p>
           )}
         </div>
         <div className="flex gap-4">
@@ -63,9 +63,9 @@ export default function HrClient({ myTodayAttendance, history, salaryInfo }: any
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("common.date")}</th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Check In</th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Check Out</th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Delay (Mins)</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("hr.checkIn")}</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("hr.checkOut")}</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("hr.delayMinutes")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -74,11 +74,11 @@ export default function HrClient({ myTodayAttendance, history, salaryInfo }: any
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(h.date).toLocaleDateString()}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(h.checkIn).toLocaleTimeString()}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{h.checkOut ? new Date(h.checkOut).toLocaleTimeString() : <span className="text-yellow-600">{t("status.active")}</span>}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600">{h.lateMinutes > 0 ? h.lateMinutes : <span className="text-green-600">On Time</span>}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600">{h.lateMinutes > 0 ? h.lateMinutes : <span className="text-green-600">{t("hr.onTime")}</span>}</td>
               </tr>
             ))}
             {(history || []).length === 0 && (
-              <tr><td colSpan={4} className="px-6 py-8 text-center text-sm text-gray-500">No attendance records found.</td></tr>
+              <tr><td colSpan={4} className="px-6 py-8 text-center text-sm text-gray-500">{t("hr.noAttendanceRecords")}</td></tr>
             )}
           </tbody>
         </table>

@@ -3,8 +3,10 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import MeetsClient from "./MeetsClient";
+import { getTranslator } from "@/server/i18n/locale";
 
 export default async function MeetsPage() {
+  const t = getTranslator();
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
 
@@ -76,7 +78,7 @@ export default async function MeetsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">Meets</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">{t("nav.meets")}</h1>
       <p className="text-sm text-gray-500 mb-6">
         {isAgent
           ? "Your meetings overview and personal performance summary."

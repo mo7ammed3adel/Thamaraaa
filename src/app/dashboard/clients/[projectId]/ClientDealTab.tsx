@@ -70,7 +70,7 @@ export default function ClientDealTab({ deal }: ClientDealTabProps) {
 
       {installments.length > 0 && (
         <div className="bg-white rounded-xl border shadow-sm p-6">
-          <h3 className="text-md font-bold text-slate-800 mb-3">Installments</h3>
+          <h3 className="text-md font-bold text-slate-800 mb-3">{t("deal.installments")}</h3>
           <div className="space-y-2">
             {installments.map((inst, index) => (
               <div

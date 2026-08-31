@@ -136,7 +136,7 @@ export default function TeleProgressClient() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <PhoneOff className="h-5 w-5 opacity-80" />
-              <span className="text-xs font-semibold uppercase opacity-80">Busy</span>
+              <span className="text-xs font-semibold uppercase opacity-80">{t("lead.call.busy")}</span>
             </div>
             <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "busy" ? "rotate-180" : ""}`} />
           </div>
@@ -191,7 +191,7 @@ export default function TeleProgressClient() {
               {drillDown === "busy" && <><PhoneOff className="h-4 w-4 text-slate-500" /> Busy & Wrong Numbers</>}
               {` (${drillLogs.length})`}
             </h3>
-            <button onClick={() => setDrillDown(null)} className="text-xs text-gray-500 hover:text-gray-800">Close ✕</button>
+            <button onClick={() => setDrillDown(null)} className="text-xs text-gray-500 hover:text-gray-800">{t("common.close")} ✕</button>
           </div>
           <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
             {drillLogs.length === 0 ? (
@@ -242,7 +242,7 @@ export default function TeleProgressClient() {
             <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
               <Calendar className="h-4 w-4 text-purple-500" /> Meetings Booked ({data.callLogs.filter(c => c.callStatus === "Accept and book meeting").length})
             </h3>
-            <button onClick={() => setDrillDown(null)} className="text-xs text-gray-500 hover:text-gray-800">Close ✕</button>
+            <button onClick={() => setDrillDown(null)} className="text-xs text-gray-500 hover:text-gray-800">{t("common.close")} ✕</button>
           </div>
           <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
             {data.callLogs.filter(c => c.callStatus === "Accept and book meeting").length === 0 ? (

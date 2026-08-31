@@ -6,6 +6,7 @@ import {
   Users as UsersIcon, Briefcase, FolderKanban, Wallet, UserCheck, AlertTriangle,
   Settings, FileSpreadsheet, ArrowRight, Phone,
 } from "lucide-react";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 type RangeKey = "today" | "week" | "month" | "all";
 
@@ -34,6 +35,7 @@ const RANGE_LABELS: { id: RangeKey; label: string }[] = [
  * KPIs; every KPI card links through to the module that owns that data.
  */
 export default function SuperAdminClient({ stats, activeEmployees, activeWarnings }: SuperAdminClientProps) {
+  const t = useTranslator();
   const [range, setRange] = useState<RangeKey>("month");
   const s = stats[range];
   const fmt = (n: number) => new Intl.NumberFormat("en-US").format(Math.round(n));
@@ -69,7 +71,7 @@ export default function SuperAdminClient({ stats, activeEmployees, activeWarning
     <div className="space-y-6">
       {/* Time range filter */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-semibold text-slate-500 me-2">Range:</span>
+        <span className="text-sm font-semibold text-slate-500 me-2">{t("dashboard.rangeLabel")}</span>
         {RANGE_LABELS.map((r) => (
           <button
             key={r.id}
@@ -113,7 +115,7 @@ export default function SuperAdminClient({ stats, activeEmployees, activeWarning
 
       {/* Quick links */}
       <div>
-        <h2 className="text-lg font-bold text-slate-800 mb-3">Administration</h2>
+        <h2 className="text-lg font-bold text-slate-800 mb-3">{t("nav.section.administration")}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {quickLinks.map((q) => (
             <Link

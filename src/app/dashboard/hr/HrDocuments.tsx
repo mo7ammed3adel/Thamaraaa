@@ -70,14 +70,14 @@ export default function HrDocuments({ employees = [] }: { employees?: any[] }) {
       </div>
 
       {!selected ? (
-        <div className="bg-white border rounded-xl p-12 text-center text-slate-400 italic">Select an employee to open their digital file.</div>
+        <div className="bg-white border rounded-xl p-12 text-center text-slate-400 italic">{t("hr.selectEmployeeFile")}</div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {/* Required documents checklist */}
           <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b flex items-center gap-2">
               <span className="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center"><FileWarning className="w-4 h-4" /></span>
-              <h3 className="font-bold text-slate-800">Required Documents</h3>
+              <h3 className="font-bold text-slate-800">{t("hr.requiredDocuments")}</h3>
               {missing.length > 0 && <span className="ms-auto text-xs font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">{missing.length} missing</span>}
             </div>
             <div className="p-4 grid grid-cols-1 gap-2">
@@ -94,15 +94,15 @@ export default function HrDocuments({ employees = [] }: { employees?: any[] }) {
           <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b flex items-center gap-2">
               <span className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center"><FileText className="w-4 h-4" /></span>
-              <h3 className="font-bold text-slate-800">Employee File</h3>
+              <h3 className="font-bold text-slate-800">{t("hr.employeeFile")}</h3>
             </div>
             <div className="p-4 space-y-3">
               <form onSubmit={addDoc} className="grid grid-cols-12 gap-2">
-                <input name="name" required placeholder="Document name (Contract, ID…)" className="col-span-5 border rounded-lg px-2 py-1.5 text-xs" />
-                <input name="fileUrl" required type="url" placeholder="https://… (drive link)" className="col-span-5 border rounded-lg px-2 py-1.5 text-xs" />
+                <input name="name" required placeholder={t("hr.documentNameContract")} className="col-span-5 border rounded-lg px-2 py-1.5 text-xs" />
+                <input name="fileUrl" required type="url" placeholder={t("hr.driveLinkPlaceholder")} className="col-span-5 border rounded-lg px-2 py-1.5 text-xs" />
                 <button type="submit" disabled={busy} className="col-span-2 bg-slate-900 text-white rounded-lg text-xs font-bold disabled:opacity-50">{t("common.add")}</button>
               </form>
-              {loading ? <p className="text-sm text-slate-400">Loading…</p> : (
+              {loading ? <p className="text-sm text-slate-400">{t("common.loading")}</p> : (
                 <div className="space-y-1.5">
                   {docs.length === 0 && <p className="text-sm text-slate-400 italic">{t("empty.noFiles")}</p>}
                   {docs.map((d) => (
@@ -112,7 +112,7 @@ export default function HrDocuments({ employees = [] }: { employees?: any[] }) {
                         <span className="block text-[10px] text-slate-400">{new Date(d.createdAt).toLocaleDateString("en-GB")}</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <a href={d.fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600" title="Open"><ExternalLink className="w-4 h-4" /></a>
+                        <a href={d.fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600" title={t("hr.open")}><ExternalLink className="w-4 h-4" /></a>
                         <button onClick={() => removeDoc(d.id)} className="text-red-500" title={t("common.delete")}><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </div>

@@ -86,8 +86,8 @@ export default function AccountManagerTaskMonitoringPanel({
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-xs text-slate-600">By: <strong>{t.leader?.name || "System"}</strong></div>
-                    <div className="text-xs text-slate-600">To: <strong>{t.agent?.name || "Unassigned"}</strong></div>
+                    <div className="text-xs text-slate-600">{t("am.byLabel")} <strong>{t.leader?.name || "System"}</strong></div>
+                    <div className="text-xs text-slate-600">{t("am.toLabel")} <strong>{t.agent?.name || "Unassigned"}</strong></div>
                   </td>
                   <td className="px-6 py-4 text-center">
                     <div className={`text-sm font-medium ${t.deadline && new Date(t.deadline) < new Date() && t.status !== "done" ? "text-red-600 font-bold" : "text-slate-600"}`}>

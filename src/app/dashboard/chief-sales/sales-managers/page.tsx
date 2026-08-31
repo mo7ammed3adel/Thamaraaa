@@ -4,8 +4,10 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { FUND_DEAL_STATUSES } from "@/lib/deals";
 import SalesManagerTargetsClient from "./SalesManagerTargetsClient";
+import { getTranslator } from "@/server/i18n/locale";
 
 export default async function ChiefSalesManagersPage() {
+  const t = getTranslator();
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
 
@@ -62,7 +64,7 @@ export default async function ChiefSalesManagersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">Sales Managers</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">{t("nav.salesManagers")}</h1>
       <p className="text-sm text-gray-500 mb-6">
         Set each Sales Manager&apos;s monthly fund target (SAR) and track their team&apos;s contracted revenue.
       </p>

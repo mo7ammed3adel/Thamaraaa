@@ -3,8 +3,10 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import RecycleHotLeadsClient from "./RecycleHotLeadsClient";
+import { getTranslator } from "@/server/i18n/locale";
 
 export default async function RecycleHotLeadsPage() {
+  const t = getTranslator();
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
 
@@ -45,7 +47,7 @@ export default async function RecycleHotLeadsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">Recycle Hot Leads</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">{t("nav.recycleHotLeads")}</h1>
       <p className="text-sm text-gray-500 mb-6">
         Meetings marked as lost — redistribute these leads back to agents for a second chance.
       </p>

@@ -114,7 +114,7 @@ export function CommissionsTab() {
       {/* Summary KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white p-5 rounded-2xl border shadow-sm">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Gross Fund</p>
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">{t("finance.grossFund")}</p>
           <p className="text-3xl font-black text-gray-900">{formatSar(totalGross, { maximumFractionDigits: 2 })}</p>
         </div>
         <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-200 shadow-sm">
@@ -132,19 +132,19 @@ export function CommissionsTab() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
             <tr>
-              <th className="px-4 py-3 text-start">Employee</th>
-              <th className="px-4 py-3 text-end">Gross Fund</th>
+              <th className="px-4 py-3 text-start">{t("common.employee")}</th>
+              <th className="px-4 py-3 text-end">{t("finance.grossFund")}</th>
               <th className="px-4 py-3 text-end">{t("finance.netBase")}</th>
               <th className="px-4 py-3 text-start">{t("finance.tierRate")}</th>
-              <th className="px-4 py-3 text-end">Commission</th>
-              <th className="px-4 py-3 text-end">Salary</th>
+              <th className="px-4 py-3 text-end">{t("finance.commission")}</th>
+              <th className="px-4 py-3 text-end">{t("finance.salary")}</th>
               <th className="px-4 py-3 text-end">{t("finance.bonusDeduct")}</th>
               <th className="px-4 py-3 text-end">{t("finance.netPayout")}</th>
-              <th className="px-4 py-3 text-end">Actions</th>
+              <th className="px-4 py-3 text-end">{t("sales.actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 text-sm">
-            {loading && (<tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">Loading…</td></tr>)}
+            {loading && (<tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">{t("common.loading")}</td></tr>)}
             {!loading && commissions.length === 0 && (
               <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400 italic">No commissions for {month}. Click "Recompute Month".</td></tr>
             )}
@@ -193,7 +193,7 @@ export function CommissionsTab() {
                         <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-bold"><Lock className="w-3 h-3" /> Finalized</span>
                       ) : (
                         <>
-                          <button onClick={() => setEditing(c)} className="px-2 py-1 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded text-xs font-bold">Edit</button>
+                          <button onClick={() => setEditing(c)} className="px-2 py-1 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded text-xs font-bold">{t("common.edit")}</button>
                           <button disabled={busy === c.id} onClick={() => finalize(c)} className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold disabled:opacity-50">{t("finance.finalize")}</button>
                         </>
                       )}
@@ -519,6 +519,7 @@ function formatMetricValue(value: unknown) {
 }
 
 function BonusDeductionModal({ commission, onClose, onSaved }: { commission: any; onClose: () => void; onSaved: () => void }) {
+  const t = useTranslator();
   const [bonuses, setBonuses] = useState<{ reason: string; amount: number }[]>(safeParse(commission.bonuses));
   const [deductions, setDeductions] = useState<{ reason: string; amount: number }[]>(safeParse(commission.deductions));
   const [saving, setSaving] = useState(false);
@@ -544,11 +545,11 @@ function BonusDeductionModal({ commission, onClose, onSaved }: { commission: any
           <button onClick={onClose} className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200"><X className="w-4 h-4" /></button>
         </div>
 
-        <LineItemEditor title="Bonuses" colorClass="emerald" items={bonuses} setItems={setBonuses} />
-        <LineItemEditor title="Deductions" colorClass="red" items={deductions} setItems={setDeductions} />
+        <LineItemEditor title={t("finance.bonuses")} colorClass="emerald" items={bonuses} setItems={setBonuses} />
+        <LineItemEditor title={t("finance.deductions")} colorClass="red" items={deductions} setItems={setDeductions} />
 
         <div className="pt-4 border-t flex gap-3 mt-6">
-          <button onClick={onClose} className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium">Cancel</button>
+          <button onClick={onClose} className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium">{t("common.cancel")}</button>
           <button onClick={save} disabled={saving} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-50">
             {saving ? "Saving…" : "Save"}
           </button>
@@ -559,6 +560,7 @@ function BonusDeductionModal({ commission, onClose, onSaved }: { commission: any
 }
 
 function LineItemEditor({ title, colorClass, items, setItems }: { title: string; colorClass: "emerald" | "red"; items: { reason: string; amount: number }[]; setItems: (v: any) => void }) {
+  const t = useTranslator();
   // Static class names so Tailwind's JIT doesn't purge them.
   const addBtnClass = colorClass === "emerald" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700";
   return (
@@ -573,8 +575,8 @@ function LineItemEditor({ title, colorClass, items, setItems }: { title: string;
         {items.length === 0 && <p className="text-xs text-gray-400 italic">No {title.toLowerCase()} yet.</p>}
         {items.map((it, i) => (
           <div key={i} className="flex gap-2">
-            <input value={it.reason} onChange={(e) => setItems(items.map((x, j) => (j === i ? { ...x, reason: e.target.value } : x)))} placeholder="Reason" className="flex-1 border rounded px-2 py-1 text-sm" />
-            <input type="number" value={it.amount} onChange={(e) => setItems(items.map((x, j) => (j === i ? { ...x, amount: parseFloat(e.target.value) || 0 } : x)))} placeholder="Amount" className="w-32 border rounded px-2 py-1 text-sm text-end" />
+            <input value={it.reason} onChange={(e) => setItems(items.map((x, j) => (j === i ? { ...x, reason: e.target.value } : x)))} placeholder={t("common.reason")} className="flex-1 border rounded px-2 py-1 text-sm" />
+            <input type="number" value={it.amount} onChange={(e) => setItems(items.map((x, j) => (j === i ? { ...x, amount: parseFloat(e.target.value) || 0 } : x)))} placeholder={t("common.amount")} className="w-32 border rounded px-2 py-1 text-sm text-end" />
             <button onClick={() => setItems(items.filter((_, j) => j !== i))} className="p-1.5 bg-red-50 hover:bg-red-100 rounded">
               <Trash2 className="w-3.5 h-3.5 text-red-600" />
             </button>

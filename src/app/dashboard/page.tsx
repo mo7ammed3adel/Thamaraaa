@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import SuperAdminClient from "./SuperAdminClient";
+import { getTranslator } from "@/server/i18n/locale";
 
 function startOf(range: "today" | "week" | "month"): Date {
   const d = new Date();
@@ -29,6 +30,7 @@ async function rangeStats(gte?: Date) {
 }
 
 export default async function DashboardHome() {
+  const t = getTranslator();
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
 
@@ -48,7 +50,7 @@ export default async function DashboardHome() {
 
     return (
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Command Centre</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">{t("dashboard.commandCentre")}</h1>
         <SuperAdminClient
           stats={{ today, week, month, all }}
           activeEmployees={activeEmployees}
@@ -62,7 +64,7 @@ export default async function DashboardHome() {
     <div>
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Welcome back, {session?.user?.name}</h1>
       <div className="bg-blue-50 border border-blue-100 rounded-xl p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-blue-900 mb-2">Role Information</h2>
+        <h2 className="text-lg font-semibold text-blue-900 mb-2">{t("dashboard.roleInfo")}</h2>
         <p className="text-blue-800">
           You are logged in as a <span className="font-bold underline capitalize">{role.replace(/_/g, " ")}</span>.
           Use the sidebar to navigate to your specific modules.

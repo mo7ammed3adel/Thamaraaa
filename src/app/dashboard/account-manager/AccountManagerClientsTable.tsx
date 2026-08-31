@@ -119,7 +119,7 @@ export default function AccountManagerClientsTable({
           <h2 className="text-lg font-bold text-slate-800 whitespace-nowrap lg:pb-2">{t("am.myClients")}</h2>
           <div className="flex flex-col sm:flex-row gap-3 flex-1">
             <label className="flex-1 max-w-sm">
-              <span className="block text-xs font-semibold text-slate-500 mb-1 uppercase">Search</span>
+              <span className="block text-xs font-semibold text-slate-500 mb-1 uppercase">{t("common.search")}</span>
               <input
                 type="text"
                 placeholder={t("am.searchPlaceholder")}

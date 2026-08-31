@@ -83,8 +83,8 @@ export default function ChiefSalesClient() {
           onChange={(e) => setRange(e.target.value)}
           className="border-slate-200 border text-sm font-semibold text-slate-700 bg-slate-50 py-2 px-4 rounded-lg focus:outline-none focus:ring-2 ring-indigo-500"
         >
-          <option value="today">Today</option>
-          <option value="this_week">This Week</option>
+          <option value="today">{t("dateRange.today")}</option>
+          <option value="this_week">{t("dateRange.thisWeek")}</option>
           <option value="this_month">{t("dateRange.thisMonth")}</option>
           <option value="all">{t("chief.allTime")}</option>
         </select>

@@ -46,18 +46,18 @@ export function PayrollTab() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
             <tr>
-              <th className="px-4 py-3 text-start">Employee</th>
-              <th className="px-4 py-3 text-start">Role</th>
+              <th className="px-4 py-3 text-start">{t("common.employee")}</th>
+              <th className="px-4 py-3 text-start">{t("common.role")}</th>
               <th className="px-4 py-3 text-end">{t("finance.baseSalary")}</th>
-              <th className="px-4 py-3 text-end">Commission</th>
-              <th className="px-4 py-3 text-end">Bonuses</th>
-              <th className="px-4 py-3 text-end">Deductions</th>
+              <th className="px-4 py-3 text-end">{t("finance.commission")}</th>
+              <th className="px-4 py-3 text-end">{t("finance.bonuses")}</th>
+              <th className="px-4 py-3 text-end">{t("finance.deductions")}</th>
               <th className="px-4 py-3 text-end">{t("finance.net")}</th>
-              <th className="px-4 py-3 text-center">Status</th>
+              <th className="px-4 py-3 text-center">{t("lead.status")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 text-sm">
-            {loading && <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">Loading...</td></tr>}
+            {loading && <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">{t("common.loading")}</td></tr>}
             {!loading && rows.length === 0 && <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400 italic">No payroll rows for {month}.</td></tr>}
             {!loading && rows.map((row: any) => (
               <tr key={row.userId} className="hover:bg-gray-50">

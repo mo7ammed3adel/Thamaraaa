@@ -118,7 +118,7 @@ export default function WarningsCenterClient({ warnings, leads, userRole, userId
               <div className="flex-1">
                 <p className="text-sm font-medium text-slate-800 leading-relaxed">{w.message}</p>
                 <div className="flex items-center gap-3 mt-2 text-xs text-slate-500 flex-wrap">
-                  <span>From: <strong className="text-slate-700">{w.senderName}</strong> ({w.senderRole.replace(/_/g, " ")})</span>
+                  <span>{t("warnings.fromLabel")} <strong className="text-slate-700">{w.senderName}</strong> ({w.senderRole.replace(/_/g, " ")})</span>
                   <span>{new Date(w.createdAt).toLocaleString()}</span>
                 </div>
                 {/* Recipients */}

@@ -14,8 +14,10 @@ import {
   submitCentralHrRequest,
   submitLeaveRequest,
 } from "@/client/api/hr";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 export function SelfServiceSection() {
+  const t = useTranslator();
   const [requests, setRequests] = useState<any[]>([]);
   const [docs, setDocs] = useState<any[]>([]);
   const [payslip, setPayslip] = useState<any>(null);
@@ -97,22 +99,22 @@ export function SelfServiceSection() {
         <form onSubmit={submit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Type</label>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">{t("lead.type")}</label>
               <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
-                <option value="Leave">Leave</option>
-                <option value="Remote">Remote Work</option>
-                <option value="Permission">Permission</option>
+                <option value="Leave">{t("hr.leave")}</option>
+                <option value="Remote">{t("hr.remoteWork")}</option>
+                <option value="Permission">{t("hr.permission")}</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Date</label>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">{t("common.date")}</label>
               <input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm" />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Duration</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">{t("hr.duration")}</label>
             <select value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
-              <option>Half Day</option>
+              <option>{t("hr.halfDay")}</option>
               <option>1 Day</option>
               <option>2 Days</option>
               <option>3 Days</option>
@@ -121,8 +123,8 @@ export function SelfServiceSection() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Reason</label>
-            <textarea value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} rows={2} placeholder="Optional note for HR…" className="w-full border rounded-lg px-3 py-2 text-sm" />
+            <label className="block text-xs font-semibold text-gray-600 mb-1">{t("common.reason")}</label>
+            <textarea value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} rows={2} placeholder={t("hr.optionalNote")} className="w-full border rounded-lg px-3 py-2 text-sm" />
           </div>
           <button type="submit" disabled={submitting} className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg disabled:opacity-50 transition">
             {submitting ? "Submitting…" : "Submit Request"}
@@ -135,14 +137,14 @@ export function SelfServiceSection() {
         <form onSubmit={submitCentral} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <select value={centralForm.typeKey} onChange={(e) => setCentralForm({ ...centralForm, typeKey: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
-              {centralRequestTypes.length === 0 && <option value="">No request types yet</option>}
+              {centralRequestTypes.length === 0 && <option value="">{t("hr.noRequestTypes")}</option>}
               {centralRequestTypes.map((type) => <option key={type.key} value={type.key}>{type.name}</option>)}
             </select>
             <select value={centralForm.priority} onChange={(e) => setCentralForm({ ...centralForm, priority: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
               {["low", "medium", "high", "urgent"].map((priority) => <option key={priority} value={priority}>{priority}</option>)}
             </select>
           </div>
-          <textarea value={centralForm.details} onChange={(e) => setCentralForm({ ...centralForm, details: e.target.value })} rows={3} placeholder="Request details..." className="w-full border rounded-lg px-3 py-2 text-sm" />
+          <textarea value={centralForm.details} onChange={(e) => setCentralForm({ ...centralForm, details: e.target.value })} rows={3} placeholder={t("hr.requestDetails")} className="w-full border rounded-lg px-3 py-2 text-sm" />
           <button type="submit" disabled={submitting || !centralForm.typeKey} className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg disabled:opacity-50 transition">
             Submit Request
           </button>
@@ -154,7 +156,7 @@ export function SelfServiceSection() {
               <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${request.slaStatus === "overdue" ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-700"}`}>{request.status}</span>
             </li>
           ))}
-          {!loading && centralRequests.length === 0 && <li className="py-2 text-sm text-gray-400 italic">No central requests yet.</li>}
+          {!loading && centralRequests.length === 0 && <li className="py-2 text-sm text-gray-400 italic">{t("hr.noCentralRequests")}</li>}
         </ul>
       </div>
 
@@ -167,11 +169,11 @@ export function SelfServiceSection() {
           </div>
           {payslip?.status === "ok" ? (
             <>
-              <p className="text-3xl font-black">{payslip.payslip.net.toLocaleString()} <span className="text-sm font-medium text-slate-300">SAR net</span></p>
+              <p className="text-3xl font-black">{payslip.payslip.net.toLocaleString()} <span className="text-sm font-medium text-slate-300">{t("hr.sarNet")}</span></p>
               <div className="grid grid-cols-3 gap-2 mt-4 text-center text-xs">
-                <div><p className="text-slate-300">Base</p><p className="font-bold">{payslip.payslip.baseSalary.toLocaleString()}</p></div>
-                <div><p className="text-emerald-300">Bonus</p><p className="font-bold text-emerald-300">+{payslip.payslip.bonuses.toLocaleString()}</p></div>
-                <div><p className="text-red-300">Deduct.</p><p className="font-bold text-red-300">−{payslip.payslip.deductions.toLocaleString()}</p></div>
+                <div><p className="text-slate-300">{t("finance.base")}</p><p className="font-bold">{payslip.payslip.baseSalary.toLocaleString()}</p></div>
+                <div><p className="text-emerald-300">{t("finance.bonus")}</p><p className="font-bold text-emerald-300">+{payslip.payslip.bonuses.toLocaleString()}</p></div>
+                <div><p className="text-red-300">{t("hr.deductShort")}</p><p className="font-bold text-red-300">−{payslip.payslip.deductions.toLocaleString()}</p></div>
               </div>
             </>
           ) : (
@@ -183,15 +185,15 @@ export function SelfServiceSection() {
           <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2"><CalendarDays className="w-5 h-5 text-emerald-600" /> Annual Leave Balance <span className="text-xs font-normal text-gray-400">({new Date().getFullYear()})</span></h2>
           <div className="grid grid-cols-3 gap-3 text-center">
             <div className="bg-slate-50 border rounded-lg p-3">
-              <p className="text-[10px] uppercase font-bold text-slate-400">Quota</p>
+              <p className="text-[10px] uppercase font-bold text-slate-400">{t("hr.quota")}</p>
               <p className="text-2xl font-black text-slate-800">{balance.quota}</p>
             </div>
             <div className="bg-amber-50 border border-amber-100 rounded-lg p-3">
-              <p className="text-[10px] uppercase font-bold text-amber-500">Used</p>
+              <p className="text-[10px] uppercase font-bold text-amber-500">{t("hr.used")}</p>
               <p className="text-2xl font-black text-amber-700">{balance.used}</p>
             </div>
             <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-3">
-              <p className="text-[10px] uppercase font-bold text-emerald-500">Remaining</p>
+              <p className="text-[10px] uppercase font-bold text-emerald-500">{t("common.remaining")}</p>
               <p className="text-2xl font-black text-emerald-700">{balance.remaining}</p>
             </div>
           </div>
@@ -200,8 +202,8 @@ export function SelfServiceSection() {
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2"><Clock className="w-5 h-5 text-amber-600" /> My Requests</h2>
-          {loading ? <p className="text-sm text-gray-400">Loading…</p> : requests.length === 0 ? (
-            <p className="text-sm text-gray-400 italic">No requests yet.</p>
+          {loading ? <p className="text-sm text-gray-400">{t("common.loading")}</p> : requests.length === 0 ? (
+            <p className="text-sm text-gray-400 italic">{t("empty.noRequests")}</p>
           ) : (
             <ul className="divide-y">
               {requests.slice(0, 6).map((r) => (
@@ -216,14 +218,14 @@ export function SelfServiceSection() {
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2"><FileText className="w-5 h-5 text-slate-500" /> My Documents</h2>
-          {loading ? <p className="text-sm text-gray-400">Loading…</p> : docs.length === 0 ? (
-            <p className="text-sm text-gray-400 italic">No documents on file.</p>
+          {loading ? <p className="text-sm text-gray-400">{t("common.loading")}</p> : docs.length === 0 ? (
+            <p className="text-sm text-gray-400 italic">{t("hr.noDocumentsOnFile")}</p>
           ) : (
             <ul className="divide-y">
               {docs.map((d) => (
                 <li key={d.id} className="py-2 flex justify-between items-center text-sm">
                   <span className="font-medium text-gray-700">{d.name}</span>
-                  <a href={d.fileUrl} target="_blank" rel="noopener noreferrer" className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-bold hover:bg-blue-100">View</a>
+                  <a href={d.fileUrl} target="_blank" rel="noopener noreferrer" className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-bold hover:bg-blue-100">{t("common.view")}</a>
                 </li>
               ))}
             </ul>
@@ -232,8 +234,8 @@ export function SelfServiceSection() {
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2"><ClipboardList className="w-5 h-5 text-indigo-600" /> My Onboarding</h2>
-          {loading ? <p className="text-sm text-gray-400">Loading…</p> : onboarding.length === 0 ? (
-            <p className="text-sm text-gray-400 italic">No checklist assigned.</p>
+          {loading ? <p className="text-sm text-gray-400">{t("common.loading")}</p> : onboarding.length === 0 ? (
+            <p className="text-sm text-gray-400 italic">{t("hr.noChecklist")}</p>
           ) : (
             <ul className="space-y-1.5">
               {onboarding.map((t) => (
@@ -249,8 +251,8 @@ export function SelfServiceSection() {
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2"><Star className="w-5 h-5 text-amber-500" /> My Reviews</h2>
-          {loading ? <p className="text-sm text-gray-400">Loading…</p> : reviews.length === 0 ? (
-            <p className="text-sm text-gray-400 italic">No reviews yet.</p>
+          {loading ? <p className="text-sm text-gray-400">{t("common.loading")}</p> : reviews.length === 0 ? (
+            <p className="text-sm text-gray-400 italic">{t("empty.noReviews")}</p>
           ) : (
             <ul className="divide-y">
               {reviews.slice(0, 4).map((r) => (
@@ -259,8 +261,8 @@ export function SelfServiceSection() {
                     <span className="font-semibold text-gray-700">{r.period}</span>
                     <span className="flex items-center gap-0.5">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`w-3.5 h-3.5 ${i < r.rating ? "fill-amber-400 text-amber-400" : "text-gray-300"}`} />)}</span>
                   </div>
-                  {r.strengths && <p className="text-xs text-gray-500 mt-1"><span className="font-semibold">Strengths:</span> {r.strengths}</p>}
-                  {r.goals && <p className="text-xs text-gray-500 mt-0.5"><span className="font-semibold">Goals:</span> {r.goals}</p>}
+                  {r.strengths && <p className="text-xs text-gray-500 mt-1"><span className="font-semibold">{t("hr.strengths")}</span> {r.strengths}</p>}
+                  {r.goals && <p className="text-xs text-gray-500 mt-0.5"><span className="font-semibold">{t("hr.goals")}</span> {r.goals}</p>}
                 </li>
               ))}
             </ul>

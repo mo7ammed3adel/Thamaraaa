@@ -187,7 +187,7 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
             <div className="grid grid-cols-1 gap-2 pt-2">
               {/* The assigned designer drives the work up to review */}
               {t.agentId === userId && t.status !== "in_progress" && t.status !== "done" && t.status !== "review" && (
-                <button onClick={() => handleUpdateStatus(t.id, "in_progress")} className="w-full py-2 bg-gray-800 text-white rounded-xl text-sm font-bold hover:bg-gray-900 shadow-sm transition">Start Task</button>
+                <button onClick={() => handleUpdateStatus(t.id, "in_progress")} className="w-full py-2 bg-gray-800 text-white rounded-xl text-sm font-bold hover:bg-gray-900 shadow-sm transition">{t("sales.startTask")}</button>
               )}
               {t.agentId === userId && t.status === "in_progress" && (
                 <button onClick={() => handleUpdateStatus(t.id, "review")} className="w-full py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 shadow-sm transition">{t("common.submitForReview")}</button>
@@ -338,7 +338,7 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
         <div className="space-y-4">
           {/* Filter Bar */}
           <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl border p-4 shadow-sm">
-            <input type="text" placeholder="🔍 Search client, brief, requester..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="flex-1 min-w-[200px] border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none" />
+            <input type="text" placeholder={t("design.searchPlaceholder")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="flex-1 min-w-[200px] border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none" />
             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-violet-500 outline-none">
               <option value="all">{t("filter.allStatuses")}</option>
               <option value="pending">{t("status.pending")}</option>

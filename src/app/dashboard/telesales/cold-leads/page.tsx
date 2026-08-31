@@ -4,8 +4,10 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveSessionUser } from "@/lib/activeSessionUser";
 import ColdLeadsClient from "./ColdLeadsClient";
+import { getTranslator } from "@/server/i18n/locale";
 
 export default async function ColdLeadsPage() {
+  const t = getTranslator();
   const session = await getServerSession(authOptions);
   const user = await getActiveSessionUser(session?.user as any);
 
@@ -38,7 +40,7 @@ export default async function ColdLeadsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">Add Cold Leads</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">{t("nav.addColdLeads")}</h1>
       <p className="text-sm text-gray-500 mb-6">
         Manually add new cold leads you have gathered.
       </p>

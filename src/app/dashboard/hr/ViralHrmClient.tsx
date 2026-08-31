@@ -29,6 +29,7 @@ import {
   TalentPool,
   Workflows,
 } from "./ViralHrmAdvancedSections";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 const MODULES = [
   { id: "overview", label: "Overview" },
@@ -54,6 +55,7 @@ type ViralHrmClientProps = {
 };
 
 export default function ViralHrmClient({ module: controlledModule }: ViralHrmClientProps = {}) {
+  const t = useTranslator();
   const today = new Date();
   const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
   const [month, setMonth] = useState(defaultMonth);
@@ -132,12 +134,12 @@ export default function ViralHrmClient({ module: controlledModule }: ViralHrmCli
         ))}
         <div className={`${showNavigation ? "ms-auto pb-2" : ""} flex items-center gap-2`}>
           <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm" />
-          <button onClick={load} disabled={loading} className="rounded-lg bg-slate-950 px-3 py-2 text-sm font-bold text-white disabled:opacity-50">Refresh</button>
+          <button onClick={load} disabled={loading} className="rounded-lg bg-slate-950 px-3 py-2 text-sm font-bold text-white disabled:opacity-50">{t("hrm.refresh")}</button>
         </div>
       </div>
 
-      {loading && <div className="bg-white border rounded-xl p-8 text-center text-gray-400">Loading HRM data...</div>}
-      {!loading && !data && <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center text-red-700">Failed to load HRM data.</div>}
+      {loading && <div className="bg-white border rounded-xl p-8 text-center text-gray-400">{t("hrm.loading")}</div>}
+      {!loading && !data && <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center text-red-700">{t("hrm.loadFailed")}</div>}
 
       {!loading && data && activeModule === "overview" && (
         <Overview data={data} />

@@ -76,7 +76,7 @@ export default function HiringClient({ initialApplicants }: { initialApplicants:
                   </div>
                 ))}
                 {stageApps.length === 0 && (
-                  <div className="text-center text-xs text-gray-400 py-4 italic border-2 border-dashed rounded-lg">No applicants</div>
+                  <div className="text-center text-xs text-gray-400 py-4 italic border-2 border-dashed rounded-lg">{t("hr.noApplicants")}</div>
                 )}
               </div>
             </div>
@@ -115,7 +115,7 @@ export default function HiringClient({ initialApplicants }: { initialApplicants:
                 <textarea rows={2} className="w-full border rounded p-2" value={newApp.notes} onChange={e => setNewApp({...newApp, notes: e.target.value})} />
               </div>
               <div className="flex justify-end pt-4">
-                <button type="submit" className="px-5 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700">Save Applicant</button>
+                <button type="submit" className="px-5 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700">{t("hr.saveApplicant")}</button>
               </div>
             </form>
           </div>

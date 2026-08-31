@@ -32,7 +32,7 @@ export default function HRRequestsPage() {
                   <span className="font-bold">{req.user.name}</span>
                   <span className="text-xs bg-gray-100 px-2 py-0.5 rounded capitalize">{req.user.role.replace(/_/g, " ")}</span>
                 </div>
-                <p className="text-sm font-medium mt-1">Requested <span className="text-blue-600">{req.type}</span> for {new Date(req.date).toLocaleDateString()}</p>
+                <p className="text-sm font-medium mt-1">{t("hr.requested")} <span className="text-blue-600">{req.type}</span> for {new Date(req.date).toLocaleDateString()}</p>
                 {req.reason && <p className="text-sm text-gray-500 mt-1 italic">"{req.reason}"</p>}
               </div>
               <div className="flex items-center gap-3">
@@ -52,7 +52,7 @@ export default function HRRequestsPage() {
               </div>
             </li>
           ))}
-          {requests.length === 0 && <p className="text-gray-500 py-4">No pending requests found.</p>}
+          {requests.length === 0 && <p className="text-gray-500 py-4">{t("hr.noPendingRequests")}</p>}
         </ul>
       </div>
     </div>

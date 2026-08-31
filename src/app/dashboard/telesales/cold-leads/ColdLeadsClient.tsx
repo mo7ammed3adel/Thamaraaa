@@ -165,7 +165,7 @@ export default function ColdLeadsClient({
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Client Name <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("common.clientName")} <span className="text-red-500">*</span></label>
                 <div className="relative">
                   <UserIcon className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                   <input 
@@ -179,7 +179,7 @@ export default function ColdLeadsClient({
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("cold.phoneNumber")} <span className="text-red-500">*</span></label>
                 <div className="relative">
                   <PhoneCall className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                   <input 
