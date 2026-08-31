@@ -161,7 +161,7 @@ export default function ColdLeadsClient({
         </button>
       ) : (
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm max-w-2xl">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-3">New Cold Lead Details</h2>
+          <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-3">{t("cold.newDetails")}</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -174,7 +174,7 @@ export default function ColdLeadsClient({
                     onChange={e => setName(e.target.value)}
                     required
                     className="w-full ps-9 pe-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-                    placeholder="E.g. Ahmed Ali"
+                    placeholder={t("cold.nameExample")}
                   />
                 </div>
               </div>
@@ -188,7 +188,7 @@ export default function ColdLeadsClient({
                     onChange={e => setPhone(e.target.value)}
                     required
                     className="w-full ps-9 pe-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-                    placeholder="E.g. +966..."
+                    placeholder={t("cold.phoneExample")}
                   />
                 </div>
               </div>
@@ -201,12 +201,12 @@ export default function ColdLeadsClient({
                     value={storeLink}
                     onChange={e => setStoreLink(e.target.value)}
                     className="w-full ps-9 pe-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-                    placeholder="https://salla.sa/..."
+                    placeholder={t("cold.storeExample")}
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Niche / Industry</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("cold.niche")}</label>
                 <div className="relative">
                   <Tag className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                   <input 
@@ -215,7 +215,7 @@ export default function ColdLeadsClient({
                     value={niche}
                     onChange={e => setNiche(e.target.value)}
                     className="w-full ps-9 pe-3 py-2 border border-blue-200 bg-blue-50/30 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm placeholder:text-gray-400"
-                    placeholder="Search or type to add new..."
+                    placeholder={t("cold.searchOrAdd")}
                     autoComplete="off"
                   />
                   <datalist id="niche-options">
@@ -270,7 +270,7 @@ export default function ColdLeadsClient({
           <div className="bg-blue-50/50 border-b border-blue-100 px-5 py-3 flex items-center justify-between">
              <div className="flex items-center gap-3">
                 <span className="text-sm font-bold text-blue-800 bg-blue-100 px-2.5 py-0.5 rounded-full">{selected.length} selected</span>
-                <button onClick={() => setSelected([])} className="text-xs text-slate-500 hover:text-slate-700 font-medium underline">Clear Selection</button>
+                <button onClick={() => setSelected([])} className="text-xs text-slate-500 hover:text-slate-700 font-medium underline">{t("cold.clearSelection")}</button>
              </div>
              <div className="flex gap-2">
                 <button onClick={handleDelete} disabled={promoting} className="px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-200 rounded hover:bg-red-100 transition disabled:opacity-50">
@@ -298,8 +298,8 @@ export default function ColdLeadsClient({
                 <th className="px-2 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.name")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.phone")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("sales.storeLink")}</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Niche</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Added On</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("cold.nicheShort")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("cold.addedOn")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">

@@ -26,7 +26,7 @@ export default function ClientProgressTab({ project }: ClientProgressTabProps) {
 
   return (
     <div className="bg-white rounded-xl border shadow-sm p-6">
-      <h2 className="text-lg font-bold text-slate-800 mb-6">Progress Tracking</h2>
+      <h2 className="text-lg font-bold text-slate-800 mb-6">{t("journey.progressTracking")}</h2>
       <div className="space-y-6">
         {bars.map((bar) => (
           <div key={bar.label}>
@@ -44,7 +44,7 @@ export default function ClientProgressTab({ project }: ClientProgressTabProps) {
       </div>
       <div className="mt-6 pt-4 border-t grid grid-cols-3 gap-4">
         <div className="text-center"><p className="text-xs text-slate-400">{t("task.deadline")}</p><p className="text-sm font-bold text-slate-700">{project.finalDeadline ? new Date(project.finalDeadline).toLocaleDateString() : "Not Set"}</p></div>
-        <div className="text-center"><p className="text-xs text-slate-400">Total Tasks</p><p className="text-sm font-bold text-slate-700">{tasks.length}</p></div>
+        <div className="text-center"><p className="text-xs text-slate-400">{t("journey.totalTasks")}</p><p className="text-sm font-bold text-slate-700">{tasks.length}</p></div>
         <div className="text-center"><p className="text-xs text-slate-400">{t("status.completed")}</p><p className="text-sm font-bold text-emerald-700">{tasks.filter((task) => task.status === "done").length}</p></div>
       </div>
     </div>

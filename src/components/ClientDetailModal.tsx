@@ -47,10 +47,10 @@ export default function ClientDetailModal({ isOpen, onClose, project, currentUse
                 <h3 className="font-bold text-slate-800 mb-4 pb-2 border-b border-slate-100">{t("journey.clientInfo")}</h3>
                 <div className="space-y-3 text-sm">
                   <div><span className="text-slate-500 block text-xs">{t("common.phone")}</span><span className="font-medium">{lead.phone || "N/A"}</span></div>
-                  <div><span className="text-slate-500 block text-xs">Niche/Industry</span><span className="font-medium">{project.niche || lead.niche || "N/A"}</span></div>
+                  <div><span className="text-slate-500 block text-xs">{t("modal.niche")}</span><span className="font-medium">{project.niche || lead.niche || "N/A"}</span></div>
                   <div><span className="text-slate-500 block text-xs">{t("journey.hasStore")}</span><span className="font-medium">{lead.hasStore ? "Yes" : "No"}</span></div>
                   <div><span className="text-slate-500 block text-xs">{t("sales.storeLink")}</span><span className="font-medium text-blue-600 hover:underline">{project.storeUrl || lead.storeLink || "N/A"}</span></div>
-                  <div><span className="text-slate-500 block text-xs">Drive Link</span><span className="font-medium text-blue-600 hover:underline">{project.driveLink || "N/A"}</span></div>
+                  <div><span className="text-slate-500 block text-xs">{t("modal.driveLink")}</span><span className="font-medium text-blue-600 hover:underline">{project.driveLink || "N/A"}</span></div>
                 </div>
               </div>
 
@@ -58,17 +58,17 @@ export default function ClientDetailModal({ isOpen, onClose, project, currentUse
               <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
                 <h3 className="font-bold text-slate-800 mb-4 pb-2 border-b border-slate-100">{t("journey.dealInfo")}</h3>
                 <div className="space-y-3 text-sm">
-                  <div><span className="text-slate-500 block text-xs">Total Amount</span><span className="font-medium">{deal.totalAmount?.toLocaleString() || 0} SAR</span></div>
+                  <div><span className="text-slate-500 block text-xs">{t("modal.totalAmount")}</span><span className="font-medium">{deal.totalAmount?.toLocaleString() || 0} SAR</span></div>
                   <div><span className="text-slate-500 block text-xs">{t("deal.paymentMethod")}</span><span className="font-medium">{deal.paymentMethod || "N/A"}</span></div>
                   <div><span className="text-slate-500 block text-xs">{t("telesales.salesAgent")}</span><span className="font-medium">{deal.salesAgent?.name || "N/A"}</span></div>
-                  <div><span className="text-slate-500 block text-xs">Contract Date</span><span className="font-medium">{deal.contractStart ? new Date(deal.contractStart).toLocaleDateString() : "N/A"}</span></div>
+                  <div><span className="text-slate-500 block text-xs">{t("modal.contractDate")}</span><span className="font-medium">{deal.contractStart ? new Date(deal.contractStart).toLocaleDateString() : "N/A"}</span></div>
                 </div>
               </div>
             </div>
 
             {/* Middle Column: Client Journey */}
             <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm overflow-auto max-h-[80vh]">
-              <h3 className="font-bold text-slate-800 mb-4 sticky top-0 bg-white pb-2 border-b border-slate-100 z-10">Lifecycle Journey</h3>
+              <h3 className="font-bold text-slate-800 mb-4 sticky top-0 bg-white pb-2 border-b border-slate-100 z-10">{t("modal.lifecycleJourney")}</h3>
               <ClientJourney 
                 leadName={lead.name}
                 phone={lead.phone}

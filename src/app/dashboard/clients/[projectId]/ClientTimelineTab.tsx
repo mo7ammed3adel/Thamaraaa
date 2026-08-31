@@ -1,15 +1,17 @@
 import type { ClientJourneyTimelineEntry } from "@/lib/clientJourneyTimeline";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 type ClientTimelineTabProps = {
   timeline: ClientJourneyTimelineEntry[];
 };
 
 export default function ClientTimelineTab({ timeline }: ClientTimelineTabProps) {
+  const t = useTranslator();
   return (
     <div className="bg-white rounded-xl border shadow-sm p-6">
-      <h2 className="text-lg font-bold text-slate-800 mb-4">Client Journey Timeline</h2>
+      <h2 className="text-lg font-bold text-slate-800 mb-4">{t("journey.timelineTitle")}</h2>
       {timeline.length === 0 ? (
-        <p className="text-sm text-slate-400 italic">No journey data yet.</p>
+        <p className="text-sm text-slate-400 italic">{t("empty.noJourneyYet")}</p>
       ) : (
         <div className="relative">
           <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-slate-200" />

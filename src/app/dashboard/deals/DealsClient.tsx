@@ -389,7 +389,7 @@ export default function DealsClient({ userRole }: { userRole: string }) {
                     <div className="bg-green-50 rounded-lg p-3 border border-green-200">
                       <div className="flex items-center gap-2 mb-1">
                         <Handshake className="h-3 w-3 text-green-600" />
-                        <span className="text-xs font-bold text-green-700 uppercase">Deal Closed — Won!</span>
+                        <span className="text-xs font-bold text-green-700 uppercase">{t("meets.dealWon")}</span>
                         <span className="text-xs text-gray-400">{new Date(selectedDeal.createdAt).toLocaleDateString("en-GB")}</span>
                       </div>
                       <p className="text-sm text-gray-600">

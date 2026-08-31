@@ -256,7 +256,7 @@ export default function SalesProgressClient() {
           </div>
           <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
             {wonDeals.length === 0 ? (
-              <div className="px-6 py-8 text-center text-sm text-gray-500">No won deals found for this period.</div>
+              <div className="px-6 py-8 text-center text-sm text-gray-500">{t("empty.noWonDeals")}</div>
             ) : wonDeals.map((deal: any) => (
               <div key={deal.id} className="px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
                 <div>
@@ -284,7 +284,7 @@ export default function SalesProgressClient() {
           </div>
           <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
             {lostDeals.length === 0 ? (
-              <div className="px-6 py-8 text-center text-sm text-gray-500">No lost deals found for this period.</div>
+              <div className="px-6 py-8 text-center text-sm text-gray-500">{t("empty.noLostDeals")}</div>
             ) : lostDeals.map((deal: any) => (
               <div key={deal.id} className="px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
                 <div>
@@ -312,7 +312,7 @@ export default function SalesProgressClient() {
           </div>
           <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
             {wonDeals.length === 0 ? (
-              <div className="px-6 py-8 text-center text-sm text-gray-500">No revenue data for this period.</div>
+              <div className="px-6 py-8 text-center text-sm text-gray-500">{t("empty.noRevenue")}</div>
             ) : wonDeals.map((deal: any) => (
               <div key={deal.id} className="px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
                 <div>

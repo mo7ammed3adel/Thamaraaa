@@ -83,7 +83,7 @@ export default function TaskAssignmentForm({ projectId, projectNiche, onSuccess 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Task Department / Type</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">{t("task.departmentType")}</label>
             <select
               value={taskType}
               onChange={(e) => setTaskType(e.target.value)}
@@ -105,7 +105,7 @@ export default function TaskAssignmentForm({ projectId, projectNiche, onSuccess 
               <option value="Low">{t("priority.low")}</option>
               <option value="Medium">{t("priority.medium")}</option>
               <option value="High">{t("priority.high")}</option>
-              <option value="Critical">Critical</option>
+              <option value="Critical">{t("priority.critical")}</option>
             </select>
           </div>
         </div>
@@ -121,19 +121,19 @@ export default function TaskAssignmentForm({ projectId, projectNiche, onSuccess 
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1">Creative Brief / Description</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1">{t("task.creativeBrief")}</label>
           <textarea
             required
             value={brief}
             onChange={(e) => setBrief(e.target.value)}
             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm h-24 focus:outline-none focus:border-indigo-500"
-            placeholder="Provide context, references, or instructions..."
+            placeholder={t("task.contextPlaceholder")}
           ></textarea>
         </div>
 
         <div>
           <label className="block text-sm font-semibold text-slate-700 mb-2 flex justify-between items-center">
-            <span>Checklist Deliverables</span>
+            <span>{t("task.checklist")}</span>
             <button 
               type="button" 
               onClick={handleAddChecklist}

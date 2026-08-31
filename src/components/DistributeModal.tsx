@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X, UserPlus } from "lucide-react";
 import { distributeProject } from "@/client/api/projects";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface User {
   id: string;
@@ -41,6 +42,7 @@ export default function DistributeModal({
   actionLabel,
   onDistributed,
 }: DistributeModalProps) {
+  const t = useTranslator();
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string>("");
@@ -128,7 +130,7 @@ export default function DistributeModal({
             })}
 
             {availableUsers.length === 0 && (
-              <p className="text-sm text-gray-500 text-center py-6">No available users to assign.</p>
+              <p className="text-sm text-gray-500 text-center py-6">{t("empty.noUsersToAssign")}</p>
             )}
           </div>
         </div>

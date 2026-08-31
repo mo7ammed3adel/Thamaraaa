@@ -73,7 +73,7 @@ export default function CreateWarningModal({ isOpen, onClose, clientId, projectI
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-red-50">
-          <h2 className="text-lg font-bold text-red-800">Send System Warning</h2>
+          <h2 className="text-lg font-bold text-red-800">{t("warning.send")}</h2>
           <button onClick={onClose} className="p-1 hover:bg-red-100 rounded-full text-red-600 transition-colors">
             <X size={20} />
           </button>
@@ -88,26 +88,26 @@ export default function CreateWarningModal({ isOpen, onClose, clientId, projectI
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
-              placeholder="E.g., Client Missing Documentation"
+              placeholder={t("warning.subjectExample")}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Severity</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">{t("warning.severity")}</label>
             <select
               value={severity}
               onChange={(e) => setSeverity(e.target.value)}
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-500"
             >
-              <option value="Low">Low - FYI</option>
-              <option value="Medium">Medium - Needs Attention</option>
-              <option value="High">High - Urgent</option>
-              <option value="Critical">Critical - Blocking Delivery</option>
+              <option value="Low">{t("warning.low")}</option>
+              <option value="Medium">{t("warning.medium")}</option>
+              <option value="High">{t("warning.high")}</option>
+              <option value="Critical">{t("warning.critical")}</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Notify Roles</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">{t("warning.notifyRoles")}</label>
             <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border border-slate-100 rounded-lg bg-slate-50">
               {availableRoles.map(role => (
                 <label key={role} className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
@@ -122,18 +122,18 @@ export default function CreateWarningModal({ isOpen, onClose, clientId, projectI
               ))}
             </div>
             {recipientRoles.length === 0 && (
-              <p className="text-xs text-red-500 mt-1">Select at least one role to notify</p>
+              <p className="text-xs text-red-500 mt-1">{t("warning.selectRole")}</p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Message Details</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">{t("warning.messageDetails")}</label>
             <textarea
               required
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-500 h-24 resize-none"
-              placeholder="Describe the issue in detail..."
+              placeholder={t("warning.describeIssue")}
             />
           </div>
 

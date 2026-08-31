@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { formatDateTime } from "@/shared/formatters/date";
 import { acknowledgeWarning, listWarnings } from "@/client/api/warnings";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface WarningData {
   id: string;
@@ -16,6 +17,7 @@ interface WarningData {
 }
 
 export default function WarningPopup({ userRole, userId }: { userRole: string; userId: string }) {
+  const t = useTranslator();
   const [warnings, setWarnings] = useState<WarningData[]>([]);
   const [activeWarning, setActiveWarning] = useState<WarningData | null>(null);
   const [acknowledging, setAcknowledging] = useState(false);
@@ -124,7 +126,7 @@ export default function WarningPopup({ userRole, userId }: { userRole: string; u
             {activeWarning.message}
           </p>
           <div className="flex items-center gap-2 text-sm text-slate-500 bg-slate-50 p-2 rounded-lg">
-            <span className="font-bold">Sent by:</span>
+            <span className="font-bold">{t("warning.sentBy")}</span>
             <span className="capitalize font-medium text-slate-700">
               {activeWarning.senderRole.replace(/_/g, " ")}
             </span>

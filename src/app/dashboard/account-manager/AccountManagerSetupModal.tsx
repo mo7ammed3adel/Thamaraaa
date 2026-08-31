@@ -43,13 +43,13 @@ export default function AccountManagerSetupModal({
               defaultValue={setupModalProject.niche || setupModalProject.deal?.lead?.niche || ""}
               required
               className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-              placeholder="E-commerce, Real Estate, Clinic..."
+              placeholder={t("am.nicheExample")}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Technical Deadline</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">{t("am.technicalDeadline")}</label>
               <input
                 type="date"
                 name="technicalDeadline"
@@ -82,7 +82,7 @@ export default function AccountManagerSetupModal({
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Google Drive Link</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">{t("am.driveLink")}</label>
             <input
               type="url"
               name="driveLink"
@@ -98,7 +98,7 @@ export default function AccountManagerSetupModal({
               name="notes"
               defaultValue={setupModalProject.notes || ""}
               className="w-full border rounded-lg px-3 py-2 text-sm h-32 resize-none focus:ring-2 focus:ring-indigo-500 outline-none"
-              placeholder="Brief, client constraints, priority notes, access notes..."
+              placeholder={t("am.setupNotesPlaceholder")}
             />
           </div>
 

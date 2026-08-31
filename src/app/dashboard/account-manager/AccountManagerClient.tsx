@@ -119,8 +119,8 @@ export default function AccountManagerClient({ userId, projects, kpis, headTechn
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">My Clients Dashboard</h1>
-        <p className="text-sm text-slate-500">Welcome back. Here is the overview of your assigned projects.</p>
+        <h1 className="text-2xl font-bold text-slate-800">{t("am.dashboardTitle")}</h1>
+        <p className="text-sm text-slate-500">{t("am.dashboardSubtitle")}</p>
       </div>
 
       {errorMsg && (

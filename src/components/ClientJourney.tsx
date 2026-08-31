@@ -155,7 +155,7 @@ export default function ClientJourney({ leadName, phone, callLogs, meetings, dea
       </div>
 
       {timeline.length === 0 ? (
-        <p className="text-sm text-slate-400 italic py-4">No journey data available yet.</p>
+        <p className="text-sm text-slate-400 italic py-4">{t("empty.noJourney")}</p>
       ) : (
         <div className="relative">
           {/* Vertical line */}

@@ -71,17 +71,17 @@ export default function ClientFilesTab({
           <div className="flex items-center gap-2 mb-4">
             <h2 className="text-lg font-bold text-slate-800">📎 Task Links</h2>
             <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-full">{taskLinks.length}</span>
-            <span className="text-xs text-slate-400 ms-auto">Auto-synced from Tasks</span>
+            <span className="text-xs text-slate-400 ms-auto">{t("files.autoSynced")}</span>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-slate-50">
                 <tr>
                   <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("lead.type")}</th>
-                  <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Link</th>
-                  <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Sent By</th>
+                  <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("files.link")}</th>
+                  <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("files.sentBy")}</th>
                   <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("common.role")}</th>
-                  <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Sent Date</th>
+                  <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("files.sentDate")}</th>
                   <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("task.deadline")}</th>
                   <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("common.status")}</th>
                 </tr>
@@ -134,15 +134,15 @@ export default function ClientFilesTab({
       )}
 
       <div className="bg-white rounded-xl border shadow-sm p-6">
-        <h2 className="text-lg font-bold text-slate-800 mb-4">Project Files</h2>
+        <h2 className="text-lg font-bold text-slate-800 mb-4">{t("files.projectFiles")}</h2>
         {canUploadProjectFiles && (
           <form onSubmit={handleUploadProjectFile} className="grid grid-cols-1 md:grid-cols-[160px_1fr_auto] gap-3 mb-5 p-4 bg-slate-50 border rounded-xl">
             <select value={fileType} onChange={(e) => setFileType(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none focus:ring-2 focus:ring-indigo-500">
-              <option value="contract">Contract</option>
-              <option value="screenshot">Screenshot</option>
-              <option value="report">Report</option>
+              <option value="contract">{t("files.contract")}</option>
+              <option value="screenshot">{t("files.screenshot")}</option>
+              <option value="report">{t("files.report")}</option>
               <option value="brief">{t("task.brief")}</option>
-              <option value="other">Other</option>
+              <option value="other">{t("files.other")}</option>
             </select>
             <input
               type="url"

@@ -61,13 +61,13 @@ export default function ClientNotesTab({
         <div className="flex gap-3">
           <select value={noteCategory} onChange={(e) => setNoteCategory(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white min-w-[120px]">
             <option value="general">{t("common.general")}</option>
-            <option value="telesales">TeleSales</option>
+            <option value="telesales">{t("notes.telesales")}</option>
             <option value="sales">{t("team.sales")}</option>
-            <option value="account_manager">Account Mgr</option>
+            <option value="account_manager">{t("notes.accountMgr")}</option>
             <option value="technical">{t("team.technical")}</option>
             <option value="design">{t("team.design")}</option>
           </select>
-          <textarea value={noteContent} onChange={(e) => setNoteContent(e.target.value)} placeholder="Write a note visible to all departments..." className="flex-1 border rounded-lg px-3 py-2 text-sm resize-none h-20" />
+          <textarea value={noteContent} onChange={(e) => setNoteContent(e.target.value)} placeholder={t("notes.writeAllDepartments")} className="flex-1 border rounded-lg px-3 py-2 text-sm resize-none h-20" />
           <button onClick={handleAddNote} disabled={!noteContent.trim() || saving} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium self-end hover:bg-indigo-700 disabled:opacity-50 transition">
             {saving ? "..." : "Add"}
           </button>
@@ -77,7 +77,7 @@ export default function ClientNotesTab({
       <div className="bg-white rounded-xl border shadow-sm p-6">
         <h2 className="text-lg font-bold text-slate-800 mb-3">All Notes ({notes.length})</h2>
         {notes.length === 0 ? (
-          <p className="text-sm text-slate-400 italic">No notes yet.</p>
+          <p className="text-sm text-slate-400 italic">{t("empty.noNotesYet")}</p>
         ) : (
           <div className="space-y-3">
             {notes.map((note) => {

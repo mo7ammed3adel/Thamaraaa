@@ -64,7 +64,7 @@ export default function CrossTeamTaskForm({ projectId, onClose, userRole = "", l
 
       {!lockedTaskType && (
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-1">Task Category</label>
+          <label className="block text-sm font-bold text-slate-700 mb-1">{t("task.category")}</label>
           <select
             value={taskType}
             onChange={(e) => setTaskType(e.target.value)}
@@ -94,24 +94,24 @@ export default function CrossTeamTaskForm({ projectId, onClose, userRole = "", l
       </div>
 
       <div>
-        <label className="block text-sm font-bold text-slate-700 mb-1">Task Link (optional)</label>
+        <label className="block text-sm font-bold text-slate-700 mb-1">{t("task.link")}</label>
         <input 
           type="url"
           value={taskLink}
           onChange={(e) => setTaskLink(e.target.value)}
-          placeholder="https://example.com/reference-material"
+          placeholder={t("task.linkExample")}
           className="w-full border-2 border-slate-200 rounded-lg p-2 outline-none focus:border-indigo-500 font-medium bg-slate-50"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-bold text-slate-700 mb-1">Task Brief</label>
+        <label className="block text-sm font-bold text-slate-700 mb-1">{t("task.briefLabel")}</label>
         <textarea 
           required
           rows={4}
           value={brief}
           onChange={(e) => setBrief(e.target.value)}
-          placeholder="Describe what needs to be done..."
+          placeholder={t("task.describeWork")}
           className="w-full border-2 border-slate-200 rounded-lg p-2 outline-none focus:border-indigo-500 font-medium bg-slate-50"
         />
       </div>

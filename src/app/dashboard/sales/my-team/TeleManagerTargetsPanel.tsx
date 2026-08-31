@@ -32,7 +32,7 @@ export default function TeleManagerTargetsPanel({ managers: initialManagers }: {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
       <div className="px-6 py-3 bg-indigo-50 border-b border-indigo-100 flex items-center gap-2">
         <PhoneCall className="h-4 w-4 text-indigo-600" />
-        <h2 className="text-sm font-bold text-indigo-800">TeleSales Manager - Monthly Meetings Target</h2>
+        <h2 className="text-sm font-bold text-indigo-800">{t("target.teleManagerTitle")}</h2>
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
@@ -40,8 +40,8 @@ export default function TeleManagerTargetsPanel({ managers: initialManagers }: {
             <tr>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.manager")}</th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.status")}</th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Team Actual Meetings (Month)</th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Monthly Target</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("target.teamActualMeetings")}</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("target.monthly")}</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -83,7 +83,7 @@ export default function TeleManagerTargetsPanel({ managers: initialManagers }: {
                       if (val !== m.target) updateTarget(m.id, val);
                     }}
                     className="w-20 border border-gray-200 rounded-md px-2 py-1 text-sm focus:ring-2 focus:ring-indigo-500"
-                    title="Meetings target for the current month"
+                    title={t("target.meetingsHint")}
                   />
                 </td>
               </tr>

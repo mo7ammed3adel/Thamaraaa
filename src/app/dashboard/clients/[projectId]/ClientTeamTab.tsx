@@ -66,13 +66,13 @@ export default function ClientTeamTab({
   const t = useTranslator();
   return (
     <div className="bg-white rounded-xl border shadow-sm p-6">
-      <h2 className="text-lg font-bold text-slate-800 mb-4">Team Assignment</h2>
+      <h2 className="text-lg font-bold text-slate-800 mb-4">{t("journey.teamAssignment")}</h2>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-slate-50">
             <tr>
               <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("common.department")}</th>
-              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Leader</th>
+              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("journey.leader")}</th>
               <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">{t("common.agent")}</th>
               <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">{t("team.tasks")}</th>
               <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">{t("common.status")}</th>
@@ -97,7 +97,7 @@ export default function ClientTeamTab({
                         className="bg-slate-50 border rounded text-xs px-2 py-1 max-w-[150px]"
                         defaultValue={row.leaderId || ""}
                       >
-                        <option value="" disabled>Assign Leader...</option>
+                        <option value="" disabled>{t("journey.assignLeader")}</option>
                         {leaders.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
                       </select>
                     ) : (
@@ -112,7 +112,7 @@ export default function ClientTeamTab({
                         className="bg-slate-50 border rounded text-xs px-2 py-1 max-w-[150px]"
                         defaultValue={row.agentId || ""}
                       >
-                        <option value="" disabled>Assign Agent...</option>
+                        <option value="" disabled>{t("journey.assignAgent")}</option>
                         {agents.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
                       </select>
                     ) : (

@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface DrillDownModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface DrillDownModalProps {
 }
 
 export default function DrillDownModal({ isOpen, onClose, title, data, columns }: DrillDownModalProps) {
+  const t = useTranslator();
   if (!isOpen) return null;
 
   return (
@@ -25,7 +27,7 @@ export default function DrillDownModal({ isOpen, onClose, title, data, columns }
 
         <div className="flex-1 overflow-auto p-4">
           {data.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-slate-400 italic">No data available</div>
+            <div className="flex items-center justify-center h-full text-slate-400 italic">{t("empty.noDataAvailable")}</div>
           ) : (
             <div className="overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
               <table className="w-full text-start text-sm whitespace-nowrap">

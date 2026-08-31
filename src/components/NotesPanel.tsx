@@ -94,7 +94,7 @@ export default function NotesPanel({ projectId, currentUserRole }: NotesPanelPro
         </div>
         
         <div className="flex items-center gap-2 text-xs font-normal">
-          <span className="text-slate-500">Filter:</span>
+          <span className="text-slate-500">{t("notes.filter")}</span>
           <select 
             value={filterCategory} 
             onChange={e => setFilterCategory(e.target.value)}
@@ -102,7 +102,7 @@ export default function NotesPanel({ projectId, currentUserRole }: NotesPanelPro
           >
             <option value="all">{t("filter.allDepartments")}</option>
             <option value="sales">{t("team.sales")}</option>
-            <option value="account_manager">Account Management</option>
+            <option value="account_manager">{t("notes.accountManagement")}</option>
             <option value="technical">{t("team.technical")}</option>
             <option value="design">{t("team.design")}</option>
             <option value="general">{t("common.general")}</option>
@@ -114,7 +114,7 @@ export default function NotesPanel({ projectId, currentUserRole }: NotesPanelPro
         {loading ? (
           <div className="flex justify-center p-4"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div></div>
         ) : notes.length === 0 ? (
-          <div className="text-center text-slate-400 py-8 italic text-xs">No notes added to this project yet.</div>
+          <div className="text-center text-slate-400 py-8 italic text-xs">{t("notes.noneYet")}</div>
         ) : (
           notes.map((note) => (
             <div key={note.id} className={`bg-white border rounded-lg p-3 shadow-sm`}>
@@ -141,7 +141,7 @@ export default function NotesPanel({ projectId, currentUserRole }: NotesPanelPro
           <textarea
             value={newNote}
             onChange={(e) => setNewNote(e.target.value)}
-            placeholder="Add a new note to the project history..."
+            placeholder={t("notes.addPlaceholder")}
             className="w-full border border-slate-200 rounded-lg ps-3 pe-10 py-2 text-sm focus:outline-none focus:border-indigo-500 min-h-[60px] resize-none"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
@@ -159,8 +159,8 @@ export default function NotesPanel({ projectId, currentUserRole }: NotesPanelPro
           </button>
         </form>
         <div className="text-[10px] text-slate-400 mt-1 flex justify-between">
-          <span>Press Enter to send, Shift+Enter for new line</span>
-          <span>Notes are visible to all assignees</span>
+          <span>{t("notes.sendHint")}</span>
+          <span>{t("notes.visibility")}</span>
         </div>
       </div>
     </div>

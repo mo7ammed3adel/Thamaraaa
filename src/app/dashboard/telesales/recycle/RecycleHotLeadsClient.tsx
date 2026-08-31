@@ -148,7 +148,7 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
       <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm flex flex-wrap gap-4 items-end">
         <div className="flex items-center gap-3">
           <div>
-            <label className="block text-xs font-semibold text-red-500 mb-1 uppercase">Lost From Agent</label>
+            <label className="block text-xs font-semibold text-red-500 mb-1 uppercase">{t("recycle.lostFrom")}</label>
             <select
               value={lostFromAgent}
               onChange={(e) => {
@@ -157,7 +157,7 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
               }}
               className="border border-red-300 bg-red-50 text-red-800 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 min-w-[200px]"
             >
-              <option value="">All Agents</option>
+              <option value="">{t("recycle.allAgents")}</option>
               {agents.map(a => (
                 <option key={a.id} value={a.id}>{a.name}</option>
               ))}
@@ -172,7 +172,7 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
         <div className="flex items-center gap-3">
           <Users className="h-5 w-5 text-gray-400" />
           <div>
-            <label className="block text-xs font-semibold text-blue-600 mb-1 uppercase">Assign To Agent</label>
+            <label className="block text-xs font-semibold text-blue-600 mb-1 uppercase">{t("recycle.assignTo")}</label>
             <select
               value={assignToAgent}
               onChange={(e) => setAssignToAgent(e.target.value)}
@@ -188,13 +188,13 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
 
         <div className="flex items-center gap-3 ms-auto">
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Filter by Class</label>
+            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">{t("recycle.filterByClass")}</label>
             <select
               value={filterClass}
               onChange={(e) => setFilterClass(e.target.value)}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 min-w-[150px]"
             >
-              <option value="All">All Classifications</option>
+              <option value="All">{t("recycle.allClassifications")}</option>
               <option value="Hot">🔥 Hot</option>
               <option value="Warm">☀️ Warm</option>
               <option value="Cold">❄️ Cold</option>
@@ -225,10 +225,10 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("common.client")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("common.phone")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Classification</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Previous Tele Agent</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Previous Sales Agent</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Last Notes</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Date Lost</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("recycle.previousTele")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("recycle.previousSales")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("recycle.lastNotes")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("recycle.dateLost")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">

@@ -116,26 +116,26 @@ export default function AccountManagerClientsTable({
     <div className="bg-white rounded-xl shadow border overflow-hidden">
       <div className="p-4 border-b bg-slate-50 space-y-3">
         <div className="flex flex-col lg:flex-row gap-3 lg:items-end">
-          <h2 className="text-lg font-bold text-slate-800 whitespace-nowrap lg:pb-2">My Clients</h2>
+          <h2 className="text-lg font-bold text-slate-800 whitespace-nowrap lg:pb-2">{t("am.myClients")}</h2>
           <div className="flex flex-col sm:flex-row gap-3 flex-1">
             <label className="flex-1 max-w-sm">
               <span className="block text-xs font-semibold text-slate-500 mb-1 uppercase">Search</span>
               <input
                 type="text"
-                placeholder="Search by client name or phone..."
+                placeholder={t("am.searchPlaceholder")}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
               />
             </label>
             <label className="w-full sm:w-52">
-              <span className="block text-xs font-semibold text-slate-500 mb-1 uppercase">Client Status</span>
+              <span className="block text-xs font-semibold text-slate-500 mb-1 uppercase">{t("am.clientStatus")}</span>
               <select
                 value={filterLifecycle}
                 onChange={(event) => setFilterLifecycle(event.target.value)}
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
               >
-                <option value="all">All statuses</option>
+                <option value="all">{t("am.allStatuses")}</option>
                 <option value={LIFECYCLE_STATE.ACTIVE}>{t("status.active")}</option>
                 <option value={LIFECYCLE_STATE.HOLD}>{t("status.hold")}</option>
                 <option value={LIFECYCLE_STATE.RENEWER}>{t("status.renewer")}</option>
@@ -158,12 +158,12 @@ export default function AccountManagerClientsTable({
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-slate-50 text-xs font-semibold text-slate-500 uppercase">
             <tr>
-              <th className="px-6 py-3 text-start">Client Info</th>
-              <th className="px-6 py-3 text-start">Start Date</th>
-              <th className="px-6 py-3 text-start">Technical Progress</th>
+              <th className="px-6 py-3 text-start">{t("am.clientInfo")}</th>
+              <th className="px-6 py-3 text-start">{t("am.startDate")}</th>
+              <th className="px-6 py-3 text-start">{t("am.technicalProgress")}</th>
               <th className="px-6 py-3 text-center">{t("journey.lifecycle")}</th>
               <th className="px-6 py-3 text-center">{t("team.tasks")}</th>
-              <th className="px-6 py-3 text-center">Last Activity</th>
+              <th className="px-6 py-3 text-center">{t("am.lastActivity")}</th>
               <th className="px-6 py-3 text-end">{t("common.actions")}</th>
             </tr>
           </thead>
@@ -262,11 +262,11 @@ export default function AccountManagerClientsTable({
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                           <div className="space-y-4">
                             <div className="bg-white p-4 rounded-lg border shadow-sm">
-                              <h3 className="text-sm font-bold text-slate-800 mb-3 border-b pb-2">Client Governance</h3>
+                              <h3 className="text-sm font-bold text-slate-800 mb-3 border-b pb-2">{t("am.governance")}</h3>
 
                               <div className="space-y-3">
                                 <div className="flex justify-between items-center">
-                                  <span className="text-xs text-slate-500 font-medium">Head Technical:</span>
+                                  <span className="text-xs text-slate-500 font-medium">{t("am.headTechnicalLabel")}</span>
                                   {project.headTechnicalId ? (
                                     <div className="flex items-center gap-2">
                                       <span className="text-sm font-semibold text-slate-700">{project.headTechnical?.name}</span>
@@ -288,7 +288,7 @@ export default function AccountManagerClientsTable({
                                 </div>
 
                                 <div className="flex justify-between items-center">
-                                  <span className="text-xs text-slate-500 font-medium">Head SEO:</span>
+                                  <span className="text-xs text-slate-500 font-medium">{t("am.headSeoLabel")}</span>
                                   {project.headSeoId ? (
                                     <span className="text-sm font-semibold text-slate-700">{project.headSeo?.name}</span>
                                   ) : (
@@ -302,7 +302,7 @@ export default function AccountManagerClientsTable({
                                 </div>
 
                                 <div className="flex justify-between items-center pt-2 border-t mt-2">
-                                  <span className="text-xs text-slate-500 font-medium">Lifecycle State:</span>
+                                  <span className="text-xs text-slate-500 font-medium">{t("am.lifecycleLabel")}</span>
                                     <button
                                       onClick={(e) => { e.stopPropagation(); setLifecycleModalProject(project); }}
                                       className="text-xs font-bold px-3 py-1 bg-slate-100 text-slate-700 border rounded hover:bg-slate-200 transition"
@@ -314,7 +314,7 @@ export default function AccountManagerClientsTable({
                             </div>
 
                             <div className="bg-white p-4 rounded-lg border shadow-sm">
-                              <h3 className="text-sm font-bold text-slate-800 mb-3 border-b pb-2">Recent Notes</h3>
+                              <h3 className="text-sm font-bold text-slate-800 mb-3 border-b pb-2">{t("am.recentNotes")}</h3>
                               {project.globalNotes && project.globalNotes.length > 0 ? (
                                 <div className="space-y-3 max-h-48 overflow-y-auto pe-2">
                                   {project.globalNotes.slice(0, 3).map((note: any) => (
@@ -328,13 +328,13 @@ export default function AccountManagerClientsTable({
                                   ))}
                                 </div>
                               ) : (
-                                <p className="text-xs text-slate-400 italic">No notes found.</p>
+                                <p className="text-xs text-slate-400 italic">{t("am.noNotes")}</p>
                               )}
                             </div>
                           </div>
 
                           <div className="lg:col-span-2 space-y-3">
-                            <h3 className="text-sm font-bold text-slate-800">Operational Teams</h3>
+                            <h3 className="text-sm font-bold text-slate-800">{t("am.operationalTeams")}</h3>
                             <TeamOverview teams={buildTeamsOverview(project)} />
                           </div>
                         </div>

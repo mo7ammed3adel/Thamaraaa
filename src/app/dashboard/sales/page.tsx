@@ -3,8 +3,10 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import SalesClient from "./SalesClient";
+import { getTranslator } from "@/server/i18n/locale";
 
 export default async function SalesWorkspacePage() {
+  const t = getTranslator();
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
   
@@ -83,7 +85,7 @@ export default async function SalesWorkspacePage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Sales Workspace</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("sales.workspace")}</h1>
       </div>
       <SalesClient
         initialLeads={leads}

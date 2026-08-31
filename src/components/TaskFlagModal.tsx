@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { flagTask } from "@/client/api/tasks";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 /**
  * Props for the TaskFlagModal component.
@@ -30,6 +31,7 @@ export default function TaskFlagModal({
   onClose,
   onSuccess,
 }: TaskFlagModalProps) {
+  const t = useTranslator();
   const [reason, setReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -99,7 +101,7 @@ export default function TaskFlagModal({
               id="flag-reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Explain why this task needs to be returned..."
+              placeholder={t("task.flagReason")}
               className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
               rows={4}
               disabled={isSubmitting}

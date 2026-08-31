@@ -95,13 +95,13 @@ export default function SelfTaskForm({ projectId, userRole, onClose }: SelfTaskF
       </div>
 
       <div>
-        <label className="block text-sm font-bold text-slate-700 mb-1">Task Description *</label>
+        <label className="block text-sm font-bold text-slate-700 mb-1">{t("task.description")}</label>
         <textarea
           required
           rows={4}
           value={brief}
           onChange={(e) => setBrief(e.target.value)}
-          placeholder="Describe what you plan to do for this client..."
+          placeholder={t("task.selfDescribe")}
           className="w-full border-2 border-slate-200 rounded-lg p-3 outline-none focus:border-indigo-500 font-medium bg-slate-50 text-sm transition"
         />
       </div>

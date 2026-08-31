@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { X } from "lucide-react";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 type DashboardModalShellProps = {
   title: string;
@@ -16,6 +17,7 @@ export default function DashboardModalShell({
   maxWidthClassName = "max-w-md",
   onClose,
 }: DashboardModalShellProps) {
+  const t = useTranslator();
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
       <div className={`bg-white rounded-2xl w-full ${maxWidthClassName} overflow-hidden shadow-2xl`}>
@@ -25,7 +27,7 @@ export default function DashboardModalShell({
             type="button"
             onClick={onClose}
             className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-white transition"
-            aria-label="Close modal"
+            aria-label={t("modal.close")}
           >
             <X className="h-4 w-4" />
           </button>

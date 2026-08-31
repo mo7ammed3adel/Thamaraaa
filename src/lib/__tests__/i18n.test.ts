@@ -31,12 +31,15 @@ describe("dictionaries", () => {
   });
 
   it("leaves no Arabic entry as a copy of the English one", () => {
-    const untranslated = Object.keys(en).filter(
-      (key) =>
-        (ar as Record<string, string>)[key] === (en as Record<string, string>)[key] &&
-        // Initialisms are the same word in both languages.
-        !["SEO"].includes((en as Record<string, string>)[key])
-    );
+    // Some values are identical in both languages by nature: initialisms, and
+    // example URLs shown verbatim in placeholders.
+    const sameInBothLanguages = (value: string) =>
+      value === "SEO" || value.startsWith("http");
+
+    const untranslated = Object.keys(en).filter((key) => {
+      const english = (en as Record<string, string>)[key];
+      return (ar as Record<string, string>)[key] === english && !sameInBothLanguages(english);
+    });
     expect(untranslated).toEqual([]);
   });
 

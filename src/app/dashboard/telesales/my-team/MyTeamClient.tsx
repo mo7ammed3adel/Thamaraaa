@@ -268,8 +268,8 @@ export default function MyTeamClient({
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.level")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("team.leads")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("team.calls")}</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Meetings (Month)</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Target</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("team.meetingsMonth")}</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t("team.target")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("status.transferred")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.status")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.specialization")}</th>
@@ -367,7 +367,7 @@ export default function MyTeamClient({
                 );
               })}
               {displayAgents.length === 0 && (
-                <tr><td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500">No agents found under your management.</td></tr>
+                <tr><td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500">{t("team.noAgents")}</td></tr>
               )}
             </tbody>
           </table>

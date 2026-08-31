@@ -196,7 +196,7 @@ export default function TaskWorkspaceModal({
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-bold text-lg text-slate-900 uppercase">{(task.taskType || "task").replace(/_/g, " ")}</h3>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${priorityColor}`}>{task.priority || "Medium"}</span>
-              {isOverdue && <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-600 text-white">OVERDUE</span>}
+              {isOverdue && <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-600 text-white">{t("task.overdue")}</span>}
             </div>
             <p className="text-sm text-slate-500 mt-0.5">
               {clientName || "Client"}
@@ -284,7 +284,7 @@ export default function TaskWorkspaceModal({
           {/* Checklist */}
           {checklist.length > 0 && (
             <div>
-              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Checklist</h4>
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{t("task.checklistShort")}</h4>
               <div className="space-y-1.5">
                 {checklist.map((item, i) => (
                   <label key={item.id || i} className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
@@ -303,7 +303,7 @@ export default function TaskWorkspaceModal({
 
           {/* Deliverables */}
           <div>
-            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Deliverables / Links</h4>
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{t("task.deliverables")}</h4>
             {deliverables.length > 0 && (
               <div className="space-y-1.5 mb-3">
                 {deliverables.map((d, i) => (
@@ -322,7 +322,7 @@ export default function TaskWorkspaceModal({
               <input
                 value={newLabel}
                 onChange={(e) => setNewLabel(e.target.value)}
-                placeholder="Label (e.g. Figma, Canva, Drive)"
+                placeholder={t("task.linkLabel")}
                 className="sm:w-40 border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500"
               />
               <input
@@ -344,7 +344,7 @@ export default function TaskWorkspaceModal({
           {/* Context notes */}
           {contextNotes.length > 0 && (
             <div>
-              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Client Context Notes</h4>
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{t("task.clientContext")}</h4>
               <div className="space-y-2 max-h-40 overflow-y-auto">
                 {contextNotes.slice(0, 6).map((n: any) => (
                   <div key={n.id} className="text-xs text-slate-600 bg-slate-50 border rounded-lg p-2">
@@ -364,7 +364,7 @@ export default function TaskWorkspaceModal({
               rows={2}
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Share an update or blocker with the team…"
+              placeholder={t("task.shareUpdate")}
               className="w-full border-2 border-slate-200 rounded-lg p-3 text-sm outline-none focus:border-indigo-500"
             />
             <button

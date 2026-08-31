@@ -107,7 +107,7 @@ export default function TeleProgressClient() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 opacity-80" />
-              <span className="text-xs font-semibold uppercase opacity-80">Accept & Book</span>
+              <span className="text-xs font-semibold uppercase opacity-80">{t("progress.acceptBook")}</span>
             </div>
             <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "booked" ? "rotate-180" : ""}`} />
           </div>
@@ -122,7 +122,7 @@ export default function TeleProgressClient() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <XCircle className="h-5 w-5 opacity-80" />
-              <span className="text-xs font-semibold uppercase opacity-80">Accept but Lost</span>
+              <span className="text-xs font-semibold uppercase opacity-80">{t("progress.acceptLost")}</span>
             </div>
             <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${drillDown === "lost" ? "rotate-180" : ""}`} />
           </div>
@@ -169,7 +169,7 @@ export default function TeleProgressClient() {
             </div>
             <div>
               <p className="text-2xl font-bold text-yellow-600">{data.wrongNumber}</p>
-              <p className="text-xs text-gray-500">Wrong Numbers</p>
+              <p className="text-xs text-gray-500">{t("progress.wrongNumbers")}</p>
             </div>
           </div>
         </div>
@@ -195,7 +195,7 @@ export default function TeleProgressClient() {
           </div>
           <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
             {drillLogs.length === 0 ? (
-              <div className="px-6 py-8 text-center text-sm text-gray-500">No records found for this period.</div>
+              <div className="px-6 py-8 text-center text-sm text-gray-500">{t("progress.noRecords")}</div>
             ) : drillLogs.map((log: any) => (
               <div key={log.id} className="px-6 py-3 flex items-start gap-3 hover:bg-gray-50 transition-colors">
                 <div className={`mt-0.5 p-1.5 rounded-full shrink-0 ${
@@ -246,7 +246,7 @@ export default function TeleProgressClient() {
           </div>
           <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
             {data.callLogs.filter(c => c.callStatus === "Accept and book meeting").length === 0 ? (
-              <div className="px-6 py-8 text-center text-sm text-gray-500">No meetings booked for this period.</div>
+              <div className="px-6 py-8 text-center text-sm text-gray-500">{t("progress.noMeetings")}</div>
             ) : data.callLogs.filter(c => c.callStatus === "Accept and book meeting").map((log: any) => (
               <div key={log.id} className="px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-3">
@@ -278,7 +278,7 @@ export default function TeleProgressClient() {
       {!drillDown && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Call Log History</h3>
+            <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">{t("progress.callHistory")}</h3>
             <span className="text-xs text-gray-500">{data.callLogs.length} records</span>
           </div>
           <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">

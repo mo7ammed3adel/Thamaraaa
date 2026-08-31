@@ -299,7 +299,7 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
                   Closed Deals {sortBy === "won" ? "↓" : ""}
                 </th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("form.monthlyFundTarget")}</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Win Rate</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("metric.winRate")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.status")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.specialization")}</th>
               </tr>

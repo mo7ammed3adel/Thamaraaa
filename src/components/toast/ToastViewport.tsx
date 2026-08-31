@@ -3,6 +3,7 @@
 import { useEffect, useState, type ComponentType } from "react";
 import { CheckCircle2, AlertTriangle, Info, XCircle, X } from "lucide-react";
 import { subscribe, dismissToast, type Toast, type ToastType } from "./toast-store";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 type ToastStyle = {
   Icon: ComponentType<{ className?: string }>;
@@ -26,6 +27,7 @@ const DURATIONS: Record<ToastType, number> = {
 };
 
 function ToastItem({ toast }: { toast: Toast }) {
+  const t = useTranslator();
   const [leaving, setLeaving] = useState(false);
   const style = STYLES[toast.type];
   const { Icon } = style;
@@ -59,7 +61,7 @@ function ToastItem({ toast }: { toast: Toast }) {
       <button
         type="button"
         onClick={() => setLeaving(true)}
-        aria-label="Dismiss"
+        aria-label={t("common.dismiss")}
         className="absolute right-2 top-2 rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
       >
         <X className="h-4 w-4" />
@@ -73,6 +75,7 @@ function ToastItem({ toast }: { toast: Toast }) {
 }
 
 export default function ToastViewport() {
+  const t = useTranslator();
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   useEffect(() => subscribe(setToasts), []);

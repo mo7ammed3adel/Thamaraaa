@@ -834,7 +834,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-end">
                     {TELESALES_STAGE_STATUSES.includes(l.status) ? (
-                      <span className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-md text-xs font-bold" title="Still being worked by TeleSales — not yet handed over to Sales">
+                      <span className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-md text-xs font-bold" title={t("sales.stillTelesales")}>
                         In TeleSales
                       </span>
                     ) : l.status === "Closed_Won" ? (
@@ -861,7 +861,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                         <button
                           onClick={() => reportNoShow(l)}
                           disabled={!!activeLead || noShowLeadId === l.id}
-                          title="Client didn't attend — send back to TeleSales to follow up and re-book"
+                          title={t("sales.noShowHint")}
                           className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 rounded-md text-xs font-bold transition-colors disabled:opacity-50"
                         >
                           <UserX className="h-3.5 w-3.5" />
@@ -912,7 +912,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
               </React.Fragment>
             ))}
             {paginatedLeads.length === 0 && (
-              <tr><td colSpan={isManager ? 9 : 8} className="px-6 py-8 text-center text-sm text-gray-500">No active leads match the filters.</td></tr>
+              <tr><td colSpan={isManager ? 9 : 8} className="px-6 py-8 text-center text-sm text-gray-500">{t("sales.noActiveLeads")}</td></tr>
             )}
           </tbody>
         </table>
@@ -944,7 +944,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-emerald-50">
               <tr>
-                <th className="px-6 py-3 text-start text-xs font-medium text-emerald-700 uppercase tracking-wider">Client (Project)</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-emerald-700 uppercase tracking-wider">{t("sales.clientProject")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-emerald-700 uppercase tracking-wider">{t("sales.accountManager")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-emerald-700 uppercase tracking-wider">{t("sales.currentStatus")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-emerald-700 uppercase tracking-wider">{t("sales.progress")}</th>
@@ -1164,7 +1164,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                     <label className="block text-sm font-medium mb-1">{t("journey.hasStore")}</label>
                     <select className="w-full border p-2 rounded focus:ring-blue-500" value={feedback.hasStore} onChange={e => setFeedback({...feedback, hasStore: e.target.value})}>
                       <option value="No">No</option>
-                      <option value="Yes">Yes</option>
+                      <option value="Yes">{t("common.yes")}</option>
                     </select>
                   </div>
                   <div>
@@ -1187,10 +1187,10 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-blue-800 mb-1">New Meeting Notes *</label>
+                <label className="block text-sm font-bold text-blue-800 mb-1">{t("sales.newMeetingNotes")}</label>
                 <textarea required rows={3} className="w-full border-2 border-blue-200 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-gray-400" value={feedback.notes} onChange={e => setFeedback({...feedback, notes: e.target.value})} placeholder={t("sales.notesPlaceholder")} />
               </div>
-              <p className="text-[10px] text-gray-400 -mt-2">These notes will be independently saved to the interaction history log.</p>
+              <p className="text-[10px] text-gray-400 -mt-2">{t("sales.notesSavedHint")}</p>
 
               <div>
                 <label className="block text-sm font-medium mb-1 flex items-center gap-1.5">
@@ -1285,12 +1285,12 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Total Amount (SAR)</label>
+                  <label className="block text-sm font-medium mb-1">{t("deal.totalAmount")}</label>
                   <input required type="number" min="0" className="w-full border p-2 rounded" value={dealData.totalAmount} onChange={e => setDealData({...dealData, totalAmount: e.target.value})} />
                   <p className="text-[10px] text-gray-400 mt-1">{t("deal.fullContractValue")}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-blue-700">First Payment Amount (SAR)</label>
+                  <label className="block text-sm font-medium mb-1 text-blue-700">{t("deal.firstAmount")}</label>
                   <input required type="number" min="0" max={dealData.totalAmount || undefined} className="w-full border border-blue-200 p-2 rounded focus:ring-2 focus:ring-blue-500 bg-blue-50/30" placeholder={t("deal.firstAmountPlaceholder")} value={dealData.firstAmount} onChange={e => setDealData({...dealData, firstAmount: e.target.value})} />
                   <p className="text-[10px] text-blue-500 mt-1 font-medium">💰 This amount will be counted in Total Revenue</p>
                 </div>
@@ -1336,7 +1336,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                     <option>{t("deal.method.tamara")}</option>
                   </select>
                   {dealData.splitPayment && (
-                    <p className="text-[10px] text-indigo-500 mt-1">Set the amount paid via each method below.</p>
+                    <p className="text-[10px] text-indigo-500 mt-1">{t("deal.splitHint")}</p>
                   )}
                 </div>
 
@@ -1417,11 +1417,11 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
               {/* File Uploads */}
               <div className="grid grid-cols-2 gap-4 mt-2">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Upload Contract (Image URL)</label>
+                  <label className="block text-sm font-medium mb-1">{t("deal.uploadContract")}</label>
                   <input required type="url" placeholder="https://..." className="w-full border p-2 rounded" value={dealData.contractImageUrl} onChange={e => setDealData({...dealData, contractImageUrl: e.target.value})} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Upload Receipt (Image URL)</label>
+                  <label className="block text-sm font-medium mb-1">{t("deal.uploadReceipt")}</label>
                   <input required type="url" placeholder="https://..." className="w-full border p-2 rounded" value={dealData.receiptUrl} onChange={e => setDealData({...dealData, receiptUrl: e.target.value})} />
                 </div>
               </div>
@@ -1441,7 +1441,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                       </div>
                       <div className="w-1/2 flex gap-2">
                         <div className="flex-1">
-                          <label className="block text-xs font-medium text-gray-500 mb-1">Installment Amount (SAR)</label>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">{t("deal.installmentAmount")}</label>
                           <input required type="number" className="w-full border p-2 rounded text-sm focus:ring-blue-500" value={inst.amount} onChange={e => updateInstallment(idx, "amount", e.target.value)} />
                         </div>
                         <button type="button" onClick={() => setDealData({ ...dealData, installments: dealData.installments.filter((_, i) => i !== idx) })} className="text-red-500 font-bold hover:text-red-700 mt-5 px-2">×</button>
@@ -1449,7 +1449,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                     </div>
                   ))}
                   {dealData.installments.length === 0 && (
-                    <p className="text-sm text-gray-400 italic">Please add the remaining installments schedule.</p>
+                    <p className="text-sm text-gray-400 italic">{t("deal.addSchedule")}</p>
                   )}
                 </div>
               )}
@@ -1545,7 +1545,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
             </p>
             <form onSubmit={submitRevert} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Follow-up Date *</label>
+                <label className="block text-sm font-medium mb-1">{t("sales.followUpDateRequired")}</label>
                 <input
                   required
                   type="date"
@@ -1556,7 +1556,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Sales Agent *</label>
+                <label className="block text-sm font-medium mb-1">{t("sales.salesAgentRequired")}</label>
                 <select
                   required
                   className="w-full border p-2 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"

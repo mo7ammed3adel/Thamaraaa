@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 export default function TeamWorkloadBadge({
   department,
@@ -11,6 +12,7 @@ export default function TeamWorkloadBadge({
   agentCount: number;
   hasDelayedTasks: boolean;
 }) {
+  const t = useTranslator();
   const shortDept =
     department === "social_media"
       ? "SMM"
@@ -38,7 +40,7 @@ export default function TeamWorkloadBadge({
           {hasDelayedTasks && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>}
         </div>
         <div className="text-slate-500 truncate" style={{ fontSize: "11px", maxWidth: "100px" }}>
-          {leader ? leader.name : <span className="text-red-400 italic font-medium">Assign Leader</span>}
+          {leader ? leader.name : <span className="text-red-400 italic font-medium">{t("team.assignLeader")}</span>}
         </div>
       </div>
       {agentCount > 0 && (

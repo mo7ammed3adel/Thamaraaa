@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 /**
  * Props for the DistributionPanel component.
@@ -27,6 +28,7 @@ interface DistributionPanelProps {
  * Displays each team member as a card with their current workload.
  */
 export default function DistributionPanel({ title, users, isLoading, onAssign }: DistributionPanelProps) {
+  const t = useTranslator();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   if (users.length === 0) {
@@ -69,7 +71,7 @@ export default function DistributionPanel({ title, users, isLoading, onAssign }:
               </span>
             </div>
             {selectedId === user.id && isLoading && (
-              <p className="text-[10px] text-indigo-600 font-bold mt-1 animate-pulse">Assigning...</p>
+              <p className="text-[10px] text-indigo-600 font-bold mt-1 animate-pulse">{t("common.assigning")}</p>
             )}
           </button>
         ))}

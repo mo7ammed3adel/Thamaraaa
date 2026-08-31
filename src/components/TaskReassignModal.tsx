@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { reassignTask } from "@/client/api/tasks";
 import { listUsers } from "@/client/api/users";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 /**
  * Props for the TaskReassignModal component.
@@ -45,6 +46,7 @@ export default function TaskReassignModal({
   onClose,
   onSuccess,
 }: TaskReassignModalProps) {
+  const t = useTranslator();
   const [agents, setAgents] = useState<AgentOption[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -145,7 +147,7 @@ export default function TaskReassignModal({
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
         <div className="p-6 border-b">
-          <h3 className="text-lg font-semibold text-gray-900">Reassign Task</h3>
+          <h3 className="text-lg font-semibold text-gray-900">{t("task.reassign")}</h3>
           <p className="text-sm text-gray-500 mt-1">
             Reassign <span className="font-medium">&quot;{taskName}&quot;</span>{" "}
             to a different agent on your team.
@@ -176,7 +178,7 @@ export default function TaskReassignModal({
                 className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 disabled={isSubmitting}
               >
-                <option value="">Choose an agent...</option>
+                <option value="">{t("task.chooseAgent")}</option>
                 {agents.map((agent) => (
                   <option key={agent.id} value={agent.id}>
                     {agent.name} ({agent.role.replace(/_/g, " ")})

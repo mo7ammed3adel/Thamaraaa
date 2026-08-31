@@ -577,14 +577,14 @@ export default function TeleSalesClient({
                         <div className="bg-white border border-gray-200 rounded-lg p-4">
                           <h4 className="text-xs font-bold uppercase text-gray-500 mb-3">{t("telesales.customerDetails")}</h4>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                            <p><span className="text-gray-400">Name:</span> <span className="font-medium text-gray-800">{l.name}</span></p>
-                            <p><span className="text-gray-400">Phone:</span> <span className="font-medium text-gray-800">{l.phone}</span></p>
-                            <p><span className="text-gray-400">Source:</span> <span className="font-medium text-gray-800">{l.source || "-"}</span></p>
-                            <p><span className="text-gray-400">Niche:</span> <span className="font-medium text-gray-800">{l.niche || "-"}</span></p>
-                            <p><span className="text-gray-400">Customer Type:</span> <span className="font-medium text-gray-800">{l.customerType || "-"}</span></p>
-                            <p><span className="text-gray-400">Created:</span> <span className="font-medium text-gray-800">{formatDisplayDate(l.createdAt) || "-"}</span></p>
+                            <p><span className="text-gray-400">{t("label.name")}</span> <span className="font-medium text-gray-800">{l.name}</span></p>
+                            <p><span className="text-gray-400">{t("label.phone")}</span> <span className="font-medium text-gray-800">{l.phone}</span></p>
+                            <p><span className="text-gray-400">{t("label.source")}</span> <span className="font-medium text-gray-800">{l.source || "-"}</span></p>
+                            <p><span className="text-gray-400">{t("label.niche")}</span> <span className="font-medium text-gray-800">{l.niche || "-"}</span></p>
+                            <p><span className="text-gray-400">{t("label.customerType")}</span> <span className="font-medium text-gray-800">{l.customerType || "-"}</span></p>
+                            <p><span className="text-gray-400">{t("label.created")}</span> <span className="font-medium text-gray-800">{formatDisplayDate(l.createdAt) || "-"}</span></p>
                             <p className="sm:col-span-2">
-                              <span className="text-gray-400">Store:</span>{" "}
+                              <span className="text-gray-400">{t("label.store")}</span>{" "}
                               {l.storeLink ? (
                                 <a href={l.storeLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline">
                                   Open store <ExternalLink className="h-3.5 w-3.5" />
@@ -599,10 +599,10 @@ export default function TeleSalesClient({
                         <div className="bg-white border border-gray-200 rounded-lg p-4">
                           <h4 className="text-xs font-bold uppercase text-gray-500 mb-3">{t("lead.schedule")}</h4>
                           <div className="space-y-2 text-sm">
-                            <p><span className="text-gray-400">Meeting:</span> <span className="font-medium text-gray-800">{getLeadMeetingDisplay(l).fullLabel || "-"}</span></p>
-                            <p><span className="text-gray-400">Follow-up:</span> <span className="font-medium text-gray-800">{getLeadFollowUpDisplay(l).fullLabel || "-"}</span></p>
-                            <p><span className="text-gray-400">Sales Agent:</span> <span className="font-medium text-gray-800">{l.salesAgent?.name || "-"}</span></p>
-                            <p><span className="text-gray-400">Tele Agent:</span> <span className="font-medium text-gray-800">{l.teleAgent?.name || "-"}</span></p>
+                            <p><span className="text-gray-400">{t("label.meeting")}</span> <span className="font-medium text-gray-800">{getLeadMeetingDisplay(l).fullLabel || "-"}</span></p>
+                            <p><span className="text-gray-400">{t("label.followUp")}</span> <span className="font-medium text-gray-800">{getLeadFollowUpDisplay(l).fullLabel || "-"}</span></p>
+                            <p><span className="text-gray-400">{t("label.salesAgent")}</span> <span className="font-medium text-gray-800">{l.salesAgent?.name || "-"}</span></p>
+                            <p><span className="text-gray-400">{t("label.teleAgent")}</span> <span className="font-medium text-gray-800">{l.teleAgent?.name || "-"}</span></p>
                           </div>
                           <div className="mt-4 space-y-2">
                             <h5 className="text-xs font-bold uppercase text-gray-500">{t("telesales.meetingHistory")}</h5>
@@ -615,7 +615,7 @@ export default function TeleSalesClient({
                                 {meeting.salesAgent?.name && <p className="text-purple-700 mt-1">Sales: {meeting.salesAgent.name}</p>}
                                 {meeting.salesNotes && <p className="text-gray-600 mt-1">{meeting.salesNotes}</p>}
                               </div>
-                            )) : <p className="text-xs text-gray-400">No meetings yet.</p>}
+                            )) : <p className="text-xs text-gray-400">{t("empty.noMeetingsYet")}</p>}
                           </div>
                         </div>
 
@@ -631,7 +631,7 @@ export default function TeleSalesClient({
                                 </div>
                                 <p className="text-gray-600 mt-1">{log.notes}</p>
                               </div>
-                            )) : <p className="text-xs text-gray-400">No call logs yet.</p>}
+                            )) : <p className="text-xs text-gray-400">{t("empty.noCallsYet")}</p>}
                           </div>
                         </div>
                       </div>
@@ -682,7 +682,7 @@ export default function TeleSalesClient({
             </div>
             <form onSubmit={handleLogCall} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Call Status *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("form.callStatus")}</label>
                 <select required className="w-full px-3 py-2 border rounded-md" value={logData.callStatus} onChange={(e) => setLogData({ ...logData, callStatus: e.target.value })}>
                   <option value="Busy">{t("lead.call.busy")}</option>
                   <option value="Wrong Number">{t("lead.call.wrongNumber")}</option>
@@ -693,17 +693,17 @@ export default function TeleSalesClient({
               {logData.callStatus === "Accept and book meeting" && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Meeting Date *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("form.meetingDate")}</label>
                     <input required type="date" min={todayInputValue()} className="w-full px-3 py-2 border rounded-md" value={logData.meetingDate} onChange={(e) => setLogData({ ...logData, meetingDate: e.target.value })} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Meeting Time *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("form.meetingTime")}</label>
                     <input required type="time" className="w-full px-3 py-2 border rounded-md" value={logData.meetingTime} onChange={(e) => setLogData({ ...logData, meetingTime: e.target.value })} />
                   </div>
                 </div>
               )}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Notes *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("form.notes")}</label>
                 <textarea required rows={3} className="w-full px-3 py-2 border rounded-md" value={logData.notes} onChange={(e) => setLogData({ ...logData, notes: e.target.value })} placeholder={t("telesales.callNotesPlaceholder")} />
               </div>
               <div className="pt-4 flex justify-end gap-3">

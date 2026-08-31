@@ -87,7 +87,7 @@ export default function TeamOverview({ teams }: TeamOverviewProps) {
               {team.leader ? (
                 <span className="text-sm font-medium text-slate-700">{team.leader.name}</span>
               ) : (
-                <span className="text-sm text-slate-400 italic">Not assigned</span>
+                <span className="text-sm text-slate-400 italic">{t("common.notAssigned")}</span>
               )}
             </div>
 

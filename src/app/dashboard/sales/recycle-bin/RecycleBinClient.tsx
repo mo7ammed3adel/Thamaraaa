@@ -57,9 +57,9 @@ export default function RecycleBinClient({ leads, salesAgents }: { leads: any[],
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Client Name & Phone</th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Previous Agent</th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">Feedback Notes</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("recycle.clientNamePhone")}</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("recycle.previousAgent")}</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">{t("recycle.feedbackNotes")}</th>
               <th className="px-6 py-3 text-end text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.action")}</th>
             </tr>
           </thead>
@@ -115,7 +115,7 @@ export default function RecycleBinClient({ leads, salesAgents }: { leads: any[],
               );
             })}
             {leads.length === 0 && (
-              <tr><td colSpan={4} className="px-6 py-8 text-center text-sm text-gray-500">Recycle bin is empty. Great job!</td></tr>
+              <tr><td colSpan={4} className="px-6 py-8 text-center text-sm text-gray-500">{t("recycle.empty")}</td></tr>
             )}
           </tbody>
         </table>

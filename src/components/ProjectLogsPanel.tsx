@@ -1,12 +1,14 @@
 "use client";
 
 import { Clock, Info, CheckCircle, ArrowRight, UserPlus, FileText, AlertTriangle } from "lucide-react";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 export default function ProjectLogsPanel({ logs }: { logs: any[] }) {
+  const t = useTranslator();
   if (!logs || logs.length === 0) {
     return (
       <div className="p-8 text-center text-slate-500 bg-slate-50 rounded-xl border border-dashed">
-        <p className="font-medium">No activity recorded yet</p>
+        <p className="font-medium">{t("empty.noActivity")}</p>
       </div>
     );
   }

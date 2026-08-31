@@ -140,14 +140,14 @@ export default function ClientTasksTab({
             <option value="technical">{t("team.technicalWeb")}</option>
           </select>
           <select value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white">
-            <option value="Low">Low Priority</option>
-            <option value="Medium">Medium Priority</option>
-            <option value="High">High Priority</option>
+            <option value="Low">{t("priority.lowLabel")}</option>
+            <option value="Medium">{t("priority.mediumLabel")}</option>
+            <option value="High">{t("priority.highLabel")}</option>
           </select>
           <input type="date" value={newTaskDeadline} onChange={(e) => setNewTaskDeadline(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white" />
         </div>
         <div className="space-y-3">
-          <textarea value={newTaskBrief} onChange={(e) => setNewTaskBrief(e.target.value)} placeholder="Task details and instructions..." className="w-full border rounded-lg px-3 py-2 text-sm resize-none h-20" />
+          <textarea value={newTaskBrief} onChange={(e) => setNewTaskBrief(e.target.value)} placeholder={t("task.detailsPlaceholder")} className="w-full border rounded-lg px-3 py-2 text-sm resize-none h-20" />
           <div className="flex gap-3">
             <div className="flex-1 relative">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔗</div>
@@ -155,7 +155,7 @@ export default function ClientTasksTab({
                 type="url"
                 value={newTaskLink}
                 onChange={(e) => setNewTaskLink(e.target.value)}
-                placeholder="Paste link here (Google Drive, Sheets, etc.)..."
+                placeholder={t("task.pasteLink")}
                 className="w-full border rounded-lg ps-8 pe-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition"
               />
             </div>
@@ -168,7 +168,7 @@ export default function ClientTasksTab({
 
       <div className="bg-white rounded-xl border shadow-sm p-6">
         <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-          <h2 className="text-lg font-bold text-slate-800">Tasks & Tracking</h2>
+          <h2 className="text-lg font-bold text-slate-800">{t("journey.tasksTracking")}</h2>
           <span className="text-xs text-slate-400 font-medium">
             Showing {filteredTasks.length} of {tasks.length} tasks
           </span>
@@ -176,7 +176,7 @@ export default function ClientTasksTab({
 
         <div className="flex flex-wrap gap-3 mb-5 p-3 bg-slate-50 rounded-xl border border-slate-100">
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Team</label>
+            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{t("journey.team")}</label>
             <select value={taskFilterTeam} onChange={(e) => setTaskFilterTeam(e.target.value)} className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-white min-w-[140px] focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition">
               <option value="all">{t("filter.allTeams")}</option>
               <option value="seo">{t("team.seo")}</option>
@@ -202,9 +202,9 @@ export default function ClientTasksTab({
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Assigned By</label>
+            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{t("journey.assignedBy")}</label>
             <select value={taskFilterCreator} onChange={(e) => setTaskFilterCreator(e.target.value)} className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-white min-w-[140px] focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition">
-              <option value="all">All Creators</option>
+              <option value="all">{t("journey.allCreators")}</option>
               {creators.map(([id, name]) => (
                 <option key={id} value={id}>{name}</option>
               ))}
@@ -221,7 +221,7 @@ export default function ClientTasksTab({
         </div>
 
         {tasks.length === 0 ? (
-          <p className="text-sm text-slate-400 italic py-4">No tasks created yet.</p>
+          <p className="text-sm text-slate-400 italic py-4">{t("empty.noTasksCreated")}</p>
         ) : (
           <div className="space-y-3">
             {filteredTasks.map((task) => {
@@ -332,7 +332,7 @@ export default function ClientTasksTab({
             })}
             {filteredTasks.length === 0 && (
               <div className="text-center py-8">
-                <p className="text-sm text-slate-400 italic">No tasks match the selected filters.</p>
+                <p className="text-sm text-slate-400 italic">{t("empty.noTasksMatch")}</p>
                 <button onClick={resetFilters} className="mt-2 text-xs text-indigo-600 hover:underline font-medium">
                   Clear all filters
                 </button>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { listUsers } from "@/client/api/users";
 import { reassignAccountManager } from "@/client/api/projects";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 /**
  * Props for the ClientReassignModal component.
@@ -41,6 +42,7 @@ export default function ClientReassignModal({
   onClose,
   onSuccess,
 }: ClientReassignModalProps) {
+  const t = useTranslator();
   const [accountManagers, setAccountManagers] = useState<AccountManagerOption[]>([]);
   const [selectedManagerId, setSelectedManagerId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -149,7 +151,7 @@ export default function ClientReassignModal({
                 className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 disabled={isSubmitting}
               >
-                <option value="">Choose an Account Manager...</option>
+                <option value="">{t("modal.chooseAm")}</option>
                 {accountManagers.map((manager) => (
                   <option key={manager.id} value={manager.id}>
                     {manager.name} ({manager.email})

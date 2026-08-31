@@ -148,7 +148,7 @@ export default function MeetsClient({
           <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-5 text-white shadow-lg">
             <div className="flex items-center gap-2 mb-2">
               <Calendar className="h-5 w-5 opacity-80" />
-              <span className="text-xs font-semibold uppercase opacity-80">Meetings Set</span>
+              <span className="text-xs font-semibold uppercase opacity-80">{t("meets.set")}</span>
             </div>
             <p className="text-3xl font-bold">{performance.meetingsSet}</p>
           </div>
@@ -178,27 +178,27 @@ export default function MeetsClient({
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Search Lead</label>
+            <label className="block text-xs font-semibold text-gray-500 mb-1">{t("meets.searchLead")}</label>
             <input 
               type="text" 
-              placeholder="Name or Phone..." 
+              placeholder={t("meets.searchPlaceholder")} 
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Meeting Status</label>
+            <label className="block text-xs font-semibold text-gray-500 mb-1">{t("meets.status")}</label>
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
               className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
             >
               <option value="All">{t("filter.allStatuses")}</option>
-              <option value="Scheduled">Scheduled</option>
+              <option value="Scheduled">{t("meets.scheduled")}</option>
               <option value="Attended">{t("status.attended")}</option>
               <option value="Lost">{t("status.lost")}</option>
-              <option value="Won">Won</option>
+              <option value="Won">{t("meets.won")}</option>
             </select>
           </div>
           <div className="lg:col-span-2">
@@ -234,7 +234,7 @@ export default function MeetsClient({
                 <th onClick={() => handleSort('salesAgent')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">Sales Agent <SortIcon columnKey="salesAgent"/></th>
                 <th onClick={() => handleSort('date')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">Date & Time <SortIcon columnKey="date"/></th>
                 <th onClick={() => handleSort('status')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">Status <SortIcon columnKey="status"/></th>
-                <th className="px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase tracking-wider">Summary</th>
+                <th className="px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase tracking-wider">{t("meets.summary")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -265,15 +265,15 @@ export default function MeetsClient({
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500 max-w-xs">
                     <div className="line-clamp-3">
-                      {m.salesNotes && <p><span className="font-semibold text-gray-700">Sales Note:</span> {m.salesNotes}</p>}
-                      {m.summary && <p><span className="font-semibold text-gray-700">Summary:</span> {m.summary}</p>}
+                      {m.salesNotes && <p><span className="font-semibold text-gray-700">{t("meets.salesNote")}</span> {m.salesNotes}</p>}
+                      {m.summary && <p><span className="font-semibold text-gray-700">{t("meets.summaryLabel")}</span> {m.summary}</p>}
                       {!m.summary && !m.salesNotes && "—"}
                     </div>
                   </td>
                 </tr>
               ))}
               {processedMeetings.length === 0 && (
-                <tr><td colSpan={isAgent ? 8 : 9} className="px-6 py-8 text-center text-sm text-gray-500 bg-gray-50">No meetings found matching your filters.</td></tr>
+                <tr><td colSpan={isAgent ? 8 : 9} className="px-6 py-8 text-center text-sm text-gray-500 bg-gray-50">{t("meets.noneMatch")}</td></tr>
               )}
             </tbody>
           </table>
@@ -381,7 +381,7 @@ export default function MeetsClient({
                       <div className="bg-green-50 rounded-lg p-3 border border-green-200">
                         <div className="flex items-center gap-2 mb-1">
                           <Handshake className="h-3 w-3 text-green-600" />
-                          <span className="text-xs font-bold text-green-700 uppercase">Deal Closed — Won!</span>
+                          <span className="text-xs font-bold text-green-700 uppercase">{t("meets.dealWon")}</span>
                           <span className="text-xs text-gray-400">{new Date(d.createdAt).toLocaleDateString("en-GB")}</span>
                         </div>
                         <p className="text-sm text-gray-600">

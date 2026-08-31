@@ -6,6 +6,7 @@ import { LIFECYCLE_TRANSITIONS, LIFECYCLE_STATE } from "@/lib/constants";
 import LifecycleStateBadge from "./LifecycleStateBadge";
 import { changeProjectLifecycle } from "@/client/api/projects";
 import { HttpError } from "@/client/transport/http";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface LifecycleChangeModalProps {
   /** Is the modal open? */
@@ -34,6 +35,7 @@ export default function LifecycleChangeModal({
   projectName,
   onChanged,
 }: LifecycleChangeModalProps) {
+  const t = useTranslator();
   const [selectedState, setSelectedState] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string>("");
@@ -80,14 +82,14 @@ export default function LifecycleChangeModal({
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 bg-slate-50">
-          <h3 className="text-lg font-semibold text-gray-900">Change Lifecycle State</h3>
+          <h3 className="text-lg font-semibold text-gray-900">{t("lifecycle.change")}</h3>
           <p className="text-sm text-gray-500 mt-0.5 truncate">{projectName}</p>
         </div>
 
         {/* Current state indicator */}
         <div className="px-6 pt-4">
           <div className="flex items-center gap-2 text-sm text-gray-600">
-            <span>Current:</span>
+            <span>{t("lifecycle.current")}</span>
             <LifecycleStateBadge state={currentState} />
           </div>
         </div>

@@ -8,7 +8,9 @@ import {
   type NotificationItem,
 } from "@/client/api/notifications";
 
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 export default function MeetingLinksPanel() {
+  const t = useTranslator();
   const [links, setLinks] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,8 +44,8 @@ export default function MeetingLinksPanel() {
             <Video className="h-4 w-4" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-blue-950">Meeting Links</h2>
-            <p className="text-xs text-blue-700">Google Meet / Zoom links sent by Sales.</p>
+            <h2 className="text-sm font-bold text-blue-950">{t("meetLink.title")}</h2>
+            <p className="text-xs text-blue-700">{t("meetLink.subtitle")}</p>
           </div>
         </div>
         {links.some((link) => !link.read) && (
@@ -54,9 +56,9 @@ export default function MeetingLinksPanel() {
       </div>
 
       {loading ? (
-        <div className="px-5 py-4 text-sm text-slate-500">Loading meeting links...</div>
+        <div className="px-5 py-4 text-sm text-slate-500">{t("meetLink.loading")}</div>
       ) : links.length === 0 ? (
-        <div className="px-5 py-4 text-sm text-slate-500">No meeting links sent yet.</div>
+        <div className="px-5 py-4 text-sm text-slate-500">{t("meetLink.none")}</div>
       ) : (
         <div className="divide-y divide-slate-100">
           {links.map((item) => (

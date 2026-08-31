@@ -59,14 +59,14 @@ export default function MyTargetClient() {
   }, []);
 
   if (loading) {
-    return <div className="text-sm text-gray-500 py-10 text-center">Loading your target history...</div>;
+    return <div className="text-sm text-gray-500 py-10 text-center">{t("target.loading")}</div>;
   }
 
   if (!data || data.months.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-10 text-center">
         <Target className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-        <p className="text-sm font-semibold text-gray-600">No target set yet</p>
+        <p className="text-sm font-semibold text-gray-600">{t("target.noneSet")}</p>
         <p className="text-xs text-gray-400 mt-1">
           Your manager has not assigned a monthly target. Once they do, your monthly progress will appear here.
         </p>
@@ -94,7 +94,7 @@ export default function MyTargetClient() {
         <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-2 text-gray-500">
             <TrendingUp className="h-4 w-4" />
-            <span className="text-xs font-semibold uppercase tracking-wide">This Month %</span>
+            <span className="text-xs font-semibold uppercase tracking-wide">{t("target.thisMonthPct")}</span>
           </div>
           <p className={`text-3xl font-bold ${currentPct >= 100 ? "text-emerald-600" : "text-gray-900"}`}>
             {currentPct}%
@@ -105,7 +105,7 @@ export default function MyTargetClient() {
         <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-2 text-gray-500">
             <Trophy className="h-4 w-4" />
-            <span className="text-xs font-semibold uppercase tracking-wide">Metric</span>
+            <span className="text-xs font-semibold uppercase tracking-wide">{t("target.metric")}</span>
           </div>
           <p className="text-xl font-bold text-gray-900">{data.metric}</p>
           <p className="text-xs text-gray-400 mt-1">{data.months.length} months tracked</p>
@@ -113,7 +113,7 @@ export default function MyTargetClient() {
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-        <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-4">Monthly Performance</h3>
+        <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-4">{t("target.monthlyPerformance")}</h3>
         <div className="space-y-4">
           {data.months.map((row) => {
             const pct = row.target > 0 ? Math.round((row.achieved / row.target) * 100) : 0;
@@ -154,7 +154,7 @@ export default function MyTargetClient() {
                     <div className={`h-3 rounded-full transition-all ${barColor(pct)}`} style={{ width: `${width}%` }} />
                   ) : (
                     <div className="h-3 flex items-center ps-2">
-                      <span className="text-[10px] text-gray-400 italic">No target set for this month</span>
+                      <span className="text-[10px] text-gray-400 italic">{t("target.noneThisMonth")}</span>
                     </div>
                   )}
                 </div>

@@ -13,6 +13,7 @@ import ClientTasksTab from "./ClientTasksTab";
 import ClientTeamTab from "./ClientTeamTab";
 import ClientTimelineTab from "./ClientTimelineTab";
 import { useClientJourneyActions } from "./useClientJourneyActions";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 const TABS = [
   { key: "timeline", label: "📋 Timeline", icon: "📋" },
@@ -31,6 +32,7 @@ const TABS = [
  * Shows everything about a client across all departments in one place.
  */
 export default function ClientFullJourneyClient({ project, userRole, userId, userName, teamMembers = [], initialTab = "timeline" }: any) {
+  const t = useTranslator();
   const [activeTab, setActiveTab] = useState(initialTab);
   const deal = project.deal;
   const lead = deal?.lead;
@@ -97,7 +99,7 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
       <div className="flex items-center justify-between">
         <div>
           <button onClick={goBack} className="text-sm text-indigo-600 hover:underline mb-1">← Back</button>
-          <h1 className="text-2xl font-bold text-slate-800">Client Full Journey</h1>
+          <h1 className="text-2xl font-bold text-slate-800">{t("journey.fullTitle")}</h1>
           <p className="text-sm text-slate-500">{lead?.name} • {lead?.phone} • {project.package}</p>
         </div>
         <div className="flex gap-2">
