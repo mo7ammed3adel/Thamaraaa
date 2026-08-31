@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { IBM_Plex_Sans_Arabic } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { getDirection } from "@/lib/i18n/config";
@@ -14,6 +15,16 @@ const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
   weight: "100 900",
+});
+
+// Geist carries no Arabic glyphs, so Arabic used to fall back to Arial — thin,
+// cramped and hard to read at the sizes this UI uses. IBM Plex Sans Arabic is
+// drawn for interfaces and keeps its shape down to small label sizes.
+const arabicSans = IBM_Plex_Sans_Arabic({
+  subsets: ["arabic"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-arabic",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -39,7 +50,7 @@ export default function RootLayout({
   return (
     <html lang={locale} dir={getDirection(locale)}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-gray-50 text-gray-900`}
+        className={`${geistSans.variable} ${geistMono.variable} ${arabicSans.variable} antialiased min-h-screen bg-gray-50 text-gray-900`}
       >
         <Providers locale={locale}>
           {children}

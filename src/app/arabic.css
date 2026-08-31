@@ -1,0 +1,60 @@
+/*
+ * Arabic typography.
+ *
+ * Everything here is scoped to [dir="rtl"], so the Latin interface is untouched.
+ * These are corrections the utility classes cannot make on their own: the same
+ * class that reads well in Latin actively harms Arabic.
+ */
+
+[dir="rtl"] body,
+[dir="rtl"] input,
+[dir="rtl"] textarea,
+[dir="rtl"] select,
+[dir="rtl"] button {
+  /* Arabic first, then the Latin face for any Latin mixed into the same run. */
+  font-family: var(--font-arabic), var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/*
+ * Letter-spacing pulls apart letters that are supposed to join, which is what
+ * made small Arabic labels look broken. Arabic script has no concept of tracking.
+ */
+[dir="rtl"] [class*="tracking-"] {
+  letter-spacing: normal;
+}
+
+/*
+ * Arabic has no letter case. `uppercase` does nothing to the script itself but
+ * still shouts at any Latin word mixed into the label, so it is dropped.
+ */
+[dir="rtl"] .uppercase {
+  text-transform: none;
+}
+
+/*
+ * Arabic sits on a larger x-height and needs more room between lines than the
+ * Latin scale allows, and the smallest label sizes become unreadable. Nudging
+ * the two smallest steps up keeps dense tables legible without reflowing them.
+ */
+[dir="rtl"] {
+  line-height: 1.75;
+}
+
+[dir="rtl"] .text-\[10px\] {
+  font-size: 11px;
+}
+
+[dir="rtl"] .text-xs {
+  font-size: 0.8125rem; /* 13px, up from 12px */
+}
+
+/*
+ * Numbers, money, dates, phone numbers and IDs stay left-to-right inside an
+ * otherwise right-to-left line — without this, a value like "3,000" or a phone
+ * number renders with its parts in the wrong order.
+ */
+[dir="rtl"] .ltr-nums {
+  direction: ltr;
+  unicode-bidi: embed;
+  display: inline-block;
+}
