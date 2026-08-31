@@ -44,6 +44,14 @@ export function setInterval(minutes: number) {
   return putJson<{ minutes: number }>("/api/devices/interval", { minutes });
 }
 
+export function getRetention() {
+  return getJson<{ days: number }>("/api/devices/retention");
+}
+
+export function setRetention(days: number) {
+  return putJson<{ days: number }>("/api/devices/retention", { days });
+}
+
 export function listScreenshots(params: Record<string, string | number | undefined>) {
   const q = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {

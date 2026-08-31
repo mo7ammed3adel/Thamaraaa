@@ -1,15 +1,22 @@
 import crypto from "crypto";
 import {
   DEFAULT_SCREENSHOT_INTERVAL_MINUTES,
+  DEFAULT_SCREENSHOT_RETENTION_DAYS,
   SCREENSHOT_INTERVAL_KEY,
+  SCREENSHOT_RETENTION_KEY,
+  normalizeScreenshotRetentionDays,
+  screenshotRetentionCutoff,
   buildScreenshotStorageKey,
   generateEnrolmentToken,
   hashDeviceToken,
   normalizeScreenshotInterval,
 } from "@/lib/deviceMonitoring";
 import {
+  countScreenshotsBefore,
   createMonitoredDevice,
   createScreenshotRecord,
+  deleteScreenshotsByIds,
+  findScreenshotKeysBefore,
   findAllDevicesWithOwner,
   findDeviceById,
   findDeviceByTokenHash,
@@ -19,7 +26,7 @@ import {
   setDeviceStatus,
   touchDeviceLastSeen,
 } from "@/server/repositories/deviceRepository";
-import { saveScreenshotFile } from "@/server/services/screenshotStorage";
+import { deleteScreenshotFile, saveScreenshotFile } from "@/server/services/screenshotStorage";
 import { prisma } from "@/lib/prisma";
 
 /** Only the super admin manages devices and views screenshots. */
@@ -47,6 +54,70 @@ export async function setScreenshotInterval(input: { actorRole: string; minutes:
     create: { key: SCREENSHOT_INTERVAL_KEY, value: String(minutes) },
   });
   return { status: "ok" as const, minutes };
+}
+
+/** How many days a screenshot is kept before the purge removes it. */
+export async function getScreenshotRetentionDays(): Promise<number> {
+  const row = await prisma.systemConfig.findUnique({ where: { key: SCREENSHOT_RETENTION_KEY } });
+  if (!row) return DEFAULT_SCREENSHOT_RETENTION_DAYS;
+  return normalizeScreenshotRetentionDays(row.value);
+}
+
+/** Super admin sets how long captures survive before they are purged. */
+export async function setScreenshotRetentionDays(input: { actorRole: string; days: unknown }) {
+  if (!isSuperAdmin(input.actorRole)) return { status: "forbidden" as const };
+
+  const days = normalizeScreenshotRetentionDays(input.days);
+  await prisma.systemConfig.upsert({
+    where: { key: SCREENSHOT_RETENTION_KEY },
+    update: { value: String(days) },
+    create: { key: SCREENSHOT_RETENTION_KEY, value: String(days) },
+  });
+  return { status: "ok" as const, days };
+}
+
+/** Rows handled per pass, so one purge never loads an unbounded result set. */
+const PURGE_BATCH_SIZE = 200;
+/** Ceiling on batches per run — 40k captures is far more than a day accrues. */
+const PURGE_MAX_BATCHES = 200;
+
+/**
+ * Deletes every screenshot past its retention window, file first and row after,
+ * so a crash mid-purge can only ever leave a row whose file is already gone —
+ * which the viewer already tolerates — never an orphaned file no row points to.
+ * Idempotent: running it twice in a row simply finds nothing the second time.
+ */
+export async function purgeExpiredScreenshots(now: Date = new Date()) {
+  const days = await getScreenshotRetentionDays();
+  const cutoff = screenshotRetentionCutoff(days, now);
+
+  let deleted = 0;
+  let failed = 0;
+
+  for (let batch = 0; batch < PURGE_MAX_BATCHES; batch += 1) {
+    const expired = await findScreenshotKeysBefore(cutoff, PURGE_BATCH_SIZE);
+    if (expired.length === 0) break;
+
+    const removed: string[] = [];
+    for (const shot of expired) {
+      try {
+        await deleteScreenshotFile(shot.storageKey);
+        removed.push(shot.id);
+      } catch (error) {
+        // Keep the row so the next run retries this file rather than losing
+        // track of it; one unreadable file must not stall the whole purge.
+        failed += 1;
+        console.error("Screenshot purge failed for", shot.id, error);
+      }
+    }
+
+    if (removed.length === 0) break; // every file in the batch failed — stop looping on it
+    const result = await deleteScreenshotsByIds(removed);
+    deleted += result.count;
+  }
+
+  const remaining = await countScreenshotsBefore(cutoff);
+  return { status: "ok" as const, retentionDays: days, cutoff, deleted, failed, remaining };
 }
 
 /**

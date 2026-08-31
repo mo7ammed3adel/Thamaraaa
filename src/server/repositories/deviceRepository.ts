@@ -143,8 +143,19 @@ export function findScreenshotKeysBefore(cutoff: Date, take: number) {
   return prisma.screenshot.findMany({
     where: { capturedAt: { lt: cutoff } },
     select: { id: true, storageKey: true },
+    orderBy: { capturedAt: "asc" },
     take,
   });
+}
+
+/** Drops exactly the rows whose files the purge has already removed. */
+export function deleteScreenshotsByIds(ids: string[]) {
+  return prisma.screenshot.deleteMany({ where: { id: { in: ids } } });
+}
+
+/** How many screenshots are currently past their retention window. */
+export function countScreenshotsBefore(cutoff: Date) {
+  return prisma.screenshot.count({ where: { capturedAt: { lt: cutoff } } });
 }
 
 /** Active employees the super admin can enrol a device for. */

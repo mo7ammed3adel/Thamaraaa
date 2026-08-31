@@ -58,3 +58,40 @@ export function buildScreenshotStorageKey(userId: string, capturedAt: Date, id: 
 export function isSafeStorageKey(key: string): boolean {
   return /^[A-Za-z0-9_-]+\/\d{4}-\d{2}-\d{2}\/[A-Za-z0-9-]+\.jpg$/.test(key);
 }
+
+/** SystemConfig key holding how many days a screenshot is kept before purging. */
+export const SCREENSHOT_RETENTION_KEY = "screenshot_retention_days";
+
+/**
+ * Fallback retention when the super admin has not set one. Screenshots can
+ * catch passwords and private messages, so they expire by default rather than
+ * accumulating for ever.
+ */
+export const DEFAULT_SCREENSHOT_RETENTION_DAYS = 30;
+
+/** Retention bounds: at least a day to review, at most a year to hold. */
+export const MIN_SCREENSHOT_RETENTION_DAYS = 1;
+export const MAX_SCREENSHOT_RETENTION_DAYS = 365;
+
+/** Clamps a requested retention to the allowed range, rejecting non-numbers. */
+export function normalizeScreenshotRetentionDays(value: unknown): number {
+  // Same guard as the interval: Number(null) and Number("") are 0, which would
+  // silently clamp an absent value to the minimum instead of the default.
+  if (value === null || value === undefined || value === "") {
+    return DEFAULT_SCREENSHOT_RETENTION_DAYS;
+  }
+  const days = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(days)) return DEFAULT_SCREENSHOT_RETENTION_DAYS;
+  const rounded = Math.round(days);
+  return Math.min(MAX_SCREENSHOT_RETENTION_DAYS, Math.max(MIN_SCREENSHOT_RETENTION_DAYS, rounded));
+}
+
+/**
+ * The instant before which a screenshot has outlived its retention. Anything
+ * captured earlier than this is due for deletion.
+ * @param days Retention window, already normalized
+ * @param now  Reference time — injectable so the rule is testable
+ */
+export function screenshotRetentionCutoff(days: number, now: Date = new Date()): Date {
+  return new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+}
