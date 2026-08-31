@@ -39,14 +39,14 @@ export default function SalesManagerTargetsClient({ managers: initialManagers }:
         <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-4 text-white shadow-lg">
           <div className="flex items-center gap-2 mb-2">
             <DollarSign className="h-5 w-5 opacity-80" />
-            <span className="text-xs font-semibold uppercase opacity-80">This Month's Fund</span>
+            <span className="text-xs font-semibold uppercase opacity-80">{t("chief.monthFund")}</span>
           </div>
           <p className="text-3xl font-bold">{formatSarSuffix(totalFund, { maximumFractionDigits: 0 })}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-2 text-gray-500">
             <Users className="h-5 w-5" />
-            <span className="text-xs font-semibold uppercase">Combined Target</span>
+            <span className="text-xs font-semibold uppercase">{t("chief.combinedTarget")}</span>
           </div>
           <p className="text-3xl font-bold text-gray-900">{formatSarSuffix(totalTarget, { maximumFractionDigits: 0 })}</p>
         </div>
@@ -59,8 +59,8 @@ export default function SalesManagerTargetsClient({ managers: initialManagers }:
               <tr>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.manager")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.status")}</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Team Size</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">This Month's Fund (SAR)</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("chief.teamSize")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("chief.monthFundSar")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("form.monthlyFundTarget")}</th>
               </tr>
             </thead>
@@ -110,7 +110,7 @@ export default function SalesManagerTargetsClient({ managers: initialManagers }:
                 </tr>
               ))}
               {managers.length === 0 && (
-                <tr><td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">No sales managers found.</td></tr>
+                <tr><td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">{t("chief.noManagers")}</td></tr>
               )}
             </tbody>
           </table>

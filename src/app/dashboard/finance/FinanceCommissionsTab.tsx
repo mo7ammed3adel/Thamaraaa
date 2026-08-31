@@ -4,6 +4,7 @@ import { Calculator, Download, Plus, X, Trash2, Lock, ChevronDown, ChevronUp } f
 import { formatSar } from "@/shared/formatters/currency";
 import { HttpError } from "@/client/transport/http";
 import { listCommissions, recomputeCommissions, updateCommission, updateCommissionConfig } from "@/client/api/finance";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 // SystemConfig keys for the accountant-editable commission rate tables
 // (kept in sync with COMMISSION_RATE_KEYS in src/lib/commissions.ts).
@@ -15,6 +16,7 @@ const RATE_KEY = {
 };
 
 export function CommissionsTab() {
+  const t = useTranslator();
   const today = new Date();
   const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
   const [month, setMonth] = useState<string>(defaultMonth);
@@ -116,11 +118,11 @@ export function CommissionsTab() {
           <p className="text-3xl font-black text-gray-900">{formatSar(totalGross, { maximumFractionDigits: 2 })}</p>
         </div>
         <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-200 shadow-sm">
-          <p className="text-xs font-bold text-emerald-700 uppercase tracking-widest mb-2">Net Commission Base</p>
+          <p className="text-xs font-bold text-emerald-700 uppercase tracking-widest mb-2">{t("finance.netCommissionBase")}</p>
           <p className="text-3xl font-black text-emerald-700">{formatSar(totalNet, { maximumFractionDigits: 2 })}</p>
         </div>
         <div className="bg-blue-50 p-5 rounded-2xl border border-blue-200 shadow-sm">
-          <p className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-2">Total Payout</p>
+          <p className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-2">{t("finance.totalPayout")}</p>
           <p className="text-3xl font-black text-blue-700">{formatSar(totalPayout, { maximumFractionDigits: 2 })}</p>
           <p className="text-xs font-semibold text-blue-700 mt-1">Finalized {finalizedCount} / {commissions.length}</p>
         </div>
@@ -132,12 +134,12 @@ export function CommissionsTab() {
             <tr>
               <th className="px-4 py-3 text-start">Employee</th>
               <th className="px-4 py-3 text-end">Gross Fund</th>
-              <th className="px-4 py-3 text-end">Net Base</th>
-              <th className="px-4 py-3 text-start">Tier / Rate</th>
+              <th className="px-4 py-3 text-end">{t("finance.netBase")}</th>
+              <th className="px-4 py-3 text-start">{t("finance.tierRate")}</th>
               <th className="px-4 py-3 text-end">Commission</th>
               <th className="px-4 py-3 text-end">Salary</th>
-              <th className="px-4 py-3 text-end">Bonus / Deduct</th>
-              <th className="px-4 py-3 text-end">Net Payout</th>
+              <th className="px-4 py-3 text-end">{t("finance.bonusDeduct")}</th>
+              <th className="px-4 py-3 text-end">{t("finance.netPayout")}</th>
               <th className="px-4 py-3 text-end">Actions</th>
             </tr>
           </thead>
@@ -192,7 +194,7 @@ export function CommissionsTab() {
                       ) : (
                         <>
                           <button onClick={() => setEditing(c)} className="px-2 py-1 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded text-xs font-bold">Edit</button>
-                          <button disabled={busy === c.id} onClick={() => finalize(c)} className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold disabled:opacity-50">Finalize</button>
+                          <button disabled={busy === c.id} onClick={() => finalize(c)} className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold disabled:opacity-50">{t("finance.finalize")}</button>
                         </>
                       )}
                     </td>
@@ -217,12 +219,13 @@ export function CommissionsTab() {
 }
 
 function CommissionRatesPanel({ config, onSaved }: { config: any; onSaved: () => void }) {
+  const t = useTranslator();
   const [open, setOpen] = useState(false);
   return (
     <div className="bg-slate-50 border border-slate-200 rounded-xl">
       <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between p-4 text-start">
         <div>
-          <div className="font-bold text-slate-900 text-sm">Commission rates (editable)</div>
+          <div className="font-bold text-slate-900 text-sm">{t("finance.commissionRates")}</div>
           <div className="text-xs text-slate-500 mt-0.5">Gateway fee {(config.gatewayFeePct * 100).toFixed(2)}% · saving any rate recomputes this month immediately.</div>
         </div>
         {open ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
@@ -230,10 +233,10 @@ function CommissionRatesPanel({ config, onSaved }: { config: any; onSaved: () =>
       {open && (
         <div className="p-4 pt-0 space-y-3">
           <GatewayFeeEditor value={config.gatewayFeePct} onSaved={onSaved} />
-          <RateTableEditor title="Sales Agent — by gross fund (SAR)" configKey={RATE_KEY.salesAgentTiers} tiers={config.rules?.salesAgentTiers || []} onSaved={onSaved} />
-          <RateTableEditor title="Sales Team Leader — by gross fund (SAR)" configKey={RATE_KEY.salesTeamLeaderTiers} tiers={config.rules?.salesTeamLeaderTiers || []} onSaved={onSaved} />
-          <RateTableEditor title="TeleSales Cold — by cold deal count" configKey={RATE_KEY.telesalesColdTiers} tiers={config.rules?.telesalesColdTiers || []} onSaved={onSaved} />
-          <RateTableEditor title="TeleSales Manager — by final tier" configKey={RATE_KEY.telesalesManagerRates} tiers={config.rules?.telesalesManagerRates || []} onSaved={onSaved} />
+          <RateTableEditor title={t("finance.tierSalesAgent")} configKey={RATE_KEY.salesAgentTiers} tiers={config.rules?.salesAgentTiers || []} onSaved={onSaved} />
+          <RateTableEditor title={t("finance.tierSalesLeader")} configKey={RATE_KEY.salesTeamLeaderTiers} tiers={config.rules?.salesTeamLeaderTiers || []} onSaved={onSaved} />
+          <RateTableEditor title={t("finance.tierTeleCold")} configKey={RATE_KEY.telesalesColdTiers} tiers={config.rules?.telesalesColdTiers || []} onSaved={onSaved} />
+          <RateTableEditor title={t("finance.tierTeleManager")} configKey={RATE_KEY.telesalesManagerRates} tiers={config.rules?.telesalesManagerRates || []} onSaved={onSaved} />
           <FormulaParamsEditor params={config.params} onSaved={onSaved} />
         </div>
       )}
@@ -290,6 +293,7 @@ const PARAM_GROUPS: { title: string; fields: { key: string; label: string; kind:
 ];
 
 function FormulaParamsEditor({ params, onSaved }: { params: any; onSaved: () => void }) {
+  const t = useTranslator();
   const [values, setValues] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     for (const group of PARAM_GROUPS) {
@@ -324,7 +328,7 @@ function FormulaParamsEditor({ params, onSaved }: { params: any; onSaved: () => 
 
   return (
     <div className="bg-white border rounded-lg p-3">
-      <div className="text-xs font-bold text-slate-700 mb-2">Formula parameters — bonuses, VIP rates & thresholds</div>
+      <div className="text-xs font-bold text-slate-700 mb-2">{t("finance.formulaParams")}</div>
       <div className="space-y-3">
         {PARAM_GROUPS.map((group) => (
           <div key={group.title}>
@@ -354,6 +358,7 @@ function FormulaParamsEditor({ params, onSaved }: { params: any; onSaved: () => 
 }
 
 function GatewayFeeEditor({ value, onSaved }: { value: number; onSaved: () => void }) {
+  const t = useTranslator();
   const [pct, setPct] = useState(((value ?? 0) * 100).toString());
   const [saving, setSaving] = useState(false);
   const save = async () => {
@@ -371,7 +376,7 @@ function GatewayFeeEditor({ value, onSaved }: { value: number; onSaved: () => vo
   return (
     <div className="bg-white border rounded-lg p-3 flex items-end gap-3">
       <label className="block">
-        <span className="block text-xs font-bold text-slate-600 mb-1">Gateway fee % (Tabby / Tamara)</span>
+        <span className="block text-xs font-bold text-slate-600 mb-1">{t("finance.gatewayFee")}</span>
         <input type="number" step="0.01" value={pct} onChange={(e) => setPct(e.target.value)} className="border rounded px-2 py-1 text-sm w-32" />
       </label>
       <button onClick={save} disabled={saving} className="px-3 py-1.5 bg-slate-900 text-white rounded text-xs font-bold disabled:opacity-50">{saving ? "Saving…" : "Save"}</button>
@@ -380,6 +385,7 @@ function GatewayFeeEditor({ value, onSaved }: { value: number; onSaved: () => vo
 }
 
 function RateTableEditor({ title, configKey, tiers, onSaved }: { title: string; configKey: string; tiers: any[]; onSaved: () => void }) {
+  const t = useTranslator();
   const [rows, setRows] = useState<any[]>(() => (tiers || []).map((t: any) => ({
     label: t.label || "",
     min: t.min ?? 0,
@@ -420,9 +426,9 @@ function RateTableEditor({ title, configKey, tiers, onSaved }: { title: string; 
         <button onClick={addRow} className="text-xs font-bold text-blue-600 flex items-center gap-1"><Plus className="w-3 h-3" /> Row</button>
       </div>
       <div className="grid grid-cols-12 gap-2 text-[10px] font-bold text-slate-400 uppercase px-1 mb-1">
-        <span className="col-span-4">Min</span>
-        <span className="col-span-4">Max (blank = ∞)</span>
-        <span className="col-span-3">Rate %</span>
+        <span className="col-span-4">{t("finance.min")}</span>
+        <span className="col-span-4">{t("finance.max")}</span>
+        <span className="col-span-3">{t("finance.ratePct")}</span>
         <span className="col-span-1"></span>
       </div>
       <div className="space-y-1.5">
@@ -431,10 +437,10 @@ function RateTableEditor({ title, configKey, tiers, onSaved }: { title: string; 
             <input type="number" value={r.min} onChange={(e) => update(i, "min", e.target.value)} className="col-span-4 border rounded px-2 py-1 text-xs" />
             <input type="number" value={r.max} onChange={(e) => update(i, "max", e.target.value)} placeholder="∞" className="col-span-4 border rounded px-2 py-1 text-xs" />
             <input type="number" step="0.01" value={r.pct} onChange={(e) => update(i, "pct", e.target.value)} className="col-span-3 border rounded px-2 py-1 text-xs" />
-            <button onClick={() => removeRow(i)} className="col-span-1 text-red-500 hover:text-red-700" title="Remove row"><Trash2 className="w-3.5 h-3.5" /></button>
+            <button onClick={() => removeRow(i)} className="col-span-1 text-red-500 hover:text-red-700" title={t("finance.removeRow")}><Trash2 className="w-3.5 h-3.5" /></button>
           </div>
         ))}
-        {rows.length === 0 && <p className="text-xs text-gray-400 italic">No tiers — add a row.</p>}
+        {rows.length === 0 && <p className="text-xs text-gray-400 italic">{t("finance.noTiers")}</p>}
       </div>
       <button onClick={save} disabled={saving} className="mt-2 px-3 py-1.5 bg-slate-900 text-white rounded text-xs font-bold disabled:opacity-50">{saving ? "Saving…" : "Save rates"}</button>
     </div>
@@ -442,14 +448,15 @@ function RateTableEditor({ title, configKey, tiers, onSaved }: { title: string; 
 }
 
 function CommissionBreakdownPanel({ breakdown }: { breakdown: any }) {
+  const t = useTranslator();
   if (!breakdown) {
-    return <div className="text-sm text-gray-500">No detailed breakdown is available for this row yet.</div>;
+    return <div className="text-sm text-gray-500">{t("finance.noBreakdown")}</div>;
   }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div className="bg-white border rounded-xl p-4">
-        <h4 className="text-sm font-bold text-gray-900 mb-3">Components</h4>
+        <h4 className="text-sm font-bold text-gray-900 mb-3">{t("finance.components")}</h4>
         <div className="space-y-2">
           {(breakdown.components || []).map((component: any, index: number) => (
             <div key={index} className="flex items-center justify-between gap-3 text-sm">
@@ -463,7 +470,7 @@ function CommissionBreakdownPanel({ breakdown }: { breakdown: any }) {
         </div>
       </div>
       <div className="bg-white border rounded-xl p-4">
-        <h4 className="text-sm font-bold text-gray-900 mb-3">Metrics</h4>
+        <h4 className="text-sm font-bold text-gray-900 mb-3">{t("finance.metrics")}</h4>
         <div className="grid grid-cols-2 gap-2 text-sm">
           {Object.entries(breakdown.metrics || {}).map(([key, value]) => (
             <div key={key} className="border rounded-lg px-3 py-2">
@@ -474,7 +481,7 @@ function CommissionBreakdownPanel({ breakdown }: { breakdown: any }) {
         </div>
       </div>
       <div className="bg-white border rounded-xl p-4">
-        <h4 className="text-sm font-bold text-gray-900 mb-3">Policy Notes</h4>
+        <h4 className="text-sm font-bold text-gray-900 mb-3">{t("finance.policyNotes")}</h4>
         <ul className="space-y-2 text-sm text-gray-600">
           {(breakdown.notes || []).map((note: string, index: number) => (
             <li key={index}>{note}</li>

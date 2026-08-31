@@ -82,7 +82,7 @@ export default function MasterSheetClient({ leads }: { leads: any[] }) {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input 
               type="text" 
-              placeholder="Search by name or phone..." 
+              placeholder={t("master.searchPlaceholder")} 
               className="w-full ps-9 pe-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -99,10 +99,10 @@ export default function MasterSheetClient({ leads }: { leads: any[] }) {
               <option value="New">{t("status.new")}</option>
               <option value="In_TeleSales">In TeleSales</option>
               <option value="Transferred">{t("status.transferred")}</option>
-              <option value="In_Sales">In Sales</option>
-              <option value="Closed_Won">Closed Won</option>
-              <option value="Closed_Lost">Closed Lost</option>
-              <option value="Archived">Archived</option>
+              <option value="In_Sales">{t("master.inSales")}</option>
+              <option value="Closed_Won">{t("master.closedWon")}</option>
+              <option value="Closed_Lost">{t("master.closedLost")}</option>
+              <option value="Archived">{t("master.archived")}</option>
             </select>
           </div>
         </div>
@@ -120,11 +120,11 @@ export default function MasterSheetClient({ leads }: { leads: any[] }) {
           <thead className="bg-slate-900">
             <tr>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">Customer</th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">Status & Agents</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">{t("master.statusAgents")}</th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">{t("common.package")}</th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">Finances (SAR)</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">{t("master.finances")}</th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">{t("sales.accountManager")}</th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">Ops Status</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">{t("master.opsStatus")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 bg-white">
@@ -172,7 +172,7 @@ export default function MasterSheetClient({ leads }: { leads: any[] }) {
                     {project ? (
                       <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded font-medium">{project.finalStatus}</span>
                     ) : (
-                      deal ? <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded font-medium">Pending Ops</span> : "-"
+                      deal ? <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded font-medium">{t("master.pendingOps")}</span> : "-"
                     )}
                   </td>
                   </tr>
@@ -251,7 +251,7 @@ export default function MasterSheetClient({ leads }: { leads: any[] }) {
               )
             })}
             {filteredLeads.length === 0 && (
-              <tr><td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-500">No data available.</td></tr>
+              <tr><td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-500">{t("master.noData")}</td></tr>
             )}
           </tbody>
         </table>

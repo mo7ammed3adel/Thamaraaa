@@ -205,7 +205,7 @@ export default function SeoClient({ projects, teamMembers, contentAgents = [], u
 
       {isHead && (
         <div className="bg-white rounded-xl border shadow-sm p-5">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">SEO Team Leaders Workload</h2>
+          <h2 className="text-lg font-bold text-slate-800 mb-4">{t("seo.leadersWorkload")}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             {teamMembers.map((member: any) => (
               <div key={member.id} className="border rounded-lg p-4 bg-slate-50">
@@ -217,13 +217,13 @@ export default function SeoClient({ projects, teamMembers, contentAgents = [], u
                   <Users className="w-4 h-4 text-indigo-500 shrink-0" />
                 </div>
                 <div className="mt-3 flex items-end justify-between">
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Active Projects</span>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">{t("seo.activeProjects")}</span>
                   <span className="text-2xl font-black text-indigo-700">{member._count?.teamAssignments || 0}</span>
                 </div>
               </div>
             ))}
             {teamMembers.length === 0 && (
-              <p className="text-sm text-slate-400 italic">No active SEO team leaders found.</p>
+              <p className="text-sm text-slate-400 italic">{t("seo.noLeaders")}</p>
             )}
           </div>
         </div>
@@ -231,7 +231,7 @@ export default function SeoClient({ projects, teamMembers, contentAgents = [], u
 
       {isTL && (
         <div className="bg-white rounded-xl border shadow-sm p-5">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">SEO Agents Workload</h2>
+          <h2 className="text-lg font-bold text-slate-800 mb-4">{t("seo.agentsWorkload")}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             {teamMembers.map((member: any) => {
               const memberTasks = allTasks.filter((task: any) => task.agentId === member.id);
@@ -253,11 +253,11 @@ export default function SeoClient({ projects, teamMembers, contentAgents = [], u
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2 text-center">
                     <div className="bg-white border rounded-md p-2">
-                      <p className="text-[10px] uppercase font-bold text-slate-400">Clients</p>
+                      <p className="text-[10px] uppercase font-bold text-slate-400">{t("seo.clients")}</p>
                       <p className="text-lg font-black text-slate-800">{memberProjects.size}</p>
                     </div>
                     <div className="bg-white border rounded-md p-2">
-                      <p className="text-[10px] uppercase font-bold text-slate-400">Active Tasks</p>
+                      <p className="text-[10px] uppercase font-bold text-slate-400">{t("seo.activeTasks")}</p>
                       <p className="text-lg font-black text-indigo-700">{activeMemberTasks.length}</p>
                     </div>
                   </div>
@@ -265,7 +265,7 @@ export default function SeoClient({ projects, teamMembers, contentAgents = [], u
               );
             })}
             {teamMembers.length === 0 && (
-              <p className="text-sm text-slate-400 italic">No active SEO agents found.</p>
+              <p className="text-sm text-slate-400 italic">{t("seo.noAgents")}</p>
             )}
           </div>
         </div>
@@ -395,7 +395,7 @@ export default function SeoClient({ projects, teamMembers, contentAgents = [], u
                       <button
                         onClick={() => setContentTaskProject(project.id)}
                         className="px-4 py-2 rounded-lg text-sm font-medium transition bg-sky-600 text-white hover:bg-sky-700"
-                        title="Create a Content SEO task and send it to the Head SEO to distribute"
+                        title={t("seo.createContentTask")}
                       >
                         {currentContentAgent ? `Send Content Task (current: ${currentContentAgent.name})` : "Send Content Task"}
                       </button>
@@ -453,7 +453,7 @@ export default function SeoClient({ projects, teamMembers, contentAgents = [], u
                   {isHead && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div className="border rounded-lg p-3 bg-blue-50 border-blue-100">
-                        <p className="text-[10px] uppercase font-bold text-blue-600">SEO Progress</p>
+                        <p className="text-[10px] uppercase font-bold text-blue-600">{t("seo.progress")}</p>
                         <div className="mt-2 flex items-center gap-2">
                           <div className="flex-1 h-2 bg-white rounded-full overflow-hidden">
                             <div className="h-2 bg-blue-500 rounded-full" style={{ width: `${project.seoProgress || 0}%` }} />
@@ -462,11 +462,11 @@ export default function SeoClient({ projects, teamMembers, contentAgents = [], u
                         </div>
                       </div>
                       <div className="border rounded-lg p-3 bg-indigo-50 border-indigo-100">
-                        <p className="text-[10px] uppercase font-bold text-indigo-600">Content SEO Status</p>
+                        <p className="text-[10px] uppercase font-bold text-indigo-600">{t("seo.contentStatus")}</p>
                         <p className="text-sm font-black text-indigo-800 mt-2">{contentActive} Active / {contentTasks.filter((t: any) => t._project?.id === project.id).length} Total</p>
                       </div>
                       <div className="border rounded-lg p-3 bg-orange-50 border-orange-100">
-                        <p className="text-[10px] uppercase font-bold text-orange-600">Important Notes</p>
+                        <p className="text-[10px] uppercase font-bold text-orange-600">{t("seo.importantNotes")}</p>
                         <p className="text-sm font-black text-orange-800 mt-2">{recentNotes.length} Recent</p>
                       </div>
                     </div>
@@ -491,7 +491,7 @@ export default function SeoClient({ projects, teamMembers, contentAgents = [], u
                     if (contentSeoTasks.length === 0) return null;
                     return (
                       <div className="border border-sky-200 rounded-lg p-3 bg-sky-50/50">
-                        <h4 className="text-sm font-bold text-sky-800 uppercase tracking-wider mb-3">Content SEO Tasks — Distribute</h4>
+                        <h4 className="text-sm font-bold text-sky-800 uppercase tracking-wider mb-3">{t("seo.contentDistribute")}</h4>
                         <div className="space-y-2">
                           {contentSeoTasks.map((task: any) => (
                             <div key={task.id} className="bg-white border rounded-lg p-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -822,8 +822,8 @@ export default function SeoClient({ projects, teamMembers, contentAgents = [], u
                   <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
                     <div className="p-4 border-b bg-sky-50 flex justify-between items-center">
                       <div>
-                        <h3 className="font-bold text-lg text-slate-800">Send Content SEO Task</h3>
-                        <p className="text-xs text-slate-500 mt-0.5">Goes to the Head SEO, who assigns it to a content agent.</p>
+                        <h3 className="font-bold text-lg text-slate-800">{t("seo.sendContentTask")}</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">{t("seo.contentRouting")}</p>
                       </div>
                       <button onClick={() => setContentTaskProject(null)} className="text-slate-400 hover:text-slate-600 font-bold">&times;</button>
                     </div>

@@ -35,7 +35,7 @@ export default function ProfileClient({ profile }: { profile: any }) {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">My Workspace & Profile</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">{t("profile.title")}</h1>
       
       {/* Header Profile Card */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -69,7 +69,7 @@ export default function ProfileClient({ profile }: { profile: any }) {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center gap-2 mb-4 border-b pb-2">
             <Clock className="w-5 h-5 text-gray-400"/>
-            <h3 className="text-lg font-bold text-gray-900">Recent Attendance</h3>
+            <h3 className="text-lg font-bold text-gray-900">{t("profile.recentAttendance")}</h3>
           </div>
           <div className="space-y-3">
             {profile.attendances.map((a: any) => (
@@ -79,7 +79,7 @@ export default function ProfileClient({ profile }: { profile: any }) {
                 <span className="text-sm font-medium text-red-500">{a.lateMinutes > 0 ? `${a.lateMinutes}m delay` : "On time"}</span>
               </div>
             ))}
-            {profile.attendances.length === 0 && <p className="text-sm text-gray-500">No attendance records.</p>}
+            {profile.attendances.length === 0 && <p className="text-sm text-gray-500">{t("profile.noAttendance")}</p>}
           </div>
         </div>
 
@@ -87,7 +87,7 @@ export default function ProfileClient({ profile }: { profile: any }) {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center gap-2 mb-4 border-b pb-2">
             <Calendar className="w-5 h-5 text-gray-400"/>
-            <h3 className="text-lg font-bold text-gray-900">My Requests</h3>
+            <h3 className="text-lg font-bold text-gray-900">{t("profile.myRequests")}</h3>
           </div>
           <div className="space-y-3">
             {profile.leaveRequests.map((r: any) => (
@@ -101,7 +101,7 @@ export default function ProfileClient({ profile }: { profile: any }) {
                 </span>
               </div>
             ))}
-            {profile.leaveRequests.length === 0 && <p className="text-sm text-gray-500">No requests.</p>}
+            {profile.leaveRequests.length === 0 && <p className="text-sm text-gray-500">{t("profile.noRequests")}</p>}
           </div>
         </div>
 
@@ -115,10 +115,10 @@ export default function ProfileClient({ profile }: { profile: any }) {
             {profile.documents.map((d: any) => (
               <div key={d.id} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
                 <span className="text-sm font-medium text-gray-800">{d.name}</span>
-                <a href={d.fileUrl} target="_blank" rel="noreferrer" className="text-sm text-blue-600 hover:underline">View Link</a>
+                <a href={d.fileUrl} target="_blank" rel="noreferrer" className="text-sm text-blue-600 hover:underline">{t("profile.viewLink")}</a>
               </div>
             ))}
-            {profile.documents.length === 0 && <p className="text-sm text-gray-500">No documents uploaded.</p>}
+            {profile.documents.length === 0 && <p className="text-sm text-gray-500">{t("profile.noDocuments")}</p>}
           </div>
         </div>
 
@@ -140,14 +140,14 @@ export default function ProfileClient({ profile }: { profile: any }) {
       {requestForm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <h3 className="text-lg font-bold mb-4">New Request</h3>
+            <h3 className="text-lg font-bold mb-4">{t("profile.newRequest")}</h3>
             <form onSubmit={submitRequest} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">{t("lead.type")}</label>
                 <select className="w-full border p-2 rounded" value={reqData.type} onChange={e => setReqData({...reqData, type: e.target.value})}>
                   <option>{t("hr.leave")}</option>
                   <option>{t("hr.remoteWork")}</option>
-                  <option>Permission (Hours)</option>
+                  <option>{t("profile.permissionHours")}</option>
                 </select>
               </div>
               <div>
@@ -155,12 +155,12 @@ export default function ProfileClient({ profile }: { profile: any }) {
                 <input required type="date" className="w-full border p-2 rounded" value={reqData.date} onChange={e => setReqData({...reqData, date: e.target.value})}/>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Reason / Notes</label>
+                <label className="block text-sm font-medium mb-1">{t("profile.reasonNotes")}</label>
                 <textarea className="w-full border p-2 rounded" rows={3} value={reqData.reason} onChange={e => setReqData({...reqData, reason: e.target.value})}></textarea>
               </div>
               <div className="flex justify-end gap-2 mt-4">
                 <button type="button" onClick={() => setRequestForm(false)} className="px-4 py-2 border rounded text-gray-600 hover:bg-gray-50">{t("common.cancel")}</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Submit</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">{t("profile.submit")}</button>
               </div>
             </form>
           </div>
@@ -170,14 +170,14 @@ export default function ProfileClient({ profile }: { profile: any }) {
       {docForm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <h3 className="text-lg font-bold mb-4">Upload Document Link</h3>
+            <h3 className="text-lg font-bold mb-4">{t("profile.uploadDocument")}</h3>
             <form onSubmit={uploadDoc} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Document Name (e.g. CV, Contract)</label>
+                <label className="block text-sm font-medium mb-1">{t("profile.documentName")}</label>
                 <input required type="text" className="w-full border p-2 rounded" value={docData.name} onChange={e => setDocData({...docData, name: e.target.value})}/>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">File URL (Google Drive, AWS, etc.)</label>
+                <label className="block text-sm font-medium mb-1">{t("profile.fileUrl")}</label>
                 <input required type="url" className="w-full border p-2 rounded" value={docData.fileUrl} onChange={e => setDocData({...docData, fileUrl: e.target.value})}/>
               </div>
               <div className="flex justify-end gap-2 mt-4">

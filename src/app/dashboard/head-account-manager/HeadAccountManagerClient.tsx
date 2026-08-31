@@ -80,7 +80,7 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
       {/* ── Super Admin: distribute clients to a Head Account Manager ── */}
       {isSuperAdmin && (
         <div className="bg-white rounded-xl border shadow-sm p-5">
-          <h2 className="text-lg font-bold text-slate-800 mb-1">Assign Clients to Head Account Manager</h2>
+          <h2 className="text-lg font-bold text-slate-800 mb-1">{t("ham.assignClients")}</h2>
           <p className="text-xs text-slate-500 mb-4">A new client does not auto-drop on every Head AM — assign each one here.</p>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -93,7 +93,7 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
               </thead>
               <tbody className="divide-y divide-gray-100 text-sm">
                 {projects.length === 0 && (
-                  <tr><td colSpan={3} className="px-4 py-6 text-center text-gray-400 italic">No clients yet.</td></tr>
+                  <tr><td colSpan={3} className="px-4 py-6 text-center text-gray-400 italic">{t("ham.noClients")}</td></tr>
                 )}
                 {projects.map((p: any) => (
                   <tr key={p.id} className={p.headAccountManagerId ? "" : "bg-amber-50/40"}>

@@ -131,7 +131,7 @@ export default function OperationsClient({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold text-slate-800">Account Manager Details</h2>
+      <h2 className="text-xl font-bold text-slate-800">{t("ops.amDetails")}</h2>
 
       {/* Error Banner */}
       {errorMsg && (
@@ -168,13 +168,13 @@ export default function OperationsClient({
         />
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none">
           <option value="all">{t("filter.allStatuses")}</option>
-          <option value="active">Active (Setup/Assigned/In Progress)</option>
+          <option value="active">{t("ops.activeFilter")}</option>
           {["new", "setup", "assigned", "in_progress", "on_hold", "delayed", "completed", "cancelled"].map(s => (
             <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
           ))}
         </select>
         <select value={packageFilter} onChange={(e) => setPackageFilter(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none">
-          <option value="all">All Packages</option>
+          <option value="all">{t("ops.allPackages")}</option>
           {uniquePackages.map((pkg: any) => <option key={pkg} value={pkg}>{pkg}</option>)}
         </select>
         {(searchQuery || statusFilter !== "all" || packageFilter !== "all") && (
@@ -191,11 +191,11 @@ export default function OperationsClient({
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-slate-50">
             <tr>
-              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase tracking-wider">Client & Deal</th>
-              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase tracking-wider">Timelines</th>
-              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase tracking-wider">Operations Progress</th>
+              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("ops.clientDeal")}</th>
+              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("ops.timelines")}</th>
+              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("ops.progress")}</th>
               <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("common.status")}</th>
-              <th className="px-6 py-3 text-end text-xs font-semibold text-slate-500 uppercase tracking-wider">Workflow Actions</th>
+              <th className="px-6 py-3 text-end text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("ops.workflowActions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -244,7 +244,7 @@ export default function OperationsClient({
               </tr>
             ))}
             {filteredProjects.length === 0 && (
-              <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400 italic">No projects found.</td></tr>
+              <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400 italic">{t("ops.noProjects")}</td></tr>
             )}
           </tbody>
         </table>
@@ -264,7 +264,7 @@ export default function OperationsClient({
             <form onSubmit={handleSaveSetup} className="p-6 flex-1 overflow-y-auto space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">{t("journey.niche")}</label>
-                <input name="niche" defaultValue={setupModal.niche} required className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="e.g. E-commerce, Real Estate..." />
+                <input name="niche" defaultValue={setupModal.niche} required className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder={t("ops.nicheExample")} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -277,12 +277,12 @@ export default function OperationsClient({
                 <input type="url" name="storeUrl" defaultValue={setupModal.storeUrl || setupModal.deal?.lead?.storeLink} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="https://" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Google Drive Link (Assets)</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">{t("ops.driveAssets")}</label>
                 <input type="url" name="driveLink" defaultValue={setupModal.driveLink} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="https://drive.google.com/..." />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Account Manager Notes (Brief)</label>
-                <textarea name="notes" defaultValue={setupModal.notes} className="w-full border rounded-lg px-3 py-2 text-sm h-32 resize-none focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Enter key details for the technical and creative teams..." />
+                <label className="block text-sm font-semibold text-slate-700 mb-1">{t("ops.amNotesBrief")}</label>
+                <textarea name="notes" defaultValue={setupModal.notes} className="w-full border rounded-lg px-3 py-2 text-sm h-32 resize-none focus:ring-2 focus:ring-indigo-500 outline-none" placeholder={t("ops.keyDetails")} />
               </div>
               <div className="pt-4 border-t mt-6">
                 <button type="submit" disabled={loadingAction === "setup"} className="w-full py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 disabled:opacity-50 transition shadow-lg shadow-indigo-200">

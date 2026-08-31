@@ -4,8 +4,10 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { LIFECYCLE_STATE } from "@/lib/constants";
 import HeadAccountManagerClient from "./HeadAccountManagerClient";
+import { getTranslator } from "@/server/i18n/locale";
 
 export default async function HeadAccountManagerPage() {
+  const t = getTranslator();
   const session = await getServerSession(authOptions);
   const user = session?.user;
 
@@ -132,7 +134,7 @@ export default async function HeadAccountManagerPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Head Account Manager Dashboard</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">{t("ham.dashboardTitle")}</h1>
       <HeadAccountManagerClient
         projects={projectsWithData}
         accountManagers={accountManagers}

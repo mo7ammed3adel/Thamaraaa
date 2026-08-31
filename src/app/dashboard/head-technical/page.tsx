@@ -3,8 +3,10 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import HeadTechnicalClient from "./HeadTechnicalClient";
+import { getTranslator } from "@/server/i18n/locale";
 
 export default async function HeadTechnicalPage() {
+  const t = getTranslator();
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
 
@@ -114,7 +116,7 @@ export default async function HeadTechnicalPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Head Technical Dashboard</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">{t("ht.dashboardTitle")}</h1>
       <HeadTechnicalClient 
         projects={projectsWithData} 
         teamLeaders={teamLeaders} 

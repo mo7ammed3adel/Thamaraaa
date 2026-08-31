@@ -108,7 +108,7 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
               </span>
               <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${t.priority === "High" ? "bg-red-50 text-red-700 border-red-200" : "bg-slate-50 text-slate-600 border-slate-200"}`}>{t.priority || "Medium"}</span>
               {t.requesterRole === t.agent?.role && t.agentId === userId && (
-                <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-bold rounded uppercase border border-emerald-200">Self</span>
+                <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-bold rounded uppercase border border-emerald-200">{t("design.self")}</span>
               )}
               {t.parentTask && (
                 <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
@@ -136,15 +136,15 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
           <div className="flex-1 space-y-4">
             <div className="flex gap-8 flex-wrap">
               <div>
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Requester</p>
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">{t("design.requester")}</p>
                 <p className="text-sm font-semibold text-gray-800">{t.requesterRole?.replace(/_/g, " ") || "System"}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Assigned Agent</p>
-                <p className="text-sm font-semibold text-gray-800">{t.agent?.name || <span className="text-gray-400 italic">Not Assigned</span>}</p>
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">{t("design.assignedAgent")}</p>
+                <p className="text-sm font-semibold text-gray-800">{t.agent?.name || <span className="text-gray-400 italic">{t("design.notAssigned")}</span>}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Created</p>
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">{t("design.created")}</p>
                 <p className="text-sm font-semibold text-gray-800">{new Date(t.createdAt).toLocaleDateString()}</p>
               </div>
             </div>
@@ -166,9 +166,9 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
             {/* Leader: Assign to Agent */}
             {showAssign && isLeader && !t.agentId && agents.length > 0 && (
               <div>
-                <p className="text-xs font-bold text-gray-700 mb-1">Assign to Designer</p>
+                <p className="text-xs font-bold text-gray-700 mb-1">{t("design.assignToDesigner")}</p>
                 <select onChange={(e) => handleAssign(t.id, e.target.value)} className="text-sm border-2 border-violet-100 rounded-xl px-3 py-2 text-violet-800 font-medium bg-violet-50 w-full outline-none focus:border-violet-500 transition">
-                  <option value="">Select designer...</option>
+                  <option value="">{t("design.selectDesigner")}</option>
                   {agents.map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
               </div>
@@ -194,10 +194,10 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
               )}
               {/* Only the leader approves the final delivery */}
               {isLeader && t.status === "review" && (
-                <button onClick={() => handleUpdateStatus(t.id, "done")} className="w-full py-2 bg-emerald-500 text-white rounded-xl text-sm font-bold hover:bg-emerald-600 shadow-sm transition">Mark Delivered</button>
+                <button onClick={() => handleUpdateStatus(t.id, "done")} className="w-full py-2 bg-emerald-500 text-white rounded-xl text-sm font-bold hover:bg-emerald-600 shadow-sm transition">{t("design.markDelivered")}</button>
               )}
               {!isLeader && t.agentId === userId && t.status === "review" && (
-                <span className="w-full py-2 text-center bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold">Awaiting leader review</span>
+                <span className="w-full py-2 text-center bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold">{t("design.awaitingReview")}</span>
               )}
             </div>
 
@@ -280,7 +280,7 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
       {isLeader && activeTab === "incoming" && (
         <div className="space-y-4">
           {incomingTasks.length === 0 && (
-            <div className="bg-gray-50 border border-dashed border-gray-300 rounded-2xl p-12 text-center text-gray-500">No new incoming requests!</div>
+            <div className="bg-gray-50 border border-dashed border-gray-300 rounded-2xl p-12 text-center text-gray-500">{t("design.noIncoming")}</div>
           )}
           {incomingTasks.map((t: any) => <TaskCard key={t.id} t={t} showAssign={true} />)}
         </div>
@@ -320,7 +320,7 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
                     <span className={`font-bold ${delayedT.length > 0 ? "text-red-600" : "text-emerald-500"}`}>{delayedT.length}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-500">Total Assigned</span>
+                    <span className="text-gray-500">{t("design.totalAssigned")}</span>
                     <span className="font-bold text-gray-900">{agentTasks.length}</span>
                   </div>
                 </div>
@@ -328,7 +328,7 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
             );
           })}
           {agents.length === 0 && (
-            <div className="col-span-full bg-gray-50 border border-dashed border-gray-300 rounded-2xl p-12 text-center text-gray-500">No agents available.</div>
+            <div className="col-span-full bg-gray-50 border border-dashed border-gray-300 rounded-2xl p-12 text-center text-gray-500">{t("design.noAgents")}</div>
           )}
         </div>
       )}
@@ -344,7 +344,7 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
               <option value="pending">{t("status.pending")}</option>
               <option value="in_progress">{t("status.inProgress")}</option>
               <option value="review">{t("status.inReview")}</option>
-              <option value="done">Delivered</option>
+              <option value="done">{t("design.delivered")}</option>
             </select>
             <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-violet-500 outline-none">
               <option value="all">{t("filter.allPriorities")}</option>
@@ -372,7 +372,7 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
 
           {filteredTasks.map((t: any) => <TaskCard key={t.id} t={t} showAssign={isLeader} />)}
           {filteredTasks.length === 0 && (
-            <div className="bg-gray-50 border border-dashed border-gray-300 rounded-2xl p-12 text-center text-gray-500">No design requests match your filters.</div>
+            <div className="bg-gray-50 border border-dashed border-gray-300 rounded-2xl p-12 text-center text-gray-500">{t("design.noMatch")}</div>
           )}
         </div>
       )}

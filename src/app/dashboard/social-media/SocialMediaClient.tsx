@@ -276,7 +276,7 @@ export default function SocialMediaClient({ projects, teamMembers, userRole, use
               {isDistributing && isTL && (
                 <div className="p-4 border-b bg-indigo-50/50">
                   <DistributionPanel
-                    title="Select Social Media Agent"
+                    title={t("social.selectAgent")}
                     users={teamMembers.map((m: any) => ({
                       id: m.id,
                       name: m.name,

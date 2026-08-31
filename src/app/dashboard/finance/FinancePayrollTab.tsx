@@ -2,8 +2,10 @@ import { useState, useEffect, useCallback } from "react";
 import { ReceiptText } from "lucide-react";
 import { formatSar } from "@/shared/formatters/currency";
 import { listFinancePayroll } from "@/client/api/finance";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 export function PayrollTab() {
+  const t = useTranslator();
   const today = new Date();
   const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
   const [month, setMonth] = useState<string>(defaultMonth);
@@ -46,11 +48,11 @@ export function PayrollTab() {
             <tr>
               <th className="px-4 py-3 text-start">Employee</th>
               <th className="px-4 py-3 text-start">Role</th>
-              <th className="px-4 py-3 text-end">Base Salary</th>
+              <th className="px-4 py-3 text-end">{t("finance.baseSalary")}</th>
               <th className="px-4 py-3 text-end">Commission</th>
               <th className="px-4 py-3 text-end">Bonuses</th>
               <th className="px-4 py-3 text-end">Deductions</th>
-              <th className="px-4 py-3 text-end">Net</th>
+              <th className="px-4 py-3 text-end">{t("finance.net")}</th>
               <th className="px-4 py-3 text-center">Status</th>
             </tr>
           </thead>

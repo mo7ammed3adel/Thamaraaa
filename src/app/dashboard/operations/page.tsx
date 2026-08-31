@@ -3,8 +3,10 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import OperationsClient from "./OperationsClient";
+import { getTranslator } from "@/server/i18n/locale";
 
 export default async function OperationsPage() {
+  const t = getTranslator();
   const session = await getServerSession(authOptions);
   const user = session?.user;
 
@@ -69,7 +71,7 @@ export default async function OperationsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Operations Hub</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">{t("ops.hub")}</h1>
       <OperationsClient 
         userRole={user.role} 
         userId={user.id} 

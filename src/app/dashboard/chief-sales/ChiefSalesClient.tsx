@@ -34,7 +34,7 @@ export default function ChiefSalesClient() {
   }, [range]);
 
   if (loading && !data) return <div className="flex justify-center p-12"><div className="animate-spin h-8 w-8 border-b-2 border-indigo-600 rounded-full"></div></div>;
-  if (!data) return <div className="text-center text-red-500">Failed to load analytics</div>;
+  if (!data) return <div className="text-center text-red-500">{t("chief.loadFailed")}</div>;
 
   const { overview, teleSalesTeam, salesTeam, recentDeals, warnings } = data;
 
@@ -77,7 +77,7 @@ export default function ChiefSalesClient() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-        <h2 className="text-xl font-bold text-slate-800">Sales Leadership Overview</h2>
+        <h2 className="text-xl font-bold text-slate-800">{t("chief.overview")}</h2>
         <select 
           value={range} 
           onChange={(e) => setRange(e.target.value)}
@@ -86,11 +86,11 @@ export default function ChiefSalesClient() {
           <option value="today">Today</option>
           <option value="this_week">This Week</option>
           <option value="this_month">{t("dateRange.thisMonth")}</option>
-          <option value="all">All Time</option>
+          <option value="all">{t("chief.allTime")}</option>
         </select>
       </div>
 
-      {loading && <div className="absolute top-20 right-10 bg-indigo-50 text-indigo-600 px-3 py-1 rounded text-xs animate-pulse font-bold">Refreshing...</div>}
+      {loading && <div className="absolute top-20 right-10 bg-indigo-50 text-indigo-600 px-3 py-1 rounded text-xs animate-pulse font-bold">{t("chief.refreshing")}</div>}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* KPI Cards */}
@@ -109,9 +109,9 @@ export default function ChiefSalesClient() {
           className="bg-white border hover:border-indigo-300 hover:shadow-md cursor-pointer transition p-5 rounded-xl shadow-sm border-slate-200 space-y-2 relative overflow-hidden group"
         >
           <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition text-indigo-500"><CheckCircle2 size={80} /></div>
-          <p className="text-sm font-medium text-slate-500">Collected Payments</p>
+          <p className="text-sm font-medium text-slate-500">{t("chief.collectedPayments")}</p>
           <h3 className="text-3xl font-bold text-indigo-600">{overview.totalCollected.toLocaleString()}<span className="text-lg text-slate-400 font-normal ms-1">{t("finance.sar")}</span></h3>
-          <p className="text-xs text-slate-400">Actual money in bank</p>
+          <p className="text-xs text-slate-400">{t("chief.actualMoney")}</p>
         </div>
 
         <div 
@@ -119,7 +119,7 @@ export default function ChiefSalesClient() {
           className="bg-white border hover:border-purple-300 hover:shadow-md cursor-pointer transition p-5 rounded-xl shadow-sm border-slate-200 space-y-2 relative overflow-hidden group"
         >
           <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition text-purple-500"><TrendingUp size={80} /></div>
-          <p className="text-sm font-medium text-slate-500">Conversion Vol</p>
+          <p className="text-sm font-medium text-slate-500">{t("chief.conversionVolume")}</p>
           <div className="flex gap-4 items-end">
             <h3 className="text-3xl font-bold text-slate-800">{overview.totalDeals} <span className="text-sm font-normal text-slate-400">{t("team.deals")}</span></h3>
             <span className="text-sm font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded">{overview.totalLeads > 0 ? Math.round((overview.totalDeals / overview.totalLeads)*100) : 0}% Conv</span>
@@ -167,7 +167,7 @@ export default function ChiefSalesClient() {
                   <td className="px-4 py-3 text-end font-medium">{agent.revenueGenerated.toLocaleString()} SAR</td>
                 </tr>
               ))}
-              {salesTeam.length === 0 && <tr><td colSpan={3} className="text-center py-4 text-slate-400 italic">No deals generated yet</td></tr>}
+              {salesTeam.length === 0 && <tr><td colSpan={3} className="text-center py-4 text-slate-400 italic">{t("chief.noDeals")}</td></tr>}
             </tbody>
           </table>
         </div>
@@ -182,7 +182,7 @@ export default function ChiefSalesClient() {
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500">
               <tr>
                 <th className="px-4 py-2 font-semibold">{t("common.agent")}</th>
-                <th className="px-4 py-2 font-semibold text-center">Booked</th>
+                <th className="px-4 py-2 font-semibold text-center">{t("chief.booked")}</th>
                 <th className="px-4 py-2 font-semibold text-center">{t("status.attended")}</th>
               </tr>
             </thead>
@@ -194,7 +194,7 @@ export default function ChiefSalesClient() {
                   <td className="px-4 py-3 text-center font-bold text-emerald-600">{agent.attended}</td>
                 </tr>
               ))}
-              {teleSalesTeam.length === 0 && <tr><td colSpan={3} className="text-center py-4 text-slate-400 italic">No meetings booked</td></tr>}
+              {teleSalesTeam.length === 0 && <tr><td colSpan={3} className="text-center py-4 text-slate-400 italic">{t("chief.noMeetings")}</td></tr>}
             </tbody>
           </table>
         </div>

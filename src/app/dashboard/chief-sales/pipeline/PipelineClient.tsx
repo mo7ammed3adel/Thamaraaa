@@ -143,7 +143,7 @@ export default function PipelineClient({ deals, projects }: any) {
                     </div>
                   ))}
                   {items.length === 0 && (
-                    <p className="text-xs text-slate-400 italic text-center py-4">No items</p>
+                    <p className="text-xs text-slate-400 italic text-center py-4">{t("chief.noItems")}</p>
                   )}
                 </div>
               </div>

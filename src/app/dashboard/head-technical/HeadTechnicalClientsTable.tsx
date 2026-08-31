@@ -39,7 +39,7 @@ export default function HeadTechnicalClientsTable({
     <div className="bg-white rounded-xl shadow border overflow-hidden">
       <div className="p-4 border-b bg-slate-50 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
         <div className="flex items-center gap-3">
-          <h2 className="text-lg font-bold text-slate-800 whitespace-nowrap">Master Clients List</h2>
+          <h2 className="text-lg font-bold text-slate-800 whitespace-nowrap">{t("ht.masterList")}</h2>
           {hasActiveFilters && (
             <button
               onClick={clearAllFilters}
@@ -70,9 +70,9 @@ export default function HeadTechnicalClientsTable({
           <thead className="bg-slate-50">
             <tr>
               <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase w-1/4">{t("common.clientName")}</th>
-              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase w-1/4">Assigned Teams</th>
-              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase w-1/4">Progress %</th>
-              <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase w-32">Status & Delays</th>
+              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase w-1/4">{t("ht.assignedTeams")}</th>
+              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase w-1/4">{t("ht.progressPct")}</th>
+              <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase w-32">{t("ht.statusDelays")}</th>
               <th className="px-6 py-3 text-end text-xs font-semibold text-slate-500 uppercase">{t("common.actions")}</th>
             </tr>
           </thead>
@@ -118,7 +118,7 @@ export default function HeadTechnicalClientsTable({
                         );
                       })}
                       {departmentsToShow.length === 0 && (
-                        <span className="text-slate-400 italic text-xs">No social/media scope detected</span>
+                        <span className="text-slate-400 italic text-xs">{t("ht.noScope")}</span>
                       )}
                     </div>
                     {missingDepartments.length > 0 && (

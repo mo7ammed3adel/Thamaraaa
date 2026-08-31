@@ -34,7 +34,7 @@ export default function FinanceClient() {
   };
 
   if (loading) return <div className="flex justify-center p-12"><div className="animate-spin h-8 w-8 border-b-2 border-green-600 rounded-full"></div></div>;
-  if (!data?.overview) return <div className="text-center p-12 text-gray-500">Failed to load finance data.</div>;
+  if (!data?.overview) return <div className="text-center p-12 text-gray-500">{t("finance.loadFailed")}</div>;
 
   return (
     <div className="space-y-6">
@@ -52,7 +52,7 @@ export default function FinanceClient() {
           className={`cursor-pointer transition-all p-5 rounded-2xl border-2 shadow-sm ${
             activeFilter === "fully_paid" ? "border-green-500 bg-green-100" : "border-transparent bg-green-50 hover:bg-green-100 border-green-200"
           }`}>
-          <p className="text-xs font-bold text-green-700 uppercase tracking-widest mb-2">Total Collected</p>
+          <p className="text-xs font-bold text-green-700 uppercase tracking-widest mb-2">{t("finance.totalCollected")}</p>
           <p className="text-3xl font-black text-green-700">{formatSar(data.overview.totalCollected)}</p>
         </div>
         <div 
@@ -60,7 +60,7 @@ export default function FinanceClient() {
           className={`cursor-pointer transition-all p-5 rounded-2xl border-2 shadow-sm ${
             activeFilter === "partial" ? "border-amber-500 bg-amber-100" : "border-transparent bg-amber-50 hover:bg-amber-100 border-amber-200"
           }`}>
-          <p className="text-xs font-bold text-amber-700 uppercase tracking-widest mb-2">Total Remaining</p>
+          <p className="text-xs font-bold text-amber-700 uppercase tracking-widest mb-2">{t("finance.totalRemaining")}</p>
           <p className="text-3xl font-black text-amber-700">{formatSar(data.overview.totalRemaining)}</p>
         </div>
         <div 
@@ -68,7 +68,7 @@ export default function FinanceClient() {
           className={`cursor-pointer transition-all p-5 rounded-2xl border-2 shadow-sm ${
             activeFilter === "overdue" && activeTab === "installments" ? "border-blue-500 bg-blue-100" : "border-transparent bg-blue-50 hover:bg-blue-100 border-blue-200"
           }`}>
-          <p className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-2">Upcoming Installments</p>
+          <p className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-2">{t("finance.upcomingInstallments")}</p>
           <p className="text-3xl font-black text-blue-700">{formatSar(data.overview.upcomingAmounts)}</p>
         </div>
       </div>
@@ -96,9 +96,9 @@ export default function FinanceClient() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
               <tr>
-                <th className="px-6 py-3 text-start">Client & Agent</th>
-                <th className="px-6 py-3 text-start">Total Value</th>
-                <th className="px-6 py-3 text-start">Collected</th>
+                <th className="px-6 py-3 text-start">{t("finance.clientAgent")}</th>
+                <th className="px-6 py-3 text-start">{t("finance.totalValue")}</th>
+                <th className="px-6 py-3 text-start">{t("finance.collected")}</th>
                 <th className="px-6 py-3 text-start">{t("common.status")}</th>
               </tr>
             </thead>
@@ -136,7 +136,7 @@ export default function FinanceClient() {
                   </tr>
                 )
               })}
-              {data.deals.length === 0 && <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-500 italic">No deals recorded yet.</td></tr>}
+              {data.deals.length === 0 && <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-500 italic">{t("finance.noDeals")}</td></tr>}
             </tbody>
           </table>
         </div>

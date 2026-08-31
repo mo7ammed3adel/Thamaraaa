@@ -271,7 +271,7 @@ export default function MediaBuyerClient({ projects, teamMembers, userRole, user
               {isDistributing && isTL && (
                 <div className="p-4 border-b bg-indigo-50/50">
                   <DistributionPanel
-                    title="Select Media Buyer Agent"
+                    title={t("social.selectMediaAgent")}
                     users={teamMembers.map((m: any) => ({
                       id: m.id,
                       name: m.name,

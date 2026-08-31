@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Bell, CheckCircle2 } from "lucide-react";
 import { listNotificationHistory, markNotificationRead } from "@/client/api/notifications";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface Notification {
   id: string;
@@ -14,6 +15,7 @@ interface Notification {
 }
 
 export default function NotificationsClient() {
+  const t = useTranslator();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -56,7 +58,7 @@ export default function NotificationsClient() {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   if (loading) {
-    return <div className="p-8 text-center text-gray-500">Loading notifications...</div>;
+    return <div className="p-8 text-center text-gray-500">{t("notifications.loading")}</div>;
   }
 
   return (
@@ -83,8 +85,8 @@ export default function NotificationsClient() {
           <div className="bg-blue-50 text-blue-500 p-4 rounded-full mb-4">
             <Bell className="h-8 w-8" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">No notifications yet</h3>
-          <p className="text-gray-500 text-sm">When you receive a notification, it will appear here — read or unread.</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">{t("notifications.none")}</h3>
+          <p className="text-gray-500 text-sm">{t("notifications.hint")}</p>
         </div>
       ) : (
         <ul className="divide-y divide-gray-100">

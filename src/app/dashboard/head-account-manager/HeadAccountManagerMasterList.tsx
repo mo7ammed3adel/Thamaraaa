@@ -60,7 +60,7 @@ export default function HeadAccountManagerMasterList({
     <div className="bg-white rounded-xl shadow border overflow-hidden">
       <div className="p-4 border-b bg-slate-50 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
         <div className="flex items-center gap-4 w-full md:w-auto">
-          <h2 className="text-lg font-bold text-slate-800 whitespace-nowrap">Global Master List</h2>
+          <h2 className="text-lg font-bold text-slate-800 whitespace-nowrap">{t("ham.masterList")}</h2>
           {filterAM !== "all" && (
             <button onClick={() => setFilterAM("all")} className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full hover:bg-indigo-100 whitespace-nowrap">
               Showing AM: {filterAM === "unassigned" ? "Unassigned" : accountManagers.find((a:any) => a.id === filterAM)?.name} ✕
@@ -78,23 +78,23 @@ export default function HeadAccountManagerMasterList({
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none">
             <option value="all">{t("filter.allStatuses")}</option>
             <option value="new">{t("status.new")}</option>
-            <option value="assigned">Assigned</option>
-            <option value="setup">Setup</option>
+            <option value="assigned">{t("ham.assigned")}</option>
+            <option value="setup">{t("ham.setup")}</option>
             <option value="in_progress">{t("status.inProgress")}</option>
             <option value="delayed">{t("status.delayed")}</option>
             <option value="completed">{t("status.completed")}</option>
           </select>
           <select value={filterWarning} onChange={e => setFilterWarning(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none">
-            <option value="all">Warnings: Any</option>
-            <option value="yes">With Warnings</option>
-            <option value="no">No Warnings</option>
+            <option value="all">{t("ham.warningsAny")}</option>
+            <option value="yes">{t("ham.withWarnings")}</option>
+            <option value="no">{t("ham.noWarnings")}</option>
           </select>
           <select value={filterDelay} onChange={e => setFilterDelay(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none">
-            <option value="all">Delay: Any</option>
-            <option value="yes">Delayed Tasks/Project</option>
+            <option value="all">{t("ham.delayAny")}</option>
+            <option value="yes">{t("ham.delayedTasks")}</option>
           </select>
           <select value={filterLifecycle} onChange={e => setFilterLifecycle(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none">
-            <option value="all">Client Status: All</option>
+            <option value="all">{t("ham.clientStatusAll")}</option>
             <option value="Active">{t("status.active")}</option>
             <option value="Hold">{t("status.hold")}</option>
             <option value="Renewer">{t("status.renewer")}</option>
@@ -106,11 +106,11 @@ export default function HeadAccountManagerMasterList({
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-slate-50 text-xs font-semibold text-slate-500 uppercase">
           <tr>
-            <th className="px-6 py-3 text-start w-64">Client & Details</th>
+            <th className="px-6 py-3 text-start w-64">{t("ham.clientDetails")}</th>
             <th className="px-6 py-3 text-start w-32">{t("journey.lifecycle")}</th>
-            <th className="px-6 py-3 text-start w-48">Assignments</th>
-            <th className="px-6 py-3 text-start w-64">General Progress</th>
-            <th className="px-6 py-3 text-center w-32">Status & Tasks</th>
+            <th className="px-6 py-3 text-start w-48">{t("ham.assignments")}</th>
+            <th className="px-6 py-3 text-start w-64">{t("ham.generalProgress")}</th>
+            <th className="px-6 py-3 text-center w-32">{t("ham.statusTasks")}</th>
             <th className="px-6 py-3 text-end">{t("common.actions")}</th>
           </tr>
         </thead>
@@ -227,7 +227,7 @@ export default function HeadAccountManagerMasterList({
             );
           })}
           {filteredProjects.length === 0 && (
-            <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-slate-400 italic">No projects found for current filters.</td></tr>
+            <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-slate-400 italic">{t("ham.noProjectsFiltered")}</td></tr>
           )}
         </tbody>
       </table>

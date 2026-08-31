@@ -4,8 +4,10 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { DIRECT_MANAGER_ROLES } from "@/lib/constants";
 import UserListClient from "./UserListClient";
+import { getTranslator } from "@/server/i18n/locale";
 
 export default async function UsersPage() {
+  const t = getTranslator();
   const session = await getServerSession(authOptions);
   
   const viewerRole = (session?.user as any)?.role;
@@ -52,7 +54,7 @@ export default async function UsersPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("users.management")}</h1>
       </div>
       <UserListClient initialUsers={users} managers={managers} companies={companies} canImpersonate={viewerRole === "super_admin"} canDelete={viewerRole === "super_admin"} />
     </div>

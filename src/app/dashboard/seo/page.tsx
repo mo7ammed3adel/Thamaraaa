@@ -3,8 +3,10 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import SeoClient from "./SeoClient";
+import { getTranslator } from "@/server/i18n/locale";
 
 export default async function SeoPage() {
+  const t = getTranslator();
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
 
@@ -157,7 +159,7 @@ export default async function SeoPage() {
         }
       }
     } catch (err: any) {
-      return <div className="p-8"><h1 className="text-red-500 font-bold">Fetch Error:</h1><p>{err.message}</p></div>;
+      return <div className="p-8"><h1 className="text-red-500 font-bold">{t("seo.fetchError")}</h1><p>{err.message}</p></div>;
     }
   }
 

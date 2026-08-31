@@ -97,7 +97,7 @@ export default function ClientAssignClient({
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search client by name or phone…"
+            placeholder={t("assign.searchClient")}
             className="w-full ps-10 pe-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -154,7 +154,7 @@ export default function ClientAssignClient({
                           onChange={(e) => setDraft((p) => ({ ...p, [c.id]: e.target.value }))}
                           className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500"
                         >
-                          <option value="">Select Head AM…</option>
+                          <option value="">{t("assign.selectHeadAm")}</option>
                           {headAccountManagers.map((h) => (
                             <option key={h.id} value={h.id}>{h.name}</option>
                           ))}

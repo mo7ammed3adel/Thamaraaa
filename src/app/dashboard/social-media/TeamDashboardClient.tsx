@@ -166,13 +166,13 @@ export default function TeamDashboardClient({ tasks, agents, designLeaders, user
               <div className="flex flex-col gap-1 shrink-0">
                 {isTL && !t.agentId && agents.length > 0 && (
                   <select onChange={(e) => handleAssign(t.id, e.target.value)} className="text-xs border rounded-lg px-2 py-1.5 bg-white w-32">
-                    <option value="">Assign...</option>
+                    <option value="">{t("social.assign")}</option>
                     {agents.map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
                   </select>
                 )}
                 <div className="flex gap-1 flex-wrap">
                   {t.status !== "in_progress" && t.status !== "done" && t.status !== "review" && (
-                    <button onClick={() => handleUpdateStatus(t.id, "in_progress")} className="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs font-medium hover:bg-amber-200">Start</button>
+                    <button onClick={() => handleUpdateStatus(t.id, "in_progress")} className="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs font-medium hover:bg-amber-200">{t("social.start")}</button>
                   )}
                   {t.status === "in_progress" && (
                     <button onClick={() => handleUpdateStatus(t.id, "review")} className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium hover:bg-blue-200">{t("status.review")}</button>
@@ -201,7 +201,7 @@ export default function TeamDashboardClient({ tasks, agents, designLeaders, user
       {createSubTask && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6">
-            <h3 className="text-lg font-bold text-slate-800 mb-1">Create Sub-Task</h3>
+            <h3 className="text-lg font-bold text-slate-800 mb-1">{t("social.createSubTask")}</h3>
             <p className="text-sm text-slate-500 mb-4">Client: {createSubTask.project?.deal?.lead?.name}</p>
             <div className="space-y-3">
               <div>
@@ -211,8 +211,8 @@ export default function TeamDashboardClient({ tasks, agents, designLeaders, user
                 </select>
               </div>
               <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Creative Brief</label>
-                <textarea value={subTaskBrief} onChange={(e) => setSubTaskBrief(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm h-20 resize-none" placeholder="Describe what you need..." />
+                <label className="text-xs font-medium text-slate-600 block mb-1">{t("social.creativeBrief")}</label>
+                <textarea value={subTaskBrief} onChange={(e) => setSubTaskBrief(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm h-20 resize-none" placeholder={t("social.describeNeed")} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -229,16 +229,16 @@ export default function TeamDashboardClient({ tasks, agents, designLeaders, user
                 </div>
               </div>
               <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Assign to Leader</label>
+                <label className="text-xs font-medium text-slate-600 block mb-1">{t("social.assignToLeader")}</label>
                 <select value={subTaskLeader} onChange={(e) => setSubTaskLeader(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
-                  <option value="">Select...</option>
+                  <option value="">{t("social.select")}</option>
                   {designLeaders.filter((d: any) => { const st = subTaskTypes.find((s) => s.value === subTaskType); return st ? d.role === st.leaderRole : true; }).map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
               </div>
             </div>
             <div className="flex gap-2 mt-4">
               <button onClick={() => { setCreateSubTask(null); setSubTaskBrief(""); }} className="flex-1 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-200">{t("common.cancel")}</button>
-              <button onClick={handleCreateSubTask} disabled={!subTaskLeader} className="flex-1 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50">Create</button>
+              <button onClick={handleCreateSubTask} disabled={!subTaskLeader} className="flex-1 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50">{t("social.create")}</button>
             </div>
           </div>
         </div>

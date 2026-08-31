@@ -17,7 +17,7 @@ export default function HeadAccountManagerWorkload({
   const t = useTranslator();
   return (
     <div className="bg-white rounded-xl shadow-sm border p-6">
-      <h2 className="text-lg font-bold text-slate-800 mb-4">Account Managers Workload</h2>
+      <h2 className="text-lg font-bold text-slate-800 mb-4">{t("ham.workload")}</h2>
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
         <button
           onClick={() => setFilterAM("unassigned")}
@@ -25,7 +25,7 @@ export default function HeadAccountManagerWorkload({
         >
           <p className="text-sm font-bold text-slate-700">⚠️ Unassigned</p>
           <p className="text-2xl font-black text-purple-600 mt-2">{kpis.unassigned}</p>
-          <p className="text-xs text-slate-400 mt-1">Needs delegation</p>
+          <p className="text-xs text-slate-400 mt-1">{t("ham.needsDelegation")}</p>
         </button>
 
         {accountManagers.map((am: any) => {
@@ -48,7 +48,7 @@ export default function HeadAccountManagerWorkload({
                   <p className={`text-xl font-black ${load > 15 ? "text-red-500" : load > 8 ? "text-amber-500" : "text-emerald-500"}`}>{load}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">Avg Prg</p>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase">{t("ham.avgProgress")}</p>
                   <p className="text-xl font-black text-slate-700">{avgProg}%</p>
                 </div>
               </div>

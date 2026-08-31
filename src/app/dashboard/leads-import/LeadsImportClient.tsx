@@ -4,6 +4,7 @@ import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, X, Users, Download }
 import * as XLSX from "xlsx";
 import { importLeads } from "@/client/api/leads";
 import { HttpError } from "@/client/transport/http";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface Agent {
   id: string;
@@ -58,6 +59,7 @@ export default function LeadsImportClient({
   companies?: { id: string; name: string }[];
   userRole: string;
 }) {
+  const t = useTranslator();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<ParsedRow[]>([]);
   const [selectedAgent, setSelectedAgent] = useState("");
@@ -175,8 +177,8 @@ export default function LeadsImportClient({
             <FileSpreadsheet className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-gray-900">Leads Template</h2>
-            <p className="text-xs text-gray-500">Download the sheet format before collecting leads.</p>
+            <h2 className="text-sm font-bold text-gray-900">{t("import.template")}</h2>
+            <p className="text-xs text-gray-500">{t("import.templateHint")}</p>
           </div>
         </div>
         <a

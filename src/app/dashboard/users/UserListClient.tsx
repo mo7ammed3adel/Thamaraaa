@@ -178,7 +178,7 @@ export default function UserListClient({ initialUsers, managers, companies = [],
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search name, email or phone…"
+              placeholder={t("users.searchPlaceholder")}
               className="w-64 max-w-full ps-9 pe-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
@@ -187,7 +187,7 @@ export default function UserListClient({ initialUsers, managers, companies = [],
             onChange={(e) => setRoleFilter(e.target.value)}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500 capitalize"
           >
-            <option value="all">All Roles</option>
+            <option value="all">{t("users.allRoles")}</option>
             {availableRoles.map((r) => (
               <option key={r} value={r} className="capitalize">{r.replace(/_/g, " ")}</option>
             ))}
@@ -197,7 +197,7 @@ export default function UserListClient({ initialUsers, managers, companies = [],
             onChange={(e) => setCompanyFilter(e.target.value)}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="all">All Companies</option>
+            <option value="all">{t("users.allCompanies")}</option>
             {companies.map((c: any) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
@@ -222,7 +222,7 @@ export default function UserListClient({ initialUsers, managers, companies = [],
               <tr>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("common.name")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("common.contact")}</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Role & Level</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("users.roleLevel")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("common.company")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("common.directManager")}</th>
                 <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("common.status")}</th>
@@ -231,7 +231,7 @@ export default function UserListClient({ initialUsers, managers, companies = [],
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredUsers.length === 0 && (
-                <tr><td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500 italic">No users match the filters.</td></tr>
+                <tr><td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500 italic">{t("users.noMatch")}</td></tr>
               )}
               {filteredUsers.map((u) => (
                 <tr key={u.id} className="hover:bg-gray-50 transition-colors">
@@ -271,7 +271,7 @@ export default function UserListClient({ initialUsers, managers, companies = [],
                           onClick={() => handleImpersonate(u)}
                           disabled={impersonatingId === u.id}
                           className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors disabled:opacity-50"
-                          title="Access this user's dashboard (impersonate)"
+                          title={t("users.impersonate")}
                         >
                           <LogIn className="h-4 w-4" />
                         </button>
@@ -306,7 +306,7 @@ export default function UserListClient({ initialUsers, managers, companies = [],
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
             <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center shrink-0">
-              <h3 className="text-lg font-bold text-gray-900">Create New User</h3>
+              <h3 className="text-lg font-bold text-gray-900">{t("users.create")}</h3>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">&times;</button>
             </div>
             <div className="flex-1 overflow-y-auto p-6">
@@ -317,7 +317,7 @@ export default function UserListClient({ initialUsers, managers, companies = [],
                     <input required type="text" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("users.password")}</label>
                     <input required type="password" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
                   </div>
                   <div className="col-span-2">
@@ -373,7 +373,7 @@ export default function UserListClient({ initialUsers, managers, companies = [],
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Level *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("users.level")}</label>
                     <select className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value={formData.level} onChange={e => setFormData({...formData, level: e.target.value})}>
                       <option value="Intern">{t("level.intern")}</option>
                       <option value="Junior">{t("level.junior")}</option>
@@ -396,11 +396,11 @@ export default function UserListClient({ initialUsers, managers, companies = [],
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Base Salary (SAR)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("users.baseSalary")}</label>
                     <input type="number" min="0" step="0.01" placeholder="0" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value={formData.baseSalary} onChange={e => setFormData({...formData, baseSalary: e.target.value})} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Target (SAR)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("users.monthlyTarget")}</label>
                     <input type="number" min="0" step="0.01" placeholder="0" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value={formData.monthlyTarget} onChange={e => setFormData({...formData, monthlyTarget: e.target.value})} />
                   </div>
                 </div>
@@ -408,7 +408,7 @@ export default function UserListClient({ initialUsers, managers, companies = [],
             </div>
             <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 shrink-0 bg-gray-50">
               <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg">{t("common.cancel")}</button>
-              <button type="submit" form="createForm" disabled={loading} className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">Save User</button>
+              <button type="submit" form="createForm" disabled={loading} className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">{t("users.save")}</button>
             </div>
           </div>
         </div>
@@ -433,8 +433,8 @@ export default function UserListClient({ initialUsers, managers, companies = [],
                     <input required type="text" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-                    <input type="password" placeholder="Leave blank to keep" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value={editData.password} onChange={e => setEditData({...editData, password: e.target.value})} />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("users.newPassword")}</label>
+                    <input type="password" placeholder={t("users.leaveBlank")} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value={editData.password} onChange={e => setEditData({...editData, password: e.target.value})} />
                   </div>
                   <div className="col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">{t("form.emailRequired")}</label>
@@ -533,7 +533,7 @@ export default function UserListClient({ initialUsers, managers, companies = [],
             </div>
             <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 shrink-0 bg-gray-50">
               <button type="button" onClick={() => setEditingUser(null)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg">{t("common.cancel")}</button>
-              <button type="submit" form="editForm" disabled={loading} className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">Save Changes</button>
+              <button type="submit" form="editForm" disabled={loading} className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">{t("users.saveChanges")}</button>
             </div>
           </div>
         </div>

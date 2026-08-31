@@ -3,12 +3,14 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import PipelineClient from "./PipelineClient";
+import { getTranslator } from "@/server/i18n/locale";
 
 /**
  * Server component for the Chief Sales Pipeline page.
  * Fetches deals, projects, and lead data for a visual pipeline view.
  */
 export default async function PipelinePage() {
+  const t = getTranslator();
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
 
@@ -36,7 +38,7 @@ export default async function PipelinePage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Sales Pipeline</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">{t("chief.pipeline")}</h1>
       <PipelineClient deals={deals} projects={projects} />
     </div>
   );

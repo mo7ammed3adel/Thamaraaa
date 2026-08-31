@@ -3,8 +3,10 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import ProfileClient from "./ProfileClient";
+import { getTranslator } from "@/server/i18n/locale";
 
 export default async function ProfilePage() {
+  const t = getTranslator();
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
   if (!user) redirect("/login");
@@ -19,7 +21,7 @@ export default async function ProfilePage() {
     }
   });
 
-  if (!profile) return <div>User not found</div>;
+  if (!profile) return <div>{t("profile.notFound")}</div>;
 
   // Compute role-aware sales stats so Profile mirrors the role's dashboard.
   // Sales agents close their own deals (Deal.salesAgentId).

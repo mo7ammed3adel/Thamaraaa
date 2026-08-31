@@ -154,7 +154,7 @@ export default function DealsClient({ userRole }: { userRole: string }) {
         >
           <div className="flex items-center gap-2 mb-1.5">
             <Handshake className="h-4 w-4 opacity-80" />
-            <span className="text-[10px] font-semibold uppercase opacity-80">Total Deals</span>
+            <span className="text-[10px] font-semibold uppercase opacity-80">{t("deals.total")}</span>
           </div>
           <p className="text-2xl font-bold">{timeFilteredDeals.length}</p>
         </div>
@@ -162,19 +162,19 @@ export default function DealsClient({ userRole }: { userRole: string }) {
         <div className="bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl p-4 text-white shadow-lg">
           <div className="flex items-center gap-2 mb-1.5">
             <DollarSign className="h-4 w-4 opacity-80" />
-            <span className="text-[10px] font-semibold uppercase opacity-80">Total Revenue Contracted</span>
+            <span className="text-[10px] font-semibold uppercase opacity-80">{t("deals.revenueContracted")}</span>
           </div>
           <p className="text-2xl font-bold">{totalRevenue.toLocaleString()}</p>
-          <p className="text-[9px] opacity-70 mt-1">SAR CONTRACT VALUE</p>
+          <p className="text-[9px] opacity-70 mt-1">{t("deals.contractValue")}</p>
         </div>
 
         <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-4 text-white shadow-lg">
           <div className="flex items-center gap-2 mb-1.5">
             <DollarSign className="h-4 w-4 opacity-80" />
-            <span className="text-[10px] font-semibold uppercase opacity-80">Total Paid Amount</span>
+            <span className="text-[10px] font-semibold uppercase opacity-80">{t("deals.totalPaid")}</span>
           </div>
           <p className="text-2xl font-bold">{totalPaidAmount.toLocaleString()}</p>
-          <p className="text-[9px] opacity-70 mt-1">SAR SUCCESSFULLY COLLECTED</p>
+          <p className="text-[9px] opacity-70 mt-1">{t("deals.successfullyCollected")}</p>
         </div>
 
         <div 
@@ -183,7 +183,7 @@ export default function DealsClient({ userRole }: { userRole: string }) {
         >
           <div className="flex items-center gap-2 mb-1.5">
             <DollarSign className="h-4 w-4 opacity-80" />
-            <span className="text-[10px] font-semibold uppercase opacity-80">Pending Payments / Installments</span>
+            <span className="text-[10px] font-semibold uppercase opacity-80">{t("deals.pendingPayments")}</span>
           </div>
           <p className="text-2xl font-bold">{pendingPaymentsAmount.toLocaleString()}</p>
           <p className="text-[9px] opacity-80 mt-1 font-bold">SAR REMAINING OVER {pendingPaymentsDealsCount} CLIENTS</p>
@@ -192,7 +192,7 @@ export default function DealsClient({ userRole }: { userRole: string }) {
         <div className="bg-gradient-to-br from-teal-500 to-cyan-600 rounded-xl p-4 text-white shadow-lg flex flex-col justify-between">
           <div className="flex items-center gap-2 mb-1.5">
             <Handshake className="h-4 w-4 opacity-80" />
-            <span className="text-[10px] font-semibold uppercase opacity-80">Collection Rate</span>
+            <span className="text-[10px] font-semibold uppercase opacity-80">{t("deals.collectionRate")}</span>
           </div>
           <div className="flex items-end gap-2">
             <p className="text-3xl font-bold">{collectionRate}%</p>
@@ -208,10 +208,10 @@ export default function DealsClient({ userRole }: { userRole: string }) {
         >
           <div className="flex items-center gap-2 mb-1.5">
             <Clock className="h-4 w-4 opacity-80" />
-            <span className="text-[10px] font-semibold uppercase opacity-80">Late Payments</span>
+            <span className="text-[10px] font-semibold uppercase opacity-80">{t("deals.latePayments")}</span>
           </div>
           <p className="text-2xl font-bold">{lateDeals.length}</p>
-          <p className="text-[9px] opacity-70 mt-1">PENDING INSTALLMENTS PAST DUE</p>
+          <p className="text-[9px] opacity-70 mt-1">{t("deals.pastDue")}</p>
         </div>
       </div>
 
@@ -234,9 +234,9 @@ export default function DealsClient({ userRole }: { userRole: string }) {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
-                <tr><td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500">Loading deals...</td></tr>
+                <tr><td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500">{t("deals.loading")}</td></tr>
               ) : displayDeals.length === 0 ? (
-                <tr><td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500">No deals found.</td></tr>
+                <tr><td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500">{t("deals.none")}</td></tr>
               ) : displayDeals.map((deal) => (
                 <tr key={deal.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => setSelectedDeal(deal)}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{deal.lead.name}</td>
@@ -256,12 +256,12 @@ export default function DealsClient({ userRole }: { userRole: string }) {
                     {Math.max(0, deal.totalAmount - calculatePaidAmount(deal)) === 0 ? (
                       <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm">{t("status.completed")}</span>
                     ) : (
-                      <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200 shadow-sm">Partial</span>
+                      <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200 shadow-sm">{t("deals.partial")}</span>
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(deal.createdAt).toLocaleDateString("en-GB")}</td>
                   <td className="px-6 py-4 text-center">
-                    <button className="text-blue-600 hover:text-blue-800 text-xs font-medium hover:underline">View Journey</button>
+                    <button className="text-blue-600 hover:text-blue-800 text-xs font-medium hover:underline">{t("deals.viewJourney")}</button>
                   </td>
                 </tr>
               ))}

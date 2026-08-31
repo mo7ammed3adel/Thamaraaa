@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createPackage, listPackages } from "@/client/api/packages";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface PackageData {
   id: string;
@@ -16,6 +17,7 @@ interface PackageData {
  * Allows creating new packages and viewing existing ones.
  */
 export default function PackagesClient() {
+  const t = useTranslator();
   const router = useRouter();
   const [packages, setPackages] = useState<PackageData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,7 +112,7 @@ export default function PackagesClient() {
       {/* Create Form */}
       {showCreate && (
         <div className="bg-white rounded-xl border shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">Create New Package</h3>
+          <h3 className="text-lg font-semibold text-slate-800 mb-4">{t("ops.createPackage")}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium text-slate-600 block mb-1">
@@ -120,7 +122,7 @@ export default function PackagesClient() {
                 type="text"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="e.g., SEO, Social, Full"
+                placeholder={t("ops.packageNameExample")}
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
               />
             </div>
@@ -132,7 +134,7 @@ export default function PackagesClient() {
                 type="text"
                 value={newServices}
                 onChange={(e) => setNewServices(e.target.value)}
-                placeholder="e.g., seo, social, media"
+                placeholder={t("ops.servicesExample")}
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
               />
             </div>
@@ -186,7 +188,7 @@ export default function PackagesClient() {
                         </span>
                       ))}
                       {services.length === 0 && (
-                        <span className="text-xs text-slate-400 italic">No services defined</span>
+                        <span className="text-xs text-slate-400 italic">{t("ops.noServices")}</span>
                       )}
                     </div>
                   </td>

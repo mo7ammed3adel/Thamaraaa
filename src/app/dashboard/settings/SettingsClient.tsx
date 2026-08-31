@@ -127,15 +127,16 @@ function TabButton({ active, onClick, label }: { active: boolean; onClick: () =>
 }
 
 function FinanceRulesSection({ gatewayFee, tiers, onUpdate }: { gatewayFee: number; tiers: any[]; onUpdate: (k: string, v: string) => void }) {
+  const t = useTranslator();
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200">
       <div className="px-6 py-4 border-b border-gray-200">
-        <h3 className="text-base font-semibold text-gray-900">Net Target Formula</h3>
-        <p className="text-xs text-gray-500 mt-1">Per spec: Net = Cash × 1.0 + (Tabby/Tamara × (1 − gateway_fee_pct))</p>
+        <h3 className="text-base font-semibold text-gray-900">{t("settings.netFormula")}</h3>
+        <p className="text-xs text-gray-500 mt-1">{t("settings.netFormulaHint")}</p>
       </div>
       <div className="p-6 space-y-6">
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1">Payment Gateway Fee % (Tabby / Tamara)</label>
+          <label className="block text-sm font-bold text-gray-700 mb-1">{t("settings.gatewayFee")}</label>
           <p className="text-xs text-gray-500 mb-2">Decimal value. 0.07 means 7% deducted from Tabby/Tamara amounts before commission.</p>
           <div className="flex items-center gap-3">
             <input
@@ -155,7 +156,7 @@ function FinanceRulesSection({ gatewayFee, tiers, onUpdate }: { gatewayFee: numb
         </div>
 
         <div className="border-t pt-6">
-          <h4 className="font-semibold text-sm text-gray-900 mb-1">Commission Tier Brackets</h4>
+          <h4 className="font-semibold text-sm text-gray-900 mb-1">{t("settings.tierBrackets")}</h4>
           <p className="text-xs text-gray-500 mb-3">
             Saved as JSON in <code>commission_tiers</code> system config. Default = spec values.
           </p>
@@ -163,9 +164,9 @@ function FinanceRulesSection({ gatewayFee, tiers, onUpdate }: { gatewayFee: numb
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
               <tr>
-                <th className="px-3 py-2 text-start">Min Net (SAR)</th>
-                <th className="px-3 py-2 text-start">Max Net (SAR)</th>
-                <th className="px-3 py-2 text-start">Rate</th>
+                <th className="px-3 py-2 text-start">{t("settings.minNet")}</th>
+                <th className="px-3 py-2 text-start">{t("settings.maxNet")}</th>
+                <th className="px-3 py-2 text-start">{t("settings.rate")}</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -180,7 +181,7 @@ function FinanceRulesSection({ gatewayFee, tiers, onUpdate }: { gatewayFee: numb
           </table>
 
           <details className="mt-4">
-            <summary className="cursor-pointer text-sm text-blue-600 font-semibold">Edit tiers (JSON)</summary>
+            <summary className="cursor-pointer text-sm text-blue-600 font-semibold">{t("settings.editTiers")}</summary>
             <textarea
               defaultValue={JSON.stringify(tiers, null, 2)}
               onBlur={(e) => {
@@ -195,7 +196,7 @@ function FinanceRulesSection({ gatewayFee, tiers, onUpdate }: { gatewayFee: numb
               rows={8}
               className="w-full font-mono text-xs border rounded p-3 mt-2"
             />
-            <p className="text-xs text-gray-500 mt-1">Each row should be an object with minNet, maxNet (or null), and pct.</p>
+            <p className="text-xs text-gray-500 mt-1">{t("settings.tiersHint")}</p>
           </details>
         </div>
       </div>
@@ -232,7 +233,7 @@ function TelesalesBonusSection({
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200">
       <div className="px-6 py-4 border-b border-gray-200">
-        <h3 className="text-base font-semibold text-gray-900">TeleSales Bonus Rules</h3>
+        <h3 className="text-base font-semibold text-gray-900">{t("settings.teleBonusRules")}</h3>
         <p className="text-xs text-gray-500 mt-1">
           Per spec §14.4. Bonus (SAR) granted when an agent reaches each % of their monthly meetings
           target, plus a flat bonus per converted (Closed_Won) deal. Saved to{" "}
@@ -241,7 +242,7 @@ function TelesalesBonusSection({
       </div>
       <div className="p-6 space-y-6">
         <div>
-          <h4 className="font-semibold text-sm text-gray-900 mb-3">Meetings Target Bonus</h4>
+          <h4 className="font-semibold text-sm text-gray-900 mb-3">{t("settings.meetingsBonus")}</h4>
           <div className="grid grid-cols-3 gap-4">
             {TELESALES_TIER_THRESHOLDS.map((pct) => (
               <div key={pct}>
@@ -267,8 +268,8 @@ function TelesalesBonusSection({
         </div>
 
         <div className="border-t pt-6 max-w-xs">
-          <label className="block text-sm font-bold text-gray-700 mb-1">Bonus per converted deal</label>
-          <p className="text-xs text-gray-500 mb-2">Flat SAR for each lead the agent handled that closed as a deal.</p>
+          <label className="block text-sm font-bold text-gray-700 mb-1">{t("settings.bonusPerDeal")}</label>
+          <p className="text-xs text-gray-500 mb-2">{t("settings.bonusPerDealHint")}</p>
           <div className="flex items-center gap-2">
             <input
               type="number"
@@ -282,7 +283,7 @@ function TelesalesBonusSection({
               }}
               className="border px-3 py-2 rounded text-sm w-40 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
-            <span className="text-xs text-gray-500">SAR / conversion</span>
+            <span className="text-xs text-gray-500">{t("settings.sarPerConversion")}</span>
           </div>
         </div>
       </div>
@@ -291,18 +292,19 @@ function TelesalesBonusSection({
 }
 
 function SystemConfigSection({ configs, loading, onUpdate }: { configs: any[]; loading: boolean; onUpdate: (k: string, v: string) => void }) {
+  const t = useTranslator();
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200">
       <div className="px-6 py-4 border-b border-gray-200">
-        <h3 className="text-base font-semibold text-gray-900">Global Settings</h3>
+        <h3 className="text-base font-semibold text-gray-900">{t("settings.global")}</h3>
       </div>
       <div className="p-6">
         <table className="min-w-full divide-y divide-gray-200">
           <thead>
             <tr>
-              <th className="py-2 text-start text-xs font-semibold text-gray-500 uppercase">Key</th>
-              <th className="py-2 text-start text-xs font-semibold text-gray-500 uppercase">Value</th>
-              <th className="py-2 text-start text-xs font-semibold text-gray-500 uppercase">Last Updated</th>
+              <th className="py-2 text-start text-xs font-semibold text-gray-500 uppercase">{t("settings.key")}</th>
+              <th className="py-2 text-start text-xs font-semibold text-gray-500 uppercase">{t("settings.value")}</th>
+              <th className="py-2 text-start text-xs font-semibold text-gray-500 uppercase">{t("settings.lastUpdated")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -335,7 +337,7 @@ function SystemConfigSection({ configs, loading, onUpdate }: { configs: any[]; l
         </table>
 
         <div className="mt-8 pt-6 border-t border-gray-100">
-          <h4 className="text-sm font-semibold mb-3">Add New Parameter</h4>
+          <h4 className="text-sm font-semibold mb-3">{t("settings.addParameter")}</h4>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -345,8 +347,8 @@ function SystemConfigSection({ configs, loading, onUpdate }: { configs: any[]; l
             }}
             className="flex gap-3"
           >
-            <input required name="keyName" type="text" placeholder="Key (e.g. gateway_fee_pct)" className="border px-3 py-2 rounded text-sm w-64" />
-            <input required name="keyValue" type="text" placeholder="Value (e.g. 0.07)" className="border px-3 py-2 rounded text-sm w-64" />
+            <input required name="keyName" type="text" placeholder={t("settings.keyExample")} className="border px-3 py-2 rounded text-sm w-64" />
+            <input required name="keyValue" type="text" placeholder={t("settings.valueExample")} className="border px-3 py-2 rounded text-sm w-64" />
             <button disabled={loading} type="submit" className="px-4 py-2 bg-slate-800 text-white text-sm font-medium rounded hover:bg-slate-900 transition">
               Save
             </button>
@@ -358,10 +360,11 @@ function SystemConfigSection({ configs, loading, onUpdate }: { configs: any[]; l
 }
 
 function CommissionRulesSection({ commissions, loading, setLoading, router }: { commissions: any[]; loading: boolean; setLoading: (b: boolean) => void; router: any }) {
+  const t = useTranslator();
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200">
       <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 rounded-t-xl">
-        <h3 className="text-base font-semibold text-gray-900">Dynamic Commission Rules</h3>
+        <h3 className="text-base font-semibold text-gray-900">{t("settings.dynamicRules")}</h3>
         <p className="text-xs text-gray-500 mt-1">Set the final commission percentage (e.g. 0.05 for 5%) that each role instantly receives when targets are hit.</p>
       </div>
       <div className="p-6">
@@ -399,7 +402,7 @@ function CommissionRulesSection({ commissions, loading, setLoading, router }: { 
         </table>
 
         <div className="mt-8 pt-6 border-t border-gray-100">
-          <h4 className="text-sm font-semibold mb-3">Add / Update Rule</h4>
+          <h4 className="text-sm font-semibold mb-3">{t("settings.addRule")}</h4>
           <form
             onSubmit={async (e) => {
               e.preventDefault();
@@ -412,8 +415,8 @@ function CommissionRulesSection({ commissions, loading, setLoading, router }: { 
             }}
             className="flex gap-3"
           >
-            <input required name="roleName" type="text" placeholder="Role (e.g. sales_agent)" className="border px-3 py-2 rounded text-sm w-64" />
-            <input required name="percentageVal" type="number" step="0.01" placeholder="Percentage (e.g. 0.05)" className="border px-3 py-2 rounded text-sm w-48" />
+            <input required name="roleName" type="text" placeholder={t("settings.roleExample")} className="border px-3 py-2 rounded text-sm w-64" />
+            <input required name="percentageVal" type="number" step="0.01" placeholder={t("settings.pctExample")} className="border px-3 py-2 rounded text-sm w-48" />
             <button disabled={loading} type="submit" className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition">
               Create Rule
             </button>
@@ -474,7 +477,7 @@ function PermissionMatrix() {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-6">
       <div>
-        <h3 className="text-base font-semibold text-gray-900">Role × Capability Matrix</h3>
+        <h3 className="text-base font-semibold text-gray-900">{t("settings.roleMatrix")}</h3>
         <p className="text-xs text-gray-500 mt-1">
           Read-only. Permissions are enforced server-side at <code>src/lib/constants.ts</code> + <code>src/lib/distribution.ts</code>. To change them, edit those files.
         </p>
@@ -487,7 +490,7 @@ function PermissionMatrix() {
             <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
               <tr>
                 <th className="px-3 py-2 text-start w-1/3">{t("common.role")}</th>
-                <th className="px-3 py-2 text-start">Capabilities</th>
+                <th className="px-3 py-2 text-start">{t("settings.capabilities")}</th>
               </tr>
             </thead>
             <tbody className="divide-y">

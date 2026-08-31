@@ -72,23 +72,23 @@ export default function WarningsCenterClient({ warnings, leads, userRole, userId
       {/* Create Warning Form */}
       {canCreateWarning && showCreate && (
         <div className="bg-red-50 rounded-2xl border-2 border-red-200 p-6">
-          <h3 className="text-lg font-bold text-red-800 mb-4">Create Warning</h3>
+          <h3 className="text-lg font-bold text-red-800 mb-4">{t("warnings.create")}</h3>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-red-700 block mb-1">Message</label>
-              <textarea value={message} onChange={(e) => setMessage(e.target.value)} className="w-full border border-red-200 rounded-xl px-4 py-3 text-sm h-24 resize-none focus:outline-none focus:ring-2 focus:ring-red-300" placeholder="Describe the warning..." />
+              <label className="text-sm font-medium text-red-700 block mb-1">{t("warnings.message")}</label>
+              <textarea value={message} onChange={(e) => setMessage(e.target.value)} className="w-full border border-red-200 rounded-xl px-4 py-3 text-sm h-24 resize-none focus:outline-none focus:ring-2 focus:ring-red-300" placeholder={t("warnings.describe")} />
             </div>
             <div>
-              <label className="text-sm font-medium text-red-700 block mb-1">Related Project</label>
+              <label className="text-sm font-medium text-red-700 block mb-1">{t("warnings.relatedProject")}</label>
               <select value={selectedClient} onChange={(e) => setSelectedClient(e.target.value)} className="w-full border border-red-200 rounded-xl px-3 py-2 text-sm">
-                <option value="">Select a project</option>
+                <option value="">{t("warnings.selectProject")}</option>
                 {leads.map((l: any) => <option key={l.id} value={l.id}>{l.name} - {l.phone}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-sm font-medium text-red-700 block mb-2">Send to Roles</label>
+              <label className="text-sm font-medium text-red-700 block mb-2">{t("warnings.sendToRoles")}</label>
               <div className="flex flex-wrap gap-2">
-                <button onClick={() => setSelectedRoles(ALL_TEAM_ROLES)} className="text-xs px-2 py-1 bg-red-200 text-red-800 rounded-full font-medium">Select All</button>
+                <button onClick={() => setSelectedRoles(ALL_TEAM_ROLES)} className="text-xs px-2 py-1 bg-red-200 text-red-800 rounded-full font-medium">{t("warnings.selectAll")}</button>
                 <button onClick={() => setSelectedRoles([])} className="text-xs px-2 py-1 bg-slate-200 text-slate-600 rounded-full font-medium">{t("common.clear")}</button>
               </div>
               <div className="flex flex-wrap gap-2 mt-2">
@@ -140,7 +140,7 @@ export default function WarningsCenterClient({ warnings, leads, userRole, userId
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-red-400 italic">No acknowledgments yet</p>
+                    <p className="text-xs text-red-400 italic">{t("warnings.noAcks")}</p>
                   )}
                 </div>
               </div>
@@ -160,7 +160,7 @@ export default function WarningsCenterClient({ warnings, leads, userRole, userId
             </div>
           </div>
         ))}
-        {warnings.length === 0 && <p className="text-sm text-slate-400 italic text-center py-8">No warnings yet.</p>}
+        {warnings.length === 0 && <p className="text-sm text-slate-400 italic text-center py-8">{t("warnings.none")}</p>}
       </div>
     </div>
   );

@@ -74,7 +74,7 @@ export default function CompaniesClient({ initialCompanies }: { initialCompanies
           <input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            placeholder="New company name…"
+            placeholder={t("companies.newName")}
             className="w-full ps-9 pe-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
           />
         </div>
@@ -88,14 +88,14 @@ export default function CompaniesClient({ initialCompanies }: { initialCompanies
           <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
             <tr>
               <th className="px-6 py-3 text-start">{t("common.company")}</th>
-              <th className="px-6 py-3 text-center">Users</th>
+              <th className="px-6 py-3 text-center">{t("companies.users")}</th>
               <th className="px-6 py-3 text-center">{t("team.leads")}</th>
               <th className="px-6 py-3 text-end">{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 text-sm">
             {companies.length === 0 && (
-              <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-500 italic">No companies yet.</td></tr>
+              <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-500 italic">{t("companies.none")}</td></tr>
             )}
             {companies.map((c) => (
               <tr key={c.id} className="hover:bg-gray-50">
@@ -122,7 +122,7 @@ export default function CompaniesClient({ initialCompanies }: { initialCompanies
                     </>
                   ) : (
                     <>
-                      <button onClick={() => { setEditingId(c.id); setEditName(c.name); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md" title="Rename"><Pencil className="w-4 h-4" /></button>
+                      <button onClick={() => { setEditingId(c.id); setEditName(c.name); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md" title={t("companies.rename")}><Pencil className="w-4 h-4" /></button>
                       <button onClick={() => remove(c.id, c.name)} disabled={busy} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md" title={t("common.delete")}><Trash2 className="w-4 h-4" /></button>
                     </>
                   )}

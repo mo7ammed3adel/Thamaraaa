@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import ClientAssignClient from "./ClientAssignClient";
+import { getTranslator } from "@/server/i18n/locale";
 
 /**
  * Super-admin "Client Assign" workspace: every client/project and which Head
@@ -11,6 +12,7 @@ import ClientAssignClient from "./ClientAssignClient";
  * assigned here.
  */
 export default async function ClientAssignPage() {
+  const t = getTranslator();
   const session = await getServerSession(authOptions);
   const user = session?.user;
 
@@ -46,8 +48,8 @@ export default async function ClientAssignPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-1">Client Assignment</h1>
-      <p className="text-sm text-gray-500 mb-6">Distribute incoming clients to a Head Account Manager.</p>
+      <h1 className="text-2xl font-bold text-gray-900 mb-1">{t("assign.title")}</h1>
+      <p className="text-sm text-gray-500 mb-6">{t("assign.subtitle")}</p>
       <ClientAssignClient clients={clients} headAccountManagers={headAccountManagers} />
     </div>
   );
