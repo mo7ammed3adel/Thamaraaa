@@ -8,12 +8,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const user = await getSessionUser();
   if (!user?.id || !user.role) return unauthorizedJson();
 
-  const body = await req.json();
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return errorJson("Expected a JSON body", 400);
+  }
+
   const result = await updateDevice({
     actorRole: user.role,
     deviceId: params.id,
-    userId: body?.userId,
-    label: body?.label,
+    userId: (body as { userId?: unknown })?.userId,
+    label: (body as { label?: unknown })?.label,
   });
 
   if (result.status === "forbidden") return errorJson("Forbidden", 403);
