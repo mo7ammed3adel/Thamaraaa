@@ -240,7 +240,7 @@ export function SelfServiceSection() {
                 <li key={t.id} className="flex items-center gap-2 text-sm">
                   <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${t.completed ? "bg-emerald-500 border-emerald-500" : "border-gray-300"}`}>{t.completed && <Check className="w-3 h-3 text-white" />}</span>
                   <span className={t.completed ? "text-gray-400 line-through" : "text-gray-700"}>{t.title}</span>
-                  <span className="ml-auto text-[9px] uppercase font-bold text-gray-300">{t.kind}</span>
+                  <span className="ms-auto text-[9px] uppercase font-bold text-gray-300">{t.kind}</span>
                 </li>
               ))}
             </ul>

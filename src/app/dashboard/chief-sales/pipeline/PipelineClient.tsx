@@ -110,7 +110,7 @@ export default function PipelineClient({ deals, projects }: any) {
                 <div className="flex items-center gap-2 mb-3">
                   <div className={`w-2.5 h-2.5 rounded-full ${stage.color}`} />
                   <h3 className="text-sm font-bold text-slate-700">{stage.label}</h3>
-                  <span className="ml-auto text-xs font-medium text-slate-400 bg-white px-2 py-0.5 rounded-full">
+                  <span className="ms-auto text-xs font-medium text-slate-400 bg-white px-2 py-0.5 rounded-full">
                     {items.length}
                   </span>
                 </div>
@@ -156,14 +156,14 @@ export default function PipelineClient({ deals, projects }: any) {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-slate-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Client</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Package</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
+                <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Client</th>
+                <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Package</th>
+                <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">
                   {pipelineType === "projects" ? "Account Manager" : "Sales Agent"}
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Amount</th>
                 <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Date</th>
+                <th className="px-6 py-3 text-end text-xs font-semibold text-slate-500 uppercase">Date</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -194,7 +194,7 @@ export default function PipelineClient({ deals, projects }: any) {
                       {(pipelineType === "projects" ? item.projectStatus : item.status)?.replace(/_/g, " ")}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-right text-slate-500">
+                  <td className="px-6 py-4 text-sm text-end text-slate-500">
                     {new Date(item.createdAt).toLocaleDateString()}
                   </td>
                 </tr>

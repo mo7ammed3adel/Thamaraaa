@@ -189,11 +189,11 @@ export default function OperationsClient({
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-slate-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Client & Deal</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Timelines</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Operations Progress</th>
+              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase tracking-wider">Client & Deal</th>
+              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase tracking-wider">Timelines</th>
+              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase tracking-wider">Operations Progress</th>
               <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Workflow Actions</th>
+              <th className="px-6 py-3 text-end text-xs font-semibold text-slate-500 uppercase tracking-wider">Workflow Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -214,7 +214,7 @@ export default function OperationsClient({
                       <div key={bar.label} className="flex items-center text-[10px]">
                         <span className="w-10 font-bold text-slate-400">{bar.label}</span>
                         <div className="flex-1 bg-slate-100 rounded-full h-1 mx-2 overflow-hidden"><div className={`${getProgressColor(bar.val)} h-1 rounded-full`} style={{ width: `${bar.val}%` }} /></div>
-                        <span className="w-6 text-right font-bold text-slate-600">{bar.val.toFixed(0)}%</span>
+                        <span className="w-6 text-end font-bold text-slate-600">{bar.val.toFixed(0)}%</span>
                       </div>
                     ))}
                   </div>
@@ -224,7 +224,7 @@ export default function OperationsClient({
                     {p.projectStatus.replace(/_/g, " ").toUpperCase()}
                   </button>
                 </td>
-                <td className="px-6 py-4 text-right space-x-2 whitespace-nowrap">
+                <td className="px-6 py-4 text-end space-x-2 whitespace-nowrap">
                   {p.projectStatus === "new" && (
                     <button onClick={() => setSetupModal(p)} className="px-3 py-1.5 bg-indigo-600 text-white rounded text-xs font-medium hover:bg-indigo-700 shadow-sm transition">
                       1. Setup Project

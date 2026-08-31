@@ -154,7 +154,7 @@ export default function ClientTasksTab({
                 value={newTaskLink}
                 onChange={(e) => setNewTaskLink(e.target.value)}
                 placeholder="Paste link here (Google Drive, Sheets, etc.)..."
-                className="w-full border rounded-lg pl-8 pr-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition"
+                className="w-full border rounded-lg ps-8 pe-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition"
               />
             </div>
             <button onClick={handleCreateTask} disabled={!newTaskBrief.trim() || creatingTask} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition whitespace-nowrap">
@@ -307,7 +307,7 @@ export default function ClientTasksTab({
                         onTouchEnd={(event) => handleUpdateProgress(task.id, Number((event.target as HTMLInputElement).value))}
                         className="flex-1 h-2 accent-indigo-600 cursor-pointer"
                       />
-                      <span className="text-xs font-bold text-indigo-600 w-10 text-right">{progressPct}%</span>
+                      <span className="text-xs font-bold text-indigo-600 w-10 text-end">{progressPct}%</span>
                     </div>
                   ) : (
                     <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2">
@@ -316,7 +316,7 @@ export default function ClientTasksTab({
                   )}
 
                   {task.subTasks && task.subTasks.length > 0 && (
-                    <div className="mt-2 pl-4 border-l-2 border-indigo-200 space-y-1">
+                    <div className="mt-2 ps-4 border-s-2 border-indigo-200 space-y-1">
                       {task.subTasks.map((subTask) => (
                         <div key={subTask.id} className="flex items-center justify-between text-xs text-slate-500 py-1">
                           <span>↳ {subTask.taskType.replace(/_/g, " ")}: <strong>{subTask.status}</strong> ({subTask.progressPct ?? 0}%)</span>

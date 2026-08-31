@@ -76,7 +76,7 @@ export default function HrDocuments({ employees = [] }: { employees?: any[] }) {
             <div className="px-5 py-4 border-b flex items-center gap-2">
               <span className="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center"><FileWarning className="w-4 h-4" /></span>
               <h3 className="font-bold text-slate-800">Required Documents</h3>
-              {missing.length > 0 && <span className="ml-auto text-xs font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">{missing.length} missing</span>}
+              {missing.length > 0 && <span className="ms-auto text-xs font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">{missing.length} missing</span>}
             </div>
             <div className="p-4 grid grid-cols-1 gap-2">
               {reqKeys.map((k) => (

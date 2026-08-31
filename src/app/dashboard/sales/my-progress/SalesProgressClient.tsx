@@ -229,7 +229,7 @@ export default function SalesProgressClient() {
                     <p className="text-xs text-gray-400">{m.lead?.phone}</p>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-end">
                   <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
                     m.status === "Attended" || m.status === "Won" ? "bg-green-100 text-green-700" :
                     m.status === "Missed" ? "bg-red-100 text-red-700" :
@@ -261,7 +261,7 @@ export default function SalesProgressClient() {
                   <p className="text-sm font-medium text-gray-900">{deal.lead?.name}</p>
                   <p className="text-xs text-gray-400">{deal.lead?.phone} • {deal.package}</p>
                 </div>
-                <div className="text-right">
+                <div className="text-end">
                   <p className="text-sm font-bold text-green-700">{deal.totalAmount?.toLocaleString()} SAR</p>
                   <p className="text-xs text-gray-400">{new Date(deal.createdAt).toLocaleDateString("en-GB")}</p>
                 </div>
@@ -289,7 +289,7 @@ export default function SalesProgressClient() {
                   <p className="text-sm font-medium text-gray-900">{deal.lead?.name}</p>
                   <p className="text-xs text-gray-400">{deal.lead?.phone} • {deal.package}</p>
                 </div>
-                <div className="text-right">
+                <div className="text-end">
                   <p className="text-sm font-bold text-red-600">{deal.totalAmount?.toLocaleString()} SAR</p>
                   <p className="text-xs text-gray-400">{new Date(deal.createdAt).toLocaleDateString("en-GB")}</p>
                 </div>

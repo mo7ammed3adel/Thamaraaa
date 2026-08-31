@@ -256,7 +256,7 @@ export default function SalesTeamAnalyticsClient() {
                       <p className="text-xs text-gray-400">{m.salesAgent ? `Agent: ${m.salesAgent.name}` : ""} {m.teleAgent ? `• TeleSales: ${m.teleAgent.name}` : ""}</p>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-end">
                     <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
                       m.status === "Attended" || m.status === "Won" ? "bg-green-100 text-green-700" :
                       m.status === "Lost" ? "bg-red-100 text-red-700" :
@@ -274,7 +274,7 @@ export default function SalesTeamAnalyticsClient() {
                       <p className="text-sm font-medium text-gray-900">{deal.lead?.name}</p>
                       <p className="text-xs text-gray-400">{deal.lead?.phone} • {deal.package} {deal.salesAgent ? `• Agent: ${deal.salesAgent.name}` : ""}</p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-end">
                       <p className={`text-sm font-bold ${drillDown === "lost" ? "text-red-600" : drillDown === "revenue" ? "text-amber-700" : "text-green-700"}`}>
                         {deal.totalAmount?.toLocaleString()} SAR
                       </p>
@@ -303,8 +303,8 @@ export default function SalesTeamAnalyticsClient() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Agent</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Specialization</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Agent</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Specialization</th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Leads</th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Meetings</th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Deals Won</th>
@@ -325,7 +325,7 @@ export default function SalesTeamAnalyticsClient() {
                       <div className="h-8 w-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white text-xs font-bold">
                         {a.name.charAt(0).toUpperCase()}
                       </div>
-                      <div className="ml-3">
+                      <div className="ms-3">
                         <p className="text-sm font-semibold text-gray-900">{a.name}</p>
                         <p className="text-xs text-gray-400">{a.email}</p>
                       </div>
@@ -394,8 +394,8 @@ export default function SalesTeamAnalyticsClient() {
                         <div key={lead.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
                           <div>
                             <span className="text-sm font-medium text-gray-900">{lead.name}</span>
-                            <span className="text-xs text-gray-500 ml-2">{lead.phone}</span>
-                            <span className={`ml-2 inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                            <span className="text-xs text-gray-500 ms-2">{lead.phone}</span>
+                            <span className={`ms-2 inline-flex px-2 py-0.5 rounded text-xs font-medium ${
                               lead.classification === "Hot" ? "bg-red-100 text-red-700" :
                               lead.classification === "Warm" ? "bg-amber-100 text-amber-700" :
                               "bg-blue-100 text-blue-700"
@@ -426,7 +426,7 @@ export default function SalesTeamAnalyticsClient() {
                           <div className="flex items-center justify-between">
                             <div>
                               <span className="text-sm font-medium text-gray-900">{m.lead?.name}</span>
-                              <span className={`ml-2 inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                              <span className={`ms-2 inline-flex px-2 py-0.5 rounded text-xs font-medium ${
                                 m.status === "Won" ? "bg-green-100 text-green-700" :
                                 m.status === "Attended" ? "bg-blue-100 text-blue-700" :
                                 m.status === "Lost" ? "bg-red-100 text-red-700" :
@@ -455,12 +455,12 @@ export default function SalesTeamAnalyticsClient() {
                         <div key={d.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100">
                           <div>
                             <span className="text-sm font-medium text-gray-900">{d.lead?.name}</span>
-                            <span className="text-xs text-gray-500 ml-2">{d.lead?.phone}</span>
-                            <span className={`ml-2 inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                            <span className="text-xs text-gray-500 ms-2">{d.lead?.phone}</span>
+                            <span className={`ms-2 inline-flex px-2 py-0.5 rounded text-xs font-medium ${
                               d.status === "Closed_Won" || d.status === "Pending" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
                             }`}>{d.status.replace(/_/g, " ")}</span>
                           </div>
-                          <div className="text-right">
+                          <div className="text-end">
                             <p className="text-sm font-bold text-green-700">{d.totalAmount.toLocaleString()} SAR</p>
                             <p className="text-xs text-gray-400">{new Date(d.createdAt).toLocaleDateString("en-GB")}</p>
                           </div>

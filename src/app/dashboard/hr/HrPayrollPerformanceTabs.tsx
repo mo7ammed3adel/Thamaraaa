@@ -37,19 +37,19 @@ export function PayrollTab() {
         <DollarSign className="w-5 h-5 text-slate-500" />
         <label className="text-sm font-semibold text-gray-600">Month</label>
         <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="border rounded-lg px-3 py-2 text-sm" />
-        <span className="text-xs text-gray-400 ml-auto">Net = base + bonus − approved attendance deductions</span>
+        <span className="text-xs text-gray-400 ms-auto">Net = base + bonus − approved attendance deductions</span>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
             <tr>
-              <th className="px-6 py-3 text-left">Employee</th>
-              <th className="px-6 py-3 text-left">Role</th>
-              <th className="px-6 py-3 text-right">Base</th>
-              <th className="px-6 py-3 text-right">Bonus</th>
-              <th className="px-6 py-3 text-right">Deductions</th>
-              <th className="px-6 py-3 text-right">Net (SAR)</th>
+              <th className="px-6 py-3 text-start">Employee</th>
+              <th className="px-6 py-3 text-start">Role</th>
+              <th className="px-6 py-3 text-end">Base</th>
+              <th className="px-6 py-3 text-end">Bonus</th>
+              <th className="px-6 py-3 text-end">Deductions</th>
+              <th className="px-6 py-3 text-end">Net (SAR)</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 text-sm">
@@ -57,21 +57,21 @@ export function PayrollTab() {
             {!loading && rows.length === 0 && <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-400 italic">No salary records found.</td></tr>}
             {!loading && rows.map((r: any) => (
               <tr key={r.userId} className="hover:bg-gray-50">
-                <td className="px-6 py-3 font-bold text-gray-900">{r.name}{r.status === "Inactive" && <span className="ml-2 text-[10px] text-red-500 font-bold uppercase">Inactive</span>}</td>
+                <td className="px-6 py-3 font-bold text-gray-900">{r.name}{r.status === "Inactive" && <span className="ms-2 text-[10px] text-red-500 font-bold uppercase">Inactive</span>}</td>
                 <td className="px-6 py-3 text-gray-500 capitalize">{(r.role || "").replace(/_/g, " ")}</td>
-                <td className="px-6 py-3 text-right text-gray-700">{r.baseSalary.toLocaleString()}</td>
-                <td className="px-6 py-3 text-right text-emerald-700">{r.bonuses ? `+${r.bonuses.toLocaleString()}` : "—"}</td>
-                <td className="px-6 py-3 text-right text-red-600">{r.deductions ? `−${r.deductions.toLocaleString()}` : "—"}</td>
-                <td className="px-6 py-3 text-right font-black text-gray-900">{r.net.toLocaleString()}</td>
+                <td className="px-6 py-3 text-end text-gray-700">{r.baseSalary.toLocaleString()}</td>
+                <td className="px-6 py-3 text-end text-emerald-700">{r.bonuses ? `+${r.bonuses.toLocaleString()}` : "—"}</td>
+                <td className="px-6 py-3 text-end text-red-600">{r.deductions ? `−${r.deductions.toLocaleString()}` : "—"}</td>
+                <td className="px-6 py-3 text-end font-black text-gray-900">{r.net.toLocaleString()}</td>
               </tr>
             ))}
             {!loading && totals && rows.length > 0 && (
               <tr className="bg-slate-50 font-bold">
                 <td className="px-6 py-3" colSpan={2}>Totals ({rows.length})</td>
-                <td className="px-6 py-3 text-right">{totals.baseSalary.toLocaleString()}</td>
-                <td className="px-6 py-3 text-right text-emerald-700">+{totals.bonuses.toLocaleString()}</td>
-                <td className="px-6 py-3 text-right text-red-600">−{totals.deductions.toLocaleString()}</td>
-                <td className="px-6 py-3 text-right text-gray-900">{totals.net.toLocaleString()}</td>
+                <td className="px-6 py-3 text-end">{totals.baseSalary.toLocaleString()}</td>
+                <td className="px-6 py-3 text-end text-emerald-700">+{totals.bonuses.toLocaleString()}</td>
+                <td className="px-6 py-3 text-end text-red-600">−{totals.deductions.toLocaleString()}</td>
+                <td className="px-6 py-3 text-end text-gray-900">{totals.net.toLocaleString()}</td>
               </tr>
             )}
           </tbody>
@@ -172,7 +172,7 @@ export function PerformanceTab({ employees }: { employees: any[] }) {
         {loading ? <p className="text-sm text-gray-400">Loading…</p> : reviews.length === 0 ? (
           <div className="bg-white border rounded-xl p-8 text-center text-gray-400 italic">No reviews yet.</div>
         ) : (
-          <div className="space-y-3 max-h-[640px] overflow-y-auto pr-1">
+          <div className="space-y-3 max-h-[640px] overflow-y-auto pe-1">
             {reviews.map((r) => (
               <div key={r.id} className="bg-white border rounded-xl p-4">
                 <div className="flex justify-between items-center mb-1">

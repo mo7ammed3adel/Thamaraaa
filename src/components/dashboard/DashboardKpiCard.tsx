@@ -45,7 +45,7 @@ export default function DashboardKpiCard({
     <Component
       type={onClick ? "button" : undefined}
       onClick={onClick}
-      className={`rounded-xl p-4 text-left shadow-lg transition-all ${classes.card} ${
+      className={`rounded-xl p-4 text-start shadow-lg transition-all ${classes.card} ${
         interactive ? "cursor-pointer hover:scale-[1.02]" : ""
       } ${active ? `ring-4 ${classes.active}` : ""}`}
     >

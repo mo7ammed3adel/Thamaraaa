@@ -23,7 +23,7 @@ export default function HeadAccountManagerKpiGrid({ kpis, activeKpi, setActiveKp
           key={k.label}
           onClick={() => !k.disableFilter && setActiveKpi(activeKpi === k.id ? "all" : k.id)}
           disabled={k.disableFilter}
-          className={`p-4 rounded-xl border-2 text-left transition ${k.disableFilter ? "cursor-default shadow-sm" : "cursor-pointer"} ${activeKpi === k.id ? k.activeColors : `${k.colors} ${k.disableFilter ? "" : "shadow-sm"}`}`}
+          className={`p-4 rounded-xl border-2 text-start transition ${k.disableFilter ? "cursor-default shadow-sm" : "cursor-pointer"} ${activeKpi === k.id ? k.activeColors : `${k.colors} ${k.disableFilter ? "" : "shadow-sm"}`}`}
         >
           <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{k.label}</p>
           <p className="text-2xl font-black mt-1 text-slate-900">{k.val}</p>

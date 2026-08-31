@@ -353,7 +353,7 @@ export function PeopleOps({ employees, data, busy, onCreate, onUpdate, onDelete 
               row.subject,
               statusBadge(row.status),
               ["in progress", "resolved", "closed"].map((status) => (
-                <button key={status} onClick={() => onUpdate("complaint", { id: row.id, status })} className="mr-2 text-xs font-bold text-blue-700">{status}</button>
+                <button key={status} onClick={() => onUpdate("complaint", { id: row.id, status })} className="me-2 text-xs font-bold text-blue-700">{status}</button>
               )),
             ])} />
           </DataPanel>
@@ -514,7 +514,7 @@ export function SimpleTable({ columns, rows }: { columns: string[]; rows: any[][
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200 text-sm">
         <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-          <tr>{columns.map((col) => <th key={col} className="px-3 py-2 text-left font-bold">{col}</th>)}</tr>
+          <tr>{columns.map((col) => <th key={col} className="px-3 py-2 text-start font-bold">{col}</th>)}</tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
           {rows.length === 0 ? (

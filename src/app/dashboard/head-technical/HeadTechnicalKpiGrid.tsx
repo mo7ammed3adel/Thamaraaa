@@ -20,7 +20,7 @@ export default function HeadTechnicalKpiGrid({ kpis, activeKpi, setActiveKpi }: 
         <button
           key={k.label}
           onClick={() => setActiveKpi(activeKpi === k.id ? "all" : k.id)}
-          className={`p-4 flex flex-col justify-between rounded-xl border-2 text-left transition cursor-pointer ${activeKpi === k.id ? k.activeColors : `${k.colors} shadow-sm`}`}
+          className={`p-4 flex flex-col justify-between rounded-xl border-2 text-start transition cursor-pointer ${activeKpi === k.id ? k.activeColors : `${k.colors} shadow-sm`}`}
         >
           <div className={`flex items-center gap-2 mb-2 ${k.icnColor}`}>
             <span className="text-[11px] font-bold uppercase tracking-wider">{k.label}</span>

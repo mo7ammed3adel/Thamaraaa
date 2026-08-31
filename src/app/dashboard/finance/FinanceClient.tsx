@@ -94,10 +94,10 @@ export default function FinanceClient() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
               <tr>
-                <th className="px-6 py-3 text-left">Client & Agent</th>
-                <th className="px-6 py-3 text-left">Total Value</th>
-                <th className="px-6 py-3 text-left">Collected</th>
-                <th className="px-6 py-3 text-left">Status</th>
+                <th className="px-6 py-3 text-start">Client & Agent</th>
+                <th className="px-6 py-3 text-start">Total Value</th>
+                <th className="px-6 py-3 text-start">Collected</th>
+                <th className="px-6 py-3 text-start">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 text-sm">

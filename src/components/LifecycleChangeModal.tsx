@@ -130,7 +130,7 @@ export default function LifecycleChangeModal({
                       <LifecycleStateBadge state={state} />
                     </div>
                     {stateDescriptions[state] && (
-                      <p className="text-xs text-gray-500 mt-1 ml-6">{stateDescriptions[state]}</p>
+                      <p className="text-xs text-gray-500 mt-1 ms-6">{stateDescriptions[state]}</p>
                     )}
                   </div>
                 </label>

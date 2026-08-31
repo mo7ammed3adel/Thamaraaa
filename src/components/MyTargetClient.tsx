@@ -138,7 +138,7 @@ export default function MyTargetClient() {
                     </span>
                     {row.target > 0 && (
                       <span
-                        className={`text-xs font-bold min-w-[3rem] text-right ${
+                        className={`text-xs font-bold min-w-[3rem] text-end ${
                           pct >= 100 ? "text-emerald-600" : pct >= 30 ? "text-gray-600" : "text-red-500"
                         }`}
                       >
@@ -151,7 +151,7 @@ export default function MyTargetClient() {
                   {row.target > 0 ? (
                     <div className={`h-3 rounded-full transition-all ${barColor(pct)}`} style={{ width: `${width}%` }} />
                   ) : (
-                    <div className="h-3 flex items-center pl-2">
+                    <div className="h-3 flex items-center ps-2">
                       <span className="text-[10px] text-gray-400 italic">No target set for this month</span>
                     </div>
                   )}

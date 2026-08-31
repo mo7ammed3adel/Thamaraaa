@@ -65,7 +65,7 @@ export default function NotificationsClient() {
         <div className="px-6 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
           <span className="text-sm text-gray-600">
             <span className="font-semibold text-gray-900">{notifications.length}</span> in history
-            {unreadCount > 0 && <span className="ml-2 text-blue-600 font-semibold">· {unreadCount} unread</span>}
+            {unreadCount > 0 && <span className="ms-2 text-blue-600 font-semibold">· {unreadCount} unread</span>}
           </span>
           {unreadCount > 0 && (
             <button

@@ -46,14 +46,14 @@ export default function ProjectLogsPanel({ logs }: { logs: any[] }) {
   };
 
   return (
-    <div className="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
+    <div className="space-y-4 relative before:absolute before:inset-0 before:ms-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
       {logs.map((log, i) => {
         const style = getLogStyle(log.action);
         const Icon = style.icon;
         
         return (
           <div key={log.id || i} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-            <div className={`flex items-center justify-center w-10 h-10 rounded-full border-4 border-white ${style.bg} ${style.color} shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 relative z-10 ml-0 md:ml-auto md:mr-auto`}>
+            <div className={`flex items-center justify-center w-10 h-10 rounded-full border-4 border-white ${style.bg} ${style.color} shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 relative z-10 ms-0 md:ms-auto md:me-auto`}>
               <Icon className="w-4 h-4" />
             </div>
             

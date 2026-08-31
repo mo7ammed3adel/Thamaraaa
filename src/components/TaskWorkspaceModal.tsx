@@ -198,7 +198,7 @@ export default function TaskWorkspaceModal({
             </div>
             <p className="text-sm text-slate-500 mt-0.5">
               {clientName || "Client"}
-              {task.deadline && <span className="ml-2">· Due {new Date(task.deadline).toLocaleDateString()}</span>}
+              {task.deadline && <span className="ms-2">· Due {new Date(task.deadline).toLocaleDateString()}</span>}
             </p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 shrink-0">

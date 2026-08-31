@@ -55,10 +55,10 @@ export default function RecycleBinClient({ leads, salesAgents }: { leads: any[],
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client Name & Phone</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Previous Agent</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">Feedback Notes</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Client Name & Phone</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Previous Agent</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">Feedback Notes</th>
+              <th className="px-6 py-3 text-end text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -77,7 +77,7 @@ export default function RecycleBinClient({ leads, salesAgents }: { leads: any[],
                   <td className="px-6 py-4 text-sm text-gray-500">
                     <p className="line-clamp-2 text-red-600 font-medium">{feedback}</p>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right flex justify-end items-center gap-2">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-end flex justify-end items-center gap-2">
                     {l.recycleCount === 0 ? (
                       <>
                         <select 
@@ -95,7 +95,7 @@ export default function RecycleBinClient({ leads, salesAgents }: { leads: any[],
                           disabled={loadingId === l.id || !selectedAgentForLead[l.id]}
                           className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 disabled:opacity-50"
                         >
-                          <RotateCcw className="w-3 h-3 mr-1" />
+                          <RotateCcw className="w-3 h-3 me-1" />
                           {loadingId === l.id ? "Working..." : "Re-Assign"}
                         </button>
                       </>

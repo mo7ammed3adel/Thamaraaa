@@ -127,8 +127,8 @@ export default function DealsClient({ userRole }: { userRole: string }) {
   });
 
   const SortIcon = ({ columnKey }: { columnKey: string }) => {
-    if (sortConfig?.key !== columnKey) return <span className="opacity-0 group-hover:opacity-30 inline-block ml-1 text-xs">↕</span>;
-    return <span className="ml-1 text-blue-600 text-xs">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>;
+    if (sortConfig?.key !== columnKey) return <span className="opacity-0 group-hover:opacity-30 inline-block ms-1 text-xs">↕</span>;
+    return <span className="ms-1 text-blue-600 text-xs">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>;
   };
 
   return (
@@ -219,14 +219,14 @@ export default function DealsClient({ userRole }: { userRole: string }) {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-white">
               <tr>
-                <th onClick={() => handleSort('client')} className="group px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Client <SortIcon columnKey="client"/></th>
-                <th onClick={() => handleSort('phone')} className="group px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Phone <SortIcon columnKey="phone"/></th>
-                <th onClick={() => handleSort('agent')} className="group px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Sales Agent <SortIcon columnKey="agent"/></th>
-                <th onClick={() => handleSort('package')} className="group px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Package <SortIcon columnKey="package"/></th>
-                <th onClick={() => handleSort('paid')} className="group px-6 py-3 text-right text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Paid / Total <SortIcon columnKey="paid"/></th>
-                <th onClick={() => handleSort('remaining')} className="group px-6 py-3 text-right text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Remaining <SortIcon columnKey="remaining"/></th>
+                <th onClick={() => handleSort('client')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Client <SortIcon columnKey="client"/></th>
+                <th onClick={() => handleSort('phone')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Phone <SortIcon columnKey="phone"/></th>
+                <th onClick={() => handleSort('agent')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Sales Agent <SortIcon columnKey="agent"/></th>
+                <th onClick={() => handleSort('package')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Package <SortIcon columnKey="package"/></th>
+                <th onClick={() => handleSort('paid')} className="group px-6 py-3 text-end text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Paid / Total <SortIcon columnKey="paid"/></th>
+                <th onClick={() => handleSort('remaining')} className="group px-6 py-3 text-end text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Remaining <SortIcon columnKey="remaining"/></th>
                 <th onClick={() => handleSort('status')} className="group px-6 py-3 text-center text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Payment Status <SortIcon columnKey="status"/></th>
-                <th onClick={() => handleSort('date')} className="group px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Date <SortIcon columnKey="date"/></th>
+                <th onClick={() => handleSort('date')} className="group px-6 py-3 text-start text-xs font-bold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 select-none">Date <SortIcon columnKey="date"/></th>
                 <th className="px-6 py-3 text-center text-xs font-bold text-gray-600 uppercase">Action</th>
               </tr>
             </thead>
@@ -243,11 +243,11 @@ export default function DealsClient({ userRole }: { userRole: string }) {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">{deal.package}</span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-end">
                     <span className="font-bold text-green-700">{calculatePaidAmount(deal).toLocaleString()}</span>
-                    <span className="text-gray-400 text-xs ml-1">/ {deal.totalAmount.toLocaleString()}</span>
+                    <span className="text-gray-400 text-xs ms-1">/ {deal.totalAmount.toLocaleString()}</span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-bold text-red-600">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-end font-bold text-red-600">
                     {Math.max(0, deal.totalAmount - calculatePaidAmount(deal)).toLocaleString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
@@ -309,7 +309,7 @@ export default function DealsClient({ userRole }: { userRole: string }) {
               {/* Timeline */}
               <div>
                 <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">Full Process Timeline</h4>
-                <div className="relative border-l-2 border-gray-200 pl-6 space-y-4">
+                <div className="relative border-s-2 border-gray-200 ps-6 space-y-4">
                   {/* Lead Entry */}
                   <div className="relative">
                     <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-blue-500 border-2 border-white" />

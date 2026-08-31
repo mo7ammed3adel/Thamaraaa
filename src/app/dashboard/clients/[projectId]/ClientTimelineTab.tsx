@@ -15,7 +15,7 @@ export default function ClientTimelineTab({ timeline }: ClientTimelineTabProps) 
           <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-slate-200" />
           <div className="space-y-3">
             {timeline.map((entry, index) => (
-              <div key={`${entry.stage}-${entry.label}-${index}`} className="relative pl-10">
+              <div key={`${entry.stage}-${entry.label}-${index}`} className="relative ps-10">
                 <div className={`absolute left-2.5 top-3 w-3 h-3 rounded-full ${entry.color} ring-2 ring-white shadow`} />
                 <div className="bg-slate-50 border rounded-lg p-3 hover:shadow-sm transition">
                   <div className="flex items-center justify-between flex-wrap gap-1">

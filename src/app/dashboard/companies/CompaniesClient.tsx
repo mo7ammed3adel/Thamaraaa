@@ -73,7 +73,7 @@ export default function CompaniesClient({ initialCompanies }: { initialCompanies
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="New company name…"
-            className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            className="w-full ps-9 pe-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
           />
         </div>
         <button type="submit" disabled={busy || !newName.trim()} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1">
@@ -85,10 +85,10 @@ export default function CompaniesClient({ initialCompanies }: { initialCompanies
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
             <tr>
-              <th className="px-6 py-3 text-left">Company</th>
+              <th className="px-6 py-3 text-start">Company</th>
               <th className="px-6 py-3 text-center">Users</th>
               <th className="px-6 py-3 text-center">Leads</th>
-              <th className="px-6 py-3 text-right">Actions</th>
+              <th className="px-6 py-3 text-end">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 text-sm">
@@ -112,7 +112,7 @@ export default function CompaniesClient({ initialCompanies }: { initialCompanies
                 </td>
                 <td className="px-6 py-3 text-center text-gray-600">{c._count?.users ?? 0}</td>
                 <td className="px-6 py-3 text-center text-gray-600">{c._count?.leads ?? 0}</td>
-                <td className="px-6 py-3 text-right space-x-1 whitespace-nowrap">
+                <td className="px-6 py-3 text-end space-x-1 whitespace-nowrap">
                   {editingId === c.id ? (
                     <>
                       <button onClick={() => saveEdit(c.id)} disabled={busy} className="p-1.5 text-green-600 hover:bg-green-50 rounded-md" title="Save"><Check className="w-4 h-4" /></button>

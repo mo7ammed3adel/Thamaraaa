@@ -56,7 +56,7 @@ export default function NotificationBell({ variant = "dropdown" }: { variant?: "
           pathname === "/dashboard/notifications" ? "bg-slate-800 text-white" : "hover:bg-slate-800 hover:text-white"
         }`}
       >
-        <div className="relative mr-3">
+        <div className="relative me-3">
           <Bell className="h-5 w-5 opacity-75" />
           {notifications.length > 0 && (
             <span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-2 ring-slate-900 border-none">

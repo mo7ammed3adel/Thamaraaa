@@ -161,9 +161,9 @@ function FinanceRulesSection({ gatewayFee, tiers, onUpdate }: { gatewayFee: numb
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
               <tr>
-                <th className="px-3 py-2 text-left">Min Net (SAR)</th>
-                <th className="px-3 py-2 text-left">Max Net (SAR)</th>
-                <th className="px-3 py-2 text-left">Rate</th>
+                <th className="px-3 py-2 text-start">Min Net (SAR)</th>
+                <th className="px-3 py-2 text-start">Max Net (SAR)</th>
+                <th className="px-3 py-2 text-start">Rate</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -297,9 +297,9 @@ function SystemConfigSection({ configs, loading, onUpdate }: { configs: any[]; l
         <table className="min-w-full divide-y divide-gray-200">
           <thead>
             <tr>
-              <th className="py-2 text-left text-xs font-semibold text-gray-500 uppercase">Key</th>
-              <th className="py-2 text-left text-xs font-semibold text-gray-500 uppercase">Value</th>
-              <th className="py-2 text-left text-xs font-semibold text-gray-500 uppercase">Last Updated</th>
+              <th className="py-2 text-start text-xs font-semibold text-gray-500 uppercase">Key</th>
+              <th className="py-2 text-start text-xs font-semibold text-gray-500 uppercase">Value</th>
+              <th className="py-2 text-start text-xs font-semibold text-gray-500 uppercase">Last Updated</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -478,12 +478,12 @@ function PermissionMatrix() {
 
       {Object.entries(ROLES_BY_DEPT).map(([dept, rows]) => (
         <div key={dept}>
-          <h4 className="font-bold text-sm text-slate-800 mb-2 border-l-4 border-blue-500 pl-3">{dept}</h4>
+          <h4 className="font-bold text-sm text-slate-800 mb-2 border-s-4 border-blue-500 ps-3">{dept}</h4>
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
               <tr>
-                <th className="px-3 py-2 text-left w-1/3">Role</th>
-                <th className="px-3 py-2 text-left">Capabilities</th>
+                <th className="px-3 py-2 text-start w-1/3">Role</th>
+                <th className="px-3 py-2 text-start">Capabilities</th>
               </tr>
             </thead>
             <tbody className="divide-y">

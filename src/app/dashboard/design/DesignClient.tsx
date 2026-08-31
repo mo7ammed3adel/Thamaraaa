@@ -122,7 +122,7 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
             {t.brief && <p className="text-sm text-gray-600 mt-1">{t.brief}</p>}
           </div>
           {t.deadline && (
-            <div className="text-right shrink-0">
+            <div className="text-end shrink-0">
               <p className="text-xs text-gray-500 font-medium">Deadline</p>
               <p className={`text-sm font-bold ${isDelayed ? "text-red-600" : "text-gray-800"}`}>{new Date(t.deadline).toLocaleDateString()}</p>
             </div>
@@ -160,7 +160,7 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
           </div>
 
           {/* Actions Sidebar */}
-          <div className="w-full md:w-64 space-y-3 border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6 shrink-0 flex flex-col justify-center">
+          <div className="w-full md:w-64 space-y-3 border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:ps-6 shrink-0 flex flex-col justify-center">
             {/* Leader: Assign to Agent */}
             {showAssign && isLeader && !t.agentId && agents.length > 0 && (
               <div>
@@ -248,7 +248,7 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
               setActiveKpi(newKpi);
               if (k.defaultTab && newKpi !== "all") setActiveTab(k.defaultTab);
             }}
-            className={`p-4 rounded-xl border-2 transition text-left flex flex-col justify-between ${k.disableFilter ? "cursor-default shadow-sm" : "cursor-pointer"} ${activeKpi === k.id ? k.activeColors : `${k.colors} ${k.disableFilter ? "" : "shadow-sm"}`}`}
+            className={`p-4 rounded-xl border-2 transition text-start flex flex-col justify-between ${k.disableFilter ? "cursor-default shadow-sm" : "cursor-pointer"} ${activeKpi === k.id ? k.activeColors : `${k.colors} ${k.disableFilter ? "" : "shadow-sm"}`}`}
           >
             <div className={`flex items-center gap-2 mb-2 ${k.icn}`}>
               <k.icon className="w-5 h-5" />
@@ -359,7 +359,7 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
                   const firstProjectId = filteredTasks[0]?.projectId;
                   if (firstProjectId) setSelfTaskProject(firstProjectId);
                 }}
-                className="inline-flex items-center gap-1.5 bg-emerald-600 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-emerald-700 transition shadow-sm ml-auto"
+                className="inline-flex items-center gap-1.5 bg-emerald-600 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-emerald-700 transition shadow-sm ms-auto"
               >
                 <Plus className="w-3.5 h-3.5" /> Add My Task
               </button>
@@ -385,11 +385,11 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Client</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Task Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Brief</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Deadline</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Progress</th>
+                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Client</th>
+                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Task Type</th>
+                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Brief</th>
+                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Deadline</th>
+                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Progress</th>
                   <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Status</th>
                 </tr>
               </thead>
@@ -465,7 +465,7 @@ export default function DesignClient({ tasks, agents, userRole, userId, teamLabe
                       <div className="text-[10px] text-slate-500">
                         {ct.agent?.name || "Unassigned"}
                         {ct.deadline && (
-                          <span className={`ml-2 ${isDelayed ? "text-red-600 font-bold" : ""}`}>
+                          <span className={`ms-2 ${isDelayed ? "text-red-600 font-bold" : ""}`}>
                             Due: {new Date(ct.deadline).toLocaleDateString()}
                           </span>
                         )}

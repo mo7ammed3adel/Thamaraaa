@@ -241,7 +241,7 @@ export default function TeamAnalyticsClient() {
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-end">
                     <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
                       m.status === "Won" ? "bg-green-100 text-green-700" :
                       m.status === "Attended" ? "bg-blue-100 text-blue-700" :
@@ -264,7 +264,7 @@ export default function TeamAnalyticsClient() {
                         {d.salesAgent ? ` • Sales: ${d.salesAgent.name}` : ""}
                       </p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-end">
                       <p className={`text-sm font-bold ${drillDown === "revenue" ? "text-amber-700" : "text-green-700"}`}>
                         {d.totalAmount?.toLocaleString()} SAR
                       </p>
@@ -293,8 +293,8 @@ export default function TeamAnalyticsClient() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Agent</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Specialization</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Agent</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Specialization</th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Calls</th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Meetings Booked</th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Attended</th>
@@ -315,7 +315,7 @@ export default function TeamAnalyticsClient() {
                       <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold">
                         {a.name.charAt(0).toUpperCase()}
                       </div>
-                      <div className="ml-3">
+                      <div className="ms-3">
                         <p className="text-sm font-semibold text-gray-900">{a.name}</p>
                         <p className="text-xs text-gray-400">{a.email}</p>
                       </div>
@@ -410,7 +410,7 @@ export default function TeamAnalyticsClient() {
                           <div className="flex items-center justify-between">
                             <div>
                               <span className="text-sm font-medium text-gray-900">{m.lead?.name}</span>
-                              <span className={`ml-2 inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                              <span className={`ms-2 inline-flex px-2 py-0.5 rounded text-xs font-medium ${
                                 m.status === "Won" ? "bg-green-100 text-green-700" :
                                 m.status === "Attended" ? "bg-blue-100 text-blue-700" :
                                 m.status === "Lost" ? "bg-red-100 text-red-700" :
@@ -445,10 +445,10 @@ export default function TeamAnalyticsClient() {
                         <div key={d.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100">
                           <div>
                             <span className="text-sm font-medium text-gray-900">{d.lead?.name}</span>
-                            <span className="text-xs text-gray-500 ml-2">{d.lead?.phone}</span>
-                            {d.salesAgent && <span className="text-xs text-green-600 ml-2">Sales: {d.salesAgent.name}</span>}
+                            <span className="text-xs text-gray-500 ms-2">{d.lead?.phone}</span>
+                            {d.salesAgent && <span className="text-xs text-green-600 ms-2">Sales: {d.salesAgent.name}</span>}
                           </div>
-                          <div className="text-right">
+                          <div className="text-end">
                             <p className="text-sm font-bold text-green-700">{d.totalAmount.toLocaleString()} SAR</p>
                             <p className="text-xs text-gray-400">{new Date(d.createdAt).toLocaleDateString("en-GB")}</p>
                           </div>

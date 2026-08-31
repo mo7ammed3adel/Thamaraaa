@@ -146,7 +146,7 @@ export default function SocialMediaClient({ projects, teamMembers, userRole, use
             <button
               key={k.id}
               onClick={() => setActiveKpi(isActive ? "all" : k.id)}
-              className={`p-4 rounded-xl border-2 text-left transition cursor-pointer flex flex-col justify-between ${isActive ? `${c.border} ${c.bg}` : "border-transparent bg-white hover:bg-gray-50 shadow-sm"}`}
+              className={`p-4 rounded-xl border-2 text-start transition cursor-pointer flex flex-col justify-between ${isActive ? `${c.border} ${c.bg}` : "border-transparent bg-white hover:bg-gray-50 shadow-sm"}`}
             >
               <span className={`text-[11px] font-bold uppercase tracking-wider ${c.text}`}>{k.label}</span>
               <p className="text-2xl font-black mt-2 text-slate-900">{k.val}</p>
@@ -164,7 +164,7 @@ export default function SocialMediaClient({ projects, teamMembers, userRole, use
             placeholder="Search client name or phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+            className="w-full ps-9 pe-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
           />
         </div>
         <select
@@ -185,7 +185,7 @@ export default function SocialMediaClient({ projects, teamMembers, userRole, use
             <X className="w-3 h-3" /> Clear Filters
           </button>
         )}
-        <span className="text-xs text-slate-400 ml-auto">
+        <span className="text-xs text-slate-400 ms-auto">
           Showing {filteredProjects.length} of {projects.length} projects
         </span>
       </div>
@@ -240,7 +240,7 @@ export default function SocialMediaClient({ projects, teamMembers, userRole, use
                   </div>
                   <p className="text-sm text-slate-500">
                     Account Manager: <span className="font-medium text-slate-700">{project.accountManager?.name || "Not Assigned"}</span>
-                    {project.package && <span className="ml-3 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-bold">{project.package}</span>}
+                    {project.package && <span className="ms-3 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-bold">{project.package}</span>}
                   </p>
                   {isTL && (
                     <div className="mt-2 flex items-center gap-2 max-w-xs">
@@ -327,7 +327,7 @@ export default function SocialMediaClient({ projects, teamMembers, userRole, use
                                   <div key={task.id} className={`text-xs p-2 rounded flex justify-between items-center gap-2 border ${task.status === "review" ? "bg-purple-50 border-purple-200" : "bg-slate-50"}`}>
                                     <span className="font-medium truncate flex-1">
                                       {task.taskType.replace(/_/g, " ")}
-                                      {task.status === "review" && <span className="ml-1 text-purple-600 font-bold">· needs review</span>}
+                                      {task.status === "review" && <span className="ms-1 text-purple-600 font-bold">· needs review</span>}
                                     </span>
                                     <select
                                       value={task.status}
@@ -520,7 +520,7 @@ export default function SocialMediaClient({ projects, teamMembers, userRole, use
                                     <div className="text-[10px] text-slate-500">
                                       {ct.agent?.name || "Unassigned"}
                                       {ct.deadline && (
-                                        <span className={`ml-2 ${isDelayed ? "text-red-600 font-bold" : ""}`}>
+                                        <span className={`ms-2 ${isDelayed ? "text-red-600 font-bold" : ""}`}>
                                           Due: {new Date(ct.deadline).toLocaleDateString()}
                                         </span>
                                       )}
@@ -588,10 +588,10 @@ export default function SocialMediaClient({ projects, teamMembers, userRole, use
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Client</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Task Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Brief</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Deadline</th>
+                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Client</th>
+                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Task Type</th>
+                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Brief</th>
+                  <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Deadline</th>
                   <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Status</th>
                 </tr>
               </thead>

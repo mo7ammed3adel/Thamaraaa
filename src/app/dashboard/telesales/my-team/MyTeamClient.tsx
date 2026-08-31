@@ -236,20 +236,20 @@ export default function MyTeamClient({
       {/* Active Filters Bar */}
       {(activeSpecs.length > 0 || sortBy !== "name") && (
         <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold text-blue-800 mr-2 uppercase">Active Filters:</span>
+          <span className="text-xs font-semibold text-blue-800 me-2 uppercase">Active Filters:</span>
           {sortBy !== "name" && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white border border-blue-200 text-blue-700 shadow-sm">
               Sorted by: <span className="capitalize">{sortBy}</span>
-              <button onClick={() => setSortBy("name")} className="ml-1 hover:text-red-500"><svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+              <button onClick={() => setSortBy("name")} className="ms-1 hover:text-red-500"><svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
             </span>
           )}
           {activeSpecs.map(spec => (
             <span key={spec} className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium shadow-sm border ${specColors[spec]}`}>
               {spec} Agents
-              <button onClick={() => toggleSpec(spec)} className="ml-1 hover:opacity-70"><svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+              <button onClick={() => toggleSpec(spec)} className="ms-1 hover:opacity-70"><svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
             </span>
           ))}
-          <button onClick={clearAllFilters} className="ml-auto text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline">
+          <button onClick={clearAllFilters} className="ms-auto text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline">
             Clear all filters
           </button>
         </div>
@@ -261,16 +261,16 @@ export default function MyTeamClient({
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Leads</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Calls</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Meetings (Month)</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Agent</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Leads</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Calls</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Meetings (Month)</th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Target</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transferred</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Specialization</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Transferred</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Specialization</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -283,7 +283,7 @@ export default function MyTeamClient({
                         <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold">
                           {agent.name.charAt(0).toUpperCase()}
                         </div>
-                        <div className="ml-3">
+                        <div className="ms-3">
                           <p className="text-sm font-semibold text-gray-900">{agent.name}</p>
                         </div>
                       </div>
@@ -342,7 +342,7 @@ export default function MyTeamClient({
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         agent.status === "Active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"
                       }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${agent.status === "Active" ? "bg-green-500" : "bg-gray-400"}`} />
+                        <span className={`w-1.5 h-1.5 rounded-full me-1.5 ${agent.status === "Active" ? "bg-green-500" : "bg-gray-400"}`} />
                         {agent.status}
                       </span>
                     </td>

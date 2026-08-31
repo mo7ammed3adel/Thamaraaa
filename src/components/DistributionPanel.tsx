@@ -50,7 +50,7 @@ export default function DistributionPanel({ title, users, isLoading, onAssign }:
               setSelectedId(user.id);
               onAssign(user.id);
             }}
-            className={`p-3 rounded-lg border-2 text-left transition-all ${
+            className={`p-3 rounded-lg border-2 text-start transition-all ${
               selectedId === user.id && isLoading
                 ? "border-indigo-500 bg-indigo-50 opacity-70"
                 : "border-slate-200 bg-white hover:border-indigo-400 hover:bg-indigo-50/30"

@@ -36,10 +36,10 @@ export default function TeleManagerTargetsPanel({ managers: initialManagers }: {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Manager</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team Actual Meetings (Month)</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monthly Target</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Manager</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Team Actual Meetings (Month)</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Monthly Target</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">

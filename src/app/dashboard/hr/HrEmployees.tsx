@@ -74,7 +74,7 @@ export default function HrEmployees({ employees, departments, leaveRequests, sal
       <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl border p-4 shadow-sm">
         <div className="relative flex-1 min-w-[220px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, email or employee ID…" className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, email or employee ID…" className="w-full ps-9 pe-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
         </div>
         <select value={dept} onChange={(e) => setDept(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white outline-none">
           <option value="all">All Departments</option>
@@ -85,7 +85,7 @@ export default function HrEmployees({ employees, departments, leaveRequests, sal
           {["active", "suspended", "resigned", "terminated"].map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
         <span className="text-xs text-slate-400">{filtered.length} of {employees?.length || 0}</span>
-        <button onClick={() => setShowCreate(true)} className="ml-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg flex items-center gap-2 shadow-sm">
+        <button onClick={() => setShowCreate(true)} className="ms-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg flex items-center gap-2 shadow-sm">
           <UserPlus className="w-4 h-4" /> New Employee
         </button>
       </div>
@@ -103,12 +103,12 @@ export default function HrEmployees({ employees, departments, leaveRequests, sal
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50 text-xs font-bold text-slate-500 uppercase">
             <tr>
-              <th className="px-6 py-3 text-left">Employee</th>
-              <th className="px-6 py-3 text-left">Department</th>
-              <th className="px-6 py-3 text-left">Role / Title</th>
-              <th className="px-6 py-3 text-right">Salary</th>
+              <th className="px-6 py-3 text-start">Employee</th>
+              <th className="px-6 py-3 text-start">Department</th>
+              <th className="px-6 py-3 text-start">Role / Title</th>
+              <th className="px-6 py-3 text-end">Salary</th>
               <th className="px-6 py-3 text-center">Status</th>
-              <th className="px-6 py-3 text-right">Profile</th>
+              <th className="px-6 py-3 text-end">Profile</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-sm">
@@ -121,9 +121,9 @@ export default function HrEmployees({ employees, departments, leaveRequests, sal
                 </td>
                 <td className="px-6 py-3"><span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-600">{empDept(e)}</span></td>
                 <td className="px-6 py-3 text-slate-600">{e.hrRecord?.jobTitle || e.role?.replace(/_/g, " ")}</td>
-                <td className="px-6 py-3 text-right text-slate-700">{money(e.hrRecord?.currentSalary ?? e.hrRecord?.baseSalary)}</td>
+                <td className="px-6 py-3 text-end text-slate-700">{money(e.hrRecord?.currentSalary ?? e.hrRecord?.baseSalary)}</td>
                 <td className="px-6 py-3 text-center"><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${statusTone(e.hrRecord?.employmentStatus || e.status)}`}>{e.hrRecord?.employmentStatus || e.status}</span></td>
-                <td className="px-6 py-3 text-right"><span className="inline-flex items-center gap-1 text-blue-600 font-semibold text-xs">View <ChevronRight className="w-3.5 h-3.5" /></span></td>
+                <td className="px-6 py-3 text-end"><span className="inline-flex items-center gap-1 text-blue-600 font-semibold text-xs">View <ChevronRight className="w-3.5 h-3.5" /></span></td>
               </tr>
             ))}
           </tbody>
@@ -191,7 +191,7 @@ function CreateEmployeeDrawer({ departments, employees, onClose, onCreated }: an
             <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 text-center">
               <p className="font-bold text-emerald-800">Employee created 🎉</p>
               <p className="text-sm text-emerald-700 mt-1">Share these credentials with the employee — the password is shown only once.</p>
-              <div className="bg-white rounded-xl border mt-4 p-4 text-left space-y-2">
+              <div className="bg-white rounded-xl border mt-4 p-4 text-start space-y-2">
                 {created.employeeCode && (
                   <div className="flex justify-between text-sm"><span className="text-slate-500">Employee ID (username)</span><span className="font-mono font-bold text-slate-800">{created.employeeCode}</span></div>
                 )}
@@ -264,7 +264,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-4 py-1.5 text-sm border-b border-slate-50 last:border-0">
       <span className="text-slate-500">{label}</span>
-      <span className="font-semibold text-slate-800 text-right">{value ?? "—"}</span>
+      <span className="font-semibold text-slate-800 text-end">{value ?? "—"}</span>
     </div>
   );
 }
@@ -400,10 +400,10 @@ function ProfileDrawer({ employee, departments, onClose, leaveRequests, salaryAd
 
           <div className="bg-white rounded-2xl border p-4">
             <Section icon={<Plane className="w-3.5 h-3.5" />} title="Activity Timeline">
-              <ol className="relative border-l border-slate-200 ml-2 space-y-3">
-                <li className="ml-4"><span className="absolute -left-1.5 w-3 h-3 rounded-full bg-blue-500" /><p className="text-sm font-semibold text-slate-800">Employee created</p><p className="text-xs text-slate-400">{fmtDate(employee.createdAt)}</p></li>
-                {hr.hiringDate && <li className="ml-4"><span className="absolute -left-1.5 w-3 h-3 rounded-full bg-emerald-500" /><p className="text-sm font-semibold text-slate-800">Hiring date</p><p className="text-xs text-slate-400">{fmtDate(hr.hiringDate)}</p></li>}
-                <li className="ml-4"><span className="absolute -left-1.5 w-3 h-3 rounded-full bg-slate-300" /><p className="text-sm text-slate-500">{leave.monthsWorked} month(s) with the company</p></li>
+              <ol className="relative border-l border-slate-200 ms-2 space-y-3">
+                <li className="ms-4"><span className="absolute -left-1.5 w-3 h-3 rounded-full bg-blue-500" /><p className="text-sm font-semibold text-slate-800">Employee created</p><p className="text-xs text-slate-400">{fmtDate(employee.createdAt)}</p></li>
+                {hr.hiringDate && <li className="ms-4"><span className="absolute -left-1.5 w-3 h-3 rounded-full bg-emerald-500" /><p className="text-sm font-semibold text-slate-800">Hiring date</p><p className="text-xs text-slate-400">{fmtDate(hr.hiringDate)}</p></li>}
+                <li className="ms-4"><span className="absolute -left-1.5 w-3 h-3 rounded-full bg-slate-300" /><p className="text-sm text-slate-500">{leave.monthsWorked} month(s) with the company</p></li>
               </ol>
             </Section>
           </div>

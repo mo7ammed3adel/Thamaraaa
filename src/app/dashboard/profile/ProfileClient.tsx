@@ -41,7 +41,7 @@ export default function ProfileClient({ profile }: { profile: any }) {
           <div className="h-24 w-24 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-3xl font-bold shrink-0">
             {profile.name.charAt(0)}
           </div>
-          <div className="flex-1 text-center sm:text-left">
+          <div className="flex-1 text-center sm:text-start">
             <h2 className="text-2xl font-bold text-gray-900">{profile.name}</h2>
             <p className="text-gray-500 mb-2">{profile.email} • {profile.phone || "No phone"}</p>
             <div className="flex flex-wrap justify-center sm:justify-start gap-2">

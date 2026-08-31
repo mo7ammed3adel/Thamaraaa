@@ -407,15 +407,15 @@ export default function TeleSalesClient({
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone & Source</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status & Class</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Meeting / Follow-up</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sales Agent</th>
-                {isManager && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Agent</th>}
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Customer</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Phone & Source</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Status & Class</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Meeting / Follow-up</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Sales Agent</th>
+                {isManager && <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Agent</th>}
                 {/* Custom Columns */}
                 {customColumns.map((col) => (
-                  <th key={col.id} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th key={col.id} className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">
                     <div className="flex items-center gap-1.5">
                       <span>{col.name}</span>
                       {isManager && (
@@ -426,7 +426,7 @@ export default function TeleSalesClient({
                     </div>
                   </th>
                 ))}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Action</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -619,7 +619,7 @@ export default function TeleSalesClient({
 
                         <div className="bg-white border border-gray-200 rounded-lg p-4">
                           <h4 className="text-xs font-bold uppercase text-gray-500 mb-3">Call History</h4>
-                          <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                          <div className="space-y-2 max-h-72 overflow-y-auto pe-1">
                             {l.callLogs?.length ? l.callLogs.map((log: any) => (
                               <div key={log.id} className="border border-gray-100 rounded-md p-2 text-xs">
                                 <div className="flex flex-wrap items-center gap-2">

@@ -104,12 +104,12 @@ export default function HeadAccountManagerMasterList({
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-slate-50 text-xs font-semibold text-slate-500 uppercase">
           <tr>
-            <th className="px-6 py-3 text-left w-64">Client & Details</th>
-            <th className="px-6 py-3 text-left w-32">Lifecycle</th>
-            <th className="px-6 py-3 text-left w-48">Assignments</th>
-            <th className="px-6 py-3 text-left w-64">General Progress</th>
+            <th className="px-6 py-3 text-start w-64">Client & Details</th>
+            <th className="px-6 py-3 text-start w-32">Lifecycle</th>
+            <th className="px-6 py-3 text-start w-48">Assignments</th>
+            <th className="px-6 py-3 text-start w-64">General Progress</th>
             <th className="px-6 py-3 text-center w-32">Status & Tasks</th>
-            <th className="px-6 py-3 text-right">Actions</th>
+            <th className="px-6 py-3 text-end">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
@@ -180,10 +180,10 @@ export default function HeadAccountManagerMasterList({
                         <div className="flex-1 bg-slate-100 h-1 mx-2 rounded-full overflow-hidden">
                           <div className={`${getProgressColor(b.val)} h-1`} style={{ width: `${b.val}%` }} />
                         </div>
-                        <span className="w-6 text-right font-bold text-slate-600">{b.val.toFixed(0)}%</span>
+                        <span className="w-6 text-end font-bold text-slate-600">{b.val.toFixed(0)}%</span>
                       </div>
                     ))}
-                    <div className="text-[10px] text-slate-400 text-right mt-1 font-medium">Activity: {lastActivity}</div>
+                    <div className="text-[10px] text-slate-400 text-end mt-1 font-medium">Activity: {lastActivity}</div>
                   </div>
                 </td>
                 <td className="px-6 py-4 text-center">
@@ -197,7 +197,7 @@ export default function HeadAccountManagerMasterList({
                     {delayedTasks > 0 && <span className="text-[10px] text-red-600 bg-red-50 border border-red-100 px-1.5 py-0.5 rounded font-bold">{delayedTasks} Delayed Tasks</span>}
                   </div>
                 </td>
-                <td className="px-6 py-4 text-right">
+                <td className="px-6 py-4 text-end">
                   <div className="flex flex-col gap-1 items-end">
                     <button onClick={() => setSelectedClient(p)} className="px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-medium hover:bg-slate-900 shadow-sm transition inline-flex items-center gap-2 whitespace-nowrap">
                       Client Center <span>→</span>

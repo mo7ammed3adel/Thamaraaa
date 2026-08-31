@@ -55,7 +55,7 @@ export default function HeadTechnicalClientsTable({
               placeholder="Search clients..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+              className="w-full ps-9 pe-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
             />
           </div>
           <span className="text-xs text-slate-400 self-center whitespace-nowrap">
@@ -67,11 +67,11 @@ export default function HeadTechnicalClientsTable({
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-slate-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/4">Client Name</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/4">Assigned Teams</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/4">Progress %</th>
+              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase w-1/4">Client Name</th>
+              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase w-1/4">Assigned Teams</th>
+              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase w-1/4">Progress %</th>
               <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase w-32">Status & Delays</th>
-              <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Actions</th>
+              <th className="px-6 py-3 text-end text-xs font-semibold text-slate-500 uppercase">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -133,7 +133,7 @@ export default function HeadTechnicalClientsTable({
                           <div className="flex-1 bg-slate-100 h-1 mx-2 rounded-full overflow-hidden">
                             <div className={`${getHeadTechnicalProgressColor(bar.val)} h-1`} style={{ width: `${bar.val}%` }} />
                           </div>
-                          <span className="w-6 text-right font-bold text-slate-600">{bar.val.toFixed(0)}%</span>
+                          <span className="w-6 text-end font-bold text-slate-600">{bar.val.toFixed(0)}%</span>
                         </div>
                       ))}
                     </div>
@@ -146,7 +146,7 @@ export default function HeadTechnicalClientsTable({
                       {delayedTasks > 0 && <span className="text-[10px] text-red-600 bg-red-50 border border-red-100 px-1.5 py-0.5 rounded font-bold">{delayedTasks} Delayed</span>}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-6 py-4 text-end">
                     <div className="flex flex-col items-end gap-2">
                       <button onClick={() => openClientTeam(project.id)} className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 shadow-sm transition w-28 text-center">
                         Distribute to Depts

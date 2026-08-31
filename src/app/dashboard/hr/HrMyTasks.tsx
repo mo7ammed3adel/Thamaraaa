@@ -76,7 +76,7 @@ export default function HrMyTasks() {
           <ListTodo className="w-4 h-4" />
         </span>
         <h2 className="font-bold text-slate-800">My Tasks</h2>
-        <span className="ml-auto text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+        <span className="ms-auto text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
           {open.length}
         </span>
       </div>
@@ -105,7 +105,7 @@ export default function HrMyTasks() {
                     {overdue && " · Overdue"}
                   </span>
                 )}
-                <span className="ml-auto text-slate-400">{Math.round(t.progressPct || 0)}%</span>
+                <span className="ms-auto text-slate-400">{Math.round(t.progressPct || 0)}%</span>
               </div>
               <div className="mt-1.5 h-1.5 rounded-full bg-slate-100 overflow-hidden">
                 <div

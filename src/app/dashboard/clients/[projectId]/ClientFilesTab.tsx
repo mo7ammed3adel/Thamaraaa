@@ -69,19 +69,19 @@ export default function ClientFilesTab({
           <div className="flex items-center gap-2 mb-4">
             <h2 className="text-lg font-bold text-slate-800">📎 Task Links</h2>
             <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-full">{taskLinks.length}</span>
-            <span className="text-xs text-slate-400 ml-auto">Auto-synced from Tasks</span>
+            <span className="text-xs text-slate-400 ms-auto">Auto-synced from Tasks</span>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Type</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Link</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Sent By</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Role</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Sent Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Deadline</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Status</th>
+                  <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Type</th>
+                  <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Link</th>
+                  <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Sent By</th>
+                  <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Role</th>
+                  <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Sent Date</th>
+                  <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Deadline</th>
+                  <th className="px-4 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">

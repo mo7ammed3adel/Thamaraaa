@@ -171,7 +171,7 @@ export default function ColdLeadsClient({
                     value={name}
                     onChange={e => setName(e.target.value)}
                     required
-                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                    className="w-full ps-9 pe-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                     placeholder="E.g. Ahmed Ali"
                   />
                 </div>
@@ -185,7 +185,7 @@ export default function ColdLeadsClient({
                     value={phone}
                     onChange={e => setPhone(e.target.value)}
                     required
-                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                    className="w-full ps-9 pe-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                     placeholder="E.g. +966..."
                   />
                 </div>
@@ -198,7 +198,7 @@ export default function ColdLeadsClient({
                     type="url" 
                     value={storeLink}
                     onChange={e => setStoreLink(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                    className="w-full ps-9 pe-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                     placeholder="https://salla.sa/..."
                   />
                 </div>
@@ -212,7 +212,7 @@ export default function ColdLeadsClient({
                     list="niche-options"
                     value={niche}
                     onChange={e => setNiche(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 border border-blue-200 bg-blue-50/30 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm placeholder:text-gray-400"
+                    className="w-full ps-9 pe-3 py-2 border border-blue-200 bg-blue-50/30 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm placeholder:text-gray-400"
                     placeholder="Search or type to add new..."
                     autoComplete="off"
                   />
@@ -285,7 +285,7 @@ export default function ColdLeadsClient({
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-white">
               <tr>
-                <th className="px-4 py-3 text-left w-10">
+                <th className="px-4 py-3 text-start w-10">
                   <input 
                     type="checkbox" 
                     checked={filteredLeads.length > 0 && selected.length === filteredLeads.length}
@@ -293,11 +293,11 @@ export default function ColdLeadsClient({
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer h-4 w-4"
                   />
                 </th>
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Store Link</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Niche</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Added On</th>
+                <th className="px-2 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Store Link</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Niche</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Added On</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">

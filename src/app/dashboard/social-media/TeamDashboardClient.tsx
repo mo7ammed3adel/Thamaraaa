@@ -154,7 +154,7 @@ export default function TeamDashboardClient({ tasks, agents, designLeaders, user
                 </div>
                 <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2"><div className="bg-indigo-500 h-1.5 rounded-full transition-all" style={{ width: `${t.progressPct}%` }} /></div>
                 {t.subTasks?.length > 0 && (
-                  <div className="mt-2 pl-3 border-l-2 border-slate-200 space-y-1">
+                  <div className="mt-2 ps-3 border-s-2 border-slate-200 space-y-1">
                     {t.subTasks.map((st: any) => (
                       <p key={st.id} className="text-xs text-slate-500">↳ {st.taskType.replace(/_/g, " ")}: {st.status || "pending"} ({st.progressPct}%)</p>
                     ))}

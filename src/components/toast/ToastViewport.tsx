@@ -45,7 +45,7 @@ function ToastItem({ toast }: { toast: Toast }) {
         // progress-bar animations also bubble an animationend event here.
         if (event.animationName === "toast-out") dismissToast(toast.id);
       }}
-      className={`pointer-events-auto relative flex items-start gap-3 overflow-hidden rounded-2xl border border-slate-100 bg-white py-4 pl-4 pr-10 shadow-2xl ring-1 ${style.ring} ${
+      className={`pointer-events-auto relative flex items-start gap-3 overflow-hidden rounded-2xl border border-slate-100 bg-white py-4 ps-4 pe-10 shadow-2xl ring-1 ${style.ring} ${
         leaving ? "animate-toast-out" : "animate-toast-in"
       }`}
     >

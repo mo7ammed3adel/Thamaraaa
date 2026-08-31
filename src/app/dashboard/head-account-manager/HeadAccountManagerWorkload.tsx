@@ -19,7 +19,7 @@ export default function HeadAccountManagerWorkload({
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
         <button
           onClick={() => setFilterAM("unassigned")}
-          className={`p-4 rounded-xl border text-left transition ${filterAM === "unassigned" ? "bg-purple-50 border-purple-500 ring-1 ring-purple-500" : "bg-slate-50 hover:border-slate-300"}`}
+          className={`p-4 rounded-xl border text-start transition ${filterAM === "unassigned" ? "bg-purple-50 border-purple-500 ring-1 ring-purple-500" : "bg-slate-50 hover:border-slate-300"}`}
         >
           <p className="text-sm font-bold text-slate-700">⚠️ Unassigned</p>
           <p className="text-2xl font-black text-purple-600 mt-2">{kpis.unassigned}</p>
@@ -35,7 +35,7 @@ export default function HeadAccountManagerWorkload({
             <button
               key={am.id}
               onClick={() => setFilterAM(filterAM === am.id ? "all" : am.id)}
-              className={`p-4 rounded-xl border text-left transition ${filterAM === am.id ? "bg-indigo-50 border-indigo-500 ring-2 ring-indigo-500" : "bg-white hover:border-slate-300"}`}
+              className={`p-4 rounded-xl border text-start transition ${filterAM === am.id ? "bg-indigo-50 border-indigo-500 ring-2 ring-indigo-500" : "bg-white hover:border-slate-300"}`}
             >
               <div className="flex justify-between items-center mb-2">
                 <p className="text-sm font-bold text-slate-700 truncate" title={am.name}>{am.name.split(" ")[0]} {am.name.split(" ")[1]?.[0] || ""}.</p>

@@ -20,7 +20,7 @@ export default async function HRHiringPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-          <Users className="mr-3 text-blue-600 w-6 h-6" /> 
+          <Users className="me-3 text-blue-600 w-6 h-6" /> 
           Hiring Pipeline
         </h1>
       </div>

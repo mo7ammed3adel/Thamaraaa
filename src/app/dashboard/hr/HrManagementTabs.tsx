@@ -98,13 +98,13 @@ export function PromotionEngineTab() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
             <tr>
-              <th className="px-4 py-3 text-left">Employee</th>
-              <th className="px-4 py-3 text-left">Role / Level</th>
+              <th className="px-4 py-3 text-start">Employee</th>
+              <th className="px-4 py-3 text-start">Role / Level</th>
               <th className="px-4 py-3 text-center">Avg %</th>
               <th className="px-4 py-3 text-center">Months</th>
               <th className="px-4 py-3 text-center">Warnings</th>
-              <th className="px-4 py-3 text-left">Recommendation</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+              <th className="px-4 py-3 text-start">Recommendation</th>
+              <th className="px-4 py-3 text-end">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 text-sm">
@@ -116,7 +116,7 @@ export function PromotionEngineTab() {
                 <td className="px-4 py-3 capitalize"><div>{e.role.replace(/_/g, " ")}</div><div className="text-xs text-gray-500">{e.level || "—"}</div></td>
                 <td className="px-4 py-3 text-center font-bold">{e.monthsEvaluated > 0 ? `${e.avgAchievementPct.toFixed(0)}%` : "—"}</td>
                 <td className="px-4 py-3 text-center">{e.monthsEvaluated}</td>
-                <td className="px-4 py-3 text-center">{e.warningCount}{e.terminationFlag && <span className="ml-1 text-red-500">⚑</span>}</td>
+                <td className="px-4 py-3 text-center">{e.warningCount}{e.terminationFlag && <span className="ms-1 text-red-500">⚑</span>}</td>
                 <td className="px-4 py-3">
                   {e.recommendation === "promote" && <span className="text-emerald-700 font-bold">Promote{e.nextLevel ? ` → ${e.nextLevel}` : ""}{e.nextRole ? ` (${e.nextRole.replace(/_/g, " ")})` : ""}</span>}
                   {e.recommendation === "warn" && <span className="text-amber-700 font-bold">Issue Warning</span>}
@@ -124,7 +124,7 @@ export function PromotionEngineTab() {
                   {e.recommendation === "none" && <span className="text-gray-400">No action</span>}
                   {e.recommendationReason && <div className="text-xs text-gray-500 mt-0.5">{e.recommendationReason}</div>}
                 </td>
-                <td className="px-4 py-3 text-right space-x-1 whitespace-nowrap">
+                <td className="px-4 py-3 text-end space-x-1 whitespace-nowrap">
                   {e.recommendation === "promote" && (
                     <button disabled={busy === e.userId} onClick={() => runAction(e, "promote")} className="px-2 py-1 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700 disabled:opacity-50">Promote</button>
                   )}
@@ -194,7 +194,7 @@ export function DocumentsTab({ employees }: { employees: any[] }) {
             <option key={emp.id} value={emp.id}>{emp.name}</option>
           ))}
         </select>
-        <button onClick={() => setShowUpload(true)} className="ml-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg flex items-center gap-2 shadow-sm">
+        <button onClick={() => setShowUpload(true)} className="ms-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg flex items-center gap-2 shadow-sm">
           <Plus className="w-4 h-4" /> Upload Document
         </button>
       </div>
@@ -203,10 +203,10 @@ export function DocumentsTab({ employees }: { employees: any[] }) {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
             <tr>
-              <th className="px-4 py-3 text-left">Document</th>
-              <th className="px-4 py-3 text-left">Employee</th>
-              <th className="px-4 py-3 text-left">Uploaded</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+              <th className="px-4 py-3 text-start">Document</th>
+              <th className="px-4 py-3 text-start">Employee</th>
+              <th className="px-4 py-3 text-start">Uploaded</th>
+              <th className="px-4 py-3 text-end">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 text-sm">
@@ -217,7 +217,7 @@ export function DocumentsTab({ employees }: { employees: any[] }) {
                 <td className="px-4 py-3 font-bold text-gray-900">{d.name}</td>
                 <td className="px-4 py-3"><div>{d.user?.name}</div><div className="text-xs text-gray-500 capitalize">{(d.user?.role || "").replace(/_/g, " ")}</div></td>
                 <td className="px-4 py-3 text-gray-500">{new Date(d.createdAt).toLocaleDateString()}</td>
-                <td className="px-4 py-3 text-right space-x-2">
+                <td className="px-4 py-3 text-end space-x-2">
                   <a href={d.fileUrl} target="_blank" rel="noopener noreferrer" className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-bold hover:bg-blue-100">View</a>
                   <button onClick={() => handleDelete(d.id, d.name)} className="p-1.5 bg-red-50 hover:bg-red-100 rounded transition" title="Delete">
                     <Trash2 className="w-3.5 h-3.5 text-red-600" />

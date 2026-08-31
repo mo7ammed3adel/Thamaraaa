@@ -44,13 +44,13 @@ export function PayrollTab() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
             <tr>
-              <th className="px-4 py-3 text-left">Employee</th>
-              <th className="px-4 py-3 text-left">Role</th>
-              <th className="px-4 py-3 text-right">Base Salary</th>
-              <th className="px-4 py-3 text-right">Commission</th>
-              <th className="px-4 py-3 text-right">Bonuses</th>
-              <th className="px-4 py-3 text-right">Deductions</th>
-              <th className="px-4 py-3 text-right">Net</th>
+              <th className="px-4 py-3 text-start">Employee</th>
+              <th className="px-4 py-3 text-start">Role</th>
+              <th className="px-4 py-3 text-end">Base Salary</th>
+              <th className="px-4 py-3 text-end">Commission</th>
+              <th className="px-4 py-3 text-end">Bonuses</th>
+              <th className="px-4 py-3 text-end">Deductions</th>
+              <th className="px-4 py-3 text-end">Net</th>
               <th className="px-4 py-3 text-center">Status</th>
             </tr>
           </thead>
@@ -67,10 +67,10 @@ export function PayrollTab() {
                   <div className="font-semibold text-gray-800">{formatRole(row.role)}</div>
                   <div className="text-xs text-gray-400">{row.level || "—"}</div>
                 </td>
-                <td className="px-4 py-3 text-right">{formatSar(row.baseSalary, { maximumFractionDigits: 2 })}</td>
-                <td className="px-4 py-3 text-right">{formatSar(row.commissionAmount, { maximumFractionDigits: 2 })}</td>
-                <td className="px-4 py-3 text-right text-emerald-700">{formatSar(row.bonuses, { maximumFractionDigits: 2 })}</td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-3 text-end">{formatSar(row.baseSalary, { maximumFractionDigits: 2 })}</td>
+                <td className="px-4 py-3 text-end">{formatSar(row.commissionAmount, { maximumFractionDigits: 2 })}</td>
+                <td className="px-4 py-3 text-end text-emerald-700">{formatSar(row.bonuses, { maximumFractionDigits: 2 })}</td>
+                <td className="px-4 py-3 text-end">
                   <div className="text-red-600">{formatSar(row.deductions, { maximumFractionDigits: 2 })}</div>
                   {(row.attendanceDeductions || row.commissionDeductions) > 0 && (
                     <div className="text-[11px] text-gray-400">
@@ -78,7 +78,7 @@ export function PayrollTab() {
                     </div>
                   )}
                 </td>
-                <td className="px-4 py-3 text-right font-black">{formatSar(row.net, { maximumFractionDigits: 2 })}</td>
+                <td className="px-4 py-3 text-end font-black">{formatSar(row.net, { maximumFractionDigits: 2 })}</td>
                 <td className="px-4 py-3 text-center">
                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${row.finalized ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
                     {row.finalized ? "Finalized" : "Open"}

@@ -32,7 +32,7 @@ export default async function MasterSheetPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-          <ListTodo className="mr-3 text-blue-600 w-6 h-6" /> 
+          <ListTodo className="me-3 text-blue-600 w-6 h-6" /> 
           Global Master Sheet
         </h1>
       </div>

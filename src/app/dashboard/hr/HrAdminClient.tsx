@@ -127,7 +127,7 @@ function StatCard({
   onClick?: () => void;
 }) {
   const t = TONE[tone] || TONE.slate;
-  const className = `rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm transition ${
+  const className = `rounded-lg border border-slate-200 bg-white p-4 text-start shadow-sm transition ${
     onClick ? "cursor-pointer hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500" : ""
   }`;
   const content = (
@@ -255,7 +255,7 @@ export default function HrAdminClient({
                   <FileWarning className="w-4 h-4" />
                 </span>
                 <h3 className="font-bold text-slate-800">Employees with Missing Documents</h3>
-                <span className="ml-auto text-xs font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">{overview.missingDocs.length}</span>
+                <span className="ms-auto text-xs font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">{overview.missingDocs.length}</span>
               </div>
               <div className="max-h-72 overflow-y-auto divide-y divide-slate-50">
                 {overview.missingDocs.length === 0 && (
@@ -266,7 +266,7 @@ export default function HrAdminClient({
                     key={employee.userId}
                     type="button"
                     onClick={() => setModule("documents")}
-                    className="w-full px-5 py-3 flex items-start justify-between gap-3 text-left hover:bg-slate-50"
+                    className="w-full px-5 py-3 flex items-start justify-between gap-3 text-start hover:bg-slate-50"
                   >
                     <span className="font-semibold text-slate-800 text-sm">{employee.name}</span>
                     <span className="flex flex-wrap gap-1 justify-end">
@@ -288,7 +288,7 @@ export default function HrAdminClient({
                     <Cake className="w-4 h-4" />
                   </span>
                   <h3 className="font-bold text-slate-800">Birthdays This Month</h3>
-                  <span className="ml-auto text-xs font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">{overview.birthdaysThisMonth.length}</span>
+                  <span className="ms-auto text-xs font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">{overview.birthdaysThisMonth.length}</span>
                 </div>
                 <div className="max-h-44 overflow-y-auto divide-y divide-slate-50">
                   {overview.birthdaysThisMonth.length === 0 && (
@@ -321,7 +321,7 @@ export default function HrAdminClient({
                       key={id}
                       type="button"
                       onClick={() => setModule(id)}
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-left text-sm font-semibold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                      className="rounded-lg border border-slate-200 px-3 py-2 text-start text-sm font-semibold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
                     >
                       {label}
                     </button>

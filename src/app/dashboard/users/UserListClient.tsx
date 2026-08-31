@@ -169,7 +169,7 @@ export default function UserListClient({ initialUsers, managers, companies = [],
           + Create New User
         </button>
 
-        <div className="flex flex-wrap items-center gap-3 ml-auto">
+        <div className="flex flex-wrap items-center gap-3 ms-auto">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
@@ -177,7 +177,7 @@ export default function UserListClient({ initialUsers, managers, companies = [],
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search name, email or phone…"
-              className="w-64 max-w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-64 max-w-full ps-9 pe-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
           <select
@@ -218,13 +218,13 @@ export default function UserListClient({ initialUsers, managers, companies = [],
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role & Level</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Company</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Direct Manager</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Name</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Contact</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Role & Level</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Company</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Direct Manager</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-6 py-3 text-end text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -262,7 +262,7 @@ export default function UserListClient({ initialUsers, managers, companies = [],
                       {u.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                  <td className="px-6 py-4 whitespace-nowrap text-end text-sm">
                     <div className="flex items-center justify-end gap-1">
                       {canImpersonate && (
                         <button

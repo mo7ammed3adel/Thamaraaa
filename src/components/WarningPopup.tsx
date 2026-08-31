@@ -112,7 +112,7 @@ export default function WarningPopup({ userRole, userId }: { userRole: string; u
             {activeWarning.subject && <p className="text-white/80 text-sm">{activeWarning.subject}</p>}
           </div>
           {warnings.length > 1 && (
-            <span className="ml-auto bg-white/20 text-white text-xs px-2 py-1 rounded-full">
+            <span className="ms-auto bg-white/20 text-white text-xs px-2 py-1 rounded-full">
               +{warnings.length - 1} more
             </span>
           )}

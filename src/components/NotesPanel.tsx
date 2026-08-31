@@ -119,14 +119,14 @@ export default function NotesPanel({ projectId, currentUserRole }: NotesPanelPro
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <span className="font-bold text-slate-700">{note.userName}</span>
-                  <span className="text-slate-400 text-xs ml-2">({note.userRole.replace(/_/g, ' ')})</span>
+                  <span className="text-slate-400 text-xs ms-2">({note.userRole.replace(/_/g, ' ')})</span>
                 </div>
                 <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${getCategoryColor(note.category)}`}>
                   {note.category.replace(/_/g, ' ')}
                 </span>
               </div>
               <p className="text-slate-600 whitespace-pre-wrap text-sm leading-relaxed">{note.content}</p>
-              <div className="text-right text-xs text-slate-400 mt-2">
+              <div className="text-end text-xs text-slate-400 mt-2">
                 {new Date(note.createdAt).toLocaleString()}
               </div>
             </div>
@@ -140,7 +140,7 @@ export default function NotesPanel({ projectId, currentUserRole }: NotesPanelPro
             value={newNote}
             onChange={(e) => setNewNote(e.target.value)}
             placeholder="Add a new note to the project history..."
-            className="w-full border border-slate-200 rounded-lg pl-3 pr-10 py-2 text-sm focus:outline-none focus:border-indigo-500 min-h-[60px] resize-none"
+            className="w-full border border-slate-200 rounded-lg ps-3 pe-10 py-2 text-sm focus:outline-none focus:border-indigo-500 min-h-[60px] resize-none"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();

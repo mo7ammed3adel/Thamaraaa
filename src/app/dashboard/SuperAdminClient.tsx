@@ -69,7 +69,7 @@ export default function SuperAdminClient({ stats, activeEmployees, activeWarning
     <div className="space-y-6">
       {/* Time range filter */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-semibold text-slate-500 mr-2">Range:</span>
+        <span className="text-sm font-semibold text-slate-500 me-2">Range:</span>
         {RANGE_LABELS.map((r) => (
           <button
             key={r.id}
@@ -104,7 +104,7 @@ export default function SuperAdminClient({ stats, activeEmployees, activeWarning
               <p className="text-3xl font-black text-slate-900 mt-3">{k.value}</p>
               <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1">
                 {k.label}
-                {!k.static && <span className="ml-1 text-slate-300">· {RANGE_LABELS.find((r) => r.id === range)?.label}</span>}
+                {!k.static && <span className="ms-1 text-slate-300">· {RANGE_LABELS.find((r) => r.id === range)?.label}</span>}
               </p>
             </Link>
           );

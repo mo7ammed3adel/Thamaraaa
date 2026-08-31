@@ -101,7 +101,7 @@ export function CommissionsTab() {
         <button onClick={recompute} disabled={busy === "recompute"} className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg disabled:opacity-50">
           {busy === "recompute" ? "Recomputing…" : "Recompute Month"}
         </button>
-        <button onClick={exportXlsx} className="ml-auto px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg flex items-center gap-2">
+        <button onClick={exportXlsx} className="ms-auto px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg flex items-center gap-2">
           <Download className="w-4 h-4" /> Export XLSX
         </button>
       </div>
@@ -130,15 +130,15 @@ export function CommissionsTab() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
             <tr>
-              <th className="px-4 py-3 text-left">Employee</th>
-              <th className="px-4 py-3 text-right">Gross Fund</th>
-              <th className="px-4 py-3 text-right">Net Base</th>
-              <th className="px-4 py-3 text-left">Tier / Rate</th>
-              <th className="px-4 py-3 text-right">Commission</th>
-              <th className="px-4 py-3 text-right">Salary</th>
-              <th className="px-4 py-3 text-right">Bonus / Deduct</th>
-              <th className="px-4 py-3 text-right">Net Payout</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+              <th className="px-4 py-3 text-start">Employee</th>
+              <th className="px-4 py-3 text-end">Gross Fund</th>
+              <th className="px-4 py-3 text-end">Net Base</th>
+              <th className="px-4 py-3 text-start">Tier / Rate</th>
+              <th className="px-4 py-3 text-end">Commission</th>
+              <th className="px-4 py-3 text-end">Salary</th>
+              <th className="px-4 py-3 text-end">Bonus / Deduct</th>
+              <th className="px-4 py-3 text-end">Net Payout</th>
+              <th className="px-4 py-3 text-end">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 text-sm">
@@ -161,29 +161,29 @@ export function CommissionsTab() {
                       <div className="text-xs text-gray-500">{formatRole(c.user.role)} - {breakdown?.planLabel || c.user.level || "—"}</div>
                       {target > 0 && <div className="text-[11px] text-gray-400 mt-0.5">Target: {formatSar(target)}</div>}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-end">
                       <div className="font-bold text-gray-900">{formatSar(breakdown?.grossFund || 0, { maximumFractionDigits: 2 })}</div>
                       {(breakdown?.gatewayFees || 0) > 0 && (
                         <div className="text-xs text-amber-600">Fees: {formatSar(breakdown.gatewayFees, { maximumFractionDigits: 2 })}</div>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right font-bold">{formatSar(c.netTarget, { maximumFractionDigits: 2 })}</td>
+                    <td className="px-4 py-3 text-end font-bold">{formatSar(c.netTarget, { maximumFractionDigits: 2 })}</td>
                     <td className="px-4 py-3">
                       <div className="font-semibold text-gray-900">{breakdown?.tierLabel || "—"}</div>
                       <div className="text-xs text-gray-500">{((breakdown?.tierPct || c.commissionPct || 0) * 100).toFixed(2)}%</div>
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-end">
                       <div className="font-bold text-gray-900">{formatSar(c.commissionAmount, { maximumFractionDigits: 2 })}</div>
                       <div className="text-xs text-gray-400">Effective {(c.commissionPct * 100).toFixed(2)}%</div>
                     </td>
-                    <td className="px-4 py-3 text-right">{formatSar(baseSalary, { maximumFractionDigits: 2 })}</td>
-                    <td className="px-4 py-3 text-right text-xs">
+                    <td className="px-4 py-3 text-end">{formatSar(baseSalary, { maximumFractionDigits: 2 })}</td>
+                    <td className="px-4 py-3 text-end text-xs">
                       {bonusesSum > 0 && <div className="text-emerald-600">+{formatSar(bonusesSum, { maximumFractionDigits: 2 })}</div>}
                       {deductionsSum > 0 && <div className="text-red-600">-{formatSar(deductionsSum, { maximumFractionDigits: 2 })}</div>}
                       {bonusesSum === 0 && deductionsSum === 0 && <span className="text-gray-300">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-right font-black">{formatSar(c.netPayout, { maximumFractionDigits: 2 })}</td>
-                    <td className="px-4 py-3 text-right space-x-1 whitespace-nowrap">
+                    <td className="px-4 py-3 text-end font-black">{formatSar(c.netPayout, { maximumFractionDigits: 2 })}</td>
+                    <td className="px-4 py-3 text-end space-x-1 whitespace-nowrap">
                       <button onClick={() => setExpandedId(expanded ? null : c.id)} className="px-2 py-1 bg-white border hover:bg-gray-50 text-slate-800 rounded text-xs font-bold inline-flex items-center gap-1">
                         {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />} Details
                       </button>
@@ -220,7 +220,7 @@ function CommissionRatesPanel({ config, onSaved }: { config: any; onSaved: () =>
   const [open, setOpen] = useState(false);
   return (
     <div className="bg-slate-50 border border-slate-200 rounded-xl">
-      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between p-4 text-left">
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between p-4 text-start">
         <div>
           <div className="font-bold text-slate-900 text-sm">Commission rates (editable)</div>
           <div className="text-xs text-slate-500 mt-0.5">Gateway fee {(config.gatewayFeePct * 100).toFixed(2)}% · saving any rate recomputes this month immediately.</div>
@@ -456,7 +456,7 @@ function CommissionBreakdownPanel({ breakdown }: { breakdown: any }) {
               <span className="text-gray-600">{component.label}</span>
               <span className="font-bold text-gray-900 whitespace-nowrap">
                 {formatSar(component.amount, { maximumFractionDigits: 2 })}
-                {component.pct !== undefined && <span className="text-xs text-gray-400 ml-1">({(component.pct * 100).toFixed(2)}%)</span>}
+                {component.pct !== undefined && <span className="text-xs text-gray-400 ms-1">({(component.pct * 100).toFixed(2)}%)</span>}
               </span>
             </div>
           ))}
@@ -567,7 +567,7 @@ function LineItemEditor({ title, colorClass, items, setItems }: { title: string;
         {items.map((it, i) => (
           <div key={i} className="flex gap-2">
             <input value={it.reason} onChange={(e) => setItems(items.map((x, j) => (j === i ? { ...x, reason: e.target.value } : x)))} placeholder="Reason" className="flex-1 border rounded px-2 py-1 text-sm" />
-            <input type="number" value={it.amount} onChange={(e) => setItems(items.map((x, j) => (j === i ? { ...x, amount: parseFloat(e.target.value) || 0 } : x)))} placeholder="Amount" className="w-32 border rounded px-2 py-1 text-sm text-right" />
+            <input type="number" value={it.amount} onChange={(e) => setItems(items.map((x, j) => (j === i ? { ...x, amount: parseFloat(e.target.value) || 0 } : x)))} placeholder="Amount" className="w-32 border rounded px-2 py-1 text-sm text-end" />
             <button onClick={() => setItems(items.filter((_, j) => j !== i))} className="p-1.5 bg-red-50 hover:bg-red-100 rounded">
               <Trash2 className="w-3.5 h-3.5 text-red-600" />
             </button>

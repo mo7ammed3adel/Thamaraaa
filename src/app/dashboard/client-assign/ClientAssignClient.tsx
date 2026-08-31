@@ -96,7 +96,7 @@ export default function ClientAssignClient({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search client by name or phone…"
-            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full ps-10 pe-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
       </div>
@@ -115,10 +115,10 @@ export default function ClientAssignClient({
           <table className="min-w-full divide-y divide-slate-100">
             <thead className="bg-slate-50">
               <tr>
-                <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-400">Client</th>
-                <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-400">Package</th>
-                <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-400">Account Manager</th>
-                <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-400">
+                <th className="px-5 py-3 text-start text-xs font-bold uppercase tracking-wider text-slate-400">Client</th>
+                <th className="px-5 py-3 text-start text-xs font-bold uppercase tracking-wider text-slate-400">Package</th>
+                <th className="px-5 py-3 text-start text-xs font-bold uppercase tracking-wider text-slate-400">Account Manager</th>
+                <th className="px-5 py-3 text-start text-xs font-bold uppercase tracking-wider text-slate-400">
                   {tab === "pending" ? "Assign to Head AM" : "Head Account Manager"}
                 </th>
               </tr>

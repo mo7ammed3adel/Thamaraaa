@@ -579,7 +579,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
           <h2 className="text-sm font-semibold text-gray-500 uppercase">My Status</h2>
           <div className="flex items-center mt-2 gap-3">
             <div className="flex items-center">
-              <span className="relative flex h-3 w-3 mr-2">
+              <span className="relative flex h-3 w-3 me-2">
                 <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status === "Active" ? "bg-green-400" : status === "In_Call" ? "bg-red-400" : "bg-yellow-400"}`}></span>
                 <span className={`relative inline-flex rounded-full h-3 w-3 ${status === "Active" ? "bg-green-500" : status === "In_Call" ? "bg-red-500" : "bg-yellow-500"}`}></span>
               </span>
@@ -727,17 +727,17 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lead</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone & Source</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Classification</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TeleSales Agent</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Lead</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Phone & Source</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Classification</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">TeleSales Agent</th>
               {isManager && (
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sales Agent</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Sales Agent</th>
               )}
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Meeting Time</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Follow-up</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Note</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Meeting Time</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Follow-up</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Last Note</th>
+              <th className="px-6 py-3 text-end text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -830,7 +830,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-end">
                     {TELESALES_STAGE_STATUSES.includes(l.status) ? (
                       <span className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-md text-xs font-bold" title="Still being worked by TeleSales — not yet handed over to Sales">
                         In TeleSales
@@ -942,12 +942,12 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-emerald-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-emerald-700 uppercase tracking-wider">Client (Project)</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-emerald-700 uppercase tracking-wider">Account Manager</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-emerald-700 uppercase tracking-wider">Current Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-emerald-700 uppercase tracking-wider">Progress</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-emerald-700 uppercase tracking-wider">Active Warnings</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-emerald-700 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-emerald-700 uppercase tracking-wider">Client (Project)</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-emerald-700 uppercase tracking-wider">Account Manager</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-emerald-700 uppercase tracking-wider">Current Status</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-emerald-700 uppercase tracking-wider">Progress</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-emerald-700 uppercase tracking-wider">Active Warnings</th>
+                <th className="px-6 py-3 text-end text-xs font-medium text-emerald-700 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -975,7 +975,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                         <span className="text-xs font-bold text-gray-700">{totalProgress}%</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <td className="px-6 py-4 whitespace-nowrap text-end">
                       {project.warnings && project.warnings.length > 0 ? (
                         <span className="inline-flex items-center justify-center px-2 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-bold">
                           {project.warnings.length} Unresolved
@@ -984,7 +984,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                         <span className="text-xs text-gray-400">None</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <td className="px-6 py-4 whitespace-nowrap text-end">
                       <div className="flex items-center justify-end gap-2">
                         <Link
                           href={`/dashboard/clients/${project.id}`}
@@ -1083,7 +1083,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                       Meeting Recording
                     </a>
                   )}
-                  <p className="text-[10px] text-gray-500 mt-2 text-right font-medium">- {lastLog.agent?.name} ({new Date(lastLog.createdAt).toLocaleString("en-GB")})</p>
+                  <p className="text-[10px] text-gray-500 mt-2 text-end font-medium">- {lastLog.agent?.name} ({new Date(lastLog.createdAt).toLocaleString("en-GB")})</p>
                 </div>
               );
             })()}
@@ -1091,7 +1091,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
             {activeLead?.callLogs?.length > 1 && (
               <div className="mb-4">
                 <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2"><FileText className="h-4 w-4 text-gray-500" /> Interaction History</h4>
-                <div className="max-h-40 overflow-y-auto space-y-2 pr-2 border border-gray-100 rounded-lg p-2 bg-gray-50/50">
+                <div className="max-h-40 overflow-y-auto space-y-2 pe-2 border border-gray-100 rounded-lg p-2 bg-gray-50/50">
                   {activeLead.callLogs.slice(1).map((log: any) => (
                     <div key={log.id} className="bg-white border border-gray-200 rounded p-2 shadow-sm relative">
                        <div className="flex justify-between items-center mb-1">
@@ -1110,7 +1110,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                            Meeting Recording
                          </a>
                        )}
-                       <p className="text-[10px] text-gray-400 mt-1.5 text-right">- {log.agent?.name}</p>
+                       <p className="text-[10px] text-gray-400 mt-1.5 text-end">- {log.agent?.name}</p>
                     </div>
                   ))}
                 </div>

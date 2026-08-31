@@ -167,7 +167,7 @@ export default function ClientJourney({ leadName, phone, callLogs, meetings, dea
               return (
                 <div
                   key={i}
-                  className={`relative pl-10 cursor-pointer transition-all duration-200`}
+                  className={`relative ps-10 cursor-pointer transition-all duration-200`}
                   onClick={() => setExpanded(isExpanded ? null : `${i}`)}
                 >
                   {/* Dot */}

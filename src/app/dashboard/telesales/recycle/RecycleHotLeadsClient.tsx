@@ -184,7 +184,7 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 ml-auto">
+        <div className="flex items-center gap-3 ms-auto">
           <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Filter by Class</label>
             <select
@@ -215,18 +215,18 @@ export default function RecycleHotLeadsClient({ leads: initialLeads, agents }: {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left">
+                <th className="px-4 py-3 text-start">
                   <button onClick={selectAll} className="text-gray-400 hover:text-gray-600">
                     {selectedLeads.size === leads.length && leads.length > 0 ? <CheckSquare className="h-4 w-4 text-blue-600" /> : <Square className="h-4 w-4" />}
                   </button>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Client</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Classification</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Previous Tele Agent</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Previous Sales Agent</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Notes</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date Lost</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Client</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Phone</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Classification</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Previous Tele Agent</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Previous Sales Agent</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Last Notes</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Date Lost</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">

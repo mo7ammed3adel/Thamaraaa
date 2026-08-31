@@ -59,9 +59,9 @@ export default function AccountManagerTaskMonitoringPanel({
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-slate-50 text-xs font-semibold text-slate-500 uppercase">
             <tr>
-              <th className="px-6 py-3 text-left">Task Core</th>
-              <th className="px-6 py-3 text-left">Client</th>
-              <th className="px-6 py-3 text-left">Assignment</th>
+              <th className="px-6 py-3 text-start">Task Core</th>
+              <th className="px-6 py-3 text-start">Client</th>
+              <th className="px-6 py-3 text-start">Assignment</th>
               <th className="px-6 py-3 text-center">Deadline</th>
               <th className="px-6 py-3 text-center">Status</th>
             </tr>

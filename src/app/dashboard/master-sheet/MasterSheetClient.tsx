@@ -81,7 +81,7 @@ export default function MasterSheetClient({ leads }: { leads: any[] }) {
             <input 
               type="text" 
               placeholder="Search by name or phone..." 
-              className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+              className="w-full ps-9 pe-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -89,7 +89,7 @@ export default function MasterSheetClient({ leads }: { leads: any[] }) {
           <div className="relative w-full md:w-48">
             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <select 
-              className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm appearance-none bg-white focus:ring-2 focus:ring-blue-500"
+              className="w-full ps-9 pe-4 py-2 border rounded-lg text-sm appearance-none bg-white focus:ring-2 focus:ring-blue-500"
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
             >
@@ -108,7 +108,7 @@ export default function MasterSheetClient({ leads }: { leads: any[] }) {
           onClick={exportToExcel}
           className="flex items-center justify-center w-full md:w-auto px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 shadow-sm transition"
         >
-          <Download className="w-4 h-4 mr-2" />
+          <Download className="w-4 h-4 me-2" />
           Export ({filteredLeads.length}) leads
         </button>
       </div>
@@ -117,12 +117,12 @@ export default function MasterSheetClient({ leads }: { leads: any[] }) {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-slate-900">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Customer</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Status & Agents</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Package</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Finances (SAR)</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Account Manager</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Ops Status</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">Customer</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">Status & Agents</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">Package</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">Finances (SAR)</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">Account Manager</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase">Ops Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 bg-white">
@@ -135,7 +135,7 @@ export default function MasterSheetClient({ leads }: { leads: any[] }) {
                     className={`hover:bg-gray-50 cursor-pointer transition-colors ${expandedId === l.id ? 'bg-blue-50/50' : ''}`}
                     onClick={() => toggleExpand(l.id)}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-l-4 border-transparent hover:border-blue-400">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-s-4 border-transparent hover:border-blue-400">
                       <div className="flex items-center gap-2">
                         {expandedId === l.id ? <ChevronUp className="w-4 h-4 text-blue-500" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
                         <div>
@@ -183,17 +183,17 @@ export default function MasterSheetClient({ leads }: { leads: any[] }) {
                           <Calendar className="w-5 h-5 text-blue-500" />
                           Lead Journey Timeline
                         </h4>
-                        <div className="max-w-3xl ml-2 border-l-2 border-blue-200 space-y-6">
+                        <div className="max-w-3xl ms-2 border-s-2 border-blue-200 space-y-6">
                           {/* 1. Lead Creation */}
-                          <div className="relative pl-6">
+                          <div className="relative ps-6">
                             <span className="absolute w-3 h-3 bg-blue-500 rounded-full -left-[7px] top-1"></span>
-                            <p className="text-sm font-bold text-gray-900">Lead Created <span className="text-xs font-normal text-gray-500 ml-2">{new Date(l.createdAt).toLocaleString()}</span></p>
+                            <p className="text-sm font-bold text-gray-900">Lead Created <span className="text-xs font-normal text-gray-500 ms-2">{new Date(l.createdAt).toLocaleString()}</span></p>
                             <p className="text-xs text-gray-600 mt-1">Source: {l.source || 'Direct'}, Assigned to: {l.teleAgent?.name || 'Unassigned'}</p>
                           </div>
 
                           {/* 2. Call Logs */}
                           {l.callLogs?.map((log: any) => (
-                            <div key={log.id} className="relative pl-6">
+                            <div key={log.id} className="relative ps-6">
                               <span className={`absolute w-3 h-3 rounded-full -left-[7px] top-1 ${
                                 log.callStatus === "Accept and book meeting" ? "bg-green-500" :
                                 log.callStatus === "Accept but lost" ? "bg-orange-400" :
@@ -203,7 +203,7 @@ export default function MasterSheetClient({ leads }: { leads: any[] }) {
                               }`}></span>
                               <p className="text-sm font-bold text-gray-900">
                                 Call / Update ({log.callStatus}) 
-                                <span className="text-xs font-normal text-gray-500 ml-2">{new Date(log.createdAt).toLocaleString()}</span>
+                                <span className="text-xs font-normal text-gray-500 ms-2">{new Date(log.createdAt).toLocaleString()}</span>
                               </p>
                               <div className="text-xs text-gray-700 bg-white border border-gray-200 rounded p-2 mt-1 shadow-sm">
                                 {log.notes}
@@ -213,11 +213,11 @@ export default function MasterSheetClient({ leads }: { leads: any[] }) {
 
                           {/* 3. Meetings */}
                           {l.meetings?.map((m: any) => (
-                            <div key={m.id} className="relative pl-6">
+                            <div key={m.id} className="relative ps-6">
                               <span className="absolute w-3 h-3 bg-purple-500 rounded-full -left-[7px] top-1"></span>
                               <p className="text-sm font-bold text-gray-900">
                                 Meeting Scheduled 
-                                <span className="text-xs font-normal text-gray-500 ml-2">{new Date(m.createdAt).toLocaleString()}</span>
+                                <span className="text-xs font-normal text-gray-500 ms-2">{new Date(m.createdAt).toLocaleString()}</span>
                               </p>
                               <p className="text-xs text-gray-600 mt-1">Date: {new Date(m.meetingDate).toLocaleDateString()} {m.meetingTime}</p>
                               {m.salesNotes && (
@@ -230,11 +230,11 @@ export default function MasterSheetClient({ leads }: { leads: any[] }) {
 
                           {/* 4. Deals */}
                           {l.deals?.map((d: any) => (
-                            <div key={d.id} className="relative pl-6 bg-green-50/50 rounded-r-lg py-2">
+                            <div key={d.id} className="relative ps-6 bg-green-50/50 rounded-e-lg py-2">
                               <span className="absolute w-4 h-4 bg-green-500 rounded-full -left-[9px] top-2 border-2 border-white shadow"></span>
                               <p className="text-sm font-bold text-green-800">
                                 Deal Closed Won ({d.package})
-                                <span className="text-xs font-normal text-green-600 ml-2">{new Date(d.createdAt).toLocaleString()}</span>
+                                <span className="text-xs font-normal text-green-600 ms-2">{new Date(d.createdAt).toLocaleString()}</span>
                               </p>
                               <p className="text-xs font-medium text-green-700 mt-1">
                                 Revenue: {d.netTarget} SAR | Payment: {d.paymentMethod}

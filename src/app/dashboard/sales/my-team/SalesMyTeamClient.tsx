@@ -239,11 +239,11 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
       {(sortBy !== "name" || filterSpec !== "All" || activeCardFilter !== "All") && (
         <div className="flex items-center justify-between bg-white px-4 py-3 border border-gray-200 rounded-xl shadow-sm">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-bold text-gray-700 mr-2">Active Filters:</span>
+            <span className="text-sm font-bold text-gray-700 me-2">Active Filters:</span>
             {activeCardFilter !== "All" && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 text-xs font-bold uppercase rounded border border-green-200">
                 {activeCardFilter === "won" ? "Deals Won" : activeCardFilter === "lost" ? "Deals Lost" : "Revenue Gen"}
-                <button onClick={() => setActiveCardFilter("All")} className="ml-1 opacity-60 hover:opacity-100 hover:text-red-500 transition">✕</button>
+                <button onClick={() => setActiveCardFilter("All")} className="ms-1 opacity-60 hover:opacity-100 hover:text-red-500 transition">✕</button>
               </span>
             )}
             {filterSpec !== "All" && (
@@ -253,13 +253,13 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
                 "bg-blue-50 text-blue-700 border-blue-200"
               }`}>
                 {filterSpec} Agents
-                <button onClick={() => setFilterSpec("All")} className="ml-1 opacity-60 hover:opacity-100 hover:text-red-500 transition">✕</button>
+                <button onClick={() => setFilterSpec("All")} className="ms-1 opacity-60 hover:opacity-100 hover:text-red-500 transition">✕</button>
               </span>
             )}
             {sortBy !== "name" && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-50 text-purple-700 text-xs font-bold uppercase rounded border border-purple-200">
                 Sorted by: {sortBy === "leads" ? "Total Leads" : sortBy === "won" ? "Deals Won" : sortBy === "lost" ? "Deals Lost" : sortBy === "meetings" ? "Meetings" : "Revenue"} ↓
-                <button onClick={() => setSortBy("name")} className="ml-1 opacity-60 hover:opacity-100 hover:text-red-500 transition">✕</button>
+                <button onClick={() => setSortBy("name")} className="ms-1 opacity-60 hover:opacity-100 hover:text-red-500 transition">✕</button>
               </span>
             )}
           </div>
@@ -275,31 +275,31 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Agent</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
                 <th
                   onClick={() => setSortBy(sortBy === "leads" ? "name" : "leads")}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 transition-colors"
+                  className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 transition-colors"
                 >
                   Leads {sortBy === "leads" ? "↓" : ""}
                 </th>
                 <th
                   onClick={() => setSortBy(sortBy === "meetings" ? "name" : "meetings")}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 transition-colors"
+                  className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 transition-colors"
                 >
                   Meetings (Today) {sortBy === "meetings" ? "↓" : ""}
                 </th>
                 <th
                   onClick={() => setSortBy(sortBy === "won" ? "name" : "won")}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 transition-colors"
+                  className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 transition-colors"
                 >
                   Closed Deals {sortBy === "won" ? "↓" : ""}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monthly Fund Target (SAR)</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Win Rate</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Specialization</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Monthly Fund Target (SAR)</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Win Rate</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Specialization</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -312,7 +312,7 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
                         <div className="h-9 w-9 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white text-sm font-bold">
                           {agent.name.charAt(0).toUpperCase()}
                         </div>
-                        <div className="ml-3">
+                        <div className="ms-3">
                           <p className="text-sm font-semibold text-gray-900">{agent.name}</p>
                         </div>
                       </div>
@@ -377,7 +377,7 @@ export default function SalesMyTeamClient({ agents: initialAgents }: { agents: A
                         agent.status === "Busy" ? "bg-yellow-100 text-yellow-800" :
                         "bg-gray-100 text-gray-600"
                       }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                        <span className={`w-1.5 h-1.5 rounded-full me-1.5 ${
                           agent.status === "Active" ? "bg-green-500" :
                           agent.status === "In_Call" ? "bg-red-500" :
                           agent.status === "Busy" ? "bg-yellow-500" :

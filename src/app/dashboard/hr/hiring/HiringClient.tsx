@@ -37,7 +37,7 @@ export default function HiringClient({ initialApplicants }: { initialApplicants:
           onClick={() => setShowAddModal(true)}
           className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
         >
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-4 h-4 me-2" />
           Add Applicant
         </button>
       </div>

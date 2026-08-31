@@ -277,7 +277,7 @@ export function TalentPool({ departments, candidates, processes, interviews, off
           process.positionTitle,
           statusBadge(process.status),
           process.matchScore != null ? `${process.matchScore}%` : "-",
-          ["cv_review", "hr_interview", "technical_interview", "offer_sent", "hired", "rejected"].map((status) => <button key={status} onClick={() => onUpdate("candidateProcess", { id: process.id, status })} className="mr-2 text-xs font-bold text-blue-700">{status.replace(/_/g, " ")}</button>),
+          ["cv_review", "hr_interview", "technical_interview", "offer_sent", "hired", "rejected"].map((status) => <button key={status} onClick={() => onUpdate("candidateProcess", { id: process.id, status })} className="me-2 text-xs font-bold text-blue-700">{status.replace(/_/g, " ")}</button>),
         ])} />
       </DataPanel>
     </div>

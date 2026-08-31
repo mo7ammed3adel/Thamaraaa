@@ -38,7 +38,7 @@ export default async function RecycleBinPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-          <RefreshCcw className="mr-3 text-red-500 w-6 h-6" /> 
+          <RefreshCcw className="me-3 text-red-500 w-6 h-6" /> 
           Recycle Bin
         </h1>
       </div>

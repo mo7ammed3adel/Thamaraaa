@@ -27,11 +27,11 @@ export default function HrSalaryEvalCard({ info }: { info: any }) {
         <div className="mt-3 space-y-2">
           <div className="flex items-center justify-between text-sm border rounded-xl px-3 py-2">
             <span className="flex items-center gap-2 text-slate-600"><CalendarClock className="w-4 h-4 text-blue-500" /> Next Evaluation ({info.evaluationFrequency})</span>
-            <span className="text-right"><span className="font-bold text-slate-800">{fmt(info.nextEvaluationDate)}</span>{info.daysUntilEvaluation != null && <span className="block text-[11px] text-slate-400">in {info.daysUntilEvaluation} days</span>}</span>
+            <span className="text-end"><span className="font-bold text-slate-800">{fmt(info.nextEvaluationDate)}</span>{info.daysUntilEvaluation != null && <span className="block text-[11px] text-slate-400">in {info.daysUntilEvaluation} days</span>}</span>
           </div>
           <div className="flex items-center justify-between text-sm border rounded-xl px-3 py-2">
             <span className="flex items-center gap-2 text-slate-600"><TrendingUp className="w-4 h-4 text-emerald-500" /> Next Salary Review</span>
-            <span className="text-right"><span className="font-bold text-slate-800">{fmt(info.nextReviewDate)}</span>{info.daysUntilReview != null && <span className="block text-[11px] text-slate-400">in {info.daysUntilReview} days</span>}</span>
+            <span className="text-end"><span className="font-bold text-slate-800">{fmt(info.nextReviewDate)}</span>{info.daysUntilReview != null && <span className="block text-[11px] text-slate-400">in {info.daysUntilReview} days</span>}</span>
           </div>
         </div>
       </div>

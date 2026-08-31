@@ -48,10 +48,10 @@ export default function HeadTechnicalTasksPanel({
         <table className="min-w-full divide-y divide-gray-200 relative">
           <thead className="bg-slate-50 sticky top-0 z-10 shadow-sm">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Target Client</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Task Type & Brief</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Assigned Leader</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Deadline</th>
+              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Target Client</th>
+              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Task Type & Brief</th>
+              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Assigned Leader</th>
+              <th className="px-6 py-3 text-start text-xs font-semibold text-slate-500 uppercase">Deadline</th>
               <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Status</th>
             </tr>
           </thead>
@@ -69,7 +69,7 @@ export default function HeadTechnicalTasksPanel({
                     <div className="text-xs text-slate-500">Project: {parentProject?.package || "N/A"}</div>
                   </td>
                   <td className="px-6 py-4 line-clamp-2 max-w-xs">
-                    <span className="font-bold text-[10px] uppercase bg-slate-100 px-2 py-0.5 rounded text-slate-600 mr-2">{task.taskType.replace(/_/g, " ")}</span>
+                    <span className="font-bold text-[10px] uppercase bg-slate-100 px-2 py-0.5 rounded text-slate-600 me-2">{task.taskType.replace(/_/g, " ")}</span>
                     <span className="text-sm text-slate-700">{task.brief}</span>
                   </td>
                   <td className="px-6 py-4">

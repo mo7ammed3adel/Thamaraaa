@@ -34,13 +34,13 @@ const DEPARTMENT_LABELS: Record<string, string> = {
 
 /** Department colors for the card accent */
 const DEPARTMENT_COLORS: Record<string, string> = {
-  social_media: "border-l-pink-500",
-  media_buyer: "border-l-indigo-500",
-  seo: "border-l-orange-500",
-  graphic_design: "border-l-teal-500",
-  motion_graphic: "border-l-purple-500",
-  ui_design: "border-l-cyan-500",
-  content_seo: "border-l-amber-500",
+  social_media: "border-s-pink-500",
+  media_buyer: "border-s-indigo-500",
+  seo: "border-s-orange-500",
+  graphic_design: "border-s-teal-500",
+  motion_graphic: "border-s-purple-500",
+  ui_design: "border-s-cyan-500",
+  content_seo: "border-s-amber-500",
 };
 
 /**
@@ -60,7 +60,7 @@ export default function TeamOverview({ teams }: TeamOverviewProps) {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {teams.map((team) => {
         const label = DEPARTMENT_LABELS[team.department] || team.department.replace(/_/g, " ");
-        const accentColor = DEPARTMENT_COLORS[team.department] || "border-l-gray-400";
+        const accentColor = DEPARTMENT_COLORS[team.department] || "border-s-gray-400";
         const progressPct = team.taskCounts.total > 0
           ? Math.round((team.taskCounts.done / team.taskCounts.total) * 100)
           : 0;
@@ -68,7 +68,7 @@ export default function TeamOverview({ teams }: TeamOverviewProps) {
         return (
           <div
             key={team.department}
-            className={`border rounded-lg p-4 shadow-sm border-l-4 ${accentColor} bg-white`}
+            className={`border rounded-lg p-4 shadow-sm border-s-4 ${accentColor} bg-white`}
           >
             {/* Department Header */}
             <div className="flex items-center justify-between mb-3">

@@ -84,9 +84,9 @@ export default function HeadAccountManagerClient({ projects, accountManagers, he
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
                 <tr>
-                  <th className="px-4 py-2 text-left">Client</th>
-                  <th className="px-4 py-2 text-left">Package</th>
-                  <th className="px-4 py-2 text-left">Head Account Manager</th>
+                  <th className="px-4 py-2 text-start">Client</th>
+                  <th className="px-4 py-2 text-start">Package</th>
+                  <th className="px-4 py-2 text-start">Head Account Manager</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-sm">

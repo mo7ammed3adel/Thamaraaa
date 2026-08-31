@@ -156,13 +156,13 @@ export default function AccountManagerClientsTable({
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-slate-50 text-xs font-semibold text-slate-500 uppercase">
             <tr>
-              <th className="px-6 py-3 text-left">Client Info</th>
-              <th className="px-6 py-3 text-left">Start Date</th>
-              <th className="px-6 py-3 text-left">Technical Progress</th>
+              <th className="px-6 py-3 text-start">Client Info</th>
+              <th className="px-6 py-3 text-start">Start Date</th>
+              <th className="px-6 py-3 text-start">Technical Progress</th>
               <th className="px-6 py-3 text-center">Lifecycle</th>
               <th className="px-6 py-3 text-center">Tasks</th>
               <th className="px-6 py-3 text-center">Last Activity</th>
-              <th className="px-6 py-3 text-right">Actions</th>
+              <th className="px-6 py-3 text-end">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -196,7 +196,7 @@ export default function AccountManagerClientsTable({
                             <div className="flex-1 bg-slate-100 h-1 mx-2 rounded-full overflow-hidden">
                               <div className={`${getProgressColor(bar.val)} h-1`} style={{ width: `${bar.val}%` }} />
                             </div>
-                            <span className="w-6 text-right font-bold text-slate-600">{bar.val.toFixed(0)}%</span>
+                            <span className="w-6 text-end font-bold text-slate-600">{bar.val.toFixed(0)}%</span>
                           </div>
                         ))}
                       </div>
@@ -219,7 +219,7 @@ export default function AccountManagerClientsTable({
                     <td className="px-6 py-4 text-center text-sm font-medium text-slate-600">
                       {lastActivity}
                     </td>
-                    <td className="px-6 py-4 text-right space-y-2">
+                    <td className="px-6 py-4 text-end space-y-2">
                       <div className="flex flex-col gap-2 relative">
                         {project.projectStatus === "new" && (
                           <button
@@ -314,7 +314,7 @@ export default function AccountManagerClientsTable({
                             <div className="bg-white p-4 rounded-lg border shadow-sm">
                               <h3 className="text-sm font-bold text-slate-800 mb-3 border-b pb-2">Recent Notes</h3>
                               {project.globalNotes && project.globalNotes.length > 0 ? (
-                                <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
+                                <div className="space-y-3 max-h-48 overflow-y-auto pe-2">
                                   {project.globalNotes.slice(0, 3).map((note: any) => (
                                     <div key={note.id} className="text-xs">
                                       <div className="flex justify-between text-slate-500 mb-1">
