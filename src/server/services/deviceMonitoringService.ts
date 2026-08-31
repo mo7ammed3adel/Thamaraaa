@@ -17,6 +17,7 @@ import {
   createScreenshotRecord,
   deleteScreenshotsByIds,
   findScreenshotKeysBefore,
+  findScreenshotKeysByIds,
   findAllDevicesWithOwner,
   findDeviceById,
   findDeviceByTokenHash,
@@ -74,6 +75,42 @@ export async function setScreenshotRetentionDays(input: { actorRole: string; day
     create: { key: SCREENSHOT_RETENTION_KEY, value: String(days) },
   });
   return { status: "ok" as const, days };
+}
+
+/** Ceiling on one manual delete, so a crafted request cannot ask for the lot. */
+const MAX_MANUAL_DELETE = 500;
+
+/**
+ * Deletes screenshots the super admin picked by hand. Like the retention purge,
+ * the file goes before the row, so an interrupted delete leaves at worst a row
+ * whose image is already gone rather than a file nothing points at. A file that
+ * cannot be removed keeps its row, so nothing disappears from the dashboard
+ * while its image is still sitting on disk.
+ */
+export async function deleteScreenshots(input: { actorRole: string; ids: unknown }) {
+  if (!isSuperAdmin(input.actorRole)) return { status: "forbidden" as const };
+
+  const ids = Array.isArray(input.ids)
+    ? input.ids.filter((id): id is string => typeof id === "string" && id.length > 0)
+    : [];
+  if (ids.length === 0) return { status: "no_ids" as const };
+  if (ids.length > MAX_MANUAL_DELETE) return { status: "too_many" as const };
+
+  const shots = await findScreenshotKeysByIds(ids);
+  const removed: string[] = [];
+  let failed = 0;
+  for (const shot of shots) {
+    try {
+      await deleteScreenshotFile(shot.storageKey);
+      removed.push(shot.id);
+    } catch (error) {
+      failed += 1;
+      console.error("Screenshot delete failed for", shot.id, error);
+    }
+  }
+
+  const result = removed.length > 0 ? await deleteScreenshotsByIds(removed) : { count: 0 };
+  return { status: "ok" as const, deleted: result.count, failed };
 }
 
 /** Rows handled per pass, so one purge never loads an unbounded result set. */

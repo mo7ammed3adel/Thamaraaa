@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Monitor, Clock, Copy, Pause, Play, Ban, Plus, RefreshCw, Trash2, X } from "lucide-react";
+import { Monitor, Clock, Copy, Pause, Play, Ban, Plus, RefreshCw, Trash2, X, CheckSquare, Square } from "lucide-react";
 import { formatDateTime } from "@/shared/formatters/date";
 import {
   enrolDevice,
@@ -10,6 +10,7 @@ import {
   setDeviceStatus,
   setInterval as setIntervalApi,
   setRetention as setRetentionApi,
+  deleteScreenshots as deleteScreenshotsApi,
   type MonitoredDevice,
   type ScreenshotRow,
 } from "@/client/api/devices";
@@ -53,6 +54,9 @@ export default function MonitoringClient({
   const [shots, setShots] = useState<ScreenshotRow[]>([]);
   const [loadingShots, setLoadingShots] = useState(false);
   const [lightbox, setLightbox] = useState<ScreenshotRow | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const refreshDevices = useCallback(async () => {
     try {
@@ -67,6 +71,9 @@ export default function MonitoringClient({
     try {
       const result = await listScreenshots({ userId: filterUser || undefined, page: 1 });
       setShots(result.screenshots);
+      // Drop the selection with the list, so a delete can only ever hit shots
+      // that are actually on screen.
+      setSelected(new Set());
     } catch (err) {
       setError(err instanceof HttpError ? err.message : "Failed to load screenshots");
     } finally {
@@ -97,6 +104,37 @@ export default function MonitoringClient({
       setRetentionDraft(String(result.days));
     } catch (err) {
       setError(err instanceof HttpError ? err.message : "Failed to save retention");
+    }
+  }
+
+  function toggleSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelected((prev) => (prev.size === shots.length ? new Set() : new Set(shots.map((s) => s.id))));
+  }
+
+  async function handleDeleteSelected() {
+    setError("");
+    setDeleting(true);
+    try {
+      const result = await deleteScreenshotsApi(Array.from(selected));
+      setConfirmDelete(false);
+      if (result.failed > 0) {
+        setError(`اتمسح ${result.deleted}، وفشل ${result.failed} — جرب تاني`);
+      }
+      await loadShots();
+      await refreshDevices();
+    } catch (err) {
+      setError(err instanceof HttpError ? err.message : "Failed to delete screenshots");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -309,29 +347,80 @@ export default function MonitoringClient({
         ) : shots.length === 0 ? (
           <p className="py-8 text-center text-sm text-slate-400">مفيش لقطات في الفترة دي.</p>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {shots.map((shot) => (
+          <>
+            {/* Selection toolbar */}
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
               <button
-                key={shot.id}
-                onClick={() => setLightbox(shot)}
-                className="group overflow-hidden rounded-lg border border-slate-200 text-start transition hover:border-indigo-300 hover:shadow"
+                onClick={toggleSelectAll}
+                className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
               >
-                <div className="aspect-video bg-slate-100">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={`/api/devices/screenshots/${shot.id}/image`}
-                    alt=""
-                    loading="lazy"
-                    className="h-full w-full object-cover transition group-hover:scale-[1.02]"
-                  />
-                </div>
-                <div className="p-2">
-                  <div className="truncate text-xs font-medium text-slate-700">{shot.user.name}</div>
-                  <div className="text-[11px] text-slate-400">{formatDateTime(shot.capturedAt)}</div>
-                </div>
+                {selected.size === shots.length ? (
+                  <CheckSquare className="h-4 w-4 text-indigo-600" />
+                ) : (
+                  <Square className="h-4 w-4" />
+                )}
+                {selected.size === shots.length ? "إلغاء تحديد الكل" : "تحديد الكل"}
               </button>
-            ))}
-          </div>
+              {selected.size > 0 && (
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-slate-500">
+                    متحدد <strong className="text-slate-800">{selected.size}</strong>
+                  </span>
+                  <button
+                    onClick={() => setConfirmDelete(true)}
+                    className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-red-700"
+                  >
+                    <Trash2 className="h-4 w-4" /> مسح المحدد
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {shots.map((shot) => {
+                const isSelected = selected.has(shot.id);
+                return (
+                  <div
+                    key={shot.id}
+                    className={`group relative overflow-hidden rounded-lg border transition ${
+                      isSelected
+                        ? "border-indigo-500 ring-2 ring-indigo-200"
+                        : "border-slate-200 hover:border-indigo-300 hover:shadow"
+                    }`}
+                  >
+                    {/* The tick is its own control, so clicking the image still
+                        opens it rather than selecting it by accident. */}
+                    <button
+                      onClick={() => toggleSelected(shot.id)}
+                      aria-label={isSelected ? "إلغاء التحديد" : "تحديد اللقطة"}
+                      className="absolute end-2 top-2 z-10 rounded-md bg-white/90 p-1 shadow-sm transition hover:bg-white"
+                    >
+                      {isSelected ? (
+                        <CheckSquare className="h-4 w-4 text-indigo-600" />
+                      ) : (
+                        <Square className="h-4 w-4 text-slate-400" />
+                      )}
+                    </button>
+                    <button onClick={() => setLightbox(shot)} className="block w-full text-start">
+                      <div className="aspect-video bg-slate-100">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={`/api/devices/screenshots/${shot.id}/image`}
+                          alt=""
+                          loading="lazy"
+                          className="h-full w-full object-cover transition group-hover:scale-[1.02]"
+                        />
+                      </div>
+                      <div className="p-2">
+                        <div className="truncate text-xs font-medium text-slate-700">{shot.user.name}</div>
+                        <div className="text-[11px] text-slate-400">{formatDateTime(shot.capturedAt)}</div>
+                      </div>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </section>
 
@@ -418,8 +507,57 @@ export default function MonitoringClient({
           <div className="max-h-full max-w-6xl overflow-auto" onClick={(e) => e.stopPropagation()}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={`/api/devices/screenshots/${lightbox.id}/image`} alt="" className="rounded-lg" />
-            <div className="mt-2 text-center text-sm text-white/80">
-              {lightbox.user.name} · {formatDateTime(lightbox.capturedAt)}
+            <div className="mt-2 flex items-center justify-center gap-4 text-sm text-white/80">
+              <span>
+                {lightbox.user.name} · {formatDateTime(lightbox.capturedAt)}
+              </span>
+              <button
+                onClick={() => {
+                  setSelected(new Set([lightbox.id]));
+                  setLightbox(null);
+                  setConfirmDelete(true);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-red-600/90 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-red-600"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> مسح اللقطة دي
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation -- the image is gone for good, so this is a stop,
+          not a formality. */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm overflow-hidden rounded-xl bg-white shadow-2xl">
+            <div className="px-5 py-5">
+              <div className="mb-3 flex items-center gap-2">
+                <span className="rounded-full bg-red-100 p-2">
+                  <Trash2 className="h-5 w-5 text-red-600" />
+                </span>
+                <h3 className="text-lg font-semibold text-slate-900">مسح اللقطات</h3>
+              </div>
+              <p className="text-sm text-slate-600">
+                هتمسح <strong className="text-slate-900">{selected.size}</strong> لقطة نهائيًا — الصورة
+                والسجل مع بعض. مفيش رجوع في العملية دي
+              </p>
+            </div>
+            <div className="flex gap-2 border-t border-slate-100 bg-slate-50 px-5 py-3">
+              <button
+                onClick={handleDeleteSelected}
+                disabled={deleting}
+                className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-60"
+              >
+                {deleting ? "بيمسح..." : "أيوه، امسحها"}
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleting}
+                className="flex-1 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-white disabled:opacity-60"
+              >
+                رجوع
+              </button>
             </div>
           </div>
         </div>

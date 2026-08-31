@@ -1,4 +1,4 @@
-import { getJson, patchJson, postJson, putJson } from "@/client/transport/http";
+import { deleteJson, getJson, patchJson, postJson, putJson } from "@/client/transport/http";
 
 export type MonitoredDevice = {
   id: string;
@@ -61,4 +61,12 @@ export function listScreenshots(params: Record<string, string | number | undefin
     screenshots: ScreenshotRow[];
     pagination: { page: number; pageSize: number; total: number; pages: number };
   }>(`/api/devices/screenshots?${q.toString()}`);
+}
+
+/** Permanently deletes the chosen screenshots -- image and record both. */
+export function deleteScreenshots(ids: string[]) {
+  return deleteJson<{ deleted: number; failed: number }>("/api/devices/screenshots", {
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids }),
+  });
 }

@@ -148,6 +148,15 @@ export function findScreenshotKeysBefore(cutoff: Date, take: number) {
   });
 }
 
+/** Storage keys for a specific set of screenshots, so a manual delete can
+ * remove the files before the rows. */
+export function findScreenshotKeysByIds(ids: string[]) {
+  return prisma.screenshot.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, storageKey: true },
+  });
+}
+
 /** Drops exactly the rows whose files the purge has already removed. */
 export function deleteScreenshotsByIds(ids: string[]) {
   return prisma.screenshot.deleteMany({ where: { id: { in: ids } } });
