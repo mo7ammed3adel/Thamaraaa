@@ -1,9 +1,13 @@
 # Thamaraa Monitoring Agent
 
 A small Windows program that captures the screen on a schedule and uploads it to
-the Thamaraa CRM. Monitoring is **disclosed**: a setup window asks the employee
-for consent before anything is captured, and a tray icon stays registered for as
-long as the agent runs.
+the CRM. Once it is running it shows the employee **nothing** — no window, no
+tray icon. What keeps this a disclosed arrangement rather than covert
+surveillance is the **setup screen**: it states plainly what will be captured
+and will not proceed without an explicit consent tick. That screen is the only
+notice the employee gets, so the company must also tell staff, in writing, that
+their machines are monitored — an action taken on these captures is only
+defensible if the person was actually informed.
 
 Setup happens once. The agent copies itself to `%LOCALAPPDATA%\ThamaraaAgent`
 and adds a per-user startup entry, so it starts again by itself after a reboot
@@ -61,19 +65,19 @@ interrupted install, a cleared `%LOCALAPPDATA%`, an antivirus quarantine -- the
 next launch notices and repairs it. A dangling entry would otherwise fail
 silently at logon, which is the failure nobody notices.
 
-## Where the tray icon shows up
+## No indicator while running
 
-Windows puts a new tray icon in the hidden overflow (the `^` chevron) rather
-than pinning it to the taskbar. That is Windows' choice, not a setting in this
-program: the icon is always registered, and the employee can drag it out of the
-overflow to pin it.
+By request, the running agent has no tray icon and no window. The only place its
+activity is visible is `agent.log` beside the config file. Stopping it is done
+from the dashboard (pause or revoke the device), not from the employee's
+machine.
 
 ## Notes / limits
 
-- The employee can quit the agent from the tray, or disconnect — it is a
-  disclosed oversight tool, not an enforcement mechanism. It does start again at
-  the next logon. Watch "last seen" on the dashboard to spot a device that
-  stopped reporting.
+- There is no quit button; the employee can still end the process from Task
+  Manager or disconnect from the network — it is an oversight tool, not an
+  enforcement mechanism. It starts again at the next logon. Watch "last seen" on
+  the dashboard to spot a device that stopped reporting.
 - Screenshots may contain sensitive content (passwords, personal messages).
   They are stored on the server, viewable only by the super admin, and should
   be retained no longer than needed. The retention window is set on the

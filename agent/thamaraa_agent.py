@@ -4,9 +4,12 @@ Thamaraa monitoring agent.
 Runs on an employee's Windows machine. On a schedule set by the company's super
 admin, it captures the screen and uploads it to the Thamaraa CRM.
 
-Monitoring is disclosed, not covert. Two things enforce that and must not be
-removed: the setup window asks for the employee's consent before anything is
-captured, and a tray icon stays visible the whole time the agent is running.
+Once running, the agent shows the employee nothing at all -- no window, no tray
+icon. The company asked for that deliberately. What keeps the arrangement a
+disclosed one is therefore the setup window alone: it states plainly what will
+be captured and refuses to go any further without an explicit consent tick.
+That screen is the only thing standing between this and covert surveillance,
+so do not remove it, and do not weaken its wording.
 
 Setup is a one-time step. The agent installs itself under %LOCALAPPDATA% and
 registers a per-user startup entry, so it comes back on its own after a reboot
@@ -30,7 +33,7 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 import requests
-from PIL import Image, ImageDraw, ImageGrab
+from PIL import ImageGrab
 
 APP_NAME = "ThamaraaAgent"
 DISPLAY_NAME = "Thamaraa Monitoring Agent"
@@ -345,10 +348,10 @@ def show_message(title, text):
 # Monitoring
 # --------------------------------------------------------------------------
 class AgentState:
-    """Shared between the capture thread and the tray icon."""
+    """Carries the stop signal. Nothing displays status any more, so the log is
+    the only place a problem shows up -- see agent.log next to config.json."""
 
     def __init__(self):
-        self.status_text = "بيبدأ"
         self.stop = threading.Event()
 
 
@@ -392,61 +395,27 @@ def capture_and_upload(config):
 
 
 def monitor_loop(config, state):
-    """Capture on the server's schedule until the tray icon asks us to stop."""
+    """Capture on the server's schedule until the process is stopped. There is
+    no UI, so anything worth knowing goes to the log."""
     while not state.stop.is_set():
         interval = FALLBACK_INTERVAL_MINUTES
         try:
             capturing, interval = check_in(config)
             if capturing:
                 capture_and_upload(config)
-                state.status_text = "آخر لقطة %s" % datetime.now().strftime("%H:%M")
                 log.info("captured; next in %s min", interval)
             else:
-                state.status_text = "متوقف مؤقتاً من الإدارة"
                 log.info("paused by admin; next check in %s min", interval)
         except PermissionError as exc:
-            # Revoked or unknown token: stop trying, and say so in the tray.
-            log.info("device revoked (%s)", exc)
-            state.status_text = "الجهاز اتلغى من الإدارة"
+            # Revoked or unknown token: stop trying and let the process exit.
+            log.info("device revoked (%s); exiting", exc)
+            state.stop.set()
             return
         except Exception as exc:  # network hiccup, server restart, laptop asleep
-            state.status_text = "مش متصل بالسيرفر"
             log.warning("check-in failed (%s); retrying in %s min", exc, interval)
 
-        # Wait on the event rather than sleep(), so Quit takes effect at once.
+        # Wait on the event rather than sleep(), so a stop is acted on at once.
         state.stop.wait(max(1, interval) * 60)
-
-
-# --------------------------------------------------------------------------
-# Tray icon -- the visible sign that monitoring is running
-# --------------------------------------------------------------------------
-def make_tray_image():
-    """A monitor glyph, drawn here rather than shipped as an asset file."""
-    image = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(image)
-    draw.rounded_rectangle([6, 10, 58, 44], radius=5, fill=(79, 70, 229, 255))
-    draw.rounded_rectangle([12, 16, 52, 38], radius=2, fill=(255, 255, 255, 255))
-    draw.rectangle([27, 44, 37, 52], fill=(79, 70, 229, 255))
-    draw.rounded_rectangle([18, 52, 46, 57], radius=2, fill=(79, 70, 229, 255))
-    return image
-
-
-def run_tray(state, config):
-    """Blocks until the employee quits from the tray menu."""
-    import pystray
-
-    def on_quit(icon, _item):
-        state.status_text = "بيقفل"
-        state.stop.set()
-        icon.stop()
-
-    menu = pystray.Menu(
-        pystray.MenuItem(lambda _item: state.status_text, None, enabled=False),
-        pystray.MenuItem(config["server"], None, enabled=False),
-        pystray.Menu.SEPARATOR,
-        pystray.MenuItem("إيقاف البرنامج", on_quit),
-    )
-    pystray.Icon(APP_NAME, make_tray_image(), DISPLAY_NAME, menu).run()
 
 
 # --------------------------------------------------------------------------
@@ -455,7 +424,9 @@ def main():
 
     lock = acquire_single_instance()
     if lock is None:
-        show_message(DISPLAY_NAME, "البرنامج شغال بالفعل\nهتلاقي أيقونته في شريط المهام تحت")
+        # Already running. Say nothing -- the agent is invisible by design, so a
+        # popup here would be the one thing the employee ever sees from it.
+        log.info("Another instance is already running; exiting")
         return
 
     config = load_config()
@@ -470,18 +441,17 @@ def main():
         show_message(
             DISPLAY_NAME,
             "تم التفعيل\n\n"
-            "البرنامج شغال دلوقتي، وهيفتح لوحده كل ما تشغل الجهاز\n"
-            "هتلاقي أيقونته في شريط المهام تحت",
+            "البرنامج اتفعّل وهيشتغل في الخلفية، وهيفتح لوحده كل ما تشغل الجهاز",
         )
     elif getattr(sys, "frozen", False) and not autostart_healthy():
         # Configured by an older build, or the entry was removed or left
         # pointing at a file that no longer exists -- reinstall and repair it.
         install_self()
 
+    # No tray, no window: run the capture loop on the main thread and let the
+    # process live quietly in the background until the machine shuts down.
     state = AgentState()
-    threading.Thread(target=monitor_loop, args=(config, state), daemon=True).start()
-    run_tray(state, config)
-    state.stop.set()
+    monitor_loop(config, state)
     log.info("Agent stopped")
 
 
