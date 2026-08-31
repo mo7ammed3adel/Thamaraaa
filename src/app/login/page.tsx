@@ -3,10 +3,12 @@
 import { signIn, useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 export default function LoginPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
+  const t = useTranslator();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -31,7 +33,7 @@ export default function LoginPage() {
     });
 
     if (res?.error) {
-      setError("Invalid credentials or inactive account");
+      setError(t("auth.invalidCredentials"));
       setLoading(false);
     } else {
       router.push("/dashboard");
@@ -48,7 +50,7 @@ export default function LoginPage() {
           </div>
         </div>
         <h2 className="text-2xl font-semibold text-center text-gray-800 mb-8">
-          Sign In
+          {t("auth.signIn")}
         </h2>
         {error && (
           <div className="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100 text-center">
@@ -58,7 +60,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email or Phone
+              {t("auth.identifier")}
             </label>
             <input
               type="text"
@@ -66,12 +68,12 @@ export default function LoginPage() {
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-gray-900"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email or phone"
+              placeholder={t("auth.identifierPlaceholder")}
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Password
+              {t("auth.password")}
             </label>
             <input
               type="password"
@@ -87,7 +89,7 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-md transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? t("auth.signingIn") : t("auth.signIn")}
           </button>
         </form>
       </div>

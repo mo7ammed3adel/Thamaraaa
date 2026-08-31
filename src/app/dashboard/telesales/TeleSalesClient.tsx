@@ -12,6 +12,7 @@ import DateRangeFilter from "@/components/dashboard/DateRangeFilter";
 import { isDateInRange } from "@/lib/dateRange";
 import { formatDisplayDate, getLeadFollowUpDisplay, getLeadMeetingDisplay } from "@/lib/leadScheduleDisplay";
 import MeetingLinksPanel from "@/components/MeetingLinksPanel";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 interface CustomColumn {
   id: string;
@@ -32,6 +33,7 @@ export default function TeleSalesClient({
   initialCustomColumns?: CustomColumn[];
   activeAgents?: { id: string; name: string }[];
 }) {
+  const t = useTranslator();
   const router = useRouter();
   const [leads, setLeads] = useState(initialLeads);
   const [selectedLead, setSelectedLead] = useState<any>(null);
@@ -262,7 +264,7 @@ export default function TeleSalesClient({
         >
           <div className="flex items-center gap-2 mb-2">
             <PhoneCall className="h-5 w-5 text-blue-500" />
-            <span className="text-xs font-bold uppercase text-gray-500">Total Leads</span>
+            <span className="text-xs font-bold uppercase text-gray-500">{t("telesales.totalLeads")}</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{totalCount}</p>
         </div>
@@ -273,7 +275,7 @@ export default function TeleSalesClient({
         >
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle2 className="h-5 w-5 text-green-500" />
-            <span className="text-xs font-bold uppercase text-gray-500">Accept & Booked</span>
+            <span className="text-xs font-bold uppercase text-gray-500">{t("lead.call.acceptAndBook")}</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{acceptBookCount}</p>
         </div>
@@ -284,7 +286,7 @@ export default function TeleSalesClient({
         >
           <div className="flex items-center gap-2 mb-2">
             <Video className="h-5 w-5 text-teal-500" />
-            <span className="text-xs font-bold uppercase text-gray-500">Actual Meetings</span>
+            <span className="text-xs font-bold uppercase text-gray-500">{t("telesales.actualMeetings")}</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{actualMeetingsCount}</p>
         </div>
@@ -295,7 +297,7 @@ export default function TeleSalesClient({
         >
           <div className="flex items-center gap-2 mb-2">
             <XCircle className="h-5 w-5 text-orange-500" />
-            <span className="text-xs font-bold uppercase text-gray-500">Accept But Lost</span>
+            <span className="text-xs font-bold uppercase text-gray-500">{t("lead.call.acceptButLost")}</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{acceptLostCount}</p>
         </div>
@@ -306,7 +308,7 @@ export default function TeleSalesClient({
         >
           <div className="flex items-center gap-2 mb-2">
             <PhoneOff className="h-5 w-5 text-slate-500" />
-            <span className="text-xs font-bold uppercase text-gray-500">Busy</span>
+            <span className="text-xs font-bold uppercase text-gray-500">{t("lead.call.busy")}</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{busyCount}</p>
         </div>
@@ -317,7 +319,7 @@ export default function TeleSalesClient({
         >
           <div className="flex items-center gap-2 mb-2">
             <X className="h-5 w-5 text-pink-500" />
-            <span className="text-xs font-bold uppercase text-gray-500">Wrong Number</span>
+            <span className="text-xs font-bold uppercase text-gray-500">{t("lead.call.wrongNumber")}</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{wrongNumberCount}</p>
         </div>
@@ -327,35 +329,35 @@ export default function TeleSalesClient({
       <div className="mb-6 p-4 bg-white rounded-xl shadow-sm border border-gray-200 space-y-3">
         <div className="flex flex-wrap gap-4 items-end">
           <div className="flex-1 min-w-[200px]">
-            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Search</label>
+            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">{t("common.search")}</label>
             <input
               type="text"
-              placeholder="Search by name or phone..."
+              placeholder={t("telesales.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               className="w-full border rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Status</label>
+            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">{t("lead.status")}</label>
             <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }} className="border rounded-md px-3 py-1.5 text-sm">
-              <option value="All">All statuses</option>
+              <option value="All">{t("telesales.allStatuses")}</option>
               <option value="New">New</option>
-              <option value="Contacted">Contacted</option>
-              <option value="No_Answer">No Answer</option>
-              <option value="Interested">Interested</option>
-              <option value="Transferred">Transferred</option>
-              <option value="Waiting">Waiting</option>
-              <option value="Closed_Lost">Closed / Lost</option>
+              <option value="Contacted">{t("lead.status.contacted")}</option>
+              <option value="No_Answer">{t("lead.call.noAnswer")}</option>
+              <option value="Interested">{t("lead.status.interested")}</option>
+              <option value="Transferred">{t("lead.status.transferred")}</option>
+              <option value="Waiting">{t("lead.status.waiting")}</option>
+              <option value="Closed_Lost">{t("lead.status.closedLost")}</option>
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Type</label>
+            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">{t("lead.type")}</label>
             <select value={filterClass} onChange={(e) => { setFilterClass(e.target.value); setCurrentPage(1); }} className="border rounded-md px-3 py-1.5 text-sm">
-              <option value="All">All types</option>
-              <option value="Hot">Hot</option>
-              <option value="Warm">Warm</option>
-              <option value="Cold">Cold</option>
+              <option value="All">{t("telesales.allTypes")}</option>
+              <option value="Hot">{t("lead.class.hot")}</option>
+              <option value="Warm">{t("lead.class.warm")}</option>
+              <option value="Cold">{t("lead.class.cold")}</option>
             </select>
           </div>
           <div className="w-full">
@@ -380,7 +382,7 @@ export default function TeleSalesClient({
                     type="text"
                     value={newColumnName}
                     onChange={(e) => setNewColumnName(e.target.value)}
-                    placeholder="Column name..."
+                    placeholder={t("telesales.columnNamePlaceholder")}
                     className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-40"
                     autoFocus
                     onKeyDown={(e) => e.key === "Enter" && handleAddColumn()}
@@ -407,26 +409,26 @@ export default function TeleSalesClient({
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Customer</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Phone & Source</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Status & Class</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Meeting / Follow-up</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Sales Agent</th>
-                {isManager && <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Agent</th>}
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("telesales.customer")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("telesales.phoneAndSource")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("telesales.statusAndClass")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("telesales.meetingFollowUp")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("telesales.salesAgent")}</th>
+                {isManager && <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("telesales.agent")}</th>}
                 {/* Custom Columns */}
                 {customColumns.map((col) => (
                   <th key={col.id} className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">
                     <div className="flex items-center gap-1.5">
                       <span>{col.name}</span>
                       {isManager && (
-                        <button onClick={() => handleDeleteColumn(col.id)} className="text-gray-300 hover:text-red-500 transition-colors" title="Delete column">
+                        <button onClick={() => handleDeleteColumn(col.id)} className="text-gray-300 hover:text-red-500 transition-colors" title={t("telesales.deleteColumn")}>
                           <X className="h-3 w-3" />
                         </button>
                       )}
                     </div>
                   </th>
                 ))}
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Action</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t("telesales.action")}</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -439,7 +441,7 @@ export default function TeleSalesClient({
                         type="button"
                         onClick={() => setExpandedLeadId(expandedLeadId === l.id ? null : l.id)}
                         className="p-1 rounded-md text-gray-400 hover:text-blue-600 hover:bg-blue-50"
-                        title="View customer details"
+                        title={t("telesales.viewCustomer")}
                       >
                         {expandedLeadId === l.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                       </button>
@@ -463,7 +465,7 @@ export default function TeleSalesClient({
                         {getLeadMeetingDisplay(l).timeLabel && <span className="text-blue-600 font-medium"> {getLeadMeetingDisplay(l).timeLabel}</span>}
                       </div>
                     ) : (
-                      <span className="text-gray-400 text-xs">No meeting date</span>
+                      <span className="text-gray-400 text-xs">{t("telesales.noMeetingDate")}</span>
                     )}
                     {getLeadFollowUpDisplay(l).hasDate && (
                       <p className="text-xs text-amber-600 font-medium mt-1">Follow-up: {getLeadFollowUpDisplay(l).fullLabel}</p>
@@ -486,7 +488,7 @@ export default function TeleSalesClient({
                         onChange={(e) => handleReassignLead(l.id, e.target.value)}
                         className="border border-gray-300 rounded-md text-sm px-2 py-1 bg-white focus:ring-1 focus:ring-blue-500 max-w-[140px]"
                       >
-                        <option value="">Unassigned</option>
+                        <option value="">{t("telesales.unassigned")}</option>
                         {activeAgents.map(a => (
                           <option key={a.id} value={a.id}>{a.name}</option>
                         ))}
@@ -533,7 +535,7 @@ export default function TeleSalesClient({
                           onClick={() => handleDistributeMeeting(l.id)}
                           disabled={distributingLeadId === l.id}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-md text-xs font-bold hover:bg-indigo-700 disabled:opacity-50 transition"
-                          title="Assign this booked meeting to an available sales agent"
+                          title={t("telesales.distributeMeeting")}
                         >
                           <Send className="h-3.5 w-3.5" />
                           {distributingLeadId === l.id ? "Distributing..." : "Distribute Meeting"}
@@ -556,7 +558,7 @@ export default function TeleSalesClient({
                         <button
                           onClick={() => handleDeleteLead(l.id)}
                           className="p-1.5 text-red-500 hover:bg-red-50 rounded-md transition-colors"
-                          title="Delete Lead"
+                          title={t("telesales.deleteLead")}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -573,7 +575,7 @@ export default function TeleSalesClient({
                     <td colSpan={isManager ? 7 + customColumns.length : 6 + customColumns.length} className="px-6 py-4 bg-slate-50">
                       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
                         <div className="bg-white border border-gray-200 rounded-lg p-4">
-                          <h4 className="text-xs font-bold uppercase text-gray-500 mb-3">Customer Details</h4>
+                          <h4 className="text-xs font-bold uppercase text-gray-500 mb-3">{t("telesales.customerDetails")}</h4>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                             <p><span className="text-gray-400">Name:</span> <span className="font-medium text-gray-800">{l.name}</span></p>
                             <p><span className="text-gray-400">Phone:</span> <span className="font-medium text-gray-800">{l.phone}</span></p>
@@ -595,7 +597,7 @@ export default function TeleSalesClient({
                         </div>
 
                         <div className="bg-white border border-gray-200 rounded-lg p-4">
-                          <h4 className="text-xs font-bold uppercase text-gray-500 mb-3">Schedule</h4>
+                          <h4 className="text-xs font-bold uppercase text-gray-500 mb-3">{t("lead.schedule")}</h4>
                           <div className="space-y-2 text-sm">
                             <p><span className="text-gray-400">Meeting:</span> <span className="font-medium text-gray-800">{getLeadMeetingDisplay(l).fullLabel || "-"}</span></p>
                             <p><span className="text-gray-400">Follow-up:</span> <span className="font-medium text-gray-800">{getLeadFollowUpDisplay(l).fullLabel || "-"}</span></p>
@@ -603,7 +605,7 @@ export default function TeleSalesClient({
                             <p><span className="text-gray-400">Tele Agent:</span> <span className="font-medium text-gray-800">{l.teleAgent?.name || "-"}</span></p>
                           </div>
                           <div className="mt-4 space-y-2">
-                            <h5 className="text-xs font-bold uppercase text-gray-500">Meeting History</h5>
+                            <h5 className="text-xs font-bold uppercase text-gray-500">{t("telesales.meetingHistory")}</h5>
                             {l.meetings?.length ? l.meetings.map((meeting: any) => (
                               <div key={meeting.id} className="border border-purple-100 bg-purple-50 rounded-md p-2 text-xs">
                                 <div className="flex flex-wrap items-center gap-2">
@@ -618,7 +620,7 @@ export default function TeleSalesClient({
                         </div>
 
                         <div className="bg-white border border-gray-200 rounded-lg p-4">
-                          <h4 className="text-xs font-bold uppercase text-gray-500 mb-3">Call History</h4>
+                          <h4 className="text-xs font-bold uppercase text-gray-500 mb-3">{t("telesales.callHistory")}</h4>
                           <div className="space-y-2 max-h-72 overflow-y-auto pe-1">
                             {l.callLogs?.length ? l.callLogs.map((log: any) => (
                               <div key={log.id} className="border border-gray-100 rounded-md p-2 text-xs">
@@ -682,10 +684,10 @@ export default function TeleSalesClient({
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Call Status *</label>
                 <select required className="w-full px-3 py-2 border rounded-md" value={logData.callStatus} onChange={(e) => setLogData({ ...logData, callStatus: e.target.value })}>
-                  <option value="Busy">Busy</option>
-                  <option value="Wrong Number">Wrong Number</option>
-                  <option value="Accept but lost">Accept but lost</option>
-                  <option value="Accept and book meeting">Accept and book meeting</option>
+                  <option value="Busy">{t("lead.call.busy")}</option>
+                  <option value="Wrong Number">{t("lead.call.wrongNumber")}</option>
+                  <option value="Accept but lost">{t("lead.call.acceptButLost")}</option>
+                  <option value="Accept and book meeting">{t("lead.call.acceptAndBookLong")}</option>
                 </select>
               </div>
               {logData.callStatus === "Accept and book meeting" && (
@@ -702,11 +704,11 @@ export default function TeleSalesClient({
               )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Notes *</label>
-                <textarea required rows={3} className="w-full px-3 py-2 border rounded-md" value={logData.notes} onChange={(e) => setLogData({ ...logData, notes: e.target.value })} placeholder="Detailed call notes..." />
+                <textarea required rows={3} className="w-full px-3 py-2 border rounded-md" value={logData.notes} onChange={(e) => setLogData({ ...logData, notes: e.target.value })} placeholder={t("telesales.callNotesPlaceholder")} />
               </div>
               <div className="pt-4 flex justify-end gap-3">
-                <button type="button" onClick={() => setSelectedLead(null)} className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md">Cancel</button>
-                <button type="submit" disabled={loading} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">Save Call Log</button>
+                <button type="button" onClick={() => setSelectedLead(null)} className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md">{t("common.cancel")}</button>
+                <button type="submit" disabled={loading} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">{t("telesales.saveCallLog")}</button>
               </div>
             </form>
           </div>

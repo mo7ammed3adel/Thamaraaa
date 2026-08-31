@@ -4,10 +4,12 @@ import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ShieldCheck, Lock, Loader2 } from "lucide-react";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 export default function ChangePasswordPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
+  const t = useTranslator();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
@@ -26,11 +28,11 @@ export default function ChangePasswordPage() {
     e.preventDefault();
     setError("");
     if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+      setError(t("auth.passwordTooShort"));
       return;
     }
     if (password !== confirm) {
-      setError("Passwords do not match.");
+      setError(t("auth.passwordsDoNotMatch"));
       return;
     }
     setLoading(true);
@@ -41,7 +43,7 @@ export default function ChangePasswordPage() {
     });
     if (!res.ok) {
       const data = await res.json().catch(() => null);
-      setError(data?.error || "Could not update password. Please try again.");
+      setError(data?.error || t("auth.passwordUpdateFailed"));
       setLoading(false);
       return;
     }
@@ -57,9 +59,9 @@ export default function ChangePasswordPage() {
           <span className="w-14 h-14 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center mb-3">
             <ShieldCheck className="w-7 h-7" />
           </span>
-          <h1 className="text-2xl font-black text-slate-900">Set your password</h1>
+          <h1 className="text-2xl font-black text-slate-900">{t("auth.setPassword")}</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Welcome aboard! For security, please choose a new password before continuing.
+            {t("auth.setPasswordIntro")}
           </p>
         </div>
 
@@ -71,7 +73,7 @@ export default function ChangePasswordPage() {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">New password</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">{t("auth.newPassword")}</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
@@ -80,12 +82,12 @@ export default function ChangePasswordPage() {
                 className="w-full ps-10 pe-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-slate-900"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 6 characters"
+                placeholder={t("auth.newPasswordPlaceholder")}
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Confirm password</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">{t("auth.confirmPassword")}</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
@@ -94,7 +96,7 @@ export default function ChangePasswordPage() {
                 className="w-full ps-10 pe-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-slate-900"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                placeholder="Re-enter your password"
+                placeholder={t("auth.confirmPasswordPlaceholder")}
               />
             </div>
           </div>
@@ -104,7 +106,7 @@ export default function ChangePasswordPage() {
             className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            {loading ? "Saving..." : "Save & continue"}
+            {loading ? t("common.saving") : t("auth.saveAndContinue")}
           </button>
         </form>
       </div>

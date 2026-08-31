@@ -16,6 +16,7 @@ import DateRangeFilter from "@/components/dashboard/DateRangeFilter";
 import { isDateInRange } from "@/lib/dateRange";
 import { getLeadFollowUpDisplay, getLeadMeetingDisplay } from "@/lib/leadScheduleDisplay";
 import { PACKAGE_SERVICES, buildDealPackageLabel } from "@/lib/dealPackage";
+import { useTranslator } from "@/components/i18n/LocaleProvider";
 
 // Leads in these statuses are still being worked by the TeleSales team — the
 // sales manager sees them (he oversees TeleSales too) but they are view-only
@@ -23,6 +24,7 @@ import { PACKAGE_SERVICES, buildDealPackageLabel } from "@/lib/dealPackage";
 const TELESALES_STAGE_STATUSES = ["New", "Contacted", "No_Answer", "Interested", "Transferred"];
 
 export default function SalesClient({ initialLeads, userRole, userId, initialStatus, postSaleProjects = [], teamAgents = [] }: { initialLeads: any[], userRole: string, userId: string, initialStatus: string, postSaleProjects?: any[], teamAgents?: { id: string; name: string; status: string }[] }) {
+  const t = useTranslator();
   const router = useRouter();
   const isManager = ["sales_manager", "super_admin"].includes(userRole);
   const [leads, setLeads] = useState(initialLeads);
@@ -576,7 +578,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
 
       <div className="mb-6 flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
         <div>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase">My Status</h2>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase">{t("sales.myStatus")}</h2>
           <div className="flex items-center mt-2 gap-3">
             <div className="flex items-center">
               <span className="relative flex h-3 w-3 me-2">
@@ -622,7 +624,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         >
           <div className="flex items-center gap-2 mb-2">
             <PhoneCall className="h-5 w-5 text-blue-500" />
-            <span className="text-xs font-bold uppercase text-gray-500">Total Leads</span>
+            <span className="text-xs font-bold uppercase text-gray-500">{t("sales.totalLeads")}</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{totalLeads}</p>
         </div>
@@ -634,7 +636,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
           >
             <div className="flex items-center gap-2 mb-2">
               <PhoneCall className="h-5 w-5 text-indigo-500" />
-              <span className="text-xs font-bold uppercase text-gray-500">In TeleSales</span>
+              <span className="text-xs font-bold uppercase text-gray-500">{t("sales.inTeleSales")}</span>
             </div>
             <p className="text-2xl font-bold text-gray-900">{inTeleSales}</p>
           </div>
@@ -646,7 +648,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         >
           <div className="flex items-center gap-2 mb-2">
             <Video className="h-5 w-5 text-teal-500" />
-            <span className="text-xs font-bold uppercase text-gray-500">Total Meets</span>
+            <span className="text-xs font-bold uppercase text-gray-500">{t("sales.totalMeets")}</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{totalMeets}</p>
         </div>
@@ -657,7 +659,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         >
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle2 className="h-5 w-5 text-green-500" />
-            <span className="text-xs font-bold uppercase text-gray-500">Win Deal</span>
+            <span className="text-xs font-bold uppercase text-gray-500">{t("sales.winDeal")}</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{closedWon}</p>
         </div>
@@ -668,7 +670,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         >
           <div className="flex items-center gap-2 mb-2">
             <ChevronUp className="h-5 w-5 text-amber-500" />
-            <span className="text-xs font-bold uppercase text-gray-500">Follow-up</span>
+            <span className="text-xs font-bold uppercase text-gray-500">{t("sales.followUp")}</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{followUp}</p>
         </div>
@@ -679,7 +681,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         >
           <div className="flex items-center gap-2 mb-2">
             <PhoneCall className="h-5 w-5 text-purple-500" />
-            <span className="text-xs font-bold uppercase text-gray-500">Reschedule</span>
+            <span className="text-xs font-bold uppercase text-gray-500">{t("sales.reschedule")}</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{leads.filter(l => l.status === "Rescheduled").length}</p>
         </div>
@@ -690,7 +692,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         >
           <div className="flex items-center gap-2 mb-2">
             <XCircle className="h-5 w-5 text-red-500" />
-            <span className="text-xs font-bold uppercase text-gray-500">Lost Deal</span>
+            <span className="text-xs font-bold uppercase text-gray-500">{t("sales.lostDeal")}</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{leads.filter(l => l.status === "Closed_Lost").length}</p>
         </div>
@@ -701,7 +703,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         <div className="flex-1 w-full max-w-sm">
           <input
             type="text"
-            placeholder="Search leads by name or phone..."
+            placeholder={t("sales.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
             className="w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500"
@@ -727,17 +729,17 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Lead</th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Phone & Source</th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Classification</th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">TeleSales Agent</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("sales.lead")}</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("telesales.phoneAndSource")}</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("common.classification")}</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("sales.teleSalesAgent")}</th>
               {isManager && (
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Sales Agent</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("telesales.salesAgent")}</th>
               )}
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Meeting Time</th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Follow-up</th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Last Note</th>
-              <th className="px-6 py-3 text-end text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("sales.meetingTime")}</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("sales.followUp")}</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t("sales.lastNote")}</th>
+              <th className="px-6 py-3 text-end text-xs font-medium text-gray-500 uppercase tracking-wider">{t("sales.actions")}</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -761,7 +763,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                       {l.teleAgent && (
                         <button 
                           onClick={() => setLinkLead(l)}
-                          title="Send Meeting Link"
+                          title={t("sales.sendMeetingLink")}
                           className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-md transition-colors"
                         >
                           <Send className="h-3 w-3" />
@@ -772,7 +774,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                   {isManager && (
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       <div className="flex items-center gap-2">
-                        {l.salesAgent?.name || <span className="text-gray-400 italic">Unassigned</span>}
+                        {l.salesAgent?.name || <span className="text-gray-400 italic">{t("common.unassigned")}</span>}
                         {l.status !== "Closed_Won" && !TELESALES_STAGE_STATUSES.includes(l.status) && (
                           <button
                             onClick={() => { setReassignLead(l); setReassignAgentId(""); }}
@@ -809,7 +811,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                       }
                       return (
                         <>
-                          <span className="font-semibold text-amber-700">Follow-up</span>
+                          <span className="font-semibold text-amber-700">{t("sales.followUp")}</span>
                           <br />
                           <span className="text-xs text-amber-600 font-medium">{followUpDisplay.fullLabel}</span>
                         </>
@@ -818,12 +820,12 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600 max-w-xs">
                     <div className="flex items-center gap-2">
-                      <span className="truncate max-w-[180px]">{l.callLogs?.[0]?.notes || <span className="text-gray-400 italic">No notes</span>}</span>
+                      <span className="truncate max-w-[180px]">{l.callLogs?.[0]?.notes || <span className="text-gray-400 italic">{t("sales.noNotes")}</span>}</span>
                       {l.callLogs && l.callLogs.length > 0 && (
                         <button
                           onClick={() => setExpandedLead(expandedLead === l.id ? null : l.id)}
                           className="text-blue-500 hover:text-blue-700 shrink-0"
-                          title="View all call logs"
+                          title={t("sales.viewCallLogs")}
                         >
                           {expandedLead === l.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                         </button>
@@ -843,7 +845,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                         {isManager && (
                           <button
                             onClick={() => openRevertModal(l)}
-                            title="Move this client back to Follow-Up"
+                            title={t("sales.backToFollowUp")}
                             className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-md text-xs font-bold transition-colors"
                           >
                             <RotateCcw className="h-3 w-3" />
@@ -852,10 +854,10 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                         )}
                       </span>
                     ) : activeLead?.id === l.id ? (
-                      <button onClick={endTask} className="px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700">End Task</button>
+                      <button onClick={endTask} className="px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700">{t("sales.endTask")}</button>
                     ) : (
                       <div className="inline-flex items-center gap-2 justify-end">
-                        <button onClick={() => startTask(l)} disabled={!!activeLead} className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 disabled:opacity-50">Start Task</button>
+                        <button onClick={() => startTask(l)} disabled={!!activeLead} className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 disabled:opacity-50">{t("sales.startTask")}</button>
                         <button
                           onClick={() => reportNoShow(l)}
                           disabled={!!activeLead || noShowLeadId === l.id}
@@ -943,11 +945,11 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
             <thead className="bg-emerald-50">
               <tr>
                 <th className="px-6 py-3 text-start text-xs font-medium text-emerald-700 uppercase tracking-wider">Client (Project)</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-emerald-700 uppercase tracking-wider">Account Manager</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-emerald-700 uppercase tracking-wider">Current Status</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-emerald-700 uppercase tracking-wider">Progress</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-emerald-700 uppercase tracking-wider">Active Warnings</th>
-                <th className="px-6 py-3 text-end text-xs font-medium text-emerald-700 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-emerald-700 uppercase tracking-wider">{t("sales.accountManager")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-emerald-700 uppercase tracking-wider">{t("sales.currentStatus")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-emerald-700 uppercase tracking-wider">{t("sales.progress")}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-emerald-700 uppercase tracking-wider">{t("sales.activeWarnings")}</th>
+                <th className="px-6 py-3 text-end text-xs font-medium text-emerald-700 uppercase tracking-wider">{t("sales.actions")}</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -960,7 +962,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                       <div className="text-xs text-gray-500">{project.package} Package</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {project.accountManager?.name || <span className="text-gray-400 italic">Unassigned</span>}
+                      {project.accountManager?.name || <span className="text-gray-400 italic">{t("common.unassigned")}</span>}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-bold uppercase border">
@@ -981,7 +983,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                           {project.warnings.length} Unresolved
                         </span>
                       ) : (
-                        <span className="text-xs text-gray-400">None</span>
+                        <span className="text-xs text-gray-400">{t("common.none")}</span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-end">
@@ -1030,12 +1032,12 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-3 sm:p-4">
           <form onSubmit={submitFeedback} className="bg-white rounded-xl shadow-xl w-full max-w-sm sm:max-w-md max-h-[90vh] flex flex-col">
             <div className="flex justify-between items-center px-4 sm:px-5 py-3 border-b shrink-0">
-              <h3 className="text-base font-bold">Task Feedback</h3>
+              <h3 className="text-base font-bold">{t("sales.taskFeedback")}</h3>
               <button
                 type="button"
                 onClick={closeFeedbackTemporarily}
                 className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                title="Close temporarily — your data will be saved as draft"
+                title={t("sales.saveDraftHint")}
               >
                 <X className="h-5 w-5" />
               </button>
@@ -1119,7 +1121,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
 
             <div className="space-y-4 border-t pt-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Outcome</label>
+                <label className="block text-sm font-medium mb-1">{t("sales.outcome")}</label>
                 <div className="flex gap-4 flex-wrap">
                   <label className="flex items-center gap-2">
                     <input type="radio" checked={feedback.outcome === "won"} onChange={() => setFeedback({...feedback, outcome: "won"})} /> Won! Deal Closing
@@ -1137,18 +1139,18 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
               </div>
               {feedback.outcome === "followup" && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">Follow-up Date</label>
+                  <label className="block text-sm font-medium mb-1">{t("sales.followUpDate")}</label>
                   <input required type="date" className="w-full border p-2 rounded" value={feedback.followUpDate} onChange={e => setFeedback({...feedback, followUpDate: e.target.value})} />
                 </div>
               )}
               {feedback.outcome === "reschedule" && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium mb-1 text-blue-700">New Meeting Date</label>
+                    <label className="block text-sm font-medium mb-1 text-blue-700">{t("sales.newMeetingDate")}</label>
                     <input required type="date" min={todayInputValue()} className="w-full border p-2 rounded focus:ring-blue-500" value={feedback.meetingDate} onChange={e => setFeedback({...feedback, meetingDate: e.target.value})} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1 text-blue-700">New Meeting Time</label>
+                    <label className="block text-sm font-medium mb-1 text-blue-700">{t("sales.newMeetingTime")}</label>
                     <input required type="time" className="w-full border p-2 rounded focus:ring-blue-500" value={feedback.meetingTime} onChange={e => setFeedback({...feedback, meetingTime: e.target.value})} />
                   </div>
                 </div>
@@ -1156,7 +1158,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
               
               {/* Additional Information - Client Profile */}
               <div className="border-t pt-4">
-                <h4 className="font-bold text-sm text-gray-800 mb-3">Client Profile</h4>
+                <h4 className="font-bold text-sm text-gray-800 mb-3">{t("sales.clientProfile")}</h4>
                 <div className="grid grid-cols-2 gap-3 mb-3">
                   <div>
                     <label className="block text-sm font-medium mb-1">Has Store?</label>
@@ -1166,19 +1168,19 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Client Type</label>
+                    <label className="block text-sm font-medium mb-1">{t("sales.clientType")}</label>
                     <select className="w-full border p-2 rounded focus:ring-blue-500" value={feedback.customerType} onChange={e => setFeedback({...feedback, customerType: e.target.value})}>
-                      <option value="Store">Store</option>
-                      <option value="Launch">Launch / Beginning</option>
-                      <option value="Dropshipping">Dropshipping</option>
-                      <option value="Shipping">Shipping</option>
-                      <option value="Special">Special Type</option>
+                      <option value="Store">{t("customerType.store")}</option>
+                      <option value="Launch">{t("customerType.launch")}</option>
+                      <option value="Dropshipping">{t("customerType.dropshipping")}</option>
+                      <option value="Shipping">{t("customerType.shipping")}</option>
+                      <option value="Special">{t("customerType.special")}</option>
                     </select>
                   </div>
                 </div>
                 {feedback.hasStore === "Yes" && (
                   <div className="mb-3">
-                    <label className="block text-sm font-medium mb-1">Store Link</label>
+                    <label className="block text-sm font-medium mb-1">{t("sales.storeLink")}</label>
                     <input type="url" placeholder="https://..." className="w-full border p-2 rounded focus:ring-blue-500" value={feedback.storeLink} onChange={e => setFeedback({...feedback, storeLink: e.target.value})} required={feedback.hasStore === "Yes"} />
                   </div>
                 )}
@@ -1186,7 +1188,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
 
               <div>
                 <label className="block text-sm font-bold text-blue-800 mb-1">New Meeting Notes *</label>
-                <textarea required rows={3} className="w-full border-2 border-blue-200 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-gray-400" value={feedback.notes} onChange={e => setFeedback({...feedback, notes: e.target.value})} placeholder="Write detailed new notes about the current call/meeting..." />
+                <textarea required rows={3} className="w-full border-2 border-blue-200 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-gray-400" value={feedback.notes} onChange={e => setFeedback({...feedback, notes: e.target.value})} placeholder={t("sales.notesPlaceholder")} />
               </div>
               <p className="text-[10px] text-gray-400 -mt-2">These notes will be independently saved to the interaction history log.</p>
 
@@ -1208,7 +1210,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
             </div>
 
             <div className="px-4 sm:px-5 py-3 border-t shrink-0">
-              <button type="submit" className="px-4 py-2 bg-blue-600 font-bold hover:bg-blue-700 text-white rounded w-full">Confirm & Continue</button>
+              <button type="submit" className="px-4 py-2 bg-blue-600 font-bold hover:bg-blue-700 text-white rounded w-full">{t("deal.confirmAndContinue")}</button>
             </div>
           </form>
         </div>
@@ -1217,12 +1219,12 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
       {showClosingForm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl p-6 my-8">
-            <h3 className="text-xl font-bold mb-6 border-b pb-2">Deal Closing Form</h3>
+            <h3 className="text-xl font-bold mb-6 border-b pb-2">{t("deal.closingForm")}</h3>
             <form onSubmit={closeDeal} className="space-y-4">
               {/* Package Services — multi-select checkboxes, optionally per-month */}
               <div className="border rounded-lg p-3 bg-gray-50/60">
                 <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
-                  <label className="block text-sm font-bold text-gray-800">Package Services</label>
+                  <label className="block text-sm font-bold text-gray-800">{t("deal.packageServices")}</label>
                   <div className="flex items-center gap-1 bg-white border rounded-lg p-0.5 text-xs font-medium">
                     <button
                       type="button"
@@ -1260,7 +1262,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">Month {idx + 1}</span>
                           {dealData.monthlyPackages.length > 1 && (
-                            <button type="button" onClick={() => removePackageMonth(idx)} className="text-xs font-semibold text-red-500 hover:text-red-700">Remove</button>
+                            <button type="button" onClick={() => removePackageMonth(idx)} className="text-xs font-semibold text-red-500 hover:text-red-700">{t("sales.remove")}</button>
                           )}
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -1285,17 +1287,17 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                 <div>
                   <label className="block text-sm font-medium mb-1">Total Amount (SAR)</label>
                   <input required type="number" min="0" className="w-full border p-2 rounded" value={dealData.totalAmount} onChange={e => setDealData({...dealData, totalAmount: e.target.value})} />
-                  <p className="text-[10px] text-gray-400 mt-1">Full contract value</p>
+                  <p className="text-[10px] text-gray-400 mt-1">{t("deal.fullContractValue")}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1 text-blue-700">First Payment Amount (SAR)</label>
-                  <input required type="number" min="0" max={dealData.totalAmount || undefined} className="w-full border border-blue-200 p-2 rounded focus:ring-2 focus:ring-blue-500 bg-blue-50/30" placeholder="Amount paid at closing" value={dealData.firstAmount} onChange={e => setDealData({...dealData, firstAmount: e.target.value})} />
+                  <input required type="number" min="0" max={dealData.totalAmount || undefined} className="w-full border border-blue-200 p-2 rounded focus:ring-2 focus:ring-blue-500 bg-blue-50/30" placeholder={t("deal.firstAmountPlaceholder")} value={dealData.firstAmount} onChange={e => setDealData({...dealData, firstAmount: e.target.value})} />
                   <p className="text-[10px] text-blue-500 mt-1 font-medium">💰 This amount will be counted in Total Revenue</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1 flex justify-between">
-                    <span className="text-gray-700">Remaining Balance</span>
-                    <span className="text-gray-400 text-[10px] mt-0.5">Auto-calculated</span>
+                    <span className="text-gray-700">{t("deal.remainingBalance")}</span>
+                    <span className="text-gray-400 text-[10px] mt-0.5">{t("deal.autoCalculated")}</span>
                   </label>
                   <input disabled type="number" className="w-full border p-2 rounded bg-gray-50 text-gray-500 font-semibold" value={Math.max(0, (parseFloat(dealData.totalAmount || "0") - parseFloat(dealData.firstAmount || "0")))} />
                   {parseFloat(dealData.firstAmount || "0") > parseFloat(dealData.totalAmount || "0") && (
@@ -1304,15 +1306,15 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Payment Setup</label>
+                  <label className="block text-sm font-medium mb-1">{t("deal.paymentSetup")}</label>
                   <select className="w-full border p-2 rounded" value={dealData.paymentType} onChange={e => setDealData({...dealData, paymentType: e.target.value, installments: []})}>
-                    <option value="Full">Full Payment Upfront</option>
-                    <option value="Installments">Installments</option>
+                    <option value="Full">{t("deal.fullPaymentUpfront")}</option>
+                    <option value="Installments">{t("deal.installments")}</option>
                   </select>
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block text-sm font-medium">Payment Method</label>
+                    <label className="block text-sm font-medium">{t("deal.paymentMethod")}</label>
                     <label className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 cursor-pointer">
                       <input
                         type="checkbox"
@@ -1328,10 +1330,10 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                     disabled={dealData.splitPayment}
                     onChange={e => setDealData({...dealData, paymentMethod: e.target.value})}
                   >
-                    <option>Cash</option>
-                    <option>Transfer</option>
-                    <option>Tabby</option>
-                    <option>Tamara</option>
+                    <option>{t("deal.method.cash")}</option>
+                    <option>{t("sales.transfer")}</option>
+                    <option>{t("deal.method.tabby")}</option>
+                    <option>{t("deal.method.tamara")}</option>
                   </select>
                   {dealData.splitPayment && (
                     <p className="text-[10px] text-indigo-500 mt-1">Set the amount paid via each method below.</p>
@@ -1339,11 +1341,11 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Contract Start</label>
+                  <label className="block text-sm font-medium mb-1">{t("deal.contractStart")}</label>
                   <input required type="date" className="w-full border p-2 rounded" value={dealData.contractStart} onChange={e => setDealData({...dealData, contractStart: e.target.value})} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Contract End</label>
+                  <label className="block text-sm font-medium mb-1">{t("deal.contractEnd")}</label>
                   <input required type="date" className="w-full border p-2 rounded" value={dealData.contractEnd} onChange={e => setDealData({...dealData, contractEnd: e.target.value})} />
                 </div>
               </div>
@@ -1356,7 +1358,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                 return (
                   <div className="border-2 border-indigo-200 rounded-lg p-3 bg-indigo-50/40">
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-bold text-sm text-indigo-800">Payment Split</h4>
+                      <h4 className="font-bold text-sm text-indigo-800">{t("deal.paymentSplit")}</h4>
                       <button
                         type="button"
                         onClick={() => setDealData({ ...dealData, paymentSplits: [...dealData.paymentSplits, { method: "Cash", amount: "" }] })}
@@ -1376,15 +1378,15 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                               paymentSplits: dealData.paymentSplits.map((s, i) => i === idx ? { ...s, method: e.target.value } : s),
                             })}
                           >
-                            <option>Cash</option>
-                            <option>Transfer</option>
-                            <option>Tabby</option>
-                            <option>Tamara</option>
+                            <option>{t("deal.method.cash")}</option>
+                            <option>{t("sales.transfer")}</option>
+                            <option>{t("deal.method.tabby")}</option>
+                            <option>{t("deal.method.tamara")}</option>
                           </select>
                           <input
                             type="number"
                             min="0"
-                            placeholder="Amount (SAR)"
+                            placeholder={t("deal.amountPlaceholder")}
                             className="flex-1 border p-2 rounded text-sm"
                             value={split.amount}
                             onChange={e => setDealData({
@@ -1427,14 +1429,14 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
               {dealData.paymentType === "Installments" && (
                 <div className="mt-4 border-t pt-4">
                   <div className="flex justify-between items-center mb-2">
-                    <h4 className="font-bold text-sm">Payment Installments Schedule</h4>
+                    <h4 className="font-bold text-sm">{t("deal.installmentsSchedule")}</h4>
                     <button type="button" onClick={addInstallment} className="px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 text-xs font-semibold rounded">+ Add Next Installment</button>
                   </div>
                   
                   {dealData.installments.map((inst, idx) => (
                     <div key={idx} className="flex gap-2 items-center mt-2">
                       <div className="w-1/2">
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Due Date</label>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">{t("deal.dueDate")}</label>
                         <input required type="date" className="w-full border p-2 rounded text-sm focus:ring-blue-500" value={inst.date} onChange={e => updateInstallment(idx, "date", e.target.value)} />
                       </div>
                       <div className="w-1/2 flex gap-2">
@@ -1453,7 +1455,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
               )}
               
               <div className="mt-6 border-t pt-4">
-                <button type="submit" className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded shadow-md">Confirm Deal & Send to Operations</button>
+                <button type="submit" className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded shadow-md">{t("deal.confirmAndSend")}</button>
               </div>
             </form>
           </div>
@@ -1464,7 +1466,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
       {linkLead && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
-            <h3 className="text-lg font-bold mb-2">Send Meeting Link</h3>
+            <h3 className="text-lg font-bold mb-2">{t("sales.sendMeetingLink")}</h3>
             <p className="text-xs text-gray-500 mb-4">
               Send the Google Meet/Zoom link to {linkLead.teleAgent?.name} for client <span className="font-semibold">{linkLead.name}</span>. It will appear in their notification bell and Notifications page.
             </p>
@@ -1478,7 +1480,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                 onChange={e => setMeetingLink(e.target.value)}
               />
               <div className="flex justify-end gap-3">
-                <button type="button" onClick={() => setLinkLead(null)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg font-medium">Cancel</button>
+                <button type="button" onClick={() => setLinkLead(null)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg font-medium">{t("common.cancel")}</button>
                 <button type="submit" disabled={sendingLink} className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg font-medium disabled:opacity-50">
                   {sendingLink ? "Sending..." : "Send Link"}
                 </button>
@@ -1502,7 +1504,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
               The new agent will be notified and takes over the meeting.
             </p>
             <form onSubmit={submitReassign}>
-              <label className="block text-sm font-medium mb-1">New Sales Agent</label>
+              <label className="block text-sm font-medium mb-1">{t("sales.newSalesAgent")}</label>
               <select
                 required
                 className="w-full border p-2 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 mb-4"
@@ -1519,7 +1521,7 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                   ))}
               </select>
               <div className="flex justify-end gap-3">
-                <button type="button" onClick={() => { setReassignLead(null); setReassignAgentId(""); }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg font-medium">Cancel</button>
+                <button type="button" onClick={() => { setReassignLead(null); setReassignAgentId(""); }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg font-medium">{t("common.cancel")}</button>
                 <button type="submit" disabled={reassigning || !reassignAgentId} className="px-4 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium disabled:opacity-50">
                   {reassigning ? "Reassigning..." : "Reassign"}
                 </button>
@@ -1571,17 +1573,17 @@ export default function SalesClient({ initialLeads, userRole, userId, initialSta
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Note <span className="text-gray-400 font-normal">(optional)</span></label>
+                <label className="block text-sm font-medium mb-1">{t("common.note")} <span className="text-gray-400 font-normal">{t("common.optional")}</span></label>
                 <textarea
                   rows={2}
                   className="w-full border p-2 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 placeholder:text-gray-400"
-                  placeholder="Why is this client coming back to Follow-Up?"
+                  placeholder={t("sales.followUpReasonPlaceholder")}
                   value={revertData.notes}
                   onChange={e => setRevertData({ ...revertData, notes: e.target.value })}
                 />
               </div>
               <div className="flex justify-end gap-3">
-                <button type="button" onClick={() => setRevertLead(null)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg font-medium">Cancel</button>
+                <button type="button" onClick={() => setRevertLead(null)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg font-medium">{t("common.cancel")}</button>
                 <button type="submit" disabled={reverting || !revertData.followUpDate || !revertData.agentId} className="px-4 py-2 text-sm text-white bg-amber-600 hover:bg-amber-700 rounded-lg font-medium disabled:opacity-50">
                   {reverting ? "Saving..." : "Move to Follow-Up"}
                 </button>
