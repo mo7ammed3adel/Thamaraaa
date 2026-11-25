@@ -57,6 +57,11 @@ model User {
   onboardingTasks     OnboardingTask[]    @relation("OnboardingTaskUser")
   monitoredDevices    MonitoredDevice[]
   screenshots         Screenshot[]
+  chatMemberships     ChatMember[]        @relation("ChatMemberUser")
+  chatMessages        ChatMessage[]       @relation("ChatMessageSender")
+  chatAttachments     ChatAttachment[]    @relation("ChatAttachmentUploader")
+  chatReactions       ChatReaction[]      @relation("ChatReactionUser")
+  chatConversations   ChatConversation[]  @relation("ChatConversationCreator")
 }
 
 model Niche {
@@ -1414,4 +1419,103 @@ model Screenshot {
   @@index([userId, capturedAt])
   @@index([deviceId, capturedAt])
   @@index([capturedAt])
+}
+
+// ───────────────────────── Internal team chat ─────────────────────────
+// Direct messages, groups and channels between employees. Files live on disk
+// outside the web root (CHAT_STORAGE_DIR) and are only ever served through an
+// authorized route that checks the viewer is a member of the conversation.
+
+model ChatConversation {
+  id            String   @id @default(uuid())
+  type          String // dm, group, channel
+  name          String?
+  description   String?
+  // Channels only: public channels can be browsed and joined by any employee;
+  // private ones are invite-only. Groups and DMs are always private.
+  isPrivate     Boolean  @default(true)
+  // DMs only: the two member ids sorted and joined, so a pair has one DM.
+  dmKey         String?  @unique
+  createdById   String?
+  createdBy     User?    @relation("ChatConversationCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastMessageAt DateTime @default(now())
+
+  members     ChatMember[]
+  messages    ChatMessage[]
+  attachments ChatAttachment[]
+
+  @@index([type, isPrivate])
+  @@index([lastMessageAt])
+}
+
+model ChatMember {
+  id             String           @id @default(uuid())
+  conversationId String
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User             @relation("ChatMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+  role           String           @default("member") // owner, admin, member
+  joinedAt       DateTime         @default(now())
+  lastReadAt     DateTime         @default(now())
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+}
+
+model ChatMessage {
+  id             String           @id @default(uuid())
+  conversationId String
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String?
+  sender         User?            @relation("ChatMessageSender", fields: [senderId], references: [id], onDelete: SetNull)
+  kind           String           @default("text") // text, sticker, system
+  body           String?
+  stickerId      String?
+  replyToId      String?
+  replyTo        ChatMessage?     @relation("ChatMessageReply", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies        ChatMessage[]    @relation("ChatMessageReply")
+  editedAt       DateTime?
+  deletedAt      DateTime?
+  createdAt      DateTime         @default(now())
+
+  attachments ChatAttachment[]
+  reactions   ChatReaction[]
+
+  @@index([conversationId, createdAt])
+}
+
+model ChatAttachment {
+  id             String           @id @default(uuid())
+  conversationId String
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  messageId      String?
+  message        ChatMessage?     @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  uploaderId     String?
+  uploader       User?            @relation("ChatAttachmentUploader", fields: [uploaderId], references: [id], onDelete: SetNull)
+  // Random, server-generated; never derived from the uploaded file name.
+  storageKey     String           @unique
+  originalName   String
+  // The type detected from the file's bytes, not the one the browser claimed.
+  mimeType       String
+  category       String // image, video, audio, pdf, document, archive, other
+  size           Int
+  sha256         String
+  createdAt      DateTime         @default(now())
+
+  @@index([messageId])
+  @@index([conversationId])
+}
+
+model ChatReaction {
+  id        String      @id @default(uuid())
+  messageId String
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation("ChatReactionUser", fields: [userId], references: [id], onDelete: Cascade)
+  emoji     String
+  createdAt DateTime    @default(now())
+
+  @@unique([messageId, userId, emoji])
 }

@@ -21,8 +21,10 @@ services:
       - .env
     environment:
       SCREENSHOT_STORAGE_DIR: /data/screenshots
+      CHAT_STORAGE_DIR: /data/chat
     volumes:
       - screenshots:/data/screenshots
+      - chat_files:/data/chat
     healthcheck:
       # /login is public, so a healthy response proves the app booted and can
       # render, without needing a session.
@@ -76,6 +78,7 @@ services:
 volumes:
   db_data:
   screenshots:
+  chat_files:
 
 networks:
   # Created by the hermes stack; referenced, never managed, from here.

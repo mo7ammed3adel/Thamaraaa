@@ -14,6 +14,7 @@ import DashboardShell from "@/components/DashboardShell";
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 import { getTranslator } from "@/server/i18n/locale";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
+import ChatNavLink from "@/components/chat/ChatNavLink";
 
 export default async function DashboardLayout({
   children,
@@ -79,6 +80,7 @@ export default async function DashboardLayout({
           </Link>
 
           <NotificationBell variant="sidebar" />
+          {!impersonatedBy && <ChatNavLink label={t("nav.teamChat")} />}
           
           {/* ===== ADMINISTRATION ===== */}
           {role === "super_admin" && (

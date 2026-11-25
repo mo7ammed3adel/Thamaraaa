@@ -65,3 +65,6 @@ ts_errors.txt
 /agent/build/
 /agent/__pycache__/
 /agent/*.spec
+
+# Local team-chat attachments
+/.chat-files/

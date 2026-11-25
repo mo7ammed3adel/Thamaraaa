@@ -59,7 +59,7 @@ COPY --from=builder /app/prisma ./prisma
 # and the app runs as nextjs, so without this the very first upload fails with
 # EACCES. Creating the directory here means a fresh volume inherits the right
 # ownership; an existing root-owned volume still has to be chowned once.
-RUN mkdir -p /data/screenshots && chown -R nextjs:nodejs /data
+RUN mkdir -p /data/screenshots /data/chat && chown -R nextjs:nodejs /data
 
 USER nextjs
 EXPOSE 3000
