@@ -116,11 +116,8 @@ export async function createClosedDeal(input: {
       message: mgrMessage,
       link: managerLink,
     });
-    await safeTrigger(`user-${dbUser.directManagerId}`, "new-notification", {
-      title: "Deal Closed!",
-      message: mgrMessage,
-      link: managerLink,
-    });
+    // Public channel: a refetch signal only, never the deal details.
+    await safeTrigger(`user-${dbUser.directManagerId}`, "new-notification", { t: Date.now() });
   }
 
   await broadcastDataChange();

@@ -18,8 +18,14 @@ export interface NotifyInput {
   relatedId?: string | null;
 }
 
-function realtimePayload(input: Omit<NotifyInput, "userId">) {
-  return { title: input.title, message: input.message, link: input.link ?? null };
+/**
+ * `user-${id}` is a public Pusher channel, so the event carries no content —
+ * only a "go refetch" signal. Clients load the real notification through the
+ * authenticated API. (Nothing reads the payload.)
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function realtimePayload(_input: Omit<NotifyInput, "userId">) {
+  return { t: Date.now() };
 }
 
 /** Notifies a single user (DB row + realtime event). */
@@ -58,4 +64,15 @@ export async function notifyUsers(
 
   const payload = realtimePayload(input);
   await Promise.all(recipients.map((userId) => safeTrigger(`user-${userId}`, "new-notification", payload)));
+}
+
+/**
+ * Realtime-only half of notifyUser, for notification rows that were already
+ * persisted inside a DB transaction (so the row commits or rolls back together
+ * with the assignment itself). Call it AFTER the transaction commits.
+ */
+export async function announceNotifications(rows: NotifyInput[]): Promise<void> {
+  await Promise.all(
+    rows.map((row) => safeTrigger(`user-${row.userId}`, "new-notification", realtimePayload(row)))
+  );
 }

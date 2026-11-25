@@ -1,5 +1,7 @@
 import { backfillReceiptsForNewMember, canDistributeTo, userCanAccessProject } from "@/lib/distribution";
 import { safeTrigger } from "@/lib/pusher";
+import { notifyUser } from "@/lib/notify";
+import { shouldNotifyAssignee, taskLinkForRole } from "@/lib/taskNotifications";
 import { stringifyJson } from "@/server/parsers/json";
 import {
   assignDepartmentAgent,
@@ -83,42 +85,35 @@ function canAssignDepartment(userRole: string, department: string, assignedRoleT
 
 const DEPARTMENT_AGENT_CONFIG: Record<
   string,
-  { taskTypes: string[]; agentRoles: string[]; dashboardLink: string }
+  { taskTypes: string[]; agentRoles: string[] }
 > = {
   seo: {
     taskTypes: ["SEO", "seo"],
     agentRoles: ["agent_seo"],
-    dashboardLink: "/dashboard/seo",
   },
   content_seo: {
     taskTypes: ["content_seo"],
     agentRoles: ["agent_content_seo"],
-    dashboardLink: "/dashboard/seo",
   },
   social_media: {
     taskTypes: ["Social_Media", "social_media"],
     agentRoles: ["agent_social_media"],
-    dashboardLink: "/dashboard/social-media",
   },
   media_buyer: {
     taskTypes: ["Media_Buyer", "media_buyer", "media_buying"],
     agentRoles: ["agent_media_buyer"],
-    dashboardLink: "/dashboard/media-buyer",
   },
   graphic_design: {
     taskTypes: ["graphic_design"],
     agentRoles: ["agent_graphic_designer"],
-    dashboardLink: "/dashboard/design",
   },
   motion_graphic: {
     taskTypes: ["motion_graphic"],
     agentRoles: ["agent_motion_graphic"],
-    dashboardLink: "/dashboard/design",
   },
   ui_design: {
     taskTypes: ["ui_design"],
     agentRoles: ["agent_ui"],
-    dashboardLink: "/dashboard/design",
   },
 };
 
@@ -203,6 +198,23 @@ export async function assignProjectRole(input: {
     userId: input.userId,
   });
 
+  if (shouldNotifyAssignee(assigneeId, input.userId)) {
+    // The assignment is already saved; a failed notification must not turn a
+    // successful request into a 500.
+    try {
+      await notifyUser({
+        userId: assigneeId,
+        title: "New Project Assigned",
+        message: `You were assigned as ${targetRole.replace(/_/g, " ")} on a project.`,
+        type: "project_assigned",
+        link: taskLinkForRole(assignee.role),
+        relatedId: input.projectId,
+      });
+    } catch (error) {
+      console.error("Project role notification failed:", error);
+    }
+  }
+
   return { status: "ok" as const, project: updatedProject };
 }
 
@@ -274,6 +286,7 @@ export async function assignProjectTeamSlot(input: {
     dbDepartments: deptConfig.dbDepartments,
     taskTypes: deptConfig.taskTypes,
     canonicalDepartment: deptConfig.dbDepartments[0],
+    targetLink: taskLinkForRole(targetUser.role),
   });
 
   await backfillReceiptsForNewMember(input.projectId, newUserId);
@@ -354,7 +367,8 @@ export async function assignProjectAgent(input: {
     department,
     taskTypes: deptConfig.taskTypes,
     agentRoles: deptConfig.agentRoles,
-    dashboardLink: deptConfig.dashboardLink,
+    // Role-aware: design agents land on their own team tab (?team=motion|ui).
+    dashboardLink: taskLinkForRole(targetUser.role),
   });
 
   await backfillReceiptsForNewMember(input.projectId, agentUserId);
@@ -464,13 +478,15 @@ export async function distributeProject(input: {
       assignedBy: userName,
     });
 
-    await createProjectAssignmentNotification({
-      userId: targetUser.id,
-      title: "New Project Assignment",
-      message: `You have been assigned to a project by ${userName}`,
-      type: "project_assigned",
-      link: `/dashboard/operations`,
-    });
+    if (shouldNotifyAssignee(targetUser.id, input.userId)) {
+      await createProjectAssignmentNotification({
+        userId: targetUser.id,
+        title: "New Project Assignment",
+        message: `You have been assigned to a project by ${userName}`,
+        type: "project_assigned",
+        link: taskLinkForRole(targetUser.role),
+      });
+    }
 
     return {
       status: "team_assigned" as const,
@@ -492,13 +508,15 @@ export async function distributeProject(input: {
 
     await backfillReceiptsForNewMember(input.projectId, targetUser.id);
 
-    await createProjectAssignmentNotification({
-      userId: targetUser.id,
-      title: "New Project Assigned",
-      message: `${assignmentDescription} by ${userName}`,
-      type: "project_assigned",
-      link: `/dashboard/operations`,
-    });
+    if (shouldNotifyAssignee(targetUser.id, input.userId)) {
+      await createProjectAssignmentNotification({
+        userId: targetUser.id,
+        title: "New Project Assigned",
+        message: `${assignmentDescription} by ${userName}`,
+        type: "project_assigned",
+        link: taskLinkForRole(targetUser.role),
+      });
+    }
 
     await safeTrigger("projects-channel", "project-distributed", {
       projectId: input.projectId,

@@ -19,7 +19,18 @@ export default async function SocialMediaPage() {
 
   if (isTL) {
     projects = await prisma.project.findMany({
-      where: user.role === "super_admin" ? {} : { teamAssignments: { some: { userId: user.id, status: "active" } } },
+      // A leader can receive a task (generate / cross-team request) without a
+      // TeamAssignment row, so also include projects with tasks they lead —
+      // otherwise the "New Assignment" notification links to an empty page.
+      where:
+        user.role === "super_admin"
+          ? {}
+          : {
+              OR: [
+                { teamAssignments: { some: { userId: user.id, status: "active" } } },
+                { tasks: { some: { leaderId: user.id, status: { not: "done" } } } },
+              ],
+            },
       include: {
         deal: { include: { lead: true } },
         accountManager: { select: { id: true, name: true } },

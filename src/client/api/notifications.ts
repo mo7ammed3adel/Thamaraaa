@@ -10,7 +10,8 @@ export type NotificationItem = {
 };
 
 export function listUnreadNotifications() {
-  return getJson<{ data?: NotificationItem[] }>("/api/notifications");
+  // Polled every few seconds — never let the browser serve a cached list.
+  return getJson<{ data?: NotificationItem[] }>("/api/notifications", { cache: "no-store" });
 }
 
 export function listMeetingLinkNotifications() {
@@ -27,5 +28,5 @@ export function sendNotification(body: unknown) {
 
 /** Full history (read + unread), not just the unread ones the bell shows. */
 export function listNotificationHistory() {
-  return getJson<{ data?: NotificationItem[] }>("/api/notifications?type=history");
+  return getJson<{ data?: NotificationItem[] }>("/api/notifications?type=history", { cache: "no-store" });
 }

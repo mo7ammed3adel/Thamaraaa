@@ -61,7 +61,14 @@ export default async function SeoPage() {
     });
   } else if (user.role === "team_leader_seo") {
     projects = await prisma.project.findMany({
-      where: { teamAssignments: { some: { userId: user.id, status: "active" } } },
+      // Also projects with tasks this leader leads but no TeamAssignment row
+      // (generated / sub-task requests), so assignment notifications land.
+      where: {
+        OR: [
+          { teamAssignments: { some: { userId: user.id, status: "active" } } },
+          { tasks: { some: { leaderId: user.id, status: { not: "done" } } } },
+        ],
+      },
       include: {
         deal: { include: { lead: true } },
         accountManager: { select: { id: true, name: true } },

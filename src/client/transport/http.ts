@@ -50,8 +50,8 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   return payload as T;
 }
 
-export function getJson<T>(url: string) {
-  return requestJson<T>(url);
+export function getJson<T>(url: string, init?: RequestInit) {
+  return requestJson<T>(url, init);
 }
 
 export function postJson<T>(url: string, body?: unknown, init?: RequestInit) {

@@ -1,59 +1,52 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Bell } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { listUnreadNotifications, markNotificationRead } from "@/client/api/notifications";
+import { usePathname, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import type { NotificationItem } from "@/client/api/notifications";
 import { useTranslator } from "@/components/i18n/LocaleProvider";
+import { markNotificationAsRead, useUnreadNotifications } from "@/components/notificationFeed";
+
+function formatWhen(createdAt: string) {
+  const date = new Date(createdAt);
+  const sameDay = date.toDateString() === new Date().toDateString();
+  return sameDay
+    ? date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : date.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
 
 export default function NotificationBell({ variant = "dropdown" }: { variant?: "dropdown" | "sidebar" }) {
   const t = useTranslator();
   const pathname = usePathname();
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const router = useRouter();
+  const { data: session } = useSession();
+  // Shared feed: both bells (header + sidebar) read the same list and poller.
+  const notifications = useUnreadNotifications((session?.user as { id?: string } | undefined)?.id);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  // Poll for notifications every 30 seconds (skip when tab is hidden)
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      if (typeof document !== "undefined" && document.hidden) return;
-      try {
-        const { data } = await listUnreadNotifications();
-        setNotifications(data || []);
-      } catch (err) {
-        console.error("Failed to fetch notifications");
-      }
-    };
-
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000);
-
-    // Re-fetch immediately when tab becomes visible again
-    const handleVisibility = () => {
-      if (!document.hidden) fetchNotifications();
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
-
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
-  }, []);
-
-  const markAsRead = async (id: string, e: React.MouseEvent) => {
+  const markAsRead = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    try {
-      await markNotificationRead(id);
-      setNotifications(prev => prev.filter(n => n.id !== id));
-    } catch (err) {
-      console.error(err);
+    void markNotificationAsRead(id);
+  };
+
+  // Clicking a notification marks it read and takes the user to its link.
+  const openNotification = (notif: NotificationItem) => {
+    void markNotificationAsRead(notif.id);
+    if (!notif.link) return;
+    setShowDropdown(false);
+    if (notif.link.startsWith("/")) {
+      router.push(notif.link);
+    } else {
+      window.open(notif.link, "_blank", "noopener,noreferrer");
     }
   };
 
   if (variant === "sidebar") {
     return (
-      <Link 
-        href="/dashboard/notifications" 
+      <Link
+        href="/dashboard/notifications"
         className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
           pathname === "/dashboard/notifications" ? "bg-slate-800 text-white" : "hover:bg-slate-800 hover:text-white"
         }`}
@@ -73,7 +66,7 @@ export default function NotificationBell({ variant = "dropdown" }: { variant?: "
 
   return (
     <div className="relative">
-      <button 
+      <button
         onClick={() => setShowDropdown(!showDropdown)}
         className="p-2 text-gray-400 hover:text-gray-500 rounded-full hover:bg-gray-100 transition relative"
       >
@@ -100,26 +93,28 @@ export default function NotificationBell({ variant = "dropdown" }: { variant?: "
               <ul className="divide-y divide-gray-100">
                 {notifications.map((notif) => (
                   <li key={notif.id} className="p-4 hover:bg-gray-50 flex gap-3 transition">
-                    <div className="flex-1 min-w-0">
+                    <div
+                      className={`flex-1 min-w-0 ${notif.link ? "cursor-pointer" : ""}`}
+                      onClick={() => notif.link && openNotification(notif)}
+                    >
                       <p className="text-sm font-medium text-gray-900">{notif.title}</p>
                       <p className="text-sm text-gray-500 line-clamp-2 mt-0.5">{notif.message}</p>
                       {notif.link && (
-                        <a
-                          href={notif.link}
-                          target={notif.link.startsWith("/") ? undefined : "_blank"}
-                          rel={notif.link.startsWith("/") ? undefined : "noopener noreferrer"}
-                          onClick={(event) => event.stopPropagation()}
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openNotification(notif);
+                          }}
                           className="mt-2 inline-flex text-xs font-semibold text-blue-600 hover:text-blue-800 underline"
                         >
                           Open Link
-                        </a>
+                        </button>
                       )}
-                      <p className="text-xs text-gray-400 mt-2">
-                        {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
+                      <p className="text-xs text-gray-400 mt-2">{formatWhen(notif.createdAt)}</p>
                     </div>
                     <div>
-                      <button 
+                      <button
                         onClick={(e) => markAsRead(notif.id, e)}
                         className="text-xs text-blue-600 hover:text-blue-800 font-medium"
                       >

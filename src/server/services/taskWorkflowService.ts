@@ -17,14 +17,16 @@ import {
 import { findTeamLeaderRoleForTaskType } from "@/lib/distribution";
 import { normalizeWebUrl } from "@/lib/safe-url";
 import { safeTrigger } from "@/lib/pusher";
+import { announceNotifications } from "@/lib/notify";
+import { formatTaskType, shouldNotifyAssignee, taskLinkForRole } from "@/lib/taskNotifications";
 import { computeDepartmentProgress } from "@/lib/progress";
 import { normalizeDeliverableFiles } from "@/server/parsers/task";
 import {
   createTaskNotification,
   createTaskNotifications,
   createTaskProjectLog,
-  createTaskRecord,
-  createGeneratedTasks,
+  createGeneratedTasksWithNotifications,
+  createTaskWithNotification,
   createSelfAssignedTaskWithLog,
   createSubTaskWithNotification,
   findAgentForTaskUpdate,
@@ -47,8 +49,9 @@ import {
   reassignTaskWithNotificationsAndLog,
   updateProjectProgress,
   updateProjectStatus,
-  updateTaskWithProject,
+  updateTaskWithProjectAndNotifications,
   upsertTaskAgentAssignment,
+  type TaskNotificationInput,
 } from "@/server/repositories/taskRepository";
 
 const TASK_AGENT_ROLE_MAP: Record<string, string[]> = {
@@ -268,6 +271,8 @@ export async function flagTask(input: {
     reason,
     userId: input.userId,
     userName: input.userName || input.userId,
+    // Leader roles all have a team page listing tasks they lead.
+    leaderLink: taskLinkForRole((await findUserForTaskAssignment(task.leaderId))?.role),
   });
 
   return { status: "ok" as const, task: updatedTask };
@@ -321,6 +326,8 @@ export async function reassignTask(input: {
     agentDepartment: AGENT_DEPARTMENT_MAP[newAgent.role],
     userId: input.userId,
     userName: input.userName || input.userId,
+    newAgentLink: taskLinkForRole(newAgent.role),
+    projectName: task.project?.deal?.lead?.name || "a project",
   });
 
   await backfillReceiptsForNewMember(task.projectId, newAgentId);
@@ -491,7 +498,22 @@ export async function createProjectTask(input: {
   const project = await findProjectNameForTask(projectId);
   const projectName = project?.deal?.lead?.name || "Unknown Project";
 
-  const task = await createTaskRecord({
+  const leaderUser = await findUserForTaskAssignment(finalLeaderId);
+  const leaderNotification = shouldNotifyAssignee(finalLeaderId, input.userId)
+    ? {
+        userId: finalLeaderId,
+        type: "task_assigned",
+        title: isCrossTeam
+          ? taskType === "content_seo"
+            ? "Content SEO Task to Distribute"
+            : "Cross-Team Task Request"
+          : "New Task Assigned",
+        message: `A new ${formatTaskType(taskType)} task has been requested by ${input.userName || "a teammate"} for ${projectName}`,
+        link: taskLinkForRole(leaderUser?.role),
+      }
+    : null;
+
+  const task = await createTaskWithNotification({
     projectId,
     leaderId: finalLeaderId,
     assignedRole: finalAssignedRole || null,
@@ -504,7 +526,11 @@ export async function createProjectTask(input: {
     requesterRole: input.userRole,
     status: "pending",
     progressPct: 0,
-  });
+  }, leaderNotification);
+
+  if (leaderNotification) {
+    await announceNotifications([leaderNotification]);
+  }
 
   if (isCrossTeam) {
     await createTaskProjectLog({
@@ -516,14 +542,6 @@ export async function createProjectTask(input: {
         priority: priority || "Medium",
       }),
       userId: input.userId,
-    });
-
-    await createTaskNotification({
-      userId: finalLeaderId,
-      type: "task_assigned",
-      title: taskType === "content_seo" ? "Content SEO Task to Distribute" : "Cross-Team Task Request",
-      message: `A new ${taskType.replace(/_/g, " ")} task has been requested by ${input.userName} for ${projectName}`,
-      link: taskType === "content_seo" ? "/dashboard/seo" : "/dashboard/operations",
     });
 
     await safeTrigger(`private-user-${finalLeaderId}`, "task-assigned", {
@@ -564,6 +582,11 @@ export async function updateTask(input: {
   const body = input.body;
   const updateData: any = {};
 
+  const assignmentNotifications: TaskNotificationInput[] = [];
+  const actorName = input.userName || "Your team leader";
+  const projectName = existingTask.project?.deal?.lead?.name || "a project";
+  const taskLabel = formatTaskType(existingTask.taskType);
+
   if (body.agentId !== undefined) {
     if (!isTeamLeader && !isAdmin) {
       return { status: "agent_reassign_forbidden" as const };
@@ -572,6 +595,16 @@ export async function updateTask(input: {
 
     if (body.agentId !== null) {
       const agent = await findAgentForTaskUpdate(body.agentId);
+      if (agent && body.agentId !== existingTask.agentId && shouldNotifyAssignee(body.agentId, input.userId)) {
+        assignmentNotifications.push({
+          userId: body.agentId,
+          type: "task_assigned",
+          title: "New Task Assigned",
+          message: `${actorName} assigned you the ${taskLabel} task for ${projectName}.`,
+          link: taskLinkForRole(agent.role),
+          relatedId: existingTask.id,
+        });
+      }
       if (agent) {
         if (agent.status !== "Active") {
           return { status: "agent_inactive" as const };
@@ -597,11 +630,37 @@ export async function updateTask(input: {
     }
   }
 
+  if (body.agentId !== undefined && existingTask.agentId && existingTask.agentId !== body.agentId) {
+    if (shouldNotifyAssignee(existingTask.agentId, input.userId)) {
+      assignmentNotifications.push({
+        userId: existingTask.agentId,
+        type: "task_reassigned",
+        title: "Task Reassigned",
+        message: `The ${taskLabel} task for ${projectName} was ${body.agentId ? "reassigned to another agent" : "taken off your queue"} by ${actorName}.`,
+        relatedId: existingTask.id,
+      });
+    }
+  }
+
   if (body.leaderId !== undefined) {
     if (!isAdmin) {
       return { status: "leader_reassign_forbidden" as const };
     }
     updateData.leaderId = body.leaderId;
+
+    if (body.leaderId && body.leaderId !== existingTask.leaderId && shouldNotifyAssignee(body.leaderId, input.userId)) {
+      const leader = await findAgentForTaskUpdate(body.leaderId);
+      if (leader) {
+        assignmentNotifications.push({
+          userId: body.leaderId,
+          type: "task_assigned",
+          title: "New Task Assigned",
+          message: `${actorName} made you the leader of the ${taskLabel} task for ${projectName}.`,
+          link: taskLinkForRole(leader.role),
+          relatedId: existingTask.id,
+        });
+      }
+    }
   }
 
   if (body.progressPct !== undefined) {
@@ -650,15 +709,14 @@ export async function updateTask(input: {
   }
   if (body.completedAt !== undefined) updateData.completedAt = body.completedAt ? new Date(body.completedAt) : null;
 
-  const updatedTask = await updateTaskWithProject(input.taskId, updateData);
+  const updatedTask = await updateTaskWithProjectAndNotifications(
+    input.taskId,
+    updateData,
+    assignmentNotifications
+  );
+  await announceNotifications(assignmentNotifications);
 
   if (body.agentId !== undefined && body.agentId !== null) {
-    await createTaskNotification({
-      userId: body.agentId,
-      title: "New Task Assigned",
-      message: `A team leader assigned a new project task to your queue.`,
-      link: "/dashboard/operations",
-    });
     await createTaskProjectLog({
       projectId: existingTask.projectId,
       action: "task_assigned",
@@ -821,6 +879,7 @@ export async function generateProjectTasks(input: {
       { id: "st4", title: "Final Delivery", completed: false },
     ]);
 
+    const leaderRole = (await findUserForTaskAssignment(resolvedLeaderId))?.role;
     const subTask = await createSubTaskWithNotification({
       projectId,
       leaderId: resolvedLeaderId,
@@ -831,7 +890,9 @@ export async function generateProjectTasks(input: {
       brief,
       deadline,
       priority,
-      notificationTitle: "New Design Request",
+      notificationTitle: taskType === "content_seo" ? "New Content SEO Request" : "New Design Request",
+      notificationLink: taskLinkForRole(leaderRole),
+      notifyLeader: shouldNotifyAssignee(resolvedLeaderId, input.userId),
       notificationMessage: `${input.userRole.replace(/_/g, " ")} requested: ${taskType.replace(/_/g, " ")}${
         brief ? ` - ${brief.substring(0, 50)}` : ""
       }`,
@@ -854,8 +915,9 @@ export async function generateProjectTasks(input: {
   const existingTasks = await findExistingTaskTypes(projectId);
   const existingTaskTypes = new Set(existingTasks.map((task) => task.taskType));
 
+  const projectName = (await findProjectNameForTask(projectId))?.deal?.lead?.name || "a project";
   const tasksToCreate: any[] = [];
-  const notificationsToCreate: any[] = [];
+  const notificationsToCreate: TaskNotificationInput[] = [];
   const missingLeaders: string[] = [];
   const skippedExisting: string[] = [];
   const defaultDeadline = project.finalDeadline || new Date(Date.now() + 7 * 86400000);
@@ -888,13 +950,16 @@ export async function generateProjectTasks(input: {
       status: "pending",
       priority: "Medium",
     });
-    notificationsToCreate.push({
-      userId: leaderId,
-      title: "New Assignment",
-      message: config.title,
-      type: "task_assigned",
-      link: config.dashboardLink,
-    });
+    if (shouldNotifyAssignee(leaderId, input.userId)) {
+      notificationsToCreate.push({
+        userId: leaderId,
+        title: "New Assignment",
+        message: `${config.title.replace(" for project.", "")} for ${projectName}.`,
+        type: "task_assigned",
+        link: config.dashboardLink,
+        relatedId: projectId,
+      });
+    }
   }
 
   if (tasksToCreate.length === 0) {
@@ -904,10 +969,8 @@ export async function generateProjectTasks(input: {
     return { status: "none_created" as const, missingLeaders };
   }
 
-  await createGeneratedTasks(tasksToCreate);
-  if (notificationsToCreate.length > 0) {
-    await createTaskNotifications(notificationsToCreate);
-  }
+  await createGeneratedTasksWithNotifications(tasksToCreate, notificationsToCreate);
+  await announceNotifications(notificationsToCreate);
 
   await updateProjectStatus(projectId, "assigned");
 

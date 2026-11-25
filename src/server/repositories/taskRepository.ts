@@ -21,7 +21,7 @@ export function findTaskForFlag(taskId: string) {
 export function findTaskForReassign(taskId: string) {
   return prisma.task.findUnique({
     where: { id: taskId },
-    include: { project: true },
+    include: { project: { include: { deal: { include: { lead: { select: { name: true } } } } } } },
   });
 }
 
@@ -80,6 +80,34 @@ export function createTaskRecord(data: any) {
   return prisma.task.create({ data });
 }
 
+/** Notification row shape written alongside a task change. */
+export type TaskNotificationInput = {
+  userId: string;
+  title: string;
+  message: string;
+  type?: string | null;
+  link?: string | null;
+  relatedId?: string | null;
+};
+
+/**
+ * Creates a task and the assignee's notification in ONE transaction, so a task
+ * can never land in someone's queue without them being told about it. The
+ * notification's relatedId is filled with the new task id.
+ */
+export function createTaskWithNotification(
+  data: any,
+  notification: Omit<TaskNotificationInput, "relatedId"> | null
+) {
+  return prisma.$transaction(async (tx) => {
+    const task = await tx.task.create({ data });
+    if (notification) {
+      await tx.notification.create({ data: { ...notification, relatedId: task.id } });
+    }
+    return task;
+  });
+}
+
 export function createTaskProjectLog(input: {
   projectId: string;
   action: string;
@@ -114,7 +142,14 @@ export function findTaskForUpdate(taskId: string) {
       projectId: true,
       taskType: true,
       startedAt: true,
-      project: { select: { accountManagerId: true, headTechnicalId: true, headSeoId: true } },
+      project: {
+        select: {
+          accountManagerId: true,
+          headTechnicalId: true,
+          headSeoId: true,
+          deal: { select: { lead: { select: { name: true } } } },
+        },
+      },
     },
   });
 }
@@ -145,6 +180,24 @@ export function updateTaskWithProject(taskId: string, data: any) {
     where: { id: taskId },
     data,
     include: { project: true },
+  });
+}
+
+/** Task update + the (re)assignment notifications it implies, atomically. */
+export function updateTaskWithProjectAndNotifications(
+  taskId: string,
+  data: any,
+  notifications: TaskNotificationInput[]
+) {
+  if (notifications.length === 0) return updateTaskWithProject(taskId, data);
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.task.update({
+      where: { id: taskId },
+      data,
+      include: { project: true },
+    });
+    await tx.notification.createMany({ data: notifications });
+    return updated;
   });
 }
 
@@ -189,6 +242,9 @@ export function createSubTaskWithNotification(input: {
   priority?: string;
   notificationTitle: string;
   notificationMessage: string;
+  notificationLink: string;
+  /** False when the requester is the leader themselves — no self-notification. */
+  notifyLeader: boolean;
 }) {
   return prisma.$transaction(async (tx) => {
     const subTask = await tx.task.create({
@@ -207,15 +263,18 @@ export function createSubTaskWithNotification(input: {
       },
     });
 
-    await tx.notification.create({
-      data: {
-        userId: input.leaderId,
-        title: input.notificationTitle,
-        message: input.notificationMessage,
-        type: "task_assigned",
-        link: "/dashboard/design",
-      },
-    });
+    if (input.notifyLeader) {
+      await tx.notification.create({
+        data: {
+          userId: input.leaderId,
+          title: input.notificationTitle,
+          message: input.notificationMessage,
+          type: "task_assigned",
+          link: input.notificationLink,
+          relatedId: subTask.id,
+        },
+      });
+    }
 
     return subTask;
   });
@@ -239,8 +298,15 @@ export function findExistingTaskTypes(projectId: string) {
   });
 }
 
-export function createGeneratedTasks(data: any[]) {
-  return prisma.task.createMany({ data });
+/** Generated tasks + their leaders' notifications, atomically. */
+export function createGeneratedTasksWithNotifications(tasks: any[], notifications: TaskNotificationInput[]) {
+  return prisma.$transaction(async (tx) => {
+    const created = await tx.task.createMany({ data: tasks });
+    if (notifications.length > 0) {
+      await tx.notification.createMany({ data: notifications });
+    }
+    return created;
+  });
 }
 
 export function updateProjectStatus(projectId: string, projectStatus: string) {
@@ -258,6 +324,7 @@ export function flagTaskWithNotificationAndLog(input: {
   reason: string;
   userId: string;
   userName: string;
+  leaderLink: string;
 }) {
   const now = new Date();
 
@@ -273,15 +340,18 @@ export function flagTaskWithNotificationAndLog(input: {
       },
     });
 
-    await tx.notification.create({
-      data: {
-        userId: input.leaderId,
-        title: "Task Flagged",
-        message: `${input.userName} flagged task "${input.taskType}" — Reason: ${input.reason}`,
-        type: "task_flagged",
-        relatedId: input.taskId,
-      },
-    });
+    if (input.leaderId !== input.userId) {
+      await tx.notification.create({
+        data: {
+          userId: input.leaderId,
+          title: "Task Flagged",
+          message: `${input.userName} flagged task "${input.taskType}" — Reason: ${input.reason}`,
+          type: "task_flagged",
+          link: input.leaderLink,
+          relatedId: input.taskId,
+        },
+      });
+    }
 
     if (input.projectId) {
       await tx.projectLog.create({
@@ -311,6 +381,8 @@ export function reassignTaskWithNotificationsAndLog(input: {
   agentDepartment?: string;
   userId: string;
   userName: string;
+  newAgentLink: string;
+  projectName: string;
 }) {
   return prisma.$transaction(async (tx) => {
     const updated = await tx.task.update({
@@ -346,22 +418,29 @@ export function reassignTaskWithNotificationsAndLog(input: {
       });
     }
 
-    await tx.notification.create({
-      data: {
-        userId: input.newAgentId,
-        title: "Task Assigned",
-        message: `You have been assigned task "${input.taskType}" by ${input.userName}`,
-        type: "task_reassigned",
-        relatedId: input.taskId,
-      },
-    });
+    if (input.newAgentId !== input.userId) {
+      await tx.notification.create({
+        data: {
+          userId: input.newAgentId,
+          title: "Task Assigned",
+          message: `You have been assigned the ${input.taskType.replace(/_/g, " ")} task for ${input.projectName} by ${input.userName}`,
+          type: "task_reassigned",
+          link: input.newAgentLink,
+          relatedId: input.taskId,
+        },
+      });
+    }
 
-    if (input.previousAgentId && input.previousAgentId !== input.newAgentId) {
+    if (
+      input.previousAgentId &&
+      input.previousAgentId !== input.newAgentId &&
+      input.previousAgentId !== input.userId
+    ) {
       await tx.notification.create({
         data: {
           userId: input.previousAgentId,
           title: "Task Reassigned",
-          message: `Task "${input.taskType}" has been reassigned to another agent by ${input.userName}`,
+          message: `The ${input.taskType.replace(/_/g, " ")} task for ${input.projectName} was reassigned to another agent by ${input.userName}`,
           type: "task_reassigned",
           relatedId: input.taskId,
         },

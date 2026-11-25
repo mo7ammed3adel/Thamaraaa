@@ -102,7 +102,8 @@ export async function sendUserNotification(input: {
     read: false,
   });
 
-  await safeTrigger(`user-${userId}`, "new-notification", notification);
+  // Public channel: a refetch signal only, never the notification content.
+  await safeTrigger(`user-${userId}`, "new-notification", { t: Date.now() });
 
   return { status: "ok" as const, notification };
 }

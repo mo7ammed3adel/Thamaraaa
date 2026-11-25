@@ -136,6 +136,7 @@ export function replaceProjectTeamAssignment(input: {
   dbDepartments: string[];
   taskTypes: string[];
   canonicalDepartment: string;
+  targetLink: string;
 }) {
   return prisma.$transaction(async (tx) => {
     const roleContains = input.assignedRoleType === "leader" ? "leader" : "agent";
@@ -208,15 +209,20 @@ export function replaceProjectTeamAssignment(input: {
       },
     });
 
-    await tx.notification.create({
-      data: {
-        userId: input.targetUserId,
-        title: "Team Assignment",
-        message: `You were assigned as ${input.assignedRoleType} for ${input.department} by ${input.userName}.`,
-        type: "project_assigned",
-        link: `/dashboard/operations`,
-      },
-    });
+    if (input.targetUserId !== input.userId) {
+      await tx.notification.create({
+        data: {
+          userId: input.targetUserId,
+          title: "Team Assignment",
+          message: `You were assigned as ${input.assignedRoleType} for ${input.department} by ${input.userName}${
+            updateResult.count > 0 ? ` (${updateResult.count} task${updateResult.count === 1 ? "" : "s"} now yours)` : ""
+          }.`,
+          type: "project_assigned",
+          link: input.targetLink,
+          relatedId: input.projectId,
+        },
+      });
+    }
 
     return { assignment, tasksUpdated: updateResult.count };
   });
@@ -314,15 +320,18 @@ export function assignDepartmentAgent(input: {
       },
     });
 
-    await tx.notification.create({
-      data: {
-        userId: input.agentUserId,
-        type: "task_assigned",
-        message: `You have been assigned ${input.department.replace(/_/g, " ")} work by ${input.userName}`,
-        title: "New Assignment",
-        link: input.dashboardLink,
-      },
-    });
+    if (input.agentUserId !== input.userId) {
+      await tx.notification.create({
+        data: {
+          userId: input.agentUserId,
+          type: "task_assigned",
+          message: `You have been assigned ${input.department.replace(/_/g, " ")} work by ${input.userName}`,
+          title: "New Assignment",
+          link: input.dashboardLink,
+          relatedId: input.projectId,
+        },
+      });
+    }
 
     return { assignment, tasksUpdated: updateResult.count };
   });

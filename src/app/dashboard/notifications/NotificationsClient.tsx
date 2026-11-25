@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Bell, CheckCircle2 } from "lucide-react";
-import { listNotificationHistory, markNotificationRead } from "@/client/api/notifications";
+import { listNotificationHistory } from "@/client/api/notifications";
 import { useTranslator } from "@/components/i18n/LocaleProvider";
+import { markNotificationAsRead, subscribeNotifications } from "@/components/notificationFeed";
 
 interface Notification {
   id: string;
@@ -23,6 +24,28 @@ export default function NotificationsClient() {
     fetchNotifications();
   }, []);
 
+  // Pull the history again whenever the shared unread feed sees an id this
+  // page doesn't have yet, so new notifications show up without a reload.
+  const knownIdsRef = useRef<Set<string>>(new Set());
+  // Ids we already refetched for. History is capped, so an old unread one may
+  // never appear in it — without this the page would refetch every poll.
+  const triedIdsRef = useRef<Set<string>>(new Set());
+  const loadedRef = useRef(false);
+  useEffect(() => {
+    knownIdsRef.current = new Set(notifications.map((n) => n.id));
+  }, [notifications]);
+  useEffect(
+    () =>
+      subscribeNotifications((unread) => {
+        if (!loadedRef.current) return;
+        const missing = unread.filter((n) => !knownIdsRef.current.has(n.id) && !triedIdsRef.current.has(n.id));
+        if (missing.length === 0) return;
+        missing.forEach((n) => triedIdsRef.current.add(n.id));
+        fetchNotifications();
+      }),
+    []
+  );
+
   const fetchNotifications = async () => {
     try {
       // Full history (read + unread), not just the unread ones the bell shows.
@@ -31,28 +54,25 @@ export default function NotificationsClient() {
     } catch (err) {
       console.error("Failed to fetch notifications");
     } finally {
+      loadedRef.current = true;
       setLoading(false);
     }
   };
 
   const markAsRead = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    try {
-      await markNotificationRead(id);
-      // Keep it in the list as history — just flip it to read.
-      setNotifications(prev => prev.map(n => (n.id === id ? { ...n, read: true } : n)));
-    } catch (err) {
-      console.error(err);
-    }
+    // Keep it in the list as history — just flip it to read. The shared feed
+    // also drops it from the bell badges immediately.
+    setNotifications(prev => prev.map(n => (n.id === id ? { ...n, read: true } : n)));
+    // If saving failed, reload so the page doesn't show it as read.
+    if (!(await markNotificationAsRead(id))) fetchNotifications();
   };
 
   const markAllAsRead = async () => {
     const unread = notifications.filter(n => !n.read);
     if (unread.length === 0) return;
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    await Promise.all(
-      unread.map(n => markNotificationRead(n.id).catch(() => null))
-    );
+    await Promise.all(unread.map(n => markNotificationAsRead(n.id)));
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;

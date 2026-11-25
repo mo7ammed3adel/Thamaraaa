@@ -275,6 +275,8 @@ export async function autoAssignLead(leadId: string): Promise<AutoAssignLeadResu
         title: "New Lead Assigned",
         message: `Lead "${lead.name}" (${classification}) has been assigned to you. Meeting scheduled.`,
         type: "lead_assigned",
+        link: "/dashboard/sales",
+        relatedId: leadId,
       },
     });
   } catch (e) {
