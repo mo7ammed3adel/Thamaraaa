@@ -12,6 +12,10 @@ services:
     image: thamaraa-crm:latest
     container_name: thamaraa-crm
     restart: unless-stopped
+    # A tiny init (tini) as PID 1 reaps finished child processes — every
+    # healthcheck run leaves one behind, and without a reaper they pile up as
+    # zombies on the host.
+    init: true
     ports:
       - "127.0.0.1:${APP_PORT:-3001}:3000"
     # One file feeds both the container's runtime env and compose's own ${...}
@@ -55,6 +59,10 @@ services:
     image: postgres:17-alpine
     container_name: thamaraa-db
     restart: unless-stopped
+    # A tiny init (tini) as PID 1 reaps finished child processes — every
+    # healthcheck run leaves one behind, and without a reaper they pile up as
+    # zombies on the host.
+    init: true
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-thamaraa}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
