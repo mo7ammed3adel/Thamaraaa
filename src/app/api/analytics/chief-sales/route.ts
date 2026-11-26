@@ -5,7 +5,7 @@ import { getChiefSalesAnalytics } from "@/server/services/analyticsService";
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user?.role !== "chief_sales" && session.user?.role !== "super_admin")) {
+  if (!session || (session.user?.role !== "chief_sales" && (session.user?.role !== "super_admin" && session.user?.role !== "general_manager"))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { reassignAccountManager } from "@/server/services/projectDistributionService";
 
 /** Roles allowed to reassign a client between Account Managers */
-const ALLOWED_ROLES = ["head_account_manager", "super_admin"];
+const ALLOWED_ROLES = ["head_account_manager", "super_admin", "general_manager"];
 
 /**
  * POST /api/projects/[id]/reassign-am

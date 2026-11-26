@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     const adminId = (session?.user as any)?.id;
-    if ((session?.user as any)?.role !== "super_admin") {
+    if (!["super_admin", "general_manager"].includes((session?.user as any)?.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 

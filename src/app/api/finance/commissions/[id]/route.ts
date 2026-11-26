@@ -3,7 +3,7 @@ import { getSessionUser } from "@/server/auth/session";
 import { errorJson, successJson } from "@/server/http/responses";
 import { editCommission } from "@/server/services/financeService";
 
-const FINANCE_ROLES = ["super_admin", "accountant"];
+const FINANCE_ROLES = ["super_admin", "general_manager", "accountant"];
 
 /**
  * PATCH /api/finance/commissions/[id]

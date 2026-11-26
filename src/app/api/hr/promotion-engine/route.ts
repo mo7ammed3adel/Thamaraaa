@@ -3,7 +3,7 @@ import { getSessionUser } from "@/server/auth/session";
 import { errorJson, successJson } from "@/server/http/responses";
 import { applyPromotionAction, listPromotionEvaluations } from "@/server/services/hrService";
 
-const HR_ROLES = ["super_admin", "hr_manager"];
+const HR_ROLES = ["super_admin", "general_manager", "hr_manager"];
 
 export async function GET() {
   const user = await getSessionUser();
@@ -36,7 +36,8 @@ export async function POST(req: NextRequest) {
   const { userId, action, nextLevel, nextRole } = body || {};
 
   try {
-    const result = await applyPromotionAction({ userId, action, nextLevel, nextRole });
+    const result = await applyPromotionAction({ userId, action, nextLevel, nextRole, actorRole: actor.role ?? undefined });
+    if (result.status === "forbidden") return errorJson("Only the super admin can change super admins or general managers", 403);
 
     if (result.status === "missing_fields") return errorJson("userId and action are required", 400);
     if (result.status === "invalid_action") return errorJson(`Invalid action: ${result.action}`, 400);

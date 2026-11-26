@@ -10,7 +10,7 @@ export default async function SeoPage() {
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
 
-  if (!["super_admin", "head_seo", "team_leader_seo", "agent_seo", "agent_content_seo"].includes(user?.role)) {
+  if (!["super_admin", "general_manager", "head_seo", "team_leader_seo", "agent_seo", "agent_content_seo"].includes(user?.role)) {
     redirect("/dashboard");
   }
 
@@ -19,9 +19,9 @@ export default async function SeoPage() {
   let teamMembers: any[] = [];
   let contentAgents: any[] = [];
 
-  if (["super_admin", "head_seo"].includes(user.role)) {
+  if (["super_admin", "general_manager", "head_seo"].includes(user.role)) {
     projects = await prisma.project.findMany({
-      where: user.role === "super_admin" ? {} : { headSeoId: user.id },
+      where: (user.role === "super_admin" || user.role === "general_manager") ? {} : { headSeoId: user.id },
       include: {
         deal: { include: { lead: true } },
         accountManager: { select: { id: true, name: true } },

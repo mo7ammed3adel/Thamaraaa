@@ -38,7 +38,7 @@ export default async function DashboardHome() {
 
   const role = user.role || "unknown";
 
-  if (role === "super_admin") {
+  if ((role === "super_admin" || role === "general_manager")) {
     const [today, week, month, all, activeEmployees, activeWarnings] = await Promise.all([
       rangeStats(startOf("today")),
       rangeStats(startOf("week")),

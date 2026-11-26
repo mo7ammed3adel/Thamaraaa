@@ -4,7 +4,7 @@ import { errorJson, successJson } from "@/server/http/responses";
 import { addJobApplicant, listJobApplicants } from "@/server/services/hrService";
 
 function canUseHr(userRole?: string | null) {
-  return ["super_admin", "hr_manager"].includes(userRole || "");
+  return ["super_admin", "general_manager", "hr_manager"].includes(userRole || "");
 }
 
 export async function GET() {

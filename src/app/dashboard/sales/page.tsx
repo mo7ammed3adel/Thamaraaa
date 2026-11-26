@@ -10,7 +10,7 @@ export default async function SalesWorkspacePage() {
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
   
-  if (!["super_admin", "sales_manager", "sales_agent"].includes(user?.role)) {
+  if (!["super_admin", "general_manager", "sales_manager", "sales_agent"].includes(user?.role)) {
     redirect("/dashboard");
   }
 
@@ -43,7 +43,7 @@ export default async function SalesWorkspacePage() {
 
   // Managers can hand meetings over manually, so they need the roster of agents
   // they may assign to — direct reports plus orphans, mirroring My Team.
-  const isManagerView = ["super_admin", "sales_manager"].includes(user.role);
+  const isManagerView = ["super_admin", "general_manager", "sales_manager"].includes(user.role);
   const teamAgents = isManagerView
     ? await prisma.user.findMany({
         where: {

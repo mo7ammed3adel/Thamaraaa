@@ -95,7 +95,7 @@ const SELF_TASK_ALLOWED_ROLES = [
   "leader_motion_graphic",
   "leader_ui",
   "head_technical",
-  "super_admin",
+  "super_admin", "general_manager",
 ];
 
 const TASK_CREATOR_ROLES = [
@@ -109,7 +109,7 @@ const TASK_CREATOR_ROLES = [
 ] as const;
 
 const STANDARD_GENERATOR_ROLES = new Set([
-  "super_admin",
+  "super_admin", "general_manager",
   "head_account_manager",
   "account_manager",
   "head_technical",
@@ -227,7 +227,7 @@ export async function listTasksForUser(input: {
     const allowed = await userCanAccessProject(input.userId, input.userRole, input.projectId);
     if (!allowed) return { status: "forbidden" as const };
     whereClause.projectId = input.projectId;
-  } else if (["super_admin", "head_account_manager", "chief_sales"].includes(input.userRole)) {
+  } else if (["super_admin", "general_manager", "head_account_manager", "chief_sales"].includes(input.userRole)) {
     // org-wide visibility
   } else if (input.userRole === "account_manager") {
     whereClause.project = { is: { accountManagerId: input.userId } };
@@ -293,7 +293,7 @@ export async function reassignTask(input: {
   const task = await findTaskForReassign(input.taskId);
   if (!task) return { status: "not_found" as const };
 
-  if (input.userRole !== "super_admin" && task.leaderId !== input.userId) {
+  if ((input.userRole !== "super_admin" && input.userRole !== "general_manager") && task.leaderId !== input.userId) {
     return { status: "not_task_leader" as const };
   }
 
@@ -363,7 +363,7 @@ export async function createSelfTask(input: {
   if (!project) return { status: "project_not_found" as const };
 
   const hasAccess =
-    input.userRole === "super_admin" ||
+    (input.userRole === "super_admin" || input.userRole === "general_manager") ||
     project.teamAssignments.length > 0 ||
     project.tasks.length > 0;
 
@@ -393,6 +393,8 @@ async function resolveTaskLeader(projectId: string, roleToFind: string) {
     return findFirstActiveUserByRoles(["head_seo", "team_leader_seo"]);
   }
 
+  // Fallback is the super admin only: a general manager may lack the edit
+  // grant needed to work a task, which would leave it stuck.
   return findFirstActiveUserByRoles([roleToFind, "super_admin"]);
 }
 
@@ -574,7 +576,7 @@ export async function updateTask(input: {
   if (!existingTask) return { status: "not_found" as const };
 
   const isAdmin =
-    ["super_admin", "head_account_manager"].includes(input.userRole) ||
+    ["super_admin", "general_manager", "head_account_manager"].includes(input.userRole) ||
     (input.userRole === "head_technical" && existingTask.project?.headTechnicalId === input.userId) ||
     (input.userRole === "head_seo" && existingTask.project?.headSeoId === input.userId);
   const isTeamLeader = existingTask.leaderId === input.userId;
@@ -865,7 +867,7 @@ export async function generateProjectTasks(input: {
     }
 
     const canCreateSubTask =
-      input.userRole === "super_admin" ||
+      (input.userRole === "super_admin" || input.userRole === "general_manager") ||
       input.userRole === "head_account_manager" ||
       input.userRole === "account_manager" ||
       parentTask.leaderId === input.userId ||

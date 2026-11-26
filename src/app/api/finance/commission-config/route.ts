@@ -4,7 +4,7 @@ import { getSessionUser } from "@/server/auth/session";
 import { errorJson, successJson } from "@/server/http/responses";
 import { updateCommissionConfig } from "@/server/services/financeService";
 
-const FINANCE_ROLES = ["super_admin", "accountant"];
+const FINANCE_ROLES = ["super_admin", "general_manager", "accountant"];
 
 /**
  * PATCH /api/finance/commission-config — accountant (or super_admin) edits a

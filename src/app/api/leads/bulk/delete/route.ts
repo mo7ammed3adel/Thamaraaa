@@ -10,7 +10,7 @@ export async function POST(req: Request) {
 
     if (
       !user ||
-      (user.role !== "tele_sales_agent" && user.role !== "super_admin" && user.role !== "tele_sales_manager")
+      (user.role !== "tele_sales_agent" && (user.role !== "super_admin" && user.role !== "general_manager") && user.role !== "tele_sales_manager")
     ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }

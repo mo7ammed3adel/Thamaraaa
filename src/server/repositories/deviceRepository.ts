@@ -207,7 +207,7 @@ export function countScreenshotsBefore(cutoff: Date) {
 /** Active employees the super admin can enrol a device for. */
 export function findEnrollableUsers() {
   return prisma.user.findMany({
-    where: { status: "Active", role: { not: "super_admin" } },
+    where: { status: "Active", role: { notIn: ["super_admin", "general_manager"] } },
     select: { id: true, name: true, role: true },
     orderBy: { name: "asc" },
   });

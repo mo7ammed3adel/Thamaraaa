@@ -2,10 +2,13 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, ChevronDown, Compass, Hash, Images, Info, MessageSquarePlus, MessagesSquare, Phone, Pin, Plus, Search, Sparkles, Users, Video } from "lucide-react";
+import { ArrowRight, ChevronDown, Compass, Hash, Images, Route, Tag, Info, MessageSquarePlus, MessagesSquare, Phone, Pin, Plus, Search, Sparkles, Users, Video } from "lucide-react";
 import {
   ChatUploadError,
   createConversation,
+  listChatLabels,
+  setConversationLabels,
+  type ChatLabel,
   deleteMessage,
   editMessage,
   getConversation,
@@ -32,12 +35,15 @@ import MessageItem, { ImageLightbox, formatTime } from "./MessageItem";
 import { BrowseChannelsModal, InfoPanel, NewConversationModal } from "./ChatModals";
 import { PinsPanel, SearchPanel, ThreadPanel } from "./SidePanels";
 import { MediaPanel } from "./MediaPanel";
+import { JourneyPanel } from "./JourneyPanel";
 import { UserCard, type UserCardTarget } from "./UserCard";
+import { LabelFilterBar, LabelManager, LabelPicker } from "./Labels";
+import { labelStyle } from "@/lib/chat/labels";
 import { useChatT } from "./useChatT";
 import { CALL_CHANGED_EVENT, useCalls } from "./calls/CallProvider";
 
 type Me = { id: string; name: string; canCreateChannel: boolean };
-type Panel = { kind: "info" } | { kind: "pins" } | { kind: "media" } | { kind: "thread"; rootId: string } | { kind: "search"; q: string } | null;
+type Panel = { kind: "info" } | { kind: "pins" } | { kind: "media" } | { kind: "journey" } | { kind: "thread"; rootId: string } | { kind: "search"; q: string } | null;
 
 function dayLabel(iso: string, locale: string, t: ReturnType<typeof useChatT>["t"]) {
   const d = new Date(iso);
@@ -106,6 +112,8 @@ export default function ChatClient({ me }: { me: Me }) {
   const [othersReadAt, setOthersReadAt] = useState<string[]>([]);
   const [readMarker, setReadMarker] = useState<string | null>(null);
   const [editing, setEditing] = useState<ChatMessage | null>(null);
+  /** WhatsApp-style reply in progress. */
+  const [quoting, setQuoting] = useState<ChatMessage | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [modal, setModal] = useState<ChatType | "browse" | null>(null);
   const [panel, setPanel] = useState<Panel>(null);
@@ -115,6 +123,22 @@ export default function ChatClient({ me }: { me: Me }) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [lightbox, setLightbox] = useState<ChatAttachment | null>(null);
   const [userCard, setUserCard] = useState<UserCardTarget | null>(null);
+  // Personal labels (only you see yours) and the list filter.
+  const [labels, setLabels] = useState<ChatLabel[]>([]);
+  const [labelFilter, setLabelFilter] = useState<string | null>(null);
+  const [labelManager, setLabelManager] = useState(false);
+  const [labelPicker, setLabelPicker] = useState(false);
+  const refreshLabels = useCallback(() => {
+    listChatLabels()
+      .then((list) => {
+        setLabels(list);
+        setLabelFilter((f) => (f && !list.some((l) => l.id === f) ? null : f));
+      })
+      .catch(() => undefined);
+  }, []);
+  useEffect(() => {
+    refreshLabels();
+  }, [refreshLabels]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
   const activeRef = useRef<string | null>(null);
@@ -197,6 +221,7 @@ export default function ChatClient({ me }: { me: Me }) {
     setMessages([]);
     setDetail(null);
     setEditing(null);
+    setQuoting(null);
     setHasMore(false);
     setLoaded(false);
     setReadMarker(null);
@@ -356,6 +381,8 @@ export default function ChatClient({ me }: { me: Me }) {
   async function handleSubmit(input: ComposerSubmit): Promise<boolean> {
     if (!activeId) return false;
     const conversationId = activeId;
+    // The reply target belongs to this send (edits never quote).
+    const quoteId = input.kind === "edit" ? null : quoting?.id ?? null;
     stickToBottom.current = true;
     setReadMarker(null);
     try {
@@ -364,22 +391,23 @@ export default function ChatClient({ me }: { me: Me }) {
         message = await editMessage(input.id, input.body);
         setEditing(null);
       } else if (input.kind === "sticker") {
-        message = await sendTextMessage(conversationId, { stickerId: input.stickerId });
+        message = await sendTextMessage(conversationId, { stickerId: input.stickerId, quoteId: quoteId ?? undefined });
       } else if (input.kind === "voice") {
         setUploadProgress(0);
         message = await sendFileMessage(
           conversationId,
-          { files: [input.file], media: { kind: "voice", durationMs: input.durationMs, waveform: input.waveform } },
+          { files: [input.file], quoteId: quoteId ?? undefined, media: { kind: "voice", durationMs: input.durationMs, waveform: input.waveform } },
           setUploadProgress
         );
       } else if (input.files.length > 0) {
         setUploadProgress(0);
-        message = await sendFileMessage(conversationId, { body: input.body, files: input.files }, setUploadProgress);
+        message = await sendFileMessage(conversationId, { body: input.body, files: input.files, quoteId: quoteId ?? undefined }, setUploadProgress);
       } else {
-        message = await sendTextMessage(conversationId, { body: input.body });
+        message = await sendTextMessage(conversationId, { body: input.body, quoteId: quoteId ?? undefined });
       }
       // The user may have switched conversation while this was uploading.
       if (activeRef.current === conversationId) setMessages((cur) => mergeMessages(cur, [message]));
+      if (quoteId) setQuoting(null);
       refreshList();
       return true;
     } catch (e) {
@@ -472,9 +500,29 @@ export default function ChatClient({ me }: { me: Me }) {
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
-    const list = conversations ?? [];
+    const inLabel = labelFilter ? new Set(labels.find((l) => l.id === labelFilter)?.conversationIds ?? []) : null;
+    const list = (conversations ?? []).filter((c) => !inLabel || inLabel.has(c.id));
     return q ? list.filter((c) => (c.name || "").toLowerCase().includes(q)) : list;
-  }, [conversations, filter]);
+  }, [conversations, filter, labelFilter, labels]);
+  /** conversationId → your labels on it, for the dots in the list. */
+  const labelsByConversation = useMemo(() => {
+    const map = new Map<string, ChatLabel[]>();
+    for (const l of labels) for (const id of l.conversationIds) map.set(id, [...(map.get(id) ?? []), l]);
+    return map;
+  }, [labels]);
+  async function toggleLabel(labelId: string) {
+    if (!activeId) return;
+    const current = labelsByConversation.get(activeId)?.map((l) => l.id) ?? [];
+    const next = current.includes(labelId) ? current.filter((x) => x !== labelId) : [...current, labelId];
+    // Optimistic, then the server's answer.
+    setLabels((ls) => ls.map((l) => ({ ...l, conversationIds: l.id === labelId ? (next.includes(labelId) ? [...l.conversationIds, activeId] : l.conversationIds.filter((x) => x !== activeId)) : l.conversationIds })));
+    try {
+      await setConversationLabels(activeId, next);
+    } catch (e) {
+      explainError(e);
+    }
+    refreshLabels();
+  }
 
   const sections: { key: ChatType; label: string; items: ConversationSummary[] }[] = [
     { key: "channel", label: t("channels"), items: filtered.filter((c) => c.type === "channel") },
@@ -591,6 +639,8 @@ export default function ChatClient({ me }: { me: Me }) {
             </button>
           </div>
 
+          <LabelFilterBar labels={labels} active={labelFilter} onPick={setLabelFilter} onManage={() => setLabelManager(true)} />
+
           <div className="flex-1 overflow-y-auto px-2 py-2 text-[15px]">
             {conversations !== null && conversations.length === 0 && <p className="px-4 py-8 text-center text-sm text-slate-500">{t("noConversations")}</p>}
             {sections.map((s) => (
@@ -633,6 +683,9 @@ export default function ChatClient({ me }: { me: Me }) {
                           </span>
                         )}
                         <span className={`flex-1 truncate ${unread ? "font-bold" : ""}`}>{c.name}</span>
+                        {(labelsByConversation.get(c.id) ?? []).slice(0, 3).map((l) => (
+                          <span key={l.id} title={l.name} className={`h-2 w-2 shrink-0 rounded-full ${labelStyle(l.color).dot}`} data-testid="conv-label-dot" />
+                        ))}
                         {unread && (
                           <span className={`flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] font-bold ${isActive ? "bg-white text-emerald-700" : "bg-rose-500 text-white"}`}>
                             {c.unread > 99 ? "99+" : c.unread}
@@ -688,7 +741,7 @@ export default function ChatClient({ me }: { me: Me }) {
                   {type === "dm" && dmOther && <span className="text-xs text-slate-500">{dmOther.online ? t("online") : t("offline")}</span>}
                   {type !== "dm" && detail?.description && <span className="hidden truncate border-s border-slate-200 ps-3 text-sm text-slate-500 lg:block">{detail.description}</span>}
 
-                  <div className="ms-auto flex items-center gap-1">
+                  <div className="ms-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
                     {canCall && (
                       <div className="me-1 flex items-center overflow-hidden rounded-md border border-slate-200">
                         <button
@@ -713,7 +766,7 @@ export default function ChatClient({ me }: { me: Me }) {
                       </div>
                     )}
                     {type !== "dm" && detail && (
-                      <button onClick={() => setPanel(panel?.kind === "info" ? null : { kind: "info" })} className="flex items-center gap-1.5 rounded-md border border-slate-200 py-1 pe-2 ps-1 hover:bg-slate-50" title={t("info")}>
+                      <button onClick={() => setPanel(panel?.kind === "info" ? null : { kind: "info" })} className="hidden items-center gap-1.5 rounded-md border border-slate-200 py-1 pe-2 ps-1 hover:bg-slate-50 sm:flex" title={t("info")}>
                         <span className="flex -space-x-1.5 rtl:space-x-reverse">
                           {detail.members.slice(0, 3).map((m) => (
                             <span key={m.userId} className="rounded-md ring-2 ring-white">
@@ -722,6 +775,41 @@ export default function ChatClient({ me }: { me: Me }) {
                           ))}
                         </span>
                         <span className="text-xs font-semibold text-slate-600">{detail.members.length}</span>
+                      </button>
+                    )}
+                    <div className="relative">
+                      <button
+                        onClick={() => setLabelPicker((v) => !v)}
+                        className={`flex items-center gap-1 rounded-md p-1.5 transition ${labelPicker ? "bg-emerald-50 text-emerald-700" : "text-slate-500 hover:bg-slate-100"}`}
+                        title={t("labels")}
+                        data-testid="open-label-picker"
+                      >
+                        <Tag className="h-4 w-4" />
+                        {(labelsByConversation.get(activeId) ?? []).slice(0, 3).map((l) => (
+                          <span key={l.id} className={`h-2 w-2 rounded-full ${labelStyle(l.color).dot}`} />
+                        ))}
+                      </button>
+                      {labelPicker && (
+                        <LabelPicker
+                          labels={labels}
+                          selected={(labelsByConversation.get(activeId) ?? []).map((l) => l.id)}
+                          onToggle={toggleLabel}
+                          onManage={() => {
+                            setLabelPicker(false);
+                            setLabelManager(true);
+                          }}
+                          onClose={() => setLabelPicker(false)}
+                        />
+                      )}
+                    </div>
+                    {detail?.journeyProjectId && (
+                      <button
+                        onClick={() => setPanel(panel?.kind === "journey" ? null : { kind: "journey" })}
+                        className={`rounded-md p-1.5 transition ${panel?.kind === "journey" ? "bg-emerald-50 text-emerald-700" : "text-slate-500 hover:bg-slate-100"}`}
+                        title={t("clientJourney")}
+                        data-testid="header-journey"
+                      >
+                        <Route className="h-4 w-4" />
                       </button>
                     )}
                     <button
@@ -734,7 +822,7 @@ export default function ChatClient({ me }: { me: Me }) {
                     </button>
                     <button
                       onClick={() => setPanel(panel?.kind === "pins" ? null : { kind: "pins" })}
-                      className={`flex items-center gap-1 rounded-md p-1.5 text-sm transition ${panel?.kind === "pins" ? "bg-amber-50 text-amber-700" : "text-slate-500 hover:bg-slate-100"}`}
+                      className={`hidden items-center gap-1 rounded-md p-1.5 text-sm transition sm:flex ${panel?.kind === "pins" ? "bg-amber-50 text-amber-700" : "text-slate-500 hover:bg-slate-100"}`}
                       title={t("pinnedMessages")}
                     >
                       <Pin className="h-4 w-4" />
@@ -779,7 +867,7 @@ export default function ChatClient({ me }: { me: Me }) {
                     const el = e.currentTarget;
                     stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
                   }}
-                  className="flex-1 overflow-y-auto pb-4"
+                  className="flex-1 overflow-y-auto bg-[#f0f2f5] pb-4"
                 >
                   {hasMore && (
                     <div className="my-3 flex justify-center">
@@ -847,6 +935,12 @@ export default function ChatClient({ me }: { me: Me }) {
                           activeCallCount={activeCall?.participants.length ?? 0}
                           onJoinCall={(video) => startCall(video, activeCall?.id)}
                           onOpenUser={type === "dm" ? undefined : openUser}
+                          showSenderNames={type !== "dm"}
+                          onQuote={dmReadOnly ? undefined : (x) => {
+                            setEditing(null);
+                            setQuoting(x);
+                          }}
+                          onJumpTo={(id, rootId) => (rootId ? setPanel({ kind: "thread", rootId }) : jumpToMessage(id))}
                         />
                       </div>
                     );
@@ -867,6 +961,9 @@ export default function ChatClient({ me }: { me: Me }) {
                     onCancelEdit={() => setEditing(null)}
                     onSubmit={handleSubmit}
                     onError={showError}
+                    quoting={quoting}
+                    onCancelQuote={() => setQuoting(null)}
+                    meId={me.id}
                   />
                 )}
               </>
@@ -890,6 +987,7 @@ export default function ChatClient({ me }: { me: Me }) {
               }}
               onError={showError}
               onOpenUser={detail.type === "dm" ? undefined : openUser}
+              onOpenJourney={() => setPanel({ kind: "journey" })}
             />
           )}
           {panel?.kind === "thread" && activeId && (
@@ -911,6 +1009,9 @@ export default function ChatClient({ me }: { me: Me }) {
               onClose={() => setPanel(null)}
               onJump={(m) => (m.threadRootId ? setPanel({ kind: "thread", rootId: m.threadRootId }) : jumpTo(m.id))}
             />
+          )}
+          {panel?.kind === "journey" && activeId && (
+            <JourneyPanel conversationId={activeId} refreshKey={panelRefresh} onClose={() => setPanel(null)} />
           )}
           {panel?.kind === "media" && activeId && (
             <MediaPanel
@@ -948,6 +1049,7 @@ export default function ChatClient({ me }: { me: Me }) {
           }}
         />
       )}
+      {labelManager && <LabelManager labels={labels} onClose={() => setLabelManager(false)} onChanged={refreshLabels} onError={showError} />}
       {userCard && (
         <UserCard
           target={userCard}

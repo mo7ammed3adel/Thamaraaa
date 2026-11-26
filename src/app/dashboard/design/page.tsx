@@ -12,14 +12,14 @@ export default async function DesignPage({ searchParams }: { searchParams: { tea
     "leader_graphic_designer", "agent_graphic_designer",
     "leader_motion_graphic", "agent_motion_graphic",
     "leader_ui", "agent_ui",
-    "super_admin",
+    "super_admin", "general_manager",
   ];
 
   if (!designRoles.includes(user?.role)) {
     redirect("/dashboard");
   }
 
-  const isLeader = user.role.startsWith("leader_") || user.role === "super_admin";
+  const isLeader = user.role.startsWith("leader_") || (user.role === "super_admin" || user.role === "general_manager");
   const team = searchParams.team || "graphic"; // graphic, motion, ui
 
   // Determine task type filter based on team

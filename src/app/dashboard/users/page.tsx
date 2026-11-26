@@ -11,7 +11,7 @@ export default async function UsersPage() {
   const session = await getServerSession(authOptions);
   
   const viewerRole = (session?.user as any)?.role;
-  if (viewerRole !== "super_admin" && viewerRole !== "hr_manager") {
+  if ((viewerRole !== "super_admin" && viewerRole !== "general_manager") && viewerRole !== "hr_manager") {
     redirect("/dashboard");
   }
 
@@ -33,8 +33,17 @@ export default async function UsersPage() {
       createdAt: true,
       directManagerId: true,
       directManager: { select: { id: true, name: true } },
+      gmCanEdit: true,
+      gmCanDelete: true,
     }
   });
+  // A general manager may delete only when the super admin granted it.
+  const viewerId = (session?.user as any)?.id as string | undefined;
+  const viewerGrants =
+    viewerRole === "general_manager" && viewerId
+      ? await prisma.user.findUnique({ where: { id: viewerId }, select: { gmCanDelete: true } })
+      : null;
+  const viewerCanDelete = viewerRole === "super_admin" || Boolean(viewerGrants?.gmCanDelete);
 
   // Fetch managers for assignment
   const managers = await prisma.user.findMany({
@@ -56,7 +65,7 @@ export default async function UsersPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">{t("users.management")}</h1>
       </div>
-      <UserListClient initialUsers={users} managers={managers} companies={companies} canImpersonate={viewerRole === "super_admin"} canDelete={viewerRole === "super_admin"} />
+      <UserListClient initialUsers={users} managers={managers} companies={companies} canImpersonate={(viewerRole === "super_admin" || viewerRole === "general_manager")} canDelete={viewerCanDelete} isSuperAdmin={viewerRole === "super_admin"} />
     </div>
   );
 }

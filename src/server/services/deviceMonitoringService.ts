@@ -37,7 +37,7 @@ import { optimizeImage } from "@/server/storage/compression";
 
 /** Only the super admin manages devices and views screenshots. */
 function isSuperAdmin(role: string | null | undefined): boolean {
-  return role === "super_admin";
+  return (role === "super_admin" || role === "general_manager");
 }
 
 const MAX_SCREENSHOT_BYTES = 5 * 1024 * 1024; // 5 MB per capture

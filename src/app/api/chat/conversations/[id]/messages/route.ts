@@ -30,7 +30,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     const json = await readJson(request);
     // Pick fields explicitly: files only ever come from the multipart path below.
     return toResponse(
-      await sendMessage(auth.actor, params.id, { body: json.body, stickerId: json.stickerId, replyToId: json.replyToId }),
+      await sendMessage(auth.actor, params.id, { body: json.body, stickerId: json.stickerId, replyToId: json.replyToId, quoteId: json.quoteId }),
       (r) => r.message
     );
   }
@@ -70,6 +70,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
   const result = await sendMessage(auth.actor, params.id, {
     body: form.get("body"),
     replyToId: form.get("replyToId"),
+    quoteId: form.get("quoteId"),
     files,
     media,
   });

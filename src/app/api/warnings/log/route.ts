@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const user = session.user as any;
 
-    if (!["head_account_manager", "head_technical", "super_admin"].includes(user.role)) {
+    if (!["head_account_manager", "head_technical", "super_admin", "general_manager"].includes(user.role)) {
       return NextResponse.json({ error: "Forbidden: Only admins can view the warning log" }, { status: 403 });
     }
 

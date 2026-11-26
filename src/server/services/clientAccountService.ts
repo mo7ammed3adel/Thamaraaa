@@ -13,7 +13,7 @@ import {
 } from "@/server/repositories/clientAccountRepository";
 
 /** Roles allowed to hand a customer their portal credentials. */
-const CLIENT_ACCOUNT_MANAGER_ROLES = ["super_admin", "head_account_manager", "account_manager"];
+const CLIENT_ACCOUNT_MANAGER_ROLES = ["super_admin", "general_manager", "head_account_manager", "account_manager"];
 
 // Ambiguous characters are omitted: a client reads this password off WhatsApp.
 const PASSWORD_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
@@ -37,7 +37,7 @@ async function canManageClientAccount(
   leadId: string
 ): Promise<boolean> {
   if (!CLIENT_ACCOUNT_MANAGER_ROLES.includes(actor.role)) return false;
-  if (actor.role === "super_admin" || actor.role === "head_account_manager") return true;
+  if ((actor.role === "super_admin" || actor.role === "general_manager") || actor.role === "head_account_manager") return true;
 
   const accountManagerIds = await findLeadProjectAccountManagerIds(leadId);
   return accountManagerIds.includes(actor.id);

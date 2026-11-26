@@ -9,7 +9,7 @@ export default async function SalesTeamAnalyticsPage() {
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
 
-  if (!["super_admin", "sales_manager"].includes(user?.role)) {
+  if (!["super_admin", "general_manager", "sales_manager"].includes(user?.role)) {
     redirect("/dashboard");
   }
 

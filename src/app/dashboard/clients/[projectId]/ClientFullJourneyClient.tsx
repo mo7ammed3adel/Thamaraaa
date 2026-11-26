@@ -76,8 +76,8 @@ export default function ClientFullJourneyClient({ project, userRole, userId, use
   } = useClientJourneyActions({ project, lead });
 
   const safeUserRole = userRole || "";
-  const isAdmin = ["super_admin", "head_account_manager"].includes(safeUserRole);
-  const canUploadProjectFiles = ["super_admin", "head_account_manager", "account_manager", "head_technical", "head_seo"].includes(safeUserRole);
+  const isAdmin = ["super_admin", "general_manager", "head_account_manager"].includes(safeUserRole);
+  const canUploadProjectFiles = ["super_admin", "general_manager", "head_account_manager", "account_manager", "head_technical", "head_seo"].includes(safeUserRole);
 
   function canManageTeamSlot(department: string, roleType: "leader" | "agent") {
     if (isAdmin) return true;

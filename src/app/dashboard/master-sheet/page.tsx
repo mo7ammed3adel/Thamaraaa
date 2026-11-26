@@ -7,7 +7,7 @@ import { ListTodo } from "lucide-react";
 
 export default async function MasterSheetPage() {
   const session = await getServerSession(authOptions);
-  if ((session?.user as any)?.role !== "super_admin") {
+  if (!["super_admin", "general_manager"].includes((session?.user as any)?.role)) {
     redirect("/dashboard");
   }
 

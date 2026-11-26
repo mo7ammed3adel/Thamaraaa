@@ -10,7 +10,7 @@ export async function PUT(req: Request) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (!["super_admin", "tele_sales_manager", "tele_sales_agent"].includes(user.role)) {
+    if (!["super_admin", "general_manager", "tele_sales_manager", "tele_sales_agent"].includes(user.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

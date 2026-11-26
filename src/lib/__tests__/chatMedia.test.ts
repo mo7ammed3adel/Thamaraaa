@@ -8,6 +8,7 @@ import {
   cleanWaveform,
   decodeWaveform,
   encodeWaveform,
+  extractLinks,
   formatDuration,
   isMediaMessageKind,
   isMissedCall,
@@ -115,5 +116,20 @@ describe("calls", () => {
     expect(isMissedCall({ endedAt: ended, participantIds: ["a", "b"] }, "dm")).toBe(false);
     expect(isMissedCall({ endedAt: null, participantIds: ["a"] }, "dm")).toBe(false);
     expect(isMissedCall({ endedAt: ended, participantIds: ["a"] }, "group")).toBe(false);
+  });
+});
+
+describe("extractLinks", () => {
+  it("finds links and trims sentence punctuation", () => {
+    expect(extractLinks("شوف ده https://example.com/a?b=1. وكمان http://x.org/path، تمام؟")).toEqual(["https://example.com/a?b=1", "http://x.org/path"]);
+  });
+  it("keeps brackets that belong to the link, drops ones that close the sentence", () => {
+    expect(extractLinks("(see https://en.wikipedia.org/wiki/Foo_(bar))")).toEqual(["https://en.wikipedia.org/wiki/Foo_(bar)"]);
+    expect(extractLinks("[https://a.com/x]")).toEqual(["https://a.com/x"]);
+  });
+  it("de-duplicates, ignores non-web schemes and empty text", () => {
+    expect(extractLinks("https://a.com/1 https://a.com/1 javascript:alert(1) ftp://f.com")).toEqual(["https://a.com/1"]);
+    expect(extractLinks(null)).toEqual([]);
+    expect(extractLinks("no links here")).toEqual([]);
   });
 });

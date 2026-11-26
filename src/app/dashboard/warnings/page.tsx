@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import WarningsCenterClient from "./WarningsCenterClient";
 
 function projectScopeForUser(user: any) {
-  if (["super_admin", "head_account_manager", "chief_sales"].includes(user.role)) return {};
+  if (["super_admin", "general_manager", "head_account_manager", "chief_sales"].includes(user.role)) return {};
   if (user.role === "account_manager") return { accountManagerId: user.id };
   if (user.role === "head_technical") return { headTechnicalId: user.id };
   if (user.role === "head_seo") return { headSeoId: user.id };
@@ -26,7 +26,7 @@ export default async function WarningsPage() {
   const user = session?.user as any;
 
   const allowedRoles = [
-    "super_admin", "chief_sales", "head_account_manager", "account_manager",
+    "super_admin", "general_manager", "chief_sales", "head_account_manager", "account_manager",
     "head_technical", "head_seo", "sales_manager",
     "team_leader_seo", "team_leader_social_media", "team_leader_media_buyer",
     "leader_graphic_designer", "leader_motion_graphic", "leader_ui",
@@ -37,7 +37,7 @@ export default async function WarningsPage() {
     redirect("/dashboard");
   }
 
-  const canViewAllWarnings = ["super_admin", "head_account_manager", "chief_sales"].includes(user.role);
+  const canViewAllWarnings = ["super_admin", "general_manager", "head_account_manager", "chief_sales"].includes(user.role);
   const projectWhere = projectScopeForUser(user);
   const warningWhere = canViewAllWarnings
     ? {}

@@ -8,7 +8,7 @@ import {
   updateHrmResource,
 } from "@/server/services/hrmService";
 
-const HR_ROLES = ["super_admin", "hr_manager"];
+const HR_ROLES = ["super_admin", "general_manager", "hr_manager"];
 
 function isHr(role?: string | null) {
   return HR_ROLES.includes(role || "");

@@ -11,7 +11,7 @@ export default async function HeadAccountManagerPage() {
   const session = await getServerSession(authOptions);
   const user = session?.user;
 
-  if (!user || !["super_admin", "head_account_manager"].includes(user.role)) {
+  if (!user || !["super_admin", "general_manager", "head_account_manager"].includes(user.role)) {
     redirect("/dashboard");
   }
 

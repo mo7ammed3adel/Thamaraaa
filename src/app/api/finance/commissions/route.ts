@@ -7,7 +7,7 @@ import {
   recomputeCommissions,
 } from "@/server/services/financeService";
 
-const FINANCE_ROLES = ["super_admin", "accountant"];
+const FINANCE_ROLES = ["super_admin", "general_manager", "accountant"];
 
 /**
  * GET /api/finance/commissions?month=YYYY-MM — list all sales-agent commissions for a month.

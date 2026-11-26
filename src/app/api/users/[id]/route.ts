@@ -9,7 +9,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const user = session?.user as any;
 
     // Allow HR, Super Admin to edit general details.
-    if (!user || (!["super_admin", "hr_manager"].includes(user.role))) {
+    if (!user || (!["super_admin", "general_manager", "hr_manager"].includes(user.role))) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -41,12 +41,15 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     const session = await getServerSession(authOptions);
     const user = session?.user as any;
 
-    if (!user || user.role !== "super_admin") {
+    if (!user || (user.role !== "super_admin" && user.role !== "general_manager")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     const result = await deleteUserAccount({ actor: { id: user.id, role: user.role }, id: params.id });
 
+    if (result.status === "forbidden") {
+      return NextResponse.json({ error: "Only the super admin can delete this user" }, { status: 403 });
+    }
     if (result.status === "self_delete") {
       return NextResponse.json({ error: "Cannot delete your own account" }, { status: 400 });
     }

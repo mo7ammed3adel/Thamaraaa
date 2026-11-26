@@ -40,7 +40,7 @@ export default function SocialMediaClient({ projects, teamMembers, userRole, use
   const [searchQuery, setSearchQuery] = useState("");
   const [taskStatusFilter, setTaskStatusFilter] = useState("all");
 
-  const isTL = ["super_admin", "team_leader_social_media", "team_leader_media_buyer"].includes(userRole);
+  const isTL = ["super_admin", "general_manager", "team_leader_social_media", "team_leader_media_buyer"].includes(userRole);
   const isAgent = ["agent_social_media", "agent_media_buyer"].includes(userRole);
   const deptTypes = DEPARTMENT_TASK_TYPES[departmentTaskType] || DEPARTMENT_TASK_TYPES.social_media;
   const isDeptTask = (t: any) => deptTypes.includes(t.taskType);

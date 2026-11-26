@@ -21,7 +21,7 @@ import { useTranslator } from "@/components/i18n/LocaleProvider";
 export default function DesignClient({ tasks, agents, userRole, userId, teamLabel, crossTeamTasks = [] }: any) {
   const t = useTranslator();
   const router = useRouter();
-  const isLeader = userRole.startsWith("leader_") || userRole === "super_admin";
+  const isLeader = userRole.startsWith("leader_") || (userRole === "super_admin" || userRole === "general_manager");
   const [activeTab, setActiveTab] = useState(isLeader ? "incoming" : "tasks");
   const [activeKpi, setActiveKpi] = useState("all");
   const [flagTask, setFlagTask] = useState<any>(null);

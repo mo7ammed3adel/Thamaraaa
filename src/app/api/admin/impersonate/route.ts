@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { IMPERSONATION_COOKIE } from "@/lib/auth";
 import { findUserExists } from "@/server/repositories/userRepository";
+import { prisma } from "@/lib/prisma";
 
 /**
  * Super-admin impersonation. Authorization always uses the raw JWT (getToken),
@@ -13,7 +14,7 @@ import { findUserExists } from "@/server/repositories/userRepository";
 // Start impersonating a user.
 export async function POST(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  if (!token || token.role !== "super_admin") {
+  if (!token || (token.role !== "super_admin" && token.role !== "general_manager")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -33,6 +34,13 @@ export async function POST(req: NextRequest) {
   if (!target) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
+  // A general manager may not become a super admin or another GM this way.
+  if (token.role === "general_manager") {
+    const targetRole = (await prisma.user.findUnique({ where: { id: userId }, select: { role: true } }))?.role;
+    if (targetRole === "super_admin" || targetRole === "general_manager") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
 
   const res = NextResponse.json({ success: true });
   res.cookies.set(IMPERSONATION_COOKIE, `${token.id}:${userId}`, {
@@ -48,7 +56,7 @@ export async function POST(req: NextRequest) {
 // Stop impersonating (return to the super_admin).
 export async function DELETE(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  if (!token || token.role !== "super_admin") {
+  if (!token || (token.role !== "super_admin" && token.role !== "general_manager")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

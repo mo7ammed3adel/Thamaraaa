@@ -9,7 +9,7 @@ import { impersonateUser } from "@/client/api/admin";
 import { createUser, deleteUser, updateUser } from "@/client/api/users";
 import { useTranslator } from "@/components/i18n/LocaleProvider";
 
-export default function UserListClient({ initialUsers, managers, companies = [], canImpersonate = false, canDelete = false }: { initialUsers: any[]; managers: any[]; companies?: any[]; canImpersonate?: boolean; canDelete?: boolean }) {
+export default function UserListClient({ initialUsers, managers, companies = [], canImpersonate = false, canDelete = false, isSuperAdmin = false }: { initialUsers: any[]; managers: any[]; companies?: any[]; canImpersonate?: boolean; canDelete?: boolean; isSuperAdmin?: boolean }) {
   const t = useTranslator();
   const router = useRouter();
   const [users, setUsers] = useState(initialUsers);
@@ -60,6 +60,8 @@ export default function UserListClient({ initialUsers, managers, companies = [],
     level: "",
     company: "",
     companyId: "",
+    gmCanEdit: false,
+    gmCanDelete: false,
   });
 
   // Delete confirmation state
@@ -96,6 +98,8 @@ export default function UserListClient({ initialUsers, managers, companies = [],
       level: user.level || "Junior",
       company: user.company || "",
       companyId: user.companyId || "",
+      gmCanEdit: Boolean(user.gmCanEdit),
+      gmCanDelete: Boolean(user.gmCanDelete),
     });
   };
 
@@ -114,6 +118,8 @@ export default function UserListClient({ initialUsers, managers, companies = [],
         status: editData.status,
         level: editData.level,
         companyId: editData.companyId === "" ? null : editData.companyId,
+        // The server ignores these unless you are the super admin.
+        ...(isSuperAdmin && editData.role === "general_manager" ? { gmCanEdit: editData.gmCanEdit, gmCanDelete: editData.gmCanDelete } : {}),
       });
       setEditingUser(null);
       setUsers(users.map(u => u.id === updatedUser.id ? { ...u, ...updatedUser } : u));
@@ -331,7 +337,8 @@ export default function UserListClient({ initialUsers, managers, companies = [],
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">{t("form.roleRequired")}</label>
                     <select className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
-                      <option value="super_admin">{t("role.superAdmin")}</option>
+                      {isSuperAdmin && <option value="super_admin">{t("role.superAdmin")}</option>}
+                      {isSuperAdmin && <option value="general_manager">{t("role.generalManager")}</option>}
                       <option value="hr_manager">{t("role.hrManager")}</option>
                       <option value="accountant">{t("role.accountant")}</option>
                       <optgroup label="Tele Sales">
@@ -447,7 +454,8 @@ export default function UserListClient({ initialUsers, managers, companies = [],
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">{t("form.roleRequired")}</label>
                     <select className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" value={editData.role} onChange={e => setEditData({...editData, role: e.target.value})}>
-                      <option value="super_admin">{t("role.superAdmin")}</option>
+                      {isSuperAdmin && <option value="super_admin">{t("role.superAdmin")}</option>}
+                      {isSuperAdmin && <option value="general_manager">{t("role.generalManager")}</option>}
                       <option value="hr_manager">{t("role.hrManager")}</option>
                       <option value="accountant">{t("role.accountant")}</option>
                       <optgroup label="Tele Sales">
@@ -488,6 +496,20 @@ export default function UserListClient({ initialUsers, managers, companies = [],
                       </optgroup>
                     </select>
                   </div>
+                  {isSuperAdmin && editData.role === "general_manager" && (
+                    <div className="col-span-2 rounded-lg border border-amber-200 bg-amber-50 p-3" data-testid="gm-grants">
+                      <p className="mb-2 text-sm font-semibold text-amber-900">{t("users.gmGrants")}</p>
+                      <p className="mb-2 text-xs text-amber-800">{t("users.gmGrantsHint")}</p>
+                      <label className="mb-1 flex items-center gap-2 text-sm text-gray-800">
+                        <input type="checkbox" checked={editData.gmCanEdit} onChange={(e) => setEditData({ ...editData, gmCanEdit: e.target.checked })} data-testid="gm-can-edit" />
+                        {t("users.gmCanEdit")}
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-gray-800">
+                        <input type="checkbox" checked={editData.gmCanDelete} onChange={(e) => setEditData({ ...editData, gmCanDelete: e.target.checked })} data-testid="gm-can-delete" />
+                        {t("users.gmCanDelete")}
+                      </label>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">{t("common.level")}</label>
                     <select className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" value={editData.level} onChange={e => setEditData({...editData, level: e.target.value})}>

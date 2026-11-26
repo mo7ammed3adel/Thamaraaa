@@ -23,6 +23,8 @@ declare module "next-auth" {
     role: string;
     level?: string;
     mustChangePassword?: boolean;
+    /** When the role was last re-read from the database (ms). */
+    roleCheckedAt?: number;
   }
 }
 

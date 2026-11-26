@@ -7,7 +7,7 @@ import {
   uploadEmployeeDocument,
 } from "@/server/services/hrService";
 
-const HR_ROLES = ["super_admin", "hr_manager"];
+const HR_ROLES = ["super_admin", "general_manager", "hr_manager"];
 
 export async function GET(req: NextRequest) {
   const sessionUser = await getSessionUser();

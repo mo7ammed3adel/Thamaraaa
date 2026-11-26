@@ -63,8 +63,13 @@ model User {
   chatReactions       ChatReaction[]      @relation("ChatReactionUser")
   chatConversations   ChatConversation[]  @relation("ChatConversationCreator")
   chatCallsStarted    ChatCall[]          @relation("ChatCallStarter")
+  chatLabels          ChatLabel[]
   // Profile photo: a storage key in the chat file store (256px WebP).
   avatarKey           String?
+  // general_manager only: sees and creates everything a super admin can, but
+  // edits/deletes only when the super admin grants it here.
+  gmCanEdit           Boolean             @default(false)
+  gmCanDelete         Boolean             @default(false)
 }
 
 model Niche {
@@ -1430,30 +1435,34 @@ model Screenshot {
 // authorized route that checks the viewer is a member of the conversation.
 
 model ChatConversation {
-  id            String   @id @default(uuid())
-  type          String // dm, group, channel
-  name          String?
-  description   String?
+  id              String   @id @default(uuid())
+  type            String // dm, group, channel
+  name            String?
+  description     String?
   // Channels only: public channels can be browsed and joined by any employee;
   // private ones are invite-only. Groups and DMs are always private.
-  isPrivate     Boolean  @default(true)
+  isPrivate       Boolean  @default(true)
   // DMs only: the two member ids sorted and joined, so a pair has one DM.
-  dmKey         String?  @unique
+  dmKey           String?  @unique
   // Group/channel photo (256px WebP in the chat file store).
-  avatarKey     String?
+  avatarKey       String?
   // Set on the client group made automatically for a project once it reaches
   // the technical stage; one group per project.
-  projectId     String?  @unique
-  createdById   String?
-  createdBy     User?    @relation("ChatConversationCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  lastMessageAt DateTime @default(now())
+  projectId       String?  @unique
+  // Any other group can be linked to a client by its owner/admin, to show
+  // that client's journey in the group (no effect on membership).
+  linkedProjectId String?
+  createdById     String?
+  createdBy       User?    @relation("ChatConversationCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  lastMessageAt   DateTime @default(now())
 
   members     ChatMember[]
   messages    ChatMessage[]
   attachments ChatAttachment[]
   calls       ChatCall[]
+  labelLinks  ChatConversationLabel[]
 
   @@index([type, isPrivate])
   @@index([lastMessageAt])
@@ -1488,6 +1497,10 @@ model ChatMessage {
   replyToId      String?
   replyTo        ChatMessage?     @relation("ChatMessageReply", fields: [replyToId], references: [id], onDelete: SetNull)
   replies        ChatMessage[]    @relation("ChatMessageReply")
+  // WhatsApp-style reply: the message quoted above this one (same conversation).
+  quotedId       String?
+  quoted         ChatMessage?     @relation("ChatMessageQuote", fields: [quotedId], references: [id], onDelete: SetNull)
+  quotedBy       ChatMessage[]    @relation("ChatMessageQuote")
   editedAt       DateTime?
   deletedAt      DateTime?
   // Pinned to the conversation (any member can pin, like Slack).
@@ -1569,4 +1582,29 @@ model ChatCall {
   message        ChatMessage?
 
   @@index([conversationId, endedAt])
+}
+
+/// A personal label (like WhatsApp Business labels): each employee makes their
+/// own and puts them on their conversations. Nobody else sees them.
+model ChatLabel {
+  id        String                  @id @default(uuid())
+  userId    String
+  user      User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  color     String
+  createdAt DateTime                @default(now())
+  links     ChatConversationLabel[]
+
+  @@unique([userId, name])
+}
+
+model ChatConversationLabel {
+  labelId        String
+  label          ChatLabel        @relation(fields: [labelId], references: [id], onDelete: Cascade)
+  conversationId String
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime         @default(now())
+
+  @@id([labelId, conversationId])
+  @@index([conversationId])
 }

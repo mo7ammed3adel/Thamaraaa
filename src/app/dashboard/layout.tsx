@@ -41,7 +41,7 @@ export default async function DashboardLayout({
   const impersonatedBy = session.user.impersonatedBy;
 
   /** Check if user has one of the given roles (super_admin always passes) */
-  const hasRole = (...roles: string[]) => roles.includes(role) || role === "super_admin";
+  const hasRole = (...roles: string[]) => roles.includes(role) || (role === "super_admin" || role === "general_manager");
 
   return (
     <>
@@ -88,7 +88,7 @@ export default async function DashboardLayout({
           {!impersonatedBy && <ChatNavLink label={t("nav.teamChat")} />}
           
           {/* ===== ADMINISTRATION ===== */}
-          {role === "super_admin" && (
+          {(role === "super_admin" || role === "general_manager") && (
             <>
               <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-6 mb-2 px-3">{t("nav.section.administration")}</div>
               <Link href="/dashboard/users" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors">
@@ -402,7 +402,7 @@ export default async function DashboardLayout({
             </>
           )}
 
-          {role === "super_admin" && (
+          {(role === "super_admin" || role === "general_manager") && (
             <Link href="/dashboard/master-sheet" className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-800 hover:text-white transition-colors mt-2">
               <ClipboardList className="me-3 h-5 w-5 opacity-75" />
               {t("nav.globalMasterSheet")}

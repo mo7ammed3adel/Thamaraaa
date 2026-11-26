@@ -6,7 +6,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   try {
     const user = await getSessionUser();
 
-    if (!user || (user.role !== "hr_manager" && user.role !== "super_admin")) {
+    if (!user || (user.role !== "hr_manager" && (user.role !== "super_admin" && user.role !== "general_manager"))) {
       return errorJson("Unauthorized", 401);
     }
 

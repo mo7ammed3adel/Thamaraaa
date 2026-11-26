@@ -8,7 +8,7 @@ import { getTranslator } from "@/server/i18n/locale";
 export default async function SettingsPage() {
   const t = getTranslator();
   const session = await getServerSession(authOptions);
-  if ((session?.user as any)?.role !== "super_admin") {
+  if (!["super_admin", "general_manager"].includes((session?.user as any)?.role)) {
     redirect("/dashboard");
   }
 

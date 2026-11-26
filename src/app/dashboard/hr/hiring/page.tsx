@@ -8,7 +8,7 @@ import { Users } from "lucide-react";
 export default async function HRHiringPage() {
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
-  if (!["super_admin", "hr_manager"].includes(user?.role)) {
+  if (!["super_admin", "general_manager", "hr_manager"].includes(user?.role)) {
     redirect("/dashboard");
   }
 

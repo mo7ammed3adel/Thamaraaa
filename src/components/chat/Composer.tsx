@@ -5,6 +5,7 @@ import { AtSign, Bold, Code, FileText, Italic, Mic, Paperclip, Pencil, SendHoriz
 import { MAX_FILES_PER_MESSAGE, MAX_FILE_BYTES, MAX_MESSAGE_LENGTH, STICKERS, formatBytes } from "@/lib/chat/constants";
 import type { ChatMessage } from "@/client/api/chat";
 import { Avatar, Sticker } from "./ChatBits";
+import { QuoteBlock } from "./MessageItem";
 import { useChatT } from "./useChatT";
 import { MAX_VOICE_MS, VOICE_BITRATE, formatDuration } from "@/lib/chat/media";
 import { recordAudio, stampedName, type AudioRecording, type RecordingResult } from "@/lib/chat/recorder";
@@ -84,6 +85,9 @@ export default function Composer({
   onCancelEdit,
   onSubmit,
   onError,
+  quoting,
+  onCancelQuote,
+  meId,
 }: {
   disabled?: boolean;
   editing: ChatMessage | null;
@@ -97,6 +101,10 @@ export default function Composer({
   onCancelEdit: () => void;
   onSubmit: (input: ComposerSubmit) => Promise<boolean>;
   onError: (message: string) => void;
+  /** Replying to this message (WhatsApp-style); shown above the input. */
+  quoting?: ChatMessage | null;
+  onCancelQuote?: () => void;
+  meId?: string;
 }) {
   const { t, locale } = useChatT();
   const [text, setText] = useState("");
@@ -209,6 +217,10 @@ export default function Composer({
     // names only matter at the moment editing starts
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing]);
+
+  useEffect(() => {
+    if (quoting) inputRef.current?.focus();
+  }, [quoting]);
 
   useEffect(() => {
     const el = inputRef.current;
@@ -364,6 +376,27 @@ export default function Composer({
         </div>
       )}
 
+      {quoting && !editing && (
+        <div className="mb-2">
+          <QuoteBlock
+            quote={{
+              id: quoting.id,
+              senderId: quoting.sender?.id ?? null,
+              senderName: quoting.sender?.name ?? null,
+              kind: quoting.kind,
+              deleted: quoting.deleted,
+              text: quoting.body,
+              stickerId: quoting.stickerId,
+              attachment: quoting.attachments[0] ? { category: quoting.attachments[0].category, originalName: quoting.attachments[0].originalName } : null,
+              threadRootId: quoting.threadRootId,
+            }}
+            meId={meId ?? ""}
+            names={names}
+            onCancel={onCancelQuote}
+          />
+        </div>
+      )}
+
       {uploadProgress !== null && (
         <div className="mb-2">
           <div className="mb-1 text-xs text-slate-500">
@@ -507,6 +540,7 @@ export default function Composer({
               e.preventDefault();
               submit();
             }
+            if (e.key === "Escape" && quoting && !editing) onCancelQuote?.();
             if (e.key === "Escape" && editing) {
               onCancelEdit();
               setText("");

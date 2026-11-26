@@ -9,6 +9,9 @@ import { changeOwnPassword } from "@/server/services/userService";
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return unauthorizedJson();
+  // Impersonating is for seeing someone's screens, never for taking over
+  // their account: their password stays theirs.
+  if (user.impersonatedBy) return errorJson("Not available while impersonating", 403);
 
   const body = await req.json().catch(() => null);
 

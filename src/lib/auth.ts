@@ -60,6 +60,18 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.level = user.level;
         token.mustChangePassword = (user as any).mustChangePassword || false;
+        token.roleCheckedAt = Date.now();
+      } else if (token.id && Date.now() - Number(token.roleCheckedAt ?? 0) > 60_000) {
+        // Re-read the role about once a minute, so promoting or demoting someone
+        // (e.g. to/from general manager) applies without them signing out.
+        // The middleware reads the role from this token.
+        try {
+          const fresh = await prisma.user.findUnique({ where: { id: token.id as string }, select: { role: true } });
+          if (fresh) token.role = fresh.role;
+          token.roleCheckedAt = Date.now();
+        } catch {
+          /* keep the old role; try again next time */
+        }
       }
       return token;
     },
@@ -76,7 +88,7 @@ export const authOptions: NextAuthOptions = {
       // user so the whole app behaves exactly as that user. The real identity
       // stays in the JWT (token), which is never mutated — that's how "exit"
       // and the impersonate routes recover the admin.
-      if (token?.role === "super_admin" && session.user) {
+      if ((token?.role === "super_admin" || token?.role === "general_manager") && session.user) {
         try {
           const raw = cookies().get(IMPERSONATION_COOKIE)?.value;
           if (raw) {
@@ -88,7 +100,10 @@ export const authOptions: NextAuthOptions = {
                 where: { id: targetId },
                 select: { id: true, name: true, email: true, role: true, level: true },
               });
-              if (target) {
+              // A general manager can never take on a super admin's (or another
+              // GM's) identity, even with a forged or leftover cookie.
+              const blocked = token.role === "general_manager" && target && ["super_admin", "general_manager"].includes(target.role);
+              if (target && !blocked) {
                 session.user.impersonatedBy = { id: token.id as string, name: session.user.name };
                 session.user.id = target.id;
                 session.user.role = target.role;

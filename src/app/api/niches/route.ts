@@ -7,7 +7,7 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     const user = session?.user as any;
-    if (!user || !["super_admin", "tele_sales_manager", "tele_sales_agent"].includes(user.role)) {
+    if (!user || !["super_admin", "general_manager", "tele_sales_manager", "tele_sales_agent"].includes(user.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const user = session.user as any;
-    if (!["super_admin", "tele_sales_manager", "tele_sales_agent"].includes(user.role)) {
+    if (!["super_admin", "general_manager", "tele_sales_manager", "tele_sales_agent"].includes(user.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

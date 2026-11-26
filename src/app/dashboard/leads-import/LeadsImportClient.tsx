@@ -69,7 +69,7 @@ export default function LeadsImportClient({
   const [error, setError] = useState("");
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const canChooseImportOwner = userRole === "super_admin" || userRole === "tele_sales_manager";
+  const canChooseImportOwner = (userRole === "super_admin" || userRole === "general_manager") || userRole === "tele_sales_manager";
 
   /** Parse Excel file and generate preview */
   const parseFile = useCallback(async (f: File) => {

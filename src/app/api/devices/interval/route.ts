@@ -7,7 +7,7 @@ import { getScreenshotInterval, setScreenshotInterval } from "@/server/services/
 export async function GET() {
   const user = await getSessionUser();
   if (!user?.role) return unauthorizedJson();
-  if (user.role !== "super_admin") return errorJson("Forbidden", 403);
+  if ((user.role !== "super_admin" && user.role !== "general_manager")) return errorJson("Forbidden", 403);
   return successJson({ minutes: await getScreenshotInterval() });
 }
 

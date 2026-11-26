@@ -1,5 +1,5 @@
 export const USER_ROLES = [
-  "super_admin",
+  "super_admin", "general_manager",
   "tele_sales_agent",
   "tele_sales_manager",
   "sales_agent",
@@ -38,6 +38,7 @@ export function isUserRole(value: unknown): value is UserRole {
 
 export const ROLE_LABELS: Record<UserRole, string> = {
   super_admin: "Super Admin",
+  general_manager: "General Manager",
   tele_sales_agent: "Tele Sales Agent",
   tele_sales_manager: "Tele Sales Manager",
   sales_agent: "Sales Agent",

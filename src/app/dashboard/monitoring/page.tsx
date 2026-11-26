@@ -17,7 +17,7 @@ import MonitoringClient from "./MonitoringClient";
 export default async function MonitoringPage() {
   const session = await getServerSession(authOptions);
   const role = session?.user?.role;
-  if (role !== "super_admin") redirect("/dashboard");
+  if ((role !== "super_admin" && role !== "general_manager")) redirect("/dashboard");
 
   const [devicesResult, usersResult, interval, retentionDays] = await Promise.all([
     listDevices(role),

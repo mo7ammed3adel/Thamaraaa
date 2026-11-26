@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { setAgentMonthlyTarget } from "@/server/services/userService";
+import { setAgentMonthlyTarget, isProtectedFromActor } from "@/server/services/userService";
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -9,8 +9,13 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     const actor = session?.user as any;
 
     // Only allow managers or super admins
-    if (!session || !["super_admin", "tele_sales_manager", "sales_manager", "chief_sales"].includes(actor?.role)) {
+    if (!session || !["super_admin", "general_manager", "tele_sales_manager", "sales_manager", "chief_sales"].includes(actor?.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    // Top roles are the super admin's to manage.
+    if (await isProtectedFromActor({ id: actor.id, role: actor.role }, params.id)) {
+      return NextResponse.json({ error: "Only the super admin can change this user" }, { status: 403 });
     }
 
     const { target, month } = await request.json();

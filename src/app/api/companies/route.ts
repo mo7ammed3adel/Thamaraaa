@@ -7,7 +7,7 @@ import { addCompany, listCompanies } from "@/server/services/referenceDataServic
 async function requireSuperAdmin() {
   const user = await getSessionUser();
   if (!user) return { error: unauthorizedJson() };
-  if (user.role !== "super_admin") return { error: errorJson("Forbidden", 403) };
+  if ((user.role !== "super_admin" && user.role !== "general_manager")) return { error: errorJson("Forbidden", 403) };
   return { user };
 }
 

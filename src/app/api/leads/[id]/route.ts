@@ -59,7 +59,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
   try {
     const session = await getServerSession(authOptions);
     const user = session?.user as any;
-    if (!user || !["super_admin", "tele_sales_manager"].includes(user.role)) {
+    if (!user || !["super_admin", "general_manager", "tele_sales_manager"].includes(user.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 

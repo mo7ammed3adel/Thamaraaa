@@ -16,7 +16,7 @@ export default async function AccountManagerPage() {
   }
 
   const user = session.user;
-  if (!["super_admin", "head_account_manager", "account_manager"].includes(user.role)) {
+  if (!["super_admin", "general_manager", "head_account_manager", "account_manager"].includes(user.role)) {
     redirect("/dashboard");
   }
 

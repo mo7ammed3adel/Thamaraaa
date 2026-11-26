@@ -13,6 +13,6 @@ export const dynamic = "force-dynamic";
 export async function POST() {
   const auth = await requireChatActor();
   if ("response" in auth) return auth.response;
-  if (auth.actor.role !== "super_admin") return errorJson("Forbidden", 403);
+  if ((auth.actor.role !== "super_admin" && auth.actor.role !== "general_manager")) return errorJson("Forbidden", 403);
   return successJson(await backfillProjectChats());
 }

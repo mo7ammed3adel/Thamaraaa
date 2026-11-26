@@ -66,7 +66,7 @@ export async function setupExistingProject(input: {
 }) {
   if (!input.projectId) return { status: "missing_project_id" as const };
 
-  if (!["super_admin", "head_account_manager", "account_manager"].includes(input.userRole)) {
+  if (!["super_admin", "general_manager", "head_account_manager", "account_manager"].includes(input.userRole)) {
     return { status: "forbidden" as const };
   }
 
@@ -123,7 +123,7 @@ export async function createProjectSetupFromDeal(input: {
   userRole?: string | null;
   body: any;
 }) {
-  if (!["sales_agent", "super_admin"].includes(input.userRole || "")) {
+  if (!["sales_agent", "super_admin", "general_manager"].includes(input.userRole || "")) {
     return { status: "forbidden" as const };
   }
 
@@ -180,7 +180,7 @@ export async function updateProjectStatus(input: {
   if (!project) return { status: "not_found" as const };
 
   const isOwner = project.accountManagerId === input.userId;
-  const isAdmin = ["super_admin", "head_account_manager"].includes(input.userRole);
+  const isAdmin = ["super_admin", "general_manager", "head_account_manager"].includes(input.userRole);
   const isAssignedHeadTechnical =
     input.userRole === "head_technical" && project.headTechnicalId === input.userId;
 
@@ -195,7 +195,7 @@ export async function updateProjectStatus(input: {
   }
 
   if (accountManagerId !== undefined) {
-    if (!["super_admin", "head_account_manager"].includes(input.userRole)) {
+    if (!["super_admin", "general_manager", "head_account_manager"].includes(input.userRole)) {
       return { status: "account_manager_forbidden" as const };
     }
 
@@ -356,7 +356,7 @@ export async function editProjectDetails(input: {
   if (!projectForEdit) return { status: "not_found" as const };
 
   const canEditProjectDetails =
-    input.userRole === "super_admin" ||
+    (input.userRole === "super_admin" || input.userRole === "general_manager") ||
     input.userRole === "head_account_manager" ||
     projectForEdit.accountManagerId === input.userId;
 

@@ -19,7 +19,8 @@ import { allowAction } from "./rateLimit";
 import { compressForStorage, optimizeImage } from "@/server/storage/compression";
 import { avatarVersion } from "@/server/avatars/version";
 import { notifyUsers } from "@/lib/notify";
-import { cleanDurationMs, cleanWaveform, isMissedCall, isRecordedAudioMime, type MediaMessageKind } from "@/lib/chat/media";
+import { cleanDurationMs, cleanWaveform, extractLinks, isMissedCall, isRecordedAudioMime, type MediaMessageKind } from "@/lib/chat/media";
+import { normalizeWebUrl } from "@/lib/safe-url";
 
 export type ChatActor = { id: string; name: string; role: string };
 
@@ -93,6 +94,18 @@ const messageInclude = {
   sender: { select: { id: true, name: true, role: true } },
   attachments: { select: { id: true, originalName: true, mimeType: true, category: true, size: true, durationMs: true, waveform: true } },
   call: { select: { id: true, video: true, startedAt: true, endedAt: true, participantIds: true, conversation: { select: { type: true } } } },
+  quoted: {
+    select: {
+      id: true,
+      kind: true,
+      body: true,
+      stickerId: true,
+      deletedAt: true,
+      replyToId: true,
+      sender: { select: { id: true, name: true } },
+      attachments: { select: { category: true, originalName: true }, take: 1 },
+    },
+  },
   reactions: { select: { emoji: true, userId: true, user: { select: { name: true } } } },
 } as const;
 
@@ -177,6 +190,20 @@ function toMessageDto(row: NonNullable<MessageRow>, viewerId: string, thread: Th
     // Kept even on a deleted root, so its thread stays reachable (Slack).
     thread,
     pinned: !deleted && Boolean(row.pinnedAt),
+    // WhatsApp-style reply: a short preview of the message being answered.
+    quote: row.quoted
+      ? {
+          id: row.quoted.id,
+          senderId: row.quoted.sender?.id ?? null,
+          senderName: row.quoted.sender?.name ?? null,
+          kind: row.quoted.kind,
+          deleted: Boolean(row.quoted.deletedAt),
+          text: row.quoted.deletedAt ? null : (row.quoted.body ?? "").slice(0, 300) || null,
+          stickerId: row.quoted.deletedAt ? null : row.quoted.stickerId,
+          attachment: row.quoted.deletedAt ? null : row.quoted.attachments[0] ?? null,
+          threadRootId: row.quoted.replyToId,
+        }
+      : null,
     call: row.call
       ? {
           id: row.call.id,
@@ -367,6 +394,8 @@ export async function getConversation(actor: ChatActor, conversationId: string) 
       isPrivate: c.isPrivate,
       avatarV: c.type === "dm" ? null : avatarVersion(c.avatarKey),
       isClientGroup: Boolean(c.projectId),
+      // The client whose journey this group shows (own project or a manual link).
+      journeyProjectId: c.projectId ?? c.linkedProjectId ?? null,
       createdAt: c.createdAt.toISOString(),
       myRole: membership.role as MemberRole,
       canCreateChannel: canCreateChannel(actor.role),
@@ -743,6 +772,8 @@ export async function sendMessage(
     body?: unknown;
     stickerId?: unknown;
     replyToId?: unknown;
+    /** WhatsApp-style reply: the message being quoted (same conversation). */
+    quoteId?: unknown;
     files?: UploadedFile[];
     /** A voice note or call recording: exactly one recorded-audio file, no text. */
     media?: { kind: MediaMessageKind; durationMs?: unknown; waveform?: unknown };
@@ -786,6 +817,15 @@ export async function sendMessage(
     if (!parent.replyToId && parent.deletedAt && !(await prisma.chatMessage.count({ where: { replyToId } }))) {
       return { status: "invalid" as const, error: "Reply target not found" };
     }
+  }
+
+  let quotedId: string | null = null;
+  if (typeof input.quoteId === "string" && input.quoteId) {
+    const quoted = await prisma.chatMessage.findUnique({ where: { id: input.quoteId }, select: { conversationId: true, kind: true } });
+    if (!quoted || quoted.conversationId !== conversationId || quoted.kind === "system") {
+      return { status: "invalid" as const, error: "Quoted message not found" };
+    }
+    quotedId = input.quoteId;
   }
 
   // Inspect every file before writing any, so one bad file rejects the whole
@@ -836,6 +876,7 @@ export async function sendMessage(
           body: sticker ? null : body || null,
           stickerId: sticker?.id ?? null,
           replyToId,
+          quotedId,
           createdAt: now,
           attachments: {
             create: stored.map((s) => ({
@@ -1013,49 +1054,122 @@ export async function getAttachmentForView(actor: ChatActor, attachmentId: strin
   return { status: "ok" as const, attachment };
 }
 
-// ── Shared media (WhatsApp-style "media, docs") ─────────────────────────────
+// ── Shared media (WhatsApp-style "media, docs, links") ──────────────────────
 
-export const MEDIA_TABS = ["image", "video", "file", "voice"] as const;
+/** Voice notes and call recordings stay in the conversation, not in here. */
+export const MEDIA_TABS = ["image", "video", "file", "link"] as const;
 export type MediaTab = (typeof MEDIA_TABS)[number];
+type AttachmentTab = Exclude<MediaTab, "link">;
+export type MediaCounts = Record<MediaTab, number>;
 const MEDIA_PAGE = 60;
+const RECORDED = ["voice", "recording"];
 
-function mediaWhere(conversationId: string, tab: MediaTab): Prisma.ChatAttachmentWhereInput {
-  const live = { conversationId, messageId: { not: null }, message: { deletedAt: null } };
-  const recorded = ["voice", "recording"];
+function mediaWhere(conversationId: string, tab: AttachmentTab): Prisma.ChatAttachmentWhereInput {
+  const base = { conversationId, messageId: { not: null } };
   switch (tab) {
     case "image":
-      return { ...live, category: "image" };
+      return { ...base, category: "image", message: { deletedAt: null } };
     case "video":
-      return { ...live, category: "video", message: { deletedAt: null, kind: { notIn: recorded } } };
-    case "voice":
-      return { ...live, message: { deletedAt: null, kind: { in: recorded } } };
+      return { ...base, category: "video", message: { deletedAt: null, kind: { notIn: RECORDED } } };
     default:
-      return { ...live, category: { notIn: ["image", "video"] }, message: { deletedAt: null, kind: { notIn: recorded } } };
+      return { ...base, category: { notIn: ["image", "video"] }, message: { deletedAt: null, kind: { notIn: RECORDED } } };
   }
 }
 
+const linkWhere = (conversationId: string): Prisma.ChatMessageWhereInput => ({ conversationId, deletedAt: null, body: { contains: "http" } });
+
+/** Counts for every tab, in two queries; done once per tab open, not per page. */
+async function mediaCounts(conversationId: string): Promise<MediaCounts> {
+  const [[c], link] = await Promise.all([
+    prisma.$queryRaw<{ image: number; video: number; file: number }[]>`
+      SELECT
+        COUNT(*) FILTER (WHERE a.category = 'image')::int AS image,
+        COUNT(*) FILTER (WHERE a.category = 'video' AND m.kind NOT IN ('voice', 'recording'))::int AS video,
+        COUNT(*) FILTER (WHERE a.category NOT IN ('image', 'video') AND m.kind NOT IN ('voice', 'recording'))::int AS file
+      FROM "ChatAttachment" a
+      JOIN "ChatMessage" m ON m.id = a."messageId"
+      WHERE a."conversationId" = ${conversationId} AND m."deletedAt" IS NULL`,
+    prisma.chatMessage.count({ where: linkWhere(conversationId) }),
+  ]);
+  return { image: Number(c?.image ?? 0), video: Number(c?.video ?? 0), file: Number(c?.file ?? 0), link };
+}
+
+type Sender = { id: string; name: string } | null;
+export type MediaListItem =
+  | {
+      kind: "attachment";
+      id: string;
+      originalName: string;
+      mimeType: string;
+      category: string;
+      size: number;
+      durationMs: number | null;
+      waveform: string | null;
+      createdAt: string;
+      messageId: string;
+      threadRootId: string | null;
+      sender: Sender;
+    }
+  | { kind: "link"; id: string; url: string; host: string; createdAt: string; messageId: string; threadRootId: string | null; sender: Sender };
+
 /**
- * A conversation's shared photos, videos, files or voice notes, newest first,
- * with a count per tab. Paged by a (createdAt, id) cursor.
+ * A conversation's shared photos, videos, files or links, newest first, with
+ * a count per tab on the first page. Paged by a (createdAt, id) cursor: an
+ * attachment id for files, a message id for links.
  */
 export async function listMedia(actor: ChatActor, conversationId: string, params: { tab?: unknown; before?: unknown }) {
   const membership = await findMembership(conversationId, actor.id);
   if (!membership) return { status: "not_found" as const };
   if (!allowAction(`media:${actor.id}`, 60, 60_000)) return { status: "rate_limited" as const };
   const tab: MediaTab = (MEDIA_TABS as readonly string[]).includes(params.tab as string) ? (params.tab as MediaTab) : "image";
+  const before = typeof params.before === "string" && params.before ? params.before : null;
 
   let cursor: { createdAt: Date; id: string } | null = null;
-  if (typeof params.before === "string" && params.before) {
-    const at = await prisma.chatAttachment.findFirst({ where: { id: params.before, conversationId }, select: { createdAt: true, id: true } });
+  if (before) {
+    cursor =
+      tab === "link"
+        ? await prisma.chatMessage.findFirst({ where: { id: before, conversationId }, select: { createdAt: true, id: true } })
+        : await prisma.chatAttachment.findFirst({ where: { id: before, conversationId }, select: { createdAt: true, id: true } });
     // An unknown cursor must not silently restart from the top (duplicates).
-    if (!at) return { status: "invalid" as const, error: "Unknown cursor" };
-    cursor = at;
+    if (!cursor) return { status: "invalid" as const, error: "Unknown cursor" };
   }
+  const after = cursor ? { OR: [{ createdAt: { lt: cursor.createdAt } }, { createdAt: cursor.createdAt, id: { lt: cursor.id } }] } : null;
+  const counts = cursor ? null : await mediaCounts(conversationId);
+
+  if (tab === "link") {
+    const where = linkWhere(conversationId);
+    const rows = await prisma.chatMessage.findMany({
+      where: after ? { AND: [where, after] } : where,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: MEDIA_PAGE + 1,
+      select: { id: true, body: true, createdAt: true, replyToId: true, sender: { select: { id: true, name: true } } },
+    });
+    const page = rows.slice(0, MEDIA_PAGE);
+    const items: MediaListItem[] = page.flatMap((m) =>
+      extractLinks(m.body).flatMap((raw, i) => {
+        const url = normalizeWebUrl(raw);
+        if (!url) return [];
+        return [
+          {
+            kind: "link" as const,
+            id: `${m.id}:${i}`,
+            url,
+            host: new URL(url).hostname.replace(/^www\./, ""),
+            createdAt: m.createdAt.toISOString(),
+            messageId: m.id,
+            threadRootId: m.replyToId,
+            sender: m.sender,
+          },
+        ];
+      })
+    );
+    // Links page by message: the next cursor is the last message looked at.
+    return { status: "ok" as const, tab, counts, hasMore: rows.length > MEDIA_PAGE, nextCursor: page[page.length - 1]?.id ?? null, items };
+  }
+
   const where = mediaWhere(conversationId, tab);
   const rows = await prisma.chatAttachment.findMany({
-    where: cursor
-      ? { AND: [where, { OR: [{ createdAt: { lt: cursor.createdAt } }, { createdAt: cursor.createdAt, id: { lt: cursor.id } }] }] }
-      : where,
+    where: after ? { AND: [where, after] } : where,
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: MEDIA_PAGE + 1,
     select: {
@@ -1067,42 +1181,23 @@ export async function listMedia(actor: ChatActor, conversationId: string, params
       durationMs: true,
       waveform: true,
       createdAt: true,
-      message: { select: { id: true, kind: true, replyToId: true, sender: { select: { id: true, name: true } } } },
+      message: { select: { id: true, replyToId: true, sender: { select: { id: true, name: true } } } },
     },
   });
-  // Counts once per tab open (not per page), in a single query.
-  let counts: Record<MediaTab, number> | null = null;
-  if (!cursor) {
-    const [c] = await prisma.$queryRaw<{ image: number; video: number; file: number; voice: number }[]>`
-      SELECT
-        COUNT(*) FILTER (WHERE a.category = 'image')::int AS image,
-        COUNT(*) FILTER (WHERE a.category = 'video' AND m.kind NOT IN ('voice', 'recording'))::int AS video,
-        COUNT(*) FILTER (WHERE a.category NOT IN ('image', 'video') AND m.kind NOT IN ('voice', 'recording'))::int AS file,
-        COUNT(*) FILTER (WHERE m.kind IN ('voice', 'recording'))::int AS voice
-      FROM "ChatAttachment" a
-      JOIN "ChatMessage" m ON m.id = a."messageId"
-      WHERE a."conversationId" = ${conversationId} AND m."deletedAt" IS NULL`;
-    counts = { image: Number(c?.image ?? 0), video: Number(c?.video ?? 0), file: Number(c?.file ?? 0), voice: Number(c?.voice ?? 0) };
-  }
-
-  return {
-    status: "ok" as const,
-    tab,
-    counts,
-    hasMore: rows.length > MEDIA_PAGE,
-    items: rows.slice(0, MEDIA_PAGE).map((r) => ({
-      id: r.id,
-      originalName: r.originalName,
-      mimeType: r.mimeType,
-      category: r.category,
-      size: r.size,
-      durationMs: r.durationMs,
-      waveform: r.waveform,
-      createdAt: r.createdAt.toISOString(),
-      messageId: r.message!.id,
-      messageKind: r.message!.kind,
-      threadRootId: r.message!.replyToId,
-      sender: r.message!.sender,
-    })),
-  };
+  const page = rows.slice(0, MEDIA_PAGE);
+  const items: MediaListItem[] = page.map((r) => ({
+    kind: "attachment" as const,
+    id: r.id,
+    originalName: r.originalName,
+    mimeType: r.mimeType,
+    category: r.category,
+    size: r.size,
+    durationMs: r.durationMs,
+    waveform: r.waveform,
+    createdAt: r.createdAt.toISOString(),
+    messageId: r.message!.id,
+    threadRootId: r.message!.replyToId,
+    sender: r.message!.sender,
+  }));
+  return { status: "ok" as const, tab, counts, hasMore: rows.length > MEDIA_PAGE, nextCursor: page[page.length - 1]?.id ?? null, items };
 }

@@ -28,7 +28,7 @@ const WARNING_ISSUER_ROLES = [
   "sales_agent",
   "sales_manager",
   "head_account_manager",
-  "super_admin",
+  "super_admin", "general_manager",
 ];
 
 export default function WarningsCenterClient({ warnings, leads, userRole, userId }: any) {

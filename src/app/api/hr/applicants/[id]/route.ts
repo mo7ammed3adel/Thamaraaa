@@ -4,7 +4,7 @@ import { editJobApplicant } from "@/server/services/hrService";
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const user = await getSessionUser();
-  if (!["super_admin", "hr_manager"].includes(user?.role || "")) {
+  if (!["super_admin", "general_manager", "hr_manager"].includes(user?.role || "")) {
     return errorJson("Unauthorized", 403);
   }
 

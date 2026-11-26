@@ -10,12 +10,12 @@ export default async function LeadsImportPage() {
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
 
-  if (!["super_admin", "tele_sales_manager", "tele_sales_agent"].includes(user?.role)) {
+  if (!["super_admin", "general_manager", "tele_sales_manager", "tele_sales_agent"].includes(user?.role)) {
     redirect("/dashboard");
   }
 
   // Fetch tele-sales agents for assignment dropdown
-  const agents = ["super_admin", "tele_sales_manager"].includes(user.role)
+  const agents = ["super_admin", "general_manager", "tele_sales_manager"].includes(user.role)
     ? await prisma.user.findMany({
         where: {
           role: "tele_sales_agent",
@@ -29,7 +29,7 @@ export default async function LeadsImportPage() {
       })
     : [];
 
-  const companies = ["super_admin", "tele_sales_manager"].includes(user.role)
+  const companies = ["super_admin", "general_manager", "tele_sales_manager"].includes(user.role)
     ? await prisma.company.findMany({
         select: { id: true, name: true },
         orderBy: { name: "asc" },

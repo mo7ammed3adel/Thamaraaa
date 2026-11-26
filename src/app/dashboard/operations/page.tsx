@@ -11,7 +11,7 @@ export default async function OperationsPage() {
   const user = session?.user;
 
   const allowedRoles = [
-    "super_admin", "head_account_manager", "account_manager", 
+    "super_admin", "general_manager", "head_account_manager", "account_manager", 
     "head_technical", "head_seo", "team_leader_seo", "agent_seo", "agent_content_seo",
     "team_leader_social_media", "agent_social_media", "team_leader_media_buyer", "agent_media_buyer",
     "leader_graphic_designer", "agent_graphic_designer", "leader_motion_graphic", "agent_motion_graphic", "leader_ui", "agent_ui"
@@ -25,7 +25,7 @@ export default async function OperationsPage() {
   // else is limited to projects they manage, lead, or are assigned to. A Head
   // Account Manager only sees the clients the super_admin distributed to them.
   const whereClause =
-    user.role === "super_admin"
+    (user.role === "super_admin" || user.role === "general_manager")
       ? {}
       : user.role === "head_account_manager"
         ? { headAccountManagerId: user.id }

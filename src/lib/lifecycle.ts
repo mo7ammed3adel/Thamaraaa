@@ -53,7 +53,7 @@ export function canChangeLifecycle(
     return false;
   }
 
-  if (userRole === "head_account_manager" || userRole === "super_admin") {
+  if (userRole === "head_account_manager" || (userRole === "super_admin" || userRole === "general_manager")) {
     return true;
   }
 

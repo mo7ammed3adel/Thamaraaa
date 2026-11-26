@@ -4,7 +4,7 @@ import { getFinanceOverview } from "@/server/services/financeService";
 
 export async function GET(req: Request) {
   const user = await getSessionUser();
-  if (!user || (user.role !== "accountant" && user.role !== "super_admin")) {
+  if (!user || (user.role !== "accountant" && (user.role !== "super_admin" && user.role !== "general_manager"))) {
     return errorJson("Unauthorized", 401);
   }
 

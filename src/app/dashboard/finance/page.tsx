@@ -9,7 +9,7 @@ export default async function FinancePage() {
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
   
-  if (!user || (!["super_admin", "accountant"].includes(user.role))) {
+  if (!user || (!["super_admin", "general_manager", "accountant"].includes(user.role))) {
     redirect("/dashboard");
   }
 

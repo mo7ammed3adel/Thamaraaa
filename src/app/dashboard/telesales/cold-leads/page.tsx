@@ -15,7 +15,7 @@ export default async function ColdLeadsPage() {
     redirect("/login");
   }
 
-  if (!["tele_sales_agent", "tele_sales_manager", "super_admin"].includes(user.role)) {
+  if (!["tele_sales_agent", "tele_sales_manager", "super_admin", "general_manager"].includes(user.role)) {
     redirect("/dashboard");
   }
 

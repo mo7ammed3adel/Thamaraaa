@@ -3,7 +3,7 @@ import { getSessionUser } from "@/server/auth/session";
 import { errorJson } from "@/server/http/responses";
 import { buildCommissionsExport, getDefaultCommissionMonth } from "@/server/services/financeService";
 
-const FINANCE_ROLES = ["super_admin", "accountant"];
+const FINANCE_ROLES = ["super_admin", "general_manager", "accountant"];
 
 /**
  * GET /api/finance/commissions/export?month=YYYY-MM

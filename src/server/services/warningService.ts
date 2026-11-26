@@ -27,7 +27,7 @@ function normalizeRecipientRoles(recipientRoles: unknown) {
 
 function canIssueWarningForProject(user: { id: string; role?: string | null }, project: any) {
   if (!user.role || !(WARNING_ISSUER_ROLES as readonly string[]).includes(user.role)) return false;
-  if (user.role === "super_admin" || user.role === "head_account_manager") return true;
+  if ((user.role === "super_admin" || user.role === "general_manager") || user.role === "head_account_manager") return true;
   if (user.role === "account_manager") return project.accountManagerId === user.id;
   if (user.role === "sales_agent") return project.deal?.salesAgentId === user.id;
   if (user.role === "sales_manager") {

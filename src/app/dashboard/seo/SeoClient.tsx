@@ -36,7 +36,7 @@ export default function SeoClient({ projects, teamMembers, contentAgents = [], u
   const [searchQuery, setSearchQuery] = useState("");
   const [taskStatusFilter, setTaskStatusFilter] = useState("all");
 
-  const isHead = ["super_admin", "head_seo"].includes(userRole);
+  const isHead = ["super_admin", "general_manager", "head_seo"].includes(userRole);
   const isTL = userRole === "team_leader_seo";
   const isAgent = ["agent_seo", "agent_content_seo"].includes(userRole);
   const SEO_TASK_TYPES = ["SEO", "seo", "content_seo"];

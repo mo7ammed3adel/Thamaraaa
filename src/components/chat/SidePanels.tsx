@@ -172,6 +172,7 @@ export function ThreadPanel({
       onPin={(x) => act(() => togglePin(x.id))}
       onOpenImage={shared.onOpenImage}
       onOpenUser={shared.onOpenUser}
+      showSenderNames
     />
   );
 

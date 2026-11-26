@@ -1,3 +1,5 @@
+import { prisma } from "@/lib/prisma";
+import { isUserRole } from "@/contracts/roles";
 import {
   createHrNotification,
   createEmployeeDocument,
@@ -75,11 +77,11 @@ import { computePayslip, currentMonth, monthRange } from "@/lib/payslip";
 import { computeLeaveBalance, leaveDaysFromDuration } from "@/lib/leaveBalance";
 import bcrypt from "bcryptjs";
 
-const HR_ROLES = ["super_admin", "hr_manager"];
+const HR_ROLES = ["super_admin", "general_manager", "hr_manager"];
 const MONTH_RE = /^\d{4}-\d{2}$/;
 
 function isHrManager(role?: string | null) {
-  return role === "hr_manager" || role === "super_admin";
+  return role === "hr_manager" || (role === "super_admin" || role === "general_manager");
 }
 
 /** Parse a department policy JSON string defensively (never throws). */
@@ -94,6 +96,7 @@ function safeParsePolicy(raw?: string | null): Record<string, any> {
 }
 
 function canManageSuperAdmin(actorRole?: string | null) {
+  // The real super admin only: a GM can't create or promote admins/GMs.
   return actorRole === "super_admin";
 }
 
@@ -190,7 +193,7 @@ export async function createEmployee(input: { actorRole?: string | null; body: a
     return { status: "missing_fields" as const };
   }
 
-  if (data.role === "super_admin" && !canManageSuperAdmin(input.actorRole)) {
+  if ((data.role === "super_admin" || data.role === "general_manager") && !canManageSuperAdmin(input.actorRole)) {
     return { status: "super_admin_create_forbidden" as const };
   }
 
@@ -251,11 +254,11 @@ export async function updateEmployee(input: { actorRole?: string | null; body: a
     return { status: "not_found" as const };
   }
 
-  if (!canManageSuperAdmin(input.actorRole) && target.role === "super_admin") {
+  if (!canManageSuperAdmin(input.actorRole) && (target.role === "super_admin" || target.role === "general_manager")) {
     return { status: "super_admin_edit_forbidden" as const };
   }
 
-  if (!canManageSuperAdmin(input.actorRole) && data.role === "super_admin") {
+  if (!canManageSuperAdmin(input.actorRole) && (data.role === "super_admin" || data.role === "general_manager")) {
     return { status: "super_admin_grant_forbidden" as const };
   }
 
@@ -337,7 +340,7 @@ function normalizeDocumentChecklist(value: unknown) {
 }
 
 export function listLeaveRequests(input: { userId: string; userRole?: string | null }) {
-  if (input.userRole === "hr_manager" || input.userRole === "super_admin") {
+  if (input.userRole === "hr_manager" || (input.userRole === "super_admin" || input.userRole === "general_manager")) {
     return findAllLeaveRequests();
   }
 
@@ -695,7 +698,11 @@ export async function listPayroll(input: { month?: string | null }) {
   return { month, rows, totals };
 }
 
+const TOP_ROLES = ["super_admin", "general_manager"];
+
 export async function applyPromotionAction(input: {
+  /** Who is acting: only the super admin may touch or create the two top roles. */
+  actorRole?: string;
   userId?: string;
   action?: string;
   nextLevel?: string;
@@ -708,6 +715,12 @@ export async function applyPromotionAction(input: {
   const validActions = ["promote", "warn", "terminate", "clear"] as const;
   if (!validActions.includes(input.action as any)) {
     return { status: "invalid_action" as const, action: input.action };
+  }
+
+  if (input.actorRole !== "super_admin") {
+    const target = await prisma.user.findUnique({ where: { id: input.userId }, select: { role: true } });
+    if (target && TOP_ROLES.includes(target.role)) return { status: "forbidden" as const };
+    if (input.nextRole && (TOP_ROLES.includes(input.nextRole) || !isUserRole(input.nextRole))) return { status: "forbidden" as const };
   }
 
   const hr = await findHrRecordByUserId(input.userId);
@@ -758,7 +771,7 @@ type SessionUser = { id: string; role?: string | null; name?: string | null };
 
 const COMPLAINT_VISIBILITY = ["hr_only", "dept_head", "team_leader", "everyone"];
 const COMPLAINT_STATUSES = ["open", "in_progress", "resolved", "closed"];
-const SALARY_ADVANCE_ROLES = ["super_admin", "hr_manager", "accountant"];
+const SALARY_ADVANCE_ROLES = ["super_admin", "general_manager", "hr_manager", "accountant"];
 
 /** HR sees every central request; an employee sees only their own. */
 export async function listCentralHrRequests(user: SessionUser) {

@@ -10,7 +10,7 @@ import { wipeTestData } from "@/server/services/adminDataService";
  */
 export async function POST(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  if (!token || token.role !== "super_admin") {
+  if (!token || (token.role !== "super_admin" && token.role !== "general_manager")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

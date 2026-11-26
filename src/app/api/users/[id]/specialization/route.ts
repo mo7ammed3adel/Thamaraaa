@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { changeUserSpecialization } from "@/server/services/userService";
+import { changeUserSpecialization, isProtectedFromActor } from "@/server/services/userService";
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
     const user = session?.user as any;
-    if (!user || !["super_admin", "tele_sales_manager", "sales_manager", "chief_sales"].includes(user.role)) {
+    if (!user || !["super_admin", "general_manager", "tele_sales_manager", "sales_manager", "chief_sales"].includes(user.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    // Top roles are the super admin's to manage.
+    if (await isProtectedFromActor({ id: user.id, role: user.role }, params.id)) {
+      return NextResponse.json({ error: "Only the super admin can change this user" }, { status: 403 });
     }
 
     const { specialization } = await request.json();

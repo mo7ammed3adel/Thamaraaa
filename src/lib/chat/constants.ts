@@ -31,7 +31,7 @@ export function isAllowedReaction(emoji: unknown): emoji is string {
  */
 export function canCreateChannel(role: string | null | undefined): boolean {
   if (!role) return false;
-  if (role === "super_admin" || role === "hr_manager") return true;
+  if ((role === "super_admin" || role === "general_manager") || role === "hr_manager") return true;
   return /(^|_)(manager|head|chief|leader)(_|$)/.test(role) || role.startsWith("team_leader");
 }
 

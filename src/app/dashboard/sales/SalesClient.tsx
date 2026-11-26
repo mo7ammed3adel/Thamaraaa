@@ -26,7 +26,7 @@ const TELESALES_STAGE_STATUSES = ["New", "Contacted", "No_Answer", "Interested",
 export default function SalesClient({ initialLeads, userRole, userId, initialStatus, postSaleProjects = [], teamAgents = [] }: { initialLeads: any[], userRole: string, userId: string, initialStatus: string, postSaleProjects?: any[], teamAgents?: { id: string; name: string; status: string }[] }) {
   const t = useTranslator();
   const router = useRouter();
-  const isManager = ["sales_manager", "super_admin"].includes(userRole);
+  const isManager = ["sales_manager", "super_admin", "general_manager"].includes(userRole);
   const [leads, setLeads] = useState(initialLeads);
   const [status, setStatus] = useState(initialStatus);
   const [activeLead, setActiveLead] = useState<any>(null);

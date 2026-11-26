@@ -111,7 +111,7 @@ export async function createManualLead(input: { user: LeadUser; body: any }) {
   }
 
   let sourceName = `Manual - ${input.user.name}`;
-  if (input.user.role === "super_admin" || input.user.role === "tele_sales_manager") {
+  if ((input.user.role === "super_admin" || input.user.role === "general_manager") || input.user.role === "tele_sales_manager") {
     sourceName = `Manual (${input.user.role.replace(/_/g, " ")}) - ${input.user.name}`;
   }
 
@@ -133,7 +133,7 @@ export async function createManualLead(input: { user: LeadUser; body: any }) {
     }
   }
 
-  if (finalTeleAgentId && input.user.role === "super_admin") {
+  if (finalTeleAgentId && (input.user.role === "super_admin" || input.user.role === "general_manager")) {
     const targetAgent = await findLeadAssigneeForManualCreate(finalTeleAgentId);
     if (!targetAgent || targetAgent.role !== "tele_sales_agent" || targetAgent.status !== "Active") {
       return { status: "invalid_tele_assignee" as const };
@@ -168,7 +168,7 @@ function canUpdateLead(user: LeadUser, lead: any) {
   return (
     lead.assignedTeleAgentId === user.id ||
     lead.assignedSalesAgentId === user.id ||
-    user.role === "super_admin" ||
+    (user.role === "super_admin" || user.role === "general_manager") ||
     (user.role === "tele_sales_manager" &&
       (!lead.assignedTeleAgentId || lead.teleAgent?.directManagerId === user.id)) ||
     // Sales manager scope matches the My Team page: their direct reports plus
@@ -181,7 +181,7 @@ function canUpdateLead(user: LeadUser, lead: any) {
 }
 
 async function applySalesAssigneeChange(user: LeadUser, assignedSalesAgentId: any, updateData: any) {
-  if (!["super_admin", "sales_manager"].includes(user.role)) {
+  if (!["super_admin", "general_manager", "sales_manager"].includes(user.role)) {
     return { status: "sales_reassign_forbidden" as const };
   }
 
@@ -204,7 +204,7 @@ async function applySalesAssigneeChange(user: LeadUser, assignedSalesAgentId: an
 }
 
 async function applyTeleAssigneeChange(user: LeadUser, assignedTeleAgentId: any, updateData: any) {
-  if (!["super_admin", "tele_sales_manager"].includes(user.role)) {
+  if (!["super_admin", "general_manager", "tele_sales_manager"].includes(user.role)) {
     return { status: "tele_reassign_forbidden" as const };
   }
 
@@ -301,7 +301,7 @@ export async function updateLead(input: { id: string; user: LeadUser; body: any 
   if (
     existingLead.status === "Closed_Lost" &&
     input.body.status === "Follow_Up" &&
-    !["super_admin", "sales_manager"].includes(input.user.role)
+    !["super_admin", "general_manager", "sales_manager"].includes(input.user.role)
   ) {
     return { status: "lost_revert_forbidden" as const };
   }
@@ -426,7 +426,7 @@ export async function reportClientNoShow(input: { id: string; user: LeadUser }) 
 
   const isAuthorized =
     existingLead.assignedSalesAgentId === input.user.id ||
-    input.user.role === "super_admin" ||
+    (input.user.role === "super_admin" || input.user.role === "general_manager") ||
     (input.user.role === "sales_manager" &&
       (!existingLead.assignedSalesAgentId ||
         existingLead.salesAgent?.directManagerId === input.user.id ||
@@ -508,7 +508,7 @@ export async function logLeadCall(input: { user: LeadUser; body: any }) {
   const isAuthorized =
     existingLead.assignedTeleAgentId === input.user.id ||
     existingLead.assignedSalesAgentId === input.user.id ||
-    input.user.role === "super_admin" ||
+    (input.user.role === "super_admin" || input.user.role === "general_manager") ||
     (input.user.role === "tele_sales_manager" &&
       (!existingLead.assignedTeleAgentId || existingLead.teleAgent?.directManagerId === input.user.id)) ||
     (input.user.role === "sales_manager" &&
@@ -581,7 +581,7 @@ export async function distributeLeadMeeting(input: { id: string; user: LeadUser 
 
   const isAuthorized =
     lead.assignedTeleAgentId === input.user.id ||
-    input.user.role === "super_admin" ||
+    (input.user.role === "super_admin" || input.user.role === "general_manager") ||
     (input.user.role === "tele_sales_manager" &&
       (!lead.assignedTeleAgentId || lead.teleAgent?.directManagerId === input.user.id));
 
@@ -698,7 +698,7 @@ export async function importLeadsFromExcel(input: {
   if (input.assignToAgentId) {
     const targetAgent = await findLeadAssigneeForManualCreate(input.assignToAgentId);
     const invalidForSuperAdmin =
-      input.user.role === "super_admin" &&
+      (input.user.role === "super_admin" || input.user.role === "general_manager") &&
       (!targetAgent || targetAgent.role !== "tele_sales_agent" || targetAgent.status !== "Active");
     const invalidForManager =
       input.user.role === "tele_sales_manager" &&

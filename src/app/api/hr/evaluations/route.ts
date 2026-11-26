@@ -6,7 +6,7 @@ export async function POST(req: Request) {
   const user = await getSessionUser();
   const userRole = user?.role || "";
   
-  if (!["super_admin", "hr_manager"].includes(userRole)) {
+  if (!["super_admin", "general_manager", "hr_manager"].includes(userRole)) {
     return errorJson("Unauthorized", 403);
   }
 

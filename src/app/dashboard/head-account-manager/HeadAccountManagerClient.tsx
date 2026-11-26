@@ -20,7 +20,7 @@ import { useTranslator } from "@/components/i18n/LocaleProvider";
 export default function HeadAccountManagerClient({ projects, accountManagers, headAccountManagers = [], currentUserRole, headTechnicals, headSeoUsers, kpis, userId }: any) {
   const t = useTranslator();
   const router = useRouter();
-  const isSuperAdmin = currentUserRole === "super_admin";
+  const isSuperAdmin = (currentUserRole === "super_admin" || currentUserRole === "general_manager");
   const [assigningHeadId, setAssigningHeadId] = useState<string | null>(null);
   const [filterAM, setFilterAM] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");

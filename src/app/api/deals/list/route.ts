@@ -12,7 +12,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     if (
-      !["super_admin", "chief_sales", "tele_sales_manager", "tele_sales_agent", "sales_manager", "sales_agent"].includes(
+      !["super_admin", "general_manager", "chief_sales", "tele_sales_manager", "tele_sales_agent", "sales_manager", "sales_agent"].includes(
         user.role
       )
     ) {

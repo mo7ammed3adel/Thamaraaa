@@ -16,7 +16,7 @@ export default async function ClientAssignPage() {
   const session = await getServerSession(authOptions);
   const user = session?.user;
 
-  if (!user || user.role !== "super_admin") {
+  if (!user || (user.role !== "super_admin" && user.role !== "general_manager")) {
     redirect("/dashboard");
   }
 

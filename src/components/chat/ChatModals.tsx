@@ -20,6 +20,7 @@ import {
 } from "@/client/api/chat";
 import { Avatar, ConversationAvatar, ConversationIcon } from "./ChatBits";
 import { PhotoPicker } from "./PhotoPicker";
+import { ClientLinkSection } from "./ClientLinkSection";
 import { useChatT } from "./useChatT";
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
@@ -275,6 +276,7 @@ export function InfoPanel({
   onLeft,
   onError,
   onOpenUser,
+  onOpenJourney,
 }: {
   detail: ConversationDetail;
   meId: string;
@@ -283,6 +285,7 @@ export function InfoPanel({
   onLeft: () => void;
   onError: (m: string) => void;
   onOpenUser?: (user: { id: string; name: string; role?: string | null; online?: boolean }, anchor: DOMRect) => void;
+  onOpenJourney?: () => void;
 }) {
   const { t } = useChatT();
   const [adding, setAdding] = useState(false);
@@ -367,6 +370,8 @@ export function InfoPanel({
             </>
           )}
         </div>
+
+        <ClientLinkSection detail={detail} canManage={manager} onOpenJourney={() => onOpenJourney?.()} onChanged={onChanged} onError={onError} />
 
         <div className="mb-2 flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-400">

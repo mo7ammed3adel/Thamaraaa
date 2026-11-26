@@ -3,7 +3,7 @@ import { errorJson, successJson } from "@/server/http/responses";
 import { createEmployee, listEmployees, updateEmployee } from "@/server/services/hrService";
 
 function isHrManager(role?: string | null) {
-  return role === "hr_manager" || role === "super_admin";
+  return role === "hr_manager" || (role === "super_admin" || role === "general_manager");
 }
 
 export async function GET(req: Request) {

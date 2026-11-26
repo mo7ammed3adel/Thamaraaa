@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { getDistributionTargets } from "@/lib/distribution";
 import {
@@ -21,10 +22,10 @@ import {
 
 type Actor = { id: string; role?: string | null };
 
-const USER_ADMIN_ROLES = ["super_admin", "hr_manager"];
+const USER_ADMIN_ROLES = ["super_admin", "general_manager", "hr_manager"];
 const PRESENCE_STATUSES = ["Active", "Busy", "In_Call"];
 const SPECIALIZATIONS = ["Hot", "Cold", "Warm", null];
-const SPECIALIZATION_MANAGER_ROLES = ["super_admin", "tele_sales_manager", "sales_manager", "chief_sales"];
+const SPECIALIZATION_MANAGER_ROLES = ["super_admin", "general_manager", "tele_sales_manager", "sales_manager", "chief_sales"];
 
 /**
  * The directory each role may see: admins see everyone, Head AM sees account
@@ -58,7 +59,9 @@ export async function createUserAccount(input: { actor: Actor; body: any }) {
     return { status: "missing_fields" as const };
   }
 
-  if (actor.role === "hr_manager" && data.role === "super_admin") {
+  // Only the real super admin creates super admins or general managers (a GM
+  // or HR must not be able to make someone as powerful as, or above, them).
+  if (actor.role !== "super_admin" && (data.role === "super_admin" || data.role === "general_manager")) {
     return { status: "super_admin_create_forbidden" as const };
   }
 
@@ -118,8 +121,9 @@ export async function updateUserAccount(input: { actor: Actor; id: string; body:
   const targetUser = await findUserRoleById(id);
   if (!targetUser) return { status: "not_found" as const };
 
-  if (actor.role === "hr_manager") {
-    if (targetUser.role === "super_admin" || body.role === "super_admin") {
+  // Super admins and general managers are managed by the super admin only.
+  if (actor.role !== "super_admin") {
+    if ((targetUser.role === "super_admin" || targetUser.role === "general_manager") || (body.role === "super_admin" || body.role === "general_manager")) {
       return { status: "super_admin_edit_forbidden" as const };
     }
   }
@@ -138,6 +142,11 @@ export async function updateUserAccount(input: { actor: Actor; id: string; body:
     updateData.passwordHash = await bcrypt.hash(body.password, 10);
   }
   if (body.company !== undefined) updateData.company = body.company;
+  // A general manager's edit/delete powers: granted or revoked by the super admin only.
+  if (actor.role === "super_admin") {
+    if (typeof body.gmCanEdit === "boolean") updateData.gmCanEdit = body.gmCanEdit;
+    if (typeof body.gmCanDelete === "boolean") updateData.gmCanDelete = body.gmCanDelete;
+  }
   if (body.companyId !== undefined) {
     if (body.companyId === null || body.companyId === "") {
       updateData.companyId = null;
@@ -161,6 +170,9 @@ export async function deleteUserAccount(input: { actor: Actor; id: string }) {
 
   const target = await findUserById(id);
   if (!target) return { status: "not_found" as const };
+  if (actor.role !== "super_admin" && (target.role === "super_admin" || target.role === "general_manager")) {
+    return { status: "forbidden" as const };
+  }
 
   // Check for hard business references that must be preserved (deals, meetings, callLogs etc.).
   // If any exist we soft-delete (deactivate + free up email/phone) instead of throwing FK errors.
@@ -199,7 +211,7 @@ export async function changeUserPresenceStatus(input: { actor: Actor; id: string
   if (!targetUser) return { status: "not_found" as const };
 
   const isSelf = actor.id === id;
-  const isSuper = actor.role === "super_admin";
+  const isSuper = (actor.role === "super_admin" || actor.role === "general_manager");
   const isDirectSalesManager =
     actor.role === "sales_manager" &&
     targetUser.role === "sales_agent" &&
@@ -230,7 +242,7 @@ export async function changeUserSpecialization(input: { actor: Actor; id: string
   if (!targetUser) return { status: "not_found" as const };
 
   const canUpdate =
-    actor.role === "super_admin" ||
+    (actor.role === "super_admin" || actor.role === "general_manager") ||
     actor.role === "chief_sales" ||
     (actor.role === "tele_sales_manager" &&
       targetUser.role === "tele_sales_agent" &&
@@ -306,4 +318,14 @@ export async function changeOwnPassword(input: { userId: string; newPassword: un
 
   await updateUserPassword(input.userId, await bcrypt.hash(newPassword, 10));
   return { status: "ok" as const };
+}
+
+/**
+ * Super admins and general managers are managed by the super admin only:
+ * nobody else changes their target, specialization, presence or account.
+ */
+export async function isProtectedFromActor(actor: { id: string; role?: string | null }, targetId: string): Promise<boolean> {
+  if (actor.role === "super_admin" || actor.id === targetId) return false;
+  const target = await prisma.user.findUnique({ where: { id: targetId }, select: { role: true } });
+  return Boolean(target && (target.role === "super_admin" || target.role === "general_manager"));
 }

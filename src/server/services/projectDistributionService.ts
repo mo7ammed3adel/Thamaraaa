@@ -74,7 +74,7 @@ const DEPT_CONFIG: Record<
 };
 
 function canAssignDepartment(userRole: string, department: string, assignedRoleType: string) {
-  if (["super_admin", "head_account_manager"].includes(userRole)) return true;
+  if (["super_admin", "general_manager", "head_account_manager"].includes(userRole)) return true;
   if (userRole === "head_technical") {
     return assignedRoleType === "leader" && ["Social Media", "Media Buyer"].includes(department);
   }
@@ -229,7 +229,7 @@ export async function assignProjectTeamSlot(input: {
   userName?: string | null;
   body: any;
 }) {
-  if (!["super_admin", "head_account_manager", "head_technical", "head_seo"].includes(input.userRole)) {
+  if (!["super_admin", "general_manager", "head_account_manager", "head_technical", "head_seo"].includes(input.userRole)) {
     return { status: "insufficient_role" as const };
   }
 
@@ -321,7 +321,7 @@ export async function assignProjectAgent(input: {
     "leader_graphic_designer",
     "leader_motion_graphic",
     "leader_ui",
-    "super_admin",
+    "super_admin", "general_manager",
   ];
   if (!allowedRoles.includes(input.userRole)) {
     return { status: "role_not_allowed" as const };
@@ -354,7 +354,7 @@ export async function assignProjectAgent(input: {
   if (!project) return { status: "project_not_found" as const };
 
   const canManageThisProject =
-    input.userRole === "super_admin" ||
+    (input.userRole === "super_admin" || input.userRole === "general_manager") ||
     project.headTechnicalId === input.userId ||
     project.headSeoId === input.userId ||
     project.teamAssignments.length > 0 ||
@@ -600,7 +600,7 @@ export async function removeTeamAssignment(input: {
   if (!assignment) return { status: "not_found" as const };
 
   const canRemove =
-    input.actor.role === "super_admin" ||
+    (input.actor.role === "super_admin" || input.actor.role === "general_manager") ||
     input.actor.role === "head_account_manager" ||
     (input.actor.role === "head_technical" &&
       assignment.project.headTechnicalId === input.actor.id &&

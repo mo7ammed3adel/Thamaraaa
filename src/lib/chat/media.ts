@@ -75,6 +75,25 @@ export function formatDuration(ms: number | null | undefined): string {
   return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${s}` : `${m}:${s}`;
 }
 
+// ── Links ───────────────────────────────────────────────────────────────────
+
+const URL_IN_TEXT = /https?:\/\/[^\s<>"'`]+/g;
+
+/** The http(s) links in a message, without trailing punctuation, de-duplicated. */
+export function extractLinks(text: string | null | undefined): string[] {
+  if (!text) return [];
+  const found = new Set<string>();
+  for (const raw of Array.from(text.matchAll(URL_IN_TEXT), (x) => x[0])) {
+    let url = raw.replace(/[.,!?؟،:;*_~]+$/, "");
+    // A closing bracket belongs to the sentence unless the link opened one.
+    const opens = (u: string) => (u.match(/[([]/g) ?? []).length;
+    const closes = (u: string) => (u.match(/[)\]]/g) ?? []).length;
+    while (/[)\]]$/.test(url) && closes(url) > opens(url)) url = url.slice(0, -1);
+    if (url.length > 10) found.add(url);
+  }
+  return Array.from(found);
+}
+
 // ── Calls ───────────────────────────────────────────────────────────────────
 
 export function callRoomName(callId: string): string {

@@ -10,7 +10,7 @@ export default async function TeleSalesPage() {
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
   
-  if (!["super_admin", "tele_sales_manager", "tele_sales_agent"].includes(user?.role)) {
+  if (!["super_admin", "general_manager", "tele_sales_manager", "tele_sales_agent"].includes(user?.role)) {
     redirect("/dashboard");
   }
 

@@ -4,7 +4,7 @@ import { getSessionUser } from "@/server/auth/session";
 import { errorJson, successJson } from "@/server/http/responses";
 import { listPayroll } from "@/server/services/hrService";
 
-const HR_ROLES = ["super_admin", "hr_manager"];
+const HR_ROLES = ["super_admin", "general_manager", "hr_manager"];
 
 export async function GET(req: NextRequest) {
   const sessionUser = await getSessionUser();

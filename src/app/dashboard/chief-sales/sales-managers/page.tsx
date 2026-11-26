@@ -11,7 +11,7 @@ export default async function ChiefSalesManagersPage() {
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
 
-  if (!["super_admin", "chief_sales"].includes(user?.role)) {
+  if (!["super_admin", "general_manager", "chief_sales"].includes(user?.role)) {
     redirect("/dashboard");
   }
 

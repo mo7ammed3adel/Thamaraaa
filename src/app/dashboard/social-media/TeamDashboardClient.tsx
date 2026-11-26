@@ -43,7 +43,7 @@ export default function TeamDashboardClient({ tasks, agents, designLeaders, user
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
 
-  const isTL = userRole.includes("team_leader") || userRole === "super_admin";
+  const isTL = userRole.includes("team_leader") || (userRole === "super_admin" || userRole === "general_manager");
 
   // ── Filter logic ──
   const filteredTasks = tasks.filter((t: any) => {

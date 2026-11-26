@@ -8,11 +8,11 @@ export default async function SocialMediaPage() {
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
 
-  if (!["super_admin", "team_leader_social_media", "agent_social_media"].includes(user?.role)) {
+  if (!["super_admin", "general_manager", "team_leader_social_media", "agent_social_media"].includes(user?.role)) {
     redirect("/dashboard");
   }
 
-  const isTL = ["super_admin", "team_leader_social_media"].includes(user.role);
+  const isTL = ["super_admin", "general_manager", "team_leader_social_media"].includes(user.role);
 
   let projects: any[] = [];
   let teamMembers: any[] = [];
@@ -23,7 +23,7 @@ export default async function SocialMediaPage() {
       // TeamAssignment row, so also include projects with tasks they lead —
       // otherwise the "New Assignment" notification links to an empty page.
       where:
-        user.role === "super_admin"
+        (user.role === "super_admin" || user.role === "general_manager")
           ? {}
           : {
               OR: [

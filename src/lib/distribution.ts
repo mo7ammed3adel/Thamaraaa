@@ -23,6 +23,14 @@ const DISTRIBUTION_MAP: Record<string, string[]> = {
     "agent_graphic_designer", "agent_motion_graphic", "agent_ui",
     "leader_graphic_designer", "leader_motion_graphic", "leader_ui",
   ],
+  // Same reach as the super admin (create/assign; edits are gated separately).
+  general_manager: [
+    "account_manager", "head_technical", "head_seo",
+    "team_leader_social_media", "team_leader_media_buyer", "team_leader_seo",
+    "agent_social_media", "agent_media_buyer", "agent_seo", "agent_content_seo",
+    "agent_graphic_designer", "agent_motion_graphic", "agent_ui",
+    "leader_graphic_designer", "leader_motion_graphic", "leader_ui",
+  ],
 };
 
 /**
@@ -102,7 +110,7 @@ export function canFlagTask(
  * @returns true if the user has a Team Leader role
  */
 export function canReassignTask(userRole: string): boolean {
-  if (userRole === "super_admin") return true;
+  if ((userRole === "super_admin" || userRole === "general_manager")) return true;
   return TEAM_LEADER_ROLES.includes(userRole as typeof TEAM_LEADER_ROLES[number]);
 }
 
@@ -137,7 +145,7 @@ export async function userCanAccessProject(
   projectId: string
 ): Promise<boolean> {
   // Org-wide visibility roles bypass per-project membership checks.
-  if (userRole === "super_admin" || userRole === "head_account_manager" || userRole === "chief_sales") {
+  if ((userRole === "super_admin" || userRole === "general_manager") || userRole === "head_account_manager" || userRole === "chief_sales") {
     return true;
   }
 

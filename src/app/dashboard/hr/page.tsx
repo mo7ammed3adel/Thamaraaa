@@ -14,7 +14,7 @@ export default async function HrPage() {
   const user = session?.user as any;
   if (!user) redirect("/login");
 
-  const isManager = ["super_admin", "hr_manager"].includes(user.role);
+  const isManager = ["super_admin", "general_manager", "hr_manager"].includes(user.role);
 
   // ── HR Manager → new HR dashboard ──
   if (isManager) {

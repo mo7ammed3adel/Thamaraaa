@@ -13,7 +13,7 @@ export default async function SalesMyTeamPage() {
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
 
-  if (!["super_admin", "chief_sales", "sales_manager"].includes(user?.role)) {
+  if (!["super_admin", "general_manager", "chief_sales", "sales_manager"].includes(user?.role)) {
     redirect("/dashboard");
   }
 
@@ -112,7 +112,7 @@ export default async function SalesMyTeamPage() {
   // manager's monthly meetings target here too (super_admin sees every
   // TeleSales Manager; chief_sales does not - that's one level up the chain).
   let teleManagers: { id: string; name: string; email: string; status: string; target: number; achieved: number }[] = [];
-  if (["sales_manager", "super_admin"].includes(user.role)) {
+  if (["sales_manager", "super_admin", "general_manager"].includes(user.role)) {
     const tmWhere: any = { role: "tele_sales_manager" };
     if (user.role === "sales_manager") {
       tmWhere.OR = [{ directManagerId: user.id }, { directManagerId: null }];

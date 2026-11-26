@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { changeUserPresenceStatus } from "@/server/services/userService";
+import { changeUserPresenceStatus, isProtectedFromActor } from "@/server/services/userService";
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -10,6 +10,11 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
     if (!session || !actor?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    // Top roles are the super admin's to manage.
+    if (await isProtectedFromActor({ id: actor.id, role: actor.role }, params.id)) {
+      return NextResponse.json({ error: "Only the super admin can change this user" }, { status: 403 });
     }
 
     const { status } = await request.json();

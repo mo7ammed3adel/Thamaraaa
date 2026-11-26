@@ -50,7 +50,7 @@ export async function createClosedDeal(input: {
 
   if (
     lead.assignedSalesAgentId !== input.userId &&
-    input.userRole !== "super_admin" &&
+    (input.userRole !== "super_admin" && input.userRole !== "general_manager") &&
     input.userRole !== "sales_manager"
   ) {
     return { status: "forbidden" as const };

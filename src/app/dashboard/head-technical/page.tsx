@@ -10,12 +10,12 @@ export default async function HeadTechnicalPage() {
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
 
-  if (!["super_admin", "head_technical"].includes(user?.role)) {
+  if (!["super_admin", "general_manager", "head_technical"].includes(user?.role)) {
     redirect("/dashboard");
   }
 
   const projects = await prisma.project.findMany({
-    where: user.role === "super_admin" ? {} : { headTechnicalId: user.id },
+    where: (user.role === "super_admin" || user.role === "general_manager") ? {} : { headTechnicalId: user.id },
     include: {
       deal: { include: { lead: true } },
       accountManager: true,

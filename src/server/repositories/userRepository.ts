@@ -14,6 +14,8 @@ const USER_MANAGEMENT_SELECT = {
   companyRef: { select: { id: true, name: true } },
   directManagerId: true,
   directManager: { select: { id: true, name: true } },
+  gmCanEdit: true,
+  gmCanDelete: true,
 } as const;
 
 export function findUsersForDirectory(where: any) {

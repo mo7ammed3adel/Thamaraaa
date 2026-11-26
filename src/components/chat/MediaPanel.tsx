@@ -1,11 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CornerDownLeft, Download, FileArchive, FileText, File as FileIcon, Film, Images, Loader2, Mic, Play } from "lucide-react";
-import { attachmentThumbUrl, attachmentUrl, listConversationMedia, type ChatAttachment, type MediaItem, type MediaTab } from "@/client/api/chat";
+import { CornerDownLeft, Download, ExternalLink, FileArchive, FileText, File as FileIcon, Film, Images, Link2, Loader2, Play } from "lucide-react";
+import {
+  attachmentThumbUrl,
+  attachmentUrl,
+  listConversationMedia,
+  type ChatAttachment,
+  type MediaAttachmentItem,
+  type MediaItem,
+  type MediaLinkItem,
+  type MediaTab,
+} from "@/client/api/chat";
 import { formatBytes } from "@/lib/chat/constants";
-import { formatDuration } from "@/lib/chat/media";
-import { VoicePlayer } from "./MediaBits";
 import { PanelShell } from "./SidePanels";
 import { useChatT } from "./useChatT";
 
@@ -13,7 +20,7 @@ const TABS: { key: MediaTab; icon: typeof Images }[] = [
   { key: "image", icon: Images },
   { key: "video", icon: Film },
   { key: "file", icon: FileText },
-  { key: "voice", icon: Mic },
+  { key: "link", icon: Link2 },
 ];
 
 /** Month headings, WhatsApp-style. */
@@ -33,7 +40,7 @@ function groupByMonth(items: MediaItem[], locale: string) {
 
 /**
  * Everything shared in a conversation, by type: photos, videos, files and
- * voice notes / call recordings. Each item can jump back to its message.
+ * links, to find a thing fast. Each item can jump back to its message.
  */
 export function MediaPanel({
   conversationId,
@@ -50,10 +57,23 @@ export function MediaPanel({
 }) {
   const { t, locale } = useChatT();
   const [tab, setTab] = useState<MediaTab>("image");
-  const [items, setItems] = useState<MediaItem[] | null>(null);
+  // Items are kept with the tab they were loaded for: right after switching,
+  // the old tab's items must never be drawn with the new tab's layout.
+  const [loaded, setLoaded] = useState<{ tab: MediaTab; items: MediaItem[] } | null>(null);
+  const items = loaded?.tab === tab ? loaded.items : null;
+  const setItems = useCallback(
+    (next: MediaItem[] | null | ((cur: MediaItem[] | null) => MediaItem[] | null), forTab: MediaTab) =>
+      setLoaded((cur) => {
+        const prev = cur?.tab === forTab ? cur.items : null;
+        const value = typeof next === "function" ? next(prev) : next;
+        return value ? { tab: forTab, items: value } : null;
+      }),
+    []
+  );
   const [counts, setCounts] = useState<Record<MediaTab, number> | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [cursor, setCursor] = useState<string | null>(null);
   /** Bumped per tab/load, so a late response never lands in another tab. */
   const generation = useRef(0);
 
@@ -62,17 +82,17 @@ export function MediaPanel({
     try {
       const page = await listConversationMedia(conversationId, tab);
       if (mine !== generation.current) return;
-      setItems(page.items);
+      setItems(page.items, tab);
       if (page.counts) setCounts(page.counts);
       setHasMore(page.hasMore);
+      setCursor(page.nextCursor);
     } catch {
       // Keep what is on screen (e.g. briefly rate-limited); empty only on first load.
-      if (mine === generation.current) setItems((cur) => cur ?? []);
+      if (mine === generation.current) setItems((cur) => cur ?? [], tab);
     }
-  }, [conversationId, tab]);
+  }, [conversationId, tab, setItems]);
 
   useEffect(() => {
-    setItems(null);
     load();
   }, [load]);
 
@@ -85,17 +105,18 @@ export function MediaPanel({
   }, [refreshKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadMore() {
-    if (!items?.length || loadingMore) return;
+    if (!items || !cursor || loadingMore) return;
     setLoadingMore(true);
     const mine = generation.current;
     try {
-      const page = await listConversationMedia(conversationId, tab, items[items.length - 1].id);
+      const page = await listConversationMedia(conversationId, tab, cursor);
       if (mine !== generation.current) return;
       setItems((cur) => {
         const seen = new Set((cur ?? []).map((i) => i.id));
         return [...(cur ?? []), ...page.items.filter((i) => !seen.has(i.id))];
-      });
+      }, tab);
       setHasMore(page.hasMore);
+      setCursor(page.nextCursor);
     } catch {
       /* try again later */
     } finally {
@@ -103,7 +124,7 @@ export function MediaPanel({
     }
   }
 
-  const label = (k: MediaTab) => (k === "image" ? t("mediaPhotos") : k === "video" ? t("mediaVideos") : k === "file" ? t("mediaFiles") : t("mediaVoice"));
+  const label = (k: MediaTab) => (k === "image" ? t("mediaPhotos") : k === "video" ? t("mediaVideos") : k === "file" ? t("mediaFiles") : t("mediaLinks"));
   const jump = (m: MediaItem) => onJump(m.messageId, m.threadRootId);
 
   return (
@@ -147,7 +168,7 @@ export function MediaPanel({
 
               {(tab === "image" || tab === "video") && (
                 <div className="grid grid-cols-3 gap-1">
-                  {g.items.map((m) =>
+                  {(g.items as MediaAttachmentItem[]).map((m) =>
                     tab === "image" ? (
                       <button key={m.id} onClick={() => onOpenImage(m)} className="group relative aspect-square overflow-hidden rounded-md bg-slate-100" data-testid="media-item">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -169,7 +190,7 @@ export function MediaPanel({
 
               {tab === "file" && (
                 <div className="space-y-1.5">
-                  {g.items.map((m) => {
+                  {(g.items as MediaAttachmentItem[]).map((m) => {
                     const Icon = m.category === "pdf" || m.category === "document" ? FileText : m.category === "archive" ? FileArchive : FileIcon;
                     return (
                       <div key={m.id} className="flex items-center gap-3 rounded-lg border border-slate-200 p-2.5 hover:border-slate-300" data-testid="media-item">
@@ -194,18 +215,27 @@ export function MediaPanel({
                 </div>
               )}
 
-              {tab === "voice" && (
-                <div className="space-y-2">
-                  {g.items.map((m) => (
-                    <div key={m.id} data-testid="media-item">
-                      <div className="mb-0.5 flex items-center gap-2 px-1 text-[11px] text-slate-500">
-                        <span className="font-semibold text-slate-700">{m.sender?.name ?? "—"}</span>
-                        {m.durationMs ? <span>{formatDuration(m.durationMs)}</span> : null}
-                        <button onClick={() => jump(m)} className="ms-auto hover:text-slate-800">
-                          {t("goToMessage")}
-                        </button>
+              {tab === "link" && (
+                <div className="space-y-1.5">
+                  {(g.items as MediaLinkItem[]).map((m) => (
+                    <div key={m.id} className="flex items-center gap-3 rounded-lg border border-slate-200 p-2.5 hover:border-slate-300" data-testid="media-item">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-sky-600">
+                        <Link2 className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <a href={m.url} target="_blank" rel="noopener noreferrer nofollow" className="block truncate text-sm font-medium text-sky-700 hover:underline" title={m.url} dir="ltr">
+                          {m.url.replace(/^https?:\/\/(www\.)?/, "")}
+                        </a>
+                        <p className="text-[11px] text-slate-500">
+                          {m.host} · {m.sender?.name ?? "—"}
+                        </p>
                       </div>
-                      <VoicePlayer attachment={m} kind={m.messageKind === "recording" ? "recording" : "voice"} />
+                      <button onClick={() => jump(m)} title={t("goToMessage")} className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+                        <CornerDownLeft className="h-4 w-4" />
+                      </button>
+                      <a href={m.url} target="_blank" rel="noopener noreferrer nofollow" title={t("open")} className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
                     </div>
                   ))}
                 </div>

@@ -74,7 +74,7 @@ export default function TeleSalesClient({
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
 
-  const isManager = userRole === "tele_sales_manager" || userRole === "super_admin";
+  const isManager = userRole === "tele_sales_manager" || (userRole === "super_admin" || userRole === "general_manager");
 
   const handleDeleteLead = async (leadId: string) => {
     if (!confirm("Are you sure you want to delete this lead?")) return;

@@ -7,6 +7,8 @@ type SessionUserLike = {
   email?: string | null;
   name?: string | null;
   role?: string | null;
+  /** Set while a super admin / GM is acting as this user. */
+  impersonatedBy?: { id: string; name?: string | null } | null;
 };
 
 export type SessionUser = SessionUserLike & {

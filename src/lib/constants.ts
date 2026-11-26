@@ -37,11 +37,11 @@ export const TASK_STATUS = {
 
 // ── Role Constants ──
 export const ADMIN_ROLES = [
-  "super_admin",
+  "super_admin", "general_manager",
 ] as const;
 
 export const MANAGEMENT_ROLES = [
-  "super_admin",
+  "super_admin", "general_manager",
   "head_account_manager",
   "chief_sales",
   "head_technical",
@@ -49,13 +49,13 @@ export const MANAGEMENT_ROLES = [
 ] as const;
 
 export const ACCOUNT_MANAGER_ROLES = [
-  "super_admin",
+  "super_admin", "general_manager",
   "head_account_manager",
   "account_manager",
 ] as const;
 
 export const SEO_ROLES = [
-  "super_admin",
+  "super_admin", "general_manager",
   "head_seo",
   "team_leader_seo",
   "agent_seo",
@@ -63,13 +63,13 @@ export const SEO_ROLES = [
 ] as const;
 
 export const SOCIAL_MEDIA_ROLES = [
-  "super_admin",
+  "super_admin", "general_manager",
   "team_leader_social_media",
   "agent_social_media",
 ] as const;
 
 export const DESIGN_ROLES = [
-  "super_admin",
+  "super_admin", "general_manager",
   "leader_graphic_designer",
   "leader_motion_graphic",
   "leader_ui",
@@ -88,7 +88,7 @@ export const SEVERITY = {
 
 // ── Media Buyer Roles ──
 export const MEDIA_BUYER_ROLES = [
-  "super_admin",
+  "super_admin", "general_manager",
   "team_leader_media_buyer",
   "agent_media_buyer",
 ] as const;
@@ -129,7 +129,7 @@ export const OPERATIONS_DEPARTMENTS = [
 export const LIFECYCLE_CHANGE_ROLES = [
   "account_manager",
   "head_account_manager",
-  "super_admin",
+  "super_admin", "general_manager",
 ] as const;
 
 // ── Roles allowed to issue warnings ──
@@ -138,7 +138,7 @@ export const WARNING_ISSUER_ROLES = [
   "sales_agent",
   "sales_manager",
   "head_account_manager",
-  "super_admin",
+  "super_admin", "general_manager",
 ] as const;
 
 // ── Cross-team task types (tasks that route to creative leads) ──
@@ -211,10 +211,10 @@ export const AGENT_ASSIGNER_ROLES = [
   "leader_graphic_designer",
   "leader_motion_graphic",
   "leader_ui",
-  "super_admin",
+  "super_admin", "general_manager",
 ] as const;
 
 // ── Helper: Check if user has one of allowed roles (super_admin always passes) ──
 export function hasRole(userRole: string, allowedRoles: readonly string[]): boolean {
-  return userRole === "super_admin" || allowedRoles.includes(userRole);
+  return (userRole === "super_admin" || userRole === "general_manager") || allowedRoles.includes(userRole);
 }

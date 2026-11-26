@@ -37,7 +37,7 @@ export default function MediaBuyerClient({ projects, teamMembers, userRole, user
   const [searchQuery, setSearchQuery] = useState("");
   const [taskStatusFilter, setTaskStatusFilter] = useState("all");
 
-  const isTL = ["super_admin", "team_leader_media_buyer"].includes(userRole);
+  const isTL = ["super_admin", "general_manager", "team_leader_media_buyer"].includes(userRole);
   const isAgent = userRole === "agent_media_buyer";
   const isDeptTask = (t: any) => DEPT_TYPES.includes(t.taskType);
 

@@ -41,6 +41,7 @@ export type ConversationDetail = {
   members: { userId: string; name: string; email: string; role: string; active: boolean; online: boolean; memberRole: MemberRole; managed: boolean }[];
   /** Made automatically for a client project; its members follow the assignment. */
   isClientGroup: boolean;
+  journeyProjectId: string | null;
   /** False when the server has no LiveKit configured: hide the call buttons. */
   callsEnabled: boolean;
   activeCall: ActiveCall | null;
@@ -64,6 +65,18 @@ export type ChatAttachment = {
   waveform?: string | null;
 };
 
+export type MessageQuote = {
+  id: string;
+  senderId: string | null;
+  senderName: string | null;
+  kind: string;
+  deleted: boolean;
+  text: string | null;
+  stickerId: string | null;
+  attachment: { category: string; originalName: string } | null;
+  threadRootId: string | null;
+};
+
 export type CallRecord = {
   id: string;
   video: boolean;
@@ -79,6 +92,8 @@ export type ChatMessage = {
   kind: "text" | "sticker" | "system" | "voice" | "recording" | "call";
   /** kind "call": the call this message announces. */
   call?: CallRecord | null;
+  /** WhatsApp-style reply: the message this one answers. */
+  quote?: MessageQuote | null;
   body: string | null;
   stickerId: string | null;
   sender: { id: string; name: string; role: string } | null;
@@ -137,7 +152,7 @@ export const listMessages = (id: string, params: { before?: string } = {}) =>
   getJson<{ messages: ChatMessage[]; hasMore: boolean; othersReadAt: string[]; myLastReadAt: string }>(
     `/api/chat/conversations/${id}/messages${buildQueryString(params)}`
   );
-export const sendTextMessage = (id: string, body: { body?: string; stickerId?: string; replyToId?: string }) =>
+export const sendTextMessage = (id: string, body: { body?: string; stickerId?: string; replyToId?: string; quoteId?: string }) =>
   postJson<ChatMessage>(`/api/chat/conversations/${id}/messages`, body);
 export const editMessage = (id: string, body: string) => patchJson<ChatMessage>(`/api/chat/messages/${id}`, { body });
 export const deleteMessage = (id: string) => deleteJson<{ ok: true }>(`/api/chat/messages/${id}`);
@@ -167,6 +182,7 @@ export function sendFileMessage(
   input: {
     body?: string;
     replyToId?: string;
+    quoteId?: string;
     files: File[];
     /** A voice note or call recording (one file). */
     media?: { kind: "voice" | "recording"; durationMs: number; waveform: string; callId?: string };
@@ -176,6 +192,7 @@ export function sendFileMessage(
   const form = new FormData();
   if (input.body) form.append("body", input.body);
   if (input.replyToId) form.append("replyToId", input.replyToId);
+  if (input.quoteId) form.append("quoteId", input.quoteId);
   if (input.media) {
     form.append("kind", input.media.kind);
     form.append("durationMs", String(Math.round(input.media.durationMs)));
@@ -251,15 +268,53 @@ export const removeConversationAvatar = (id: string) => deleteJson<{ ok: true }>
 
 // ── Shared media ────────────────────────────────────────────────────────────
 
-export type MediaTab = "image" | "video" | "file" | "voice";
-export type MediaItem = ChatAttachment & {
-  createdAt: string;
-  messageId: string;
-  messageKind: ChatMessage["kind"];
-  threadRootId: string | null;
-  sender: { id: string; name: string } | null;
-};
+export type MediaTab = "image" | "video" | "file" | "link";
+type MediaBase = { id: string; createdAt: string; messageId: string; threadRootId: string | null; sender: { id: string; name: string } | null };
+export type MediaAttachmentItem = MediaBase & ChatAttachment & { kind: "attachment" };
+export type MediaLinkItem = MediaBase & { kind: "link"; url: string; host: string };
+export type MediaItem = MediaAttachmentItem | MediaLinkItem;
 export const listConversationMedia = (id: string, tab: MediaTab, before?: string) =>
-  getJson<{ tab: MediaTab; counts: Record<MediaTab, number> | null; hasMore: boolean; items: MediaItem[] }>(
+  getJson<{ tab: MediaTab; counts: Record<MediaTab, number> | null; hasMore: boolean; nextCursor: string | null; items: MediaItem[] }>(
     `/api/chat/conversations/${id}/media${buildQueryString({ tab, before })}`
   );
+
+// ── Client journey ──────────────────────────────────────────────────────────
+
+export type JourneyEntry = { stage: string; color: string; label: string; date: string; agent: string; role: string; detail: string };
+export type ConversationJourney = {
+  projectId: string;
+  clientName: string;
+  package: string;
+  projectStatus: string | null;
+  lifecycleState: string | null;
+  accountManager: string | null;
+  createdAt: string;
+  canOpenClientPage: boolean;
+  /** Outline only: you can't open this client yourself. */
+  limited: boolean;
+  linked: boolean;
+  timeline: JourneyEntry[];
+};
+export type LinkableProject = { id: string; clientName: string; package: string; projectStatus: string | null };
+
+export const getConversationJourney = (id: string) => getJson<{ journey: ConversationJourney | null }>(`/api/chat/conversations/${id}/journey`);
+export const linkConversationClient = (id: string, projectId: string | null) =>
+  postJson<{ ok: true }>(`/api/chat/conversations/${id}/journey`, { projectId });
+export const searchLinkableProjects = (q: string) => getJson<LinkableProject[]>(`/api/chat/projects${buildQueryString({ q })}`);
+
+// ── Labels ──────────────────────────────────────────────────────────────────
+
+export type ChatLabel = { id: string; name: string; color: string; conversationIds: string[] };
+export const listChatLabels = () => getJson<ChatLabel[]>("/api/chat/labels");
+export const createChatLabel = (name: string, color: string) => postJson<ChatLabel>("/api/chat/labels", { name, color });
+export const updateChatLabel = (id: string, body: { name?: string; color?: string }) => patchJson<{ ok: true }>(`/api/chat/labels/${id}`, body);
+export const deleteChatLabel = (id: string) => deleteJson<{ ok: true }>(`/api/chat/labels/${id}`);
+export const setConversationLabels = (id: string, labelIds: string[]) =>
+  requestPut<{ labelIds: string[] }>(`/api/chat/conversations/${id}/labels`, { labelIds });
+
+async function requestPut<T>(url: string, body: unknown): Promise<T> {
+  const response = await fetch(url, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) throw new ChatUploadError(payload?.error || `HTTP ${response.status}`, response.status, payload);
+  return payload as T;
+}

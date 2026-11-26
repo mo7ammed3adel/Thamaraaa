@@ -28,7 +28,7 @@ export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     const actor = session?.user as any;
-    if (actor?.role !== "super_admin" && actor?.role !== "hr_manager") {
+    if ((actor?.role !== "super_admin" && actor?.role !== "general_manager") && actor?.role !== "hr_manager") {
       return NextResponse.json({ error: "Unauthorized — only Super Admin or HR Manager can create users" }, { status: 403 });
     }
 
