@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, ChevronDown, Compass, Hash, Info, MessageSquarePlus, MessagesSquare, Pin, Plus, Search, Sparkles, Users } from "lucide-react";
+import { ArrowRight, ChevronDown, Compass, Hash, Info, MessageSquarePlus, MessagesSquare, Phone, Pin, Plus, Search, Sparkles, Users, Video } from "lucide-react";
 import {
   ChatUploadError,
   deleteMessage,
@@ -31,6 +31,7 @@ import MessageItem, { ImageLightbox, formatTime } from "./MessageItem";
 import { BrowseChannelsModal, InfoPanel, NewConversationModal } from "./ChatModals";
 import { PinsPanel, SearchPanel, ThreadPanel } from "./SidePanels";
 import { useChatT } from "./useChatT";
+import { CALL_CHANGED_EVENT, useCalls } from "./calls/CallProvider";
 
 type Me = { id: string; name: string; canCreateChannel: boolean };
 type Panel = { kind: "info" } | { kind: "pins" } | { kind: "thread"; rootId: string } | { kind: "search"; q: string } | null;
@@ -83,6 +84,9 @@ function lastMessagePreview(c: ConversationSummary, t: ReturnType<typeof useChat
   if (m.deleted) return who + t("deleted");
   if (m.kind === "system") return "";
   if (m.kind === "sticker") return `${who}${findSticker(m.stickerId)?.emoji ?? ""} ${t("sticker")}`;
+  if (m.kind === "voice") return `${who}🎤 ${t("voiceMessage")}`;
+  if (m.kind === "recording") return `${who}⏺ ${t("callRecording")}`;
+  if (m.kind === "call") return `${who}📞 ${t("audioCall")}`;
   if (m.body) return who + m.body;
   if (m.hasAttachments) return `${who}📎 ${t("attachment")}`;
   return "";
@@ -249,6 +253,26 @@ export default function ChatClient({ me }: { me: Me }) {
     window.history.replaceState(null, "", url.toString());
   }, [panel]);
 
+  // Calls: the live call's card and header follow joins, leaves and the end.
+  const calls = useCalls();
+  useEffect(() => {
+    // Joins come in bursts (and one join can signal twice): reload once.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const reload = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => activeRef.current && loadDetail(activeRef.current), 600);
+    };
+    const off = subscribe(`private-chat-${me.id}`, "call", (data: { conversationId?: string }) => {
+      if (data?.conversationId && data.conversationId === activeRef.current) reload();
+    });
+    window.addEventListener(CALL_CHANGED_EVENT, reload);
+    return () => {
+      clearTimeout(timer);
+      off();
+      window.removeEventListener(CALL_CHANGED_EVENT, reload);
+    };
+  }, [me.id, loadDetail]);
+
   const live = useChatRealtime(me.id, (conversationId) => {
     refreshList();
     if (conversationId === activeRef.current) {
@@ -332,6 +356,13 @@ export default function ChatClient({ me }: { me: Me }) {
         setEditing(null);
       } else if (input.kind === "sticker") {
         message = await sendTextMessage(conversationId, { stickerId: input.stickerId });
+      } else if (input.kind === "voice") {
+        setUploadProgress(0);
+        message = await sendFileMessage(
+          conversationId,
+          { files: [input.file], media: { kind: "voice", durationMs: input.durationMs, waveform: input.waveform } },
+          setUploadProgress
+        );
       } else if (input.files.length > 0) {
         setUploadProgress(0);
         message = await sendFileMessage(conversationId, { body: input.body, files: input.files }, setUploadProgress);
@@ -431,6 +462,14 @@ export default function ChatClient({ me }: { me: Me }) {
     ? messages.find((m) => m.createdAt > readMarker && m.sender?.id !== me.id && m.kind !== "system")?.id ?? null
     : null;
   const placeholder = `${t("messageTo")} ${type === "channel" ? "#" : ""}${title}`;
+  const activeCall = detail?.activeCall ?? null;
+  const inThisCall = calls.current?.conversationId === activeId;
+  const canCall = Boolean(detail?.callsEnabled) && !dmReadOnly;
+  /** callId: joining a specific live call (banner/card), never starting a new one. */
+  const startCall = (video: boolean, callId?: string) => {
+    if (!activeId) return;
+    calls.start(activeId, video, { name: type === "channel" ? `#${title}` : title, type, callId });
+  };
 
   const panelShared = {
     meId: me.id,
@@ -589,6 +628,29 @@ export default function ChatClient({ me }: { me: Me }) {
                   {type !== "dm" && detail?.description && <span className="hidden truncate border-s border-slate-200 ps-3 text-sm text-slate-500 lg:block">{detail.description}</span>}
 
                   <div className="ms-auto flex items-center gap-1">
+                    {canCall && (
+                      <div className="me-1 flex items-center overflow-hidden rounded-md border border-slate-200">
+                        <button
+                          onClick={() => startCall(false)}
+                          disabled={inThisCall}
+                          className="flex items-center gap-1 px-2 py-1.5 text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-40"
+                          title={t("audioCall")}
+                          data-testid="start-audio-call"
+                        >
+                          <Phone className="h-4 w-4" />
+                        </button>
+                        <span className="h-5 w-px bg-slate-200" />
+                        <button
+                          onClick={() => startCall(true)}
+                          disabled={inThisCall}
+                          className="flex items-center gap-1 px-2 py-1.5 text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-40"
+                          title={t("videoCall")}
+                          data-testid="start-video-call"
+                        >
+                          <Video className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
                     {type !== "dm" && detail && (
                       <button onClick={() => setPanel(panel?.kind === "info" ? null : { kind: "info" })} className="flex items-center gap-1.5 rounded-md border border-slate-200 py-1 pe-2 ps-1 hover:bg-slate-50" title={t("info")}>
                         <span className="flex -space-x-1.5 rtl:space-x-reverse">
@@ -618,6 +680,29 @@ export default function ChatClient({ me }: { me: Me }) {
                     </button>
                   </div>
                 </header>
+
+                {activeCall && !inThisCall && canCall && (
+                  <div className="flex shrink-0 items-center gap-3 border-b border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-emerald-50 px-4 py-2" data-testid="call-banner">
+                    <span className="relative flex h-7 w-7 items-center justify-center rounded-full bg-emerald-600 text-white">
+                      <span className="absolute inset-0 animate-ping rounded-full bg-emerald-400 opacity-40" />
+                      {activeCall.video ? <Video className="relative h-3.5 w-3.5" /> : <Phone className="relative h-3.5 w-3.5" />}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-slate-800">{activeCall.video ? t("videoCallOngoing") : t("callOngoing")}</p>
+                      <p className="truncate text-xs text-slate-500">{activeCall.participants.map((p) => p.name).join("، ") || "…"}</p>
+                    </div>
+                    <span className="hidden -space-x-1.5 sm:flex rtl:space-x-reverse">
+                      {activeCall.participants.slice(0, 4).map((p) => (
+                        <span key={p.id} className="rounded-md ring-2 ring-white">
+                          <Avatar name={p.name} seed={p.id} size={22} />
+                        </span>
+                      ))}
+                    </span>
+                    <button onClick={() => startCall(activeCall.video, activeCall.id)} className="rounded-lg bg-emerald-600 px-3.5 py-1.5 text-sm font-semibold text-white shadow hover:bg-emerald-700" data-testid="call-banner-join">
+                      {t("joinCall")}
+                    </button>
+                  </div>
+                )}
 
                 <div
                   ref={scrollRef}
@@ -689,6 +774,9 @@ export default function ChatClient({ me }: { me: Me }) {
                           onReact={handleReact}
                           onPin={handlePin}
                           onOpenImage={setLightbox}
+                          activeCallId={canCall && !inThisCall ? activeCall?.id ?? null : null}
+                          activeCallCount={activeCall?.participants.length ?? 0}
+                          onJoinCall={(video) => startCall(video, activeCall?.id)}
                         />
                       </div>
                     );

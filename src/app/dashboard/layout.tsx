@@ -15,6 +15,7 @@ import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 import { getTranslator } from "@/server/i18n/locale";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
 import ChatNavLink from "@/components/chat/ChatNavLink";
+import CallProvider from "@/components/chat/calls/CallProvider";
 
 export default async function DashboardLayout({
   children,
@@ -412,7 +413,9 @@ export default async function DashboardLayout({
           </nav>
         }
       >
-        {children}
+        {/* Calls sit above the pages so one keeps going while you navigate.
+            Chat (and so calling) is off while impersonating. */}
+        {impersonatedBy ? children : <CallProvider meId={userId}>{children}</CallProvider>}
       </DashboardShell>
     </>
   );

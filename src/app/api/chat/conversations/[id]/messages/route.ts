@@ -2,6 +2,8 @@ import { MAX_FILE_BYTES, MAX_FILES_PER_MESSAGE, MAX_UPLOAD_TOTAL_BYTES } from "@
 import { listMessages, sendMessage, type UploadedFile } from "@/server/chat/chatService";
 import { readJson, requireChatActor, toResponse } from "@/server/chat/routeHelpers";
 import { errorJson } from "@/server/http/responses";
+import { canAttachRecording } from "@/server/chat/callService";
+import { isMediaMessageKind } from "@/lib/chat/media";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,10 +59,19 @@ export async function POST(request: Request, { params }: { params: { id: string 
     entries.map(async (f) => ({ name: f.name, bytes: new Uint8Array(await f.arrayBuffer()) }))
   );
 
+  // kind=voice|recording: one recorded file plus its length and waveform.
+  const kind = form.get("kind");
+  const media = isMediaMessageKind(kind) ? { kind, durationMs: form.get("durationMs"), waveform: form.get("waveform") } : undefined;
+  if (kind != null && !media) return errorJson("Unknown message kind", 400);
+  if (media?.kind === "recording" && !(await canAttachRecording(auth.actor.id, params.id, form.get("callId")))) {
+    return errorJson("Not a call you were in", 403);
+  }
+
   const result = await sendMessage(auth.actor, params.id, {
     body: form.get("body"),
     replyToId: form.get("replyToId"),
     files,
+    media,
   });
   return toResponse(result, (r) => r.message);
 }

@@ -83,6 +83,56 @@ services:
       - default
       - hermes
 
+  # ---------- Calls (LiveKit) -----------------------------------------------
+  # Self-hosted WebRTC server for voice/video calls and screen share. Signaling
+  # goes through Caddy (wss://<host>/livekit, stripped to :7880 here); media
+  # uses its own ports straight to this host: UDP 7882 (one muxed port) and
+  # TCP 7881 as the fallback for networks that block UDP. Both must be open in
+  # the firewall. The app talks to it at http://thamaraa-livekit:7880, and it
+  # reports room events back to the app's /api/livekit/webhook.
+  # Without LIVEKIT_* in .env the call buttons stay hidden.
+  # Only runs with the "calls" profile (COMPOSE_PROFILES=calls in .env), so it
+  # can never come up on the placeholder keys below.
+  livekit:
+    profiles: ["calls"]
+    image: livekit/livekit-server:v1.13.11
+    container_name: thamaraa-livekit
+    restart: unless-stopped
+    init: true
+    environment:
+      LIVEKIT_CONFIG: |
+        port: 7880
+        log_level: warn
+        rtc:
+          tcp_port: 7881
+          udp_port: 7882
+          # The public address browsers send media to.
+          node_ip: ${LIVEKIT_NODE_IP:-127.0.0.1}
+          use_external_ip: false
+        keys:
+          ${LIVEKIT_API_KEY:-disabled}: ${LIVEKIT_API_SECRET:-disabled-disabled-disabled-disabled}
+        webhook:
+          api_key: ${LIVEKIT_API_KEY:-disabled}
+          urls:
+            - http://thamaraa-crm:3000/api/livekit/webhook
+        room:
+          # An empty room (and so its call) closes quickly.
+          empty_timeout: 60
+          departure_timeout: 15
+          max_participants: 50
+    ports:
+      - "7881:7881/tcp"
+      - "7882:7882/udp"
+    mem_limit: 768m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - default
+      - hermes
+
   # ---------- PostgreSQL ----------------------------------------------------
   # The CRM's own database, separate from the hermes stack's postgres so the
   # two can be backed up, upgraded and broken independently. Never published to

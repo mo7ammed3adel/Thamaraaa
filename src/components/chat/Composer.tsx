@@ -1,16 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AtSign, Bold, Code, FileText, Italic, Paperclip, Pencil, SendHorizontal, ShieldCheck, Smile, SquareCode, Sticker as StickerIcon, Strikethrough, X } from "lucide-react";
+import { AtSign, Bold, Code, FileText, Italic, Mic, Paperclip, Pencil, SendHorizontal, ShieldCheck, Smile, SquareCode, Sticker as StickerIcon, Strikethrough, Trash2, X } from "lucide-react";
 import { MAX_FILES_PER_MESSAGE, MAX_FILE_BYTES, MAX_MESSAGE_LENGTH, STICKERS, formatBytes } from "@/lib/chat/constants";
 import type { ChatMessage } from "@/client/api/chat";
 import { Avatar, Sticker } from "./ChatBits";
 import { useChatT } from "./useChatT";
+import { MAX_VOICE_MS, VOICE_BITRATE, formatDuration } from "@/lib/chat/media";
+import { recordAudio, stampedName, type AudioRecording, type RecordingResult } from "@/lib/chat/recorder";
 
 export type ComposerSubmit =
   | { kind: "text"; body: string; files: File[] }
   | { kind: "sticker"; stickerId: string }
-  | { kind: "edit"; id: string; body: string };
+  | { kind: "edit"; id: string; body: string }
+  | { kind: "voice"; file: File; durationMs: number; waveform: string };
 
 export type MentionMember = { userId: string; name: string; role?: string };
 
@@ -107,6 +110,94 @@ export default function Composer({
   const fileRef = useRef<HTMLInputElement>(null);
   /** label → userId for mentions picked in this draft. */
   const picked = useRef(new Map<string, string>());
+  const [voice, setVoice] = useState<{ rec: AudioRecording; stream: MediaStream } | null>(null);
+  const voiceRef = useRef(voice);
+  voiceRef.current = voice;
+  const [voiceTick, setVoiceTick] = useState<{ ms: number; levels: number[] }>({ ms: 0, levels: [] });
+  const startingVoice = useRef(false);
+  /** A voice note whose send failed: kept so it can be retried, not lost. */
+  const [unsentVoice, setUnsentVoice] = useState<RecordingResult | null>(null);
+
+  // Leaving the conversation mid-recording throws the recording away and
+  // releases the microphone.
+  useEffect(
+    () => () => {
+      const v = voiceRef.current;
+      if (v) {
+        v.rec.cancel();
+        v.stream.getTracks().forEach((tr) => tr.stop());
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!voice) return;
+    const handle = setInterval(() => {
+      setVoiceTick((cur) => ({ ms: voice.rec.elapsedMs(), levels: [...cur.levels, voice.rec.level()].slice(-40) }));
+    }, 100);
+    return () => clearInterval(handle);
+  }, [voice]);
+
+  async function startVoice() {
+    if (voice || startingVoice.current || disabled) return;
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      onError(t("recordingUnsupported"));
+      return;
+    }
+    startingVoice.current = true;
+    let stream: MediaStream | null = null;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      const rec = recordAudio(stream, {
+        bitrate: VOICE_BITRATE,
+        fileName: stampedName("voice"),
+        maxMs: MAX_VOICE_MS,
+        onLimit: () => finishVoice(),
+      });
+      setVoiceTick({ ms: 0, levels: [] });
+      setVoice({ rec, stream });
+    } catch (e) {
+      stream?.getTracks().forEach((tr) => tr.stop());
+      const name = e instanceof DOMException ? e.name : "";
+      onError(name === "NotAllowedError" || name === "SecurityError" ? t("micDenied") : t("recordingUnsupported"));
+    } finally {
+      startingVoice.current = false;
+    }
+  }
+
+  function cancelVoice() {
+    const v = voiceRef.current;
+    if (!v) return;
+    v.rec.cancel();
+    v.stream.getTracks().forEach((tr) => tr.stop());
+    setVoice(null);
+  }
+
+  async function finishVoice() {
+    const v = voiceRef.current;
+    if (!v) return;
+    voiceRef.current = null;
+    setVoice(null);
+    const result = await v.rec.stop();
+    v.stream.getTracks().forEach((tr) => tr.stop());
+    if (!result) {
+      onError(t("voiceTooShort"));
+      return;
+    }
+    await sendVoice(result);
+  }
+
+  async function sendVoice(result: RecordingResult) {
+    setBusy(true);
+    let ok = false;
+    try {
+      ok = await onSubmit({ kind: "voice", ...result });
+    } finally {
+      setBusy(false);
+    }
+    setUnsentVoice(ok ? null : result);
+  }
 
   useEffect(() => {
     if (editing) {
@@ -330,6 +421,48 @@ export default function Composer({
           </div>
         )}
 
+        {unsentVoice && !voice && (
+          <div className="flex items-center gap-2 border-b border-rose-100 bg-rose-50 px-3 py-2 text-xs text-rose-700" data-testid="voice-unsent">
+            <Mic className="h-3.5 w-3.5" />
+            <span className="flex-1">
+              {t("voiceSendFailed")} · {formatDuration(unsentVoice.durationMs)}
+            </span>
+            <button type="button" disabled={busy} onClick={() => sendVoice(unsentVoice)} className="rounded-md bg-rose-600 px-2 py-1 font-semibold text-white hover:bg-rose-700 disabled:opacity-50">
+              {t("retry")}
+            </button>
+            <button type="button" onClick={() => setUnsentVoice(null)} className="rounded-md p-1 hover:bg-rose-100" title={t("cancelRecording")}>
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+
+        {voice && (
+          <div className="flex items-center gap-3 px-3 py-3" data-testid="voice-recorder">
+            <button type="button" onClick={cancelVoice} title={t("cancelRecording")} className="rounded-full p-2 text-slate-500 transition hover:bg-rose-50 hover:text-rose-600">
+              <Trash2 className="h-5 w-5" />
+            </button>
+            <span className="relative flex h-3 w-3">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+              <span className="relative inline-flex h-3 w-3 rounded-full bg-rose-500" />
+            </span>
+            <span className="w-12 font-mono text-sm tabular-nums text-slate-700">{formatDuration(voiceTick.ms)}</span>
+            <div className="flex h-8 flex-1 items-center justify-end gap-[2px] overflow-hidden" dir="ltr">
+              {voiceTick.levels.map((l, i) => (
+                <span key={i} className="w-[3px] shrink-0 rounded-full bg-rose-400" style={{ height: `${Math.max(10, l * 100)}%` }} />
+              ))}
+            </div>
+            <span className="hidden text-xs text-slate-400 sm:inline">{t("recordingVoice")}</span>
+            <button
+              type="button"
+              onClick={finishVoice}
+              title={t("sendVoice")}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-white shadow-md transition hover:bg-emerald-700"
+            >
+              <SendHorizontal className="h-4 w-4 rtl:rotate-180" />
+            </button>
+          </div>
+        )}
+
         <textarea
           ref={inputRef}
           value={text}
@@ -382,11 +515,11 @@ export default function Composer({
           rows={1}
           dir="auto"
           placeholder={placeholder}
-          className="block max-h-[220px] w-full resize-none bg-transparent px-3 py-2.5 text-[15px] text-slate-800 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed"
+          className={`${voice ? "hidden" : "block"} max-h-[220px] w-full resize-none bg-transparent px-3 py-2.5 text-[15px] text-slate-800 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed`}
         />
 
         {/* Bottom bar */}
-        <div className="flex items-center gap-0.5 px-1.5 pb-1.5">
+        <div className={`${voice ? "hidden" : "flex"} items-center gap-0.5 px-1.5 pb-1.5`}>
           <input
             ref={fileRef}
             type="file"
@@ -462,6 +595,18 @@ export default function Composer({
               )}
             </div>
           )}
+          {!editing && !text.trim() && files.length === 0 ? (
+            <button
+              type="button"
+              onClick={startVoice}
+              disabled={disabled || busy}
+              className="ms-auto flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-white shadow-sm transition hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none"
+              title={t("recordVoice")}
+              data-testid="voice-start"
+            >
+              <Mic className="h-4 w-4" />
+            </button>
+          ) : (
           <button
             type="button"
             onClick={submit}
@@ -471,6 +616,7 @@ export default function Composer({
           >
             <SendHorizontal className="h-4 w-4 rtl:rotate-180" />
           </button>
+          )}
         </div>
       </div>
       {!compact && (

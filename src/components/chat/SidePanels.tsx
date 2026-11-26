@@ -124,6 +124,13 @@ export function ThreadPanel({
         await sendFileMessage(root.conversationId, { body: input.body, replyToId: root.id, files: input.files }, setProgress);
       } else if (input.kind === "text") {
         await sendTextMessage(root.conversationId, { body: input.body, replyToId: root.id });
+      } else if (input.kind === "voice") {
+        setProgress(0);
+        await sendFileMessage(
+          root.conversationId,
+          { replyToId: root.id, files: [input.file], media: { kind: "voice", durationMs: input.durationMs, waveform: input.waveform } },
+          setProgress
+        );
       } else {
         await sendTextMessage(root.conversationId, { stickerId: input.stickerId, replyToId: root.id });
       }

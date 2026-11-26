@@ -9,7 +9,8 @@ import { withAuth } from "next-auth/middleware";
  * (/api/agent/*) and the scheduled jobs (/api/cron/*) are intentionally outside
  * this matcher: none of them is a NextAuth user. The portal authenticates via
  * readClientSession(); the agent presents a device token and the cron jobs a
- * CRON_SECRET bearer token, both of which their own routes verify. Without this
+ * CRON_SECRET bearer token, both of which their own routes verify. The LiveKit
+ * webhook (/api/livekit/*) is signed with the LiveKit API secret instead. Without this
  * exclusion a scheduler would be redirected to /login and the job never runs.
  */
 export default withAuth({
@@ -21,6 +22,6 @@ export default withAuth({
 export const config = {
   matcher: [
     "/dashboard/:path*",
-    "/api/((?!auth|portal|agent|cron).*)",
+    "/api/((?!auth|portal|agent|cron|livekit).*)",
   ],
 };

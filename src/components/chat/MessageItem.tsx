@@ -7,6 +7,7 @@ import { REACTION_EMOJIS, formatBytes } from "@/lib/chat/constants";
 import { Avatar, Sticker } from "./ChatBits";
 import { Mrkdwn } from "./mrkdwn";
 import { useChatT } from "./useChatT";
+import { CallCard, VoicePlayer } from "./MediaBits";
 
 function AttachmentView({ a, onOpenImage }: { a: ChatAttachment; onOpenImage: (a: ChatAttachment) => void }) {
   const { t } = useChatT();
@@ -123,6 +124,9 @@ export default function MessageItem({
   onReact,
   onPin,
   onOpenImage,
+  activeCallId = null,
+  activeCallCount = 0,
+  onJoinCall,
 }: {
   message: ChatMessage;
   meId: string;
@@ -140,6 +144,10 @@ export default function MessageItem({
   onReact: (m: ChatMessage, emoji: string) => void;
   onPin: (m: ChatMessage) => void;
   onOpenImage: (a: ChatAttachment) => void;
+  /** The conversation's live call, so its card offers "Join". */
+  activeCallId?: string | null;
+  activeCallCount?: number;
+  onJoinCall?: (video: boolean) => void;
 }) {
   const { t, locale } = useChatT();
   const [picker, setPicker] = useState(false);
@@ -156,7 +164,8 @@ export default function MessageItem({
   }
 
   const canEdit = mine && message.kind === "text" && !message.deleted;
-  const canDelete = !message.deleted && (mine || canModerate);
+  const canDelete = !message.deleted && message.kind !== "call" && (mine || canModerate);
+  const isMedia = message.kind === "voice" || message.kind === "recording";
   const mentionsMe = Boolean(message.body?.includes(`<@${meId}>`));
 
   return (
@@ -201,7 +210,15 @@ export default function MessageItem({
                 {message.editedAt && <span className="ms-1.5 text-[11px] text-slate-400">({t("edited")})</span>}
               </div>
             )}
-            {message.attachments.length > 0 && (
+            {message.kind === "call" && (
+              <CallCard message={message} meId={meId} activeCallId={activeCallId} activeCount={activeCallCount} onJoin={(video) => onJoinCall?.(video)} />
+            )}
+            {isMedia && message.attachments[0] && (
+              <div className="mt-1">
+                <VoicePlayer attachment={message.attachments[0]} kind={message.kind as "voice" | "recording"} />
+              </div>
+            )}
+            {!isMedia && message.attachments.length > 0 && (
               <div className="mt-1.5 flex flex-wrap items-start gap-2">
                 {message.attachments.map((a) => (
                   <AttachmentView key={a.id} a={a} onOpenImage={onOpenImage} />

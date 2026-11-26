@@ -36,14 +36,44 @@ export type ConversationDetail = {
   canCreateChannel: boolean;
   pinnedCount: number;
   members: { userId: string; name: string; email: string; role: string; active: boolean; online: boolean; memberRole: MemberRole }[];
+  /** False when the server has no LiveKit configured: hide the call buttons. */
+  callsEnabled: boolean;
+  activeCall: ActiveCall | null;
 };
 
-export type ChatAttachment = { id: string; originalName: string; mimeType: string; category: string; size: number };
+export type ActiveCall = {
+  id: string;
+  video: boolean;
+  startedAt: string;
+  startedById: string | null;
+  participants: { id: string; name: string }[];
+};
+
+export type ChatAttachment = {
+  id: string;
+  originalName: string;
+  mimeType: string;
+  category: string;
+  size: number;
+  durationMs?: number | null;
+  waveform?: string | null;
+};
+
+export type CallRecord = {
+  id: string;
+  video: boolean;
+  startedAt: string;
+  endedAt: string | null;
+  participantCount: number;
+  missed: boolean;
+};
 
 export type ChatMessage = {
   id: string;
   conversationId: string;
-  kind: "text" | "sticker" | "system";
+  kind: "text" | "sticker" | "system" | "voice" | "recording" | "call";
+  /** kind "call": the call this message announces. */
+  call?: CallRecord | null;
   body: string | null;
   stickerId: string | null;
   sender: { id: string; name: string; role: string } | null;
@@ -128,12 +158,24 @@ export class ChatUploadError extends Error {
  */
 export function sendFileMessage(
   id: string,
-  input: { body?: string; replyToId?: string; files: File[] },
+  input: {
+    body?: string;
+    replyToId?: string;
+    files: File[];
+    /** A voice note or call recording (one file). */
+    media?: { kind: "voice" | "recording"; durationMs: number; waveform: string; callId?: string };
+  },
   onProgress?: (fraction: number) => void
 ): Promise<ChatMessage> {
   const form = new FormData();
   if (input.body) form.append("body", input.body);
   if (input.replyToId) form.append("replyToId", input.replyToId);
+  if (input.media) {
+    form.append("kind", input.media.kind);
+    form.append("durationMs", String(Math.round(input.media.durationMs)));
+    if (input.media.waveform) form.append("waveform", input.media.waveform);
+    if (input.media.callId) form.append("callId", input.media.callId);
+  }
   for (const f of input.files) form.append("files", f, f.name);
 
   return new Promise((resolve, reject) => {
@@ -159,3 +201,24 @@ export function sendFileMessage(
     xhr.send(form);
   });
 }
+
+// ── Calls ───────────────────────────────────────────────────────────────────
+
+export type CallJoin = { callId: string; conversationId: string; video: boolean; url: string; token: string; created: boolean };
+export type CallInfo = {
+  id: string;
+  conversationId: string;
+  conversationType: ChatType;
+  conversationName: string | null;
+  startedBy: { id: string; name: string } | null;
+  video: boolean;
+  startedAt: string;
+  active: boolean;
+};
+
+export const startOrJoinCall = (conversationId: string, video: boolean, callId?: string) =>
+  postJson<CallJoin>(`/api/chat/conversations/${conversationId}/call`, { video, callId });
+export const getCallInfo = (callId: string) => getJson<CallInfo>(`/api/chat/calls/${callId}`);
+export const declineCall = (callId: string) => postJson<{ ok: true }>(`/api/chat/calls/${callId}/decline`);
+export const leaveCall = (callId: string) => postJson<{ ok: true }>(`/api/chat/calls/${callId}/leave`);
+export const setCallRecording = (callId: string, on: boolean) => postJson<{ ok: true }>(`/api/chat/calls/${callId}/recording`, { on });

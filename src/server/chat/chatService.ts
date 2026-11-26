@@ -17,6 +17,7 @@ import { inspectUploadedFile, type InspectedFile } from "./fileSecurity";
 import { deleteChatFile, newChatStorageKey, saveChatFile, sha256Hex } from "./chatStorage";
 import { allowAction } from "./rateLimit";
 import { notifyUsers } from "@/lib/notify";
+import { cleanDurationMs, cleanWaveform, isMissedCall, isRecordedAudioMime, type MediaMessageKind } from "@/lib/chat/media";
 
 export type ChatActor = { id: string; name: string; role: string };
 
@@ -36,7 +37,7 @@ export function chatChannelFor(userId: string): string {
  * ids — never message text — so even a leaked channel reveals nothing; clients
  * re-fetch through the authorized API.
  */
-async function notifyMembers(conversationId: string, userIds: string[], kind: string): Promise<void> {
+export async function notifyMembers(conversationId: string, userIds: string[], kind: string): Promise<void> {
   if (!pusherConfigured || userIds.length === 0) return;
   const channels = Array.from(new Set(userIds)).map(chatChannelFor);
   try {
@@ -48,7 +49,7 @@ async function notifyMembers(conversationId: string, userIds: string[], kind: st
   }
 }
 
-async function memberIdsOf(conversationId: string): Promise<string[]> {
+export async function memberIdsOf(conversationId: string): Promise<string[]> {
   const rows = await prisma.chatMember.findMany({ where: { conversationId }, select: { userId: true } });
   return rows.map((r) => r.userId);
 }
@@ -62,7 +63,7 @@ function cleanText(value: unknown, max: number): string | null {
   return trimmed.slice(0, max);
 }
 
-async function findMembership(conversationId: string, userId: string) {
+export async function findMembership(conversationId: string, userId: string) {
   return prisma.chatMember.findUnique({
     where: { conversationId_userId: { conversationId, userId } },
     include: { conversation: true },
@@ -88,7 +89,8 @@ async function postSystemMessage(conversationId: string, actorId: string, body: 
 
 const messageInclude = {
   sender: { select: { id: true, name: true, role: true } },
-  attachments: { select: { id: true, originalName: true, mimeType: true, category: true, size: true } },
+  attachments: { select: { id: true, originalName: true, mimeType: true, category: true, size: true, durationMs: true, waveform: true } },
+  call: { select: { id: true, video: true, startedAt: true, endedAt: true, participantIds: true, conversation: { select: { type: true } } } },
   reactions: { select: { emoji: true, userId: true, user: { select: { name: true } } } },
 } as const;
 
@@ -173,6 +175,16 @@ function toMessageDto(row: NonNullable<MessageRow>, viewerId: string, thread: Th
     // Kept even on a deleted root, so its thread stays reachable (Slack).
     thread,
     pinned: !deleted && Boolean(row.pinnedAt),
+    call: row.call
+      ? {
+          id: row.call.id,
+          video: row.call.video,
+          startedAt: row.call.startedAt.toISOString(),
+          endedAt: row.call.endedAt?.toISOString() ?? null,
+          participantCount: new Set(row.call.participantIds).size,
+          missed: isMissedCall(row.call, row.call.conversation.type),
+        }
+      : null,
   };
 }
 
@@ -716,7 +728,14 @@ export type UploadedFile = { name: string; bytes: Uint8Array };
 export async function sendMessage(
   actor: ChatActor,
   conversationId: string,
-  input: { body?: unknown; stickerId?: unknown; replyToId?: unknown; files?: UploadedFile[] }
+  input: {
+    body?: unknown;
+    stickerId?: unknown;
+    replyToId?: unknown;
+    files?: UploadedFile[];
+    /** A voice note or call recording: exactly one recorded-audio file, no text. */
+    media?: { kind: MediaMessageKind; durationMs?: unknown; waveform?: unknown };
+  }
 ) {
   const membership = await findMembership(conversationId, actor.id);
   if (!membership) return { status: "not_found" as const };
@@ -742,6 +761,8 @@ export async function sendMessage(
   const sticker = input.stickerId != null ? findSticker(input.stickerId) : undefined;
   if (input.stickerId != null && !sticker) return { status: "invalid" as const, error: "Unknown sticker" };
   if (!body && !sticker && files.length === 0) return { status: "invalid" as const, error: "Message is empty" };
+  const media = input.media;
+  if (media && (files.length !== 1 || body || sticker)) return { status: "invalid" as const, error: "A voice message is one recording" };
 
   // A reply always attaches to the thread's root, so threads stay one level deep.
   let replyToId: string | null = null;
@@ -764,6 +785,12 @@ export async function sendMessage(
     if (!result.ok) return { status: "rejected_file" as const, fileName: file.name, reason: result.reason };
     inspected.push({ file, result });
   }
+  // The bytes, not the browser, decide it's audio we can play back.
+  if (media && !isRecordedAudioMime(inspected[0].result.mimeType)) {
+    return { status: "rejected_file" as const, fileName: files[0].name, reason: "type_mismatch" };
+  }
+  const durationMs = media ? cleanDurationMs(media.durationMs, media.kind) : null;
+  const waveform = media ? cleanWaveform(media.waveform) : null;
 
   if (inspected.length > 0) {
     const incoming = inspected.reduce((n, i) => n + i.file.bytes.length, 0);
@@ -789,7 +816,7 @@ export async function sendMessage(
         data: {
           conversationId,
           senderId: actor.id,
-          kind: sticker ? "sticker" : "text",
+          kind: media ? media.kind : sticker ? "sticker" : "text",
           body: sticker ? null : body || null,
           stickerId: sticker?.id ?? null,
           replyToId,
@@ -804,6 +831,8 @@ export async function sendMessage(
               category: s.result.category,
               size: s.file.bytes.length,
               sha256: sha256Hex(s.file.bytes),
+              durationMs,
+              waveform,
             })),
           },
         },
@@ -911,7 +940,8 @@ export async function deleteMessage(actor: ChatActor, messageId: string) {
   const own = message.senderId === actor.id;
   const moderator = membership.conversation.type !== "dm" && isManager(membership.role);
   if (!own && !moderator) return { status: "forbidden" as const };
-  if (message.kind === "system") return { status: "forbidden" as const };
+  // System lines and call records are history, not messages to retract.
+  if (message.kind === "system" || message.kind === "call") return { status: "forbidden" as const };
 
   // Deleting a message really removes its files — a "deleted" photo must not
   // stay downloadable from a saved link.
