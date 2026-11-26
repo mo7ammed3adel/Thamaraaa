@@ -215,16 +215,9 @@ export async function createProjectWarning(input: {
     });
 
     const deliveryPromises = usersToNotify.map(async (user) => {
-      await safeTrigger(`user-${user.id}`, "new-warning", {
-        id: w.id,
-        warningId: w.id,
-        subject: w.subject,
-        message: w.message,
-        severity: w.severity,
-        senderRole: w.senderRole,
-        senderUserId: w.senderUserId,
-        createdAt: w.createdAt,
-      });
+      // `user-*` channels are public, so the event carries no content —
+      // clients refetch the warning through the authenticated API.
+      await safeTrigger(`user-${user.id}`, "new-warning", { id: w.id, t: Date.now() });
 
       if (user.email) {
         const result = await sendWarningEmail(

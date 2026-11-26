@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AlertTriangle, X, CheckCircle, Clock } from "lucide-react";
-import PusherClient from "pusher-js";
+import { subscribe } from "@/lib/realtime/client";
 import { formatDate } from "@/shared/formatters/date";
 import { acknowledgeWarning, listWarnings } from "@/client/api/warnings";
 
@@ -14,23 +14,13 @@ export default function GlobalWarningAlert({ userId }: { userId?: string }) {
   useEffect(() => {
     fetchWarnings();
 
-    const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
-    if (!key || !userId) return;
-
-    // Subscribe to the user's own channel; the server emits `new-warning` here when receipts are created.
-    const pusher = new PusherClient(key, {
-      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "eu",
+    if (!userId) return;
+    // The user's own channel; the server emits `new-warning` here when receipts are created.
+    return subscribe(`user-${userId}`, "new-warning", () => fetchWarnings(), {
+      onLive: (live) => {
+        if (live) fetchWarnings();
+      },
     });
-
-    const channelName = `user-${userId}`;
-    const channel = pusher.subscribe(channelName);
-    channel.bind("new-warning", () => {
-      fetchWarnings();
-    });
-
-    return () => {
-      pusher.unsubscribe(channelName);
-    };
   }, [userId]);
 
   const fetchWarnings = async () => {

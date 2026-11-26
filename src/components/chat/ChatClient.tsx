@@ -24,6 +24,7 @@ import {
 } from "@/client/api/chat";
 import { findSticker } from "@/lib/chat/constants";
 import { notify } from "@/components/toast";
+import { subscribe } from "@/lib/realtime/client";
 import { Avatar, ConversationIcon } from "./ChatBits";
 import Composer, { type ComposerSubmit } from "./Composer";
 import MessageItem, { ImageLightbox, formatTime } from "./MessageItem";
@@ -57,28 +58,18 @@ function useChatRealtime(meId: string, onEvent: (conversationId: string) => void
   const [live, setLive] = useState(false);
 
   useEffect(() => {
-    const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
-    if (!key) return;
-    let client: { unsubscribe: (c: string) => void; disconnect: () => void } | null = null;
-    let cancelled = false;
-    (async () => {
-      const Pusher = (await import("pusher-js")).default;
-      if (cancelled) return;
-      const pusher = new Pusher(key, {
-        cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "eu",
-        channelAuthorization: { endpoint: "/api/chat/pusher-auth", transport: "ajax" },
-      });
-      const channel = pusher.subscribe(`private-chat-${meId}`);
-      channel.bind("pusher:subscription_succeeded", () => setLive(true));
-      channel.bind("chat", (data: { conversationId?: string }) => data?.conversationId && handler.current(data.conversationId));
-      client = pusher;
-    })();
+    // live=false whenever the socket drops, so polling speeds back up.
+    const off = subscribe(
+      `private-chat-${meId}`,
+      "chat",
+      (data: { conversationId?: string }) => {
+        if (data?.conversationId) handler.current(data.conversationId);
+      },
+      { onLive: setLive },
+    );
     return () => {
-      cancelled = true;
-      if (client) {
-        client.unsubscribe(`private-chat-${meId}`);
-        client.disconnect();
-      }
+      off();
+      setLive(false);
     };
   }, [meId]);
 
@@ -274,6 +265,8 @@ export default function ChatClient({ me }: { me: Me }) {
       refreshList();
       if (activeRef.current) refreshActive(activeRef.current);
     };
+    // Coming (back) online: catch up on anything sent while the socket was down.
+    if (live) tick();
     const handle = setInterval(tick, live ? 30000 : 5000);
     return () => clearInterval(handle);
   }, [live, refreshList, refreshActive]);

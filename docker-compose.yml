@@ -54,6 +54,35 @@ services:
       - default
       - hermes
 
+  # ---------- Realtime (Soketi) ----------------------------------------------
+  # A self-hosted Pusher-protocol server, so chat and notifications arrive the
+  # moment they're sent instead of on the next poll. The app calls it at
+  # http://thamaraa-soketi:6001 (PUSHER_HOST/PORT); browsers reach it through
+  # Caddy at wss://<host>/realtime (PUSHER_PUBLIC_*). Without these keys in
+  # .env it idles harmlessly and the app keeps polling.
+  soketi:
+    image: quay.io/soketi/soketi:1.6-16-alpine
+    container_name: thamaraa-soketi
+    restart: unless-stopped
+    init: true
+    environment:
+      SOKETI_DEFAULT_APP_ID: ${PUSHER_APP_ID:-disabled}
+      SOKETI_DEFAULT_APP_KEY: ${PUSHER_KEY:-disabled}
+      SOKETI_DEFAULT_APP_SECRET: ${PUSHER_SECRET:-disabled}
+      # Browsers may only listen; every event comes from the app server.
+      SOKETI_DEFAULT_APP_ENABLE_CLIENT_MESSAGES: "false"
+    # It holds a few hundred idle sockets at most; keep it from ever competing
+    # with the app on this crowded host.
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - default
+      - hermes
+
   # ---------- PostgreSQL ----------------------------------------------------
   # The CRM's own database, separate from the hermes stack's postgres so the
   # two can be backed up, upgraded and broken independently. Never published to

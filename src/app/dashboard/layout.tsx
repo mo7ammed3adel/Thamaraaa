@@ -47,7 +47,7 @@ export default async function DashboardLayout({
           is the fallback (fast when there's no Pusher, gentle safety-net when
           real-time is handling immediacy). */}
       <RealtimeRefresher />
-      <AutoRefresher intervalMs={process.env.NEXT_PUBLIC_PUSHER_KEY ? 30000 : 8000} />
+      <AutoRefresher intervalMs={8000} liveIntervalMs={30000} />
 
       {impersonatedBy && <ImpersonationBanner name={session.user.name} role={role} />}
 

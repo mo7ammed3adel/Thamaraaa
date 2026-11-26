@@ -52,11 +52,7 @@ export async function changeProjectLifecycle(input: {
     userRole: input.userRole,
   });
 
-  await safeTrigger("projects-channel", "lifecycle-changed", {
-    projectId: input.projectId,
-    newState: input.newState,
-    changedBy: input.userName,
-  });
+  await safeTrigger("projects-channel", "lifecycle-changed", { projectId: input.projectId, t: Date.now() });
 
   return { status: "ok" as const, project: updatedProject };
 }

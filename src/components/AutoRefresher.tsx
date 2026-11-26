@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { realtimeConnected } from "@/lib/realtime/client";
 
 /**
  * Keeps every dashboard page's server-fetched data fresh without a manual
@@ -16,15 +17,24 @@ import { useRouter } from "next/navigation";
  * exists to pick up OTHER users' changes. A focus refresh covers "I just came
  * back to the tab", so the timer can stay gentle to keep DB load low.
  */
-export default function AutoRefresher({ intervalMs = 60000 }: { intervalMs?: number }) {
+export default function AutoRefresher({
+  intervalMs = 60000,
+  liveIntervalMs = 30000,
+}: {
+  intervalMs?: number;
+  /** Used instead while the realtime socket is connected and pushing changes. */
+  liveIntervalMs?: number;
+}) {
   const router = useRouter();
   const refreshing = useRef(false);
+  const last = useRef(Date.now());
 
   useEffect(() => {
     const refresh = () => {
       if (typeof document !== "undefined" && document.hidden) return;
       if (refreshing.current) return;
       refreshing.current = true;
+      last.current = Date.now();
       router.refresh();
       // router.refresh() has no completion callback; release the guard shortly
       // after so we never queue overlapping refreshes.
@@ -33,7 +43,11 @@ export default function AutoRefresher({ intervalMs = 60000 }: { intervalMs?: num
       }, 1500);
     };
 
-    const interval = window.setInterval(refresh, intervalMs);
+    const tick = () => {
+      if (realtimeConnected() && Date.now() - last.current < liveIntervalMs) return;
+      refresh();
+    };
+    const interval = window.setInterval(tick, Math.min(intervalMs, liveIntervalMs));
     const onVisible = () => {
       if (!document.hidden) refresh();
     };
@@ -45,7 +59,7 @@ export default function AutoRefresher({ intervalMs = 60000 }: { intervalMs?: num
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", refresh);
     };
-  }, [router, intervalMs]);
+  }, [router, intervalMs, liveIntervalMs]);
 
   return null;
 }

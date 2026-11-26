@@ -5,6 +5,7 @@ import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { getDirection } from "@/lib/i18n/config";
 import { getLocale } from "@/server/i18n/locale";
+import { realtimeClientConfig } from "@/lib/pusher";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -46,9 +47,16 @@ export default function RootLayout({
   // Decided on the server so the very first paint is already in the reader's
   // language and reading direction — no flash of the wrong one.
   const locale = getLocale();
+  // Realtime settings are read per request, not baked into the bundle, so the
+  // same image runs with Pusher, Soketi or plain polling. "<" is escaped so the
+  // values can never close the script tag.
+  const realtime = JSON.stringify(realtimeClientConfig()).replace(/</g, "\\u003c");
 
   return (
     <html lang={locale} dir={getDirection(locale)}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `window.__THAMARAA_RT__=${realtime};` }} />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${arabicSans.variable} antialiased min-h-screen bg-gray-50 text-gray-900`}
       >

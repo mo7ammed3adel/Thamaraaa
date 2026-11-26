@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { formatDateTime } from "@/shared/formatters/date";
 import { acknowledgeWarning, listWarnings } from "@/client/api/warnings";
 import { useTranslator } from "@/components/i18n/LocaleProvider";
+import { subscribe } from "@/lib/realtime/client";
 
 interface WarningData {
   id: string;
@@ -22,68 +23,42 @@ export default function WarningPopup({ userRole, userId }: { userRole: string; u
   const [activeWarning, setActiveWarning] = useState<WarningData | null>(null);
   const [acknowledging, setAcknowledging] = useState(false);
 
-  // Load unacknowledged warnings on mount
-  useEffect(() => {
+  // Load unacknowledged warnings on mount and whenever a new one is announced.
+  // Acknowledged here this session: a refetch that raced the acknowledge must
+  // not bring the warning back.
+  const acked = useRef(new Set<string>());
+  const load = useCallback(() => {
     listWarnings()
       .then((data: WarningData[]) => {
-        const unacked = data.filter((w) => !w.userAcknowledged && w.senderUserId !== userId);
+        const unacked = data.filter((w) => !w.userAcknowledged && w.senderUserId !== userId && !acked.current.has(w.id));
         setWarnings(unacked);
-        if (unacked.length > 0) setActiveWarning(unacked[0]);
+        setActiveWarning((current) => (current && unacked.some((w) => w.id === current.id) ? current : unacked[0] ?? null));
       })
       .catch(console.error);
   }, [userId]);
 
-  // Listen for real-time warnings via Pusher.
-  // The server creates a WarningReceipt for every affected user and fires `new-warning`
-  // on that user's own channel (`user-${userId}`), so we trust delivery without needing role filtering.
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // The server fires `new-warning` on the user's own channel when a receipt is
+  // created. That channel is public, so the event is only a signal — the
+  // warning itself is always read back through the authenticated API.
   useEffect(() => {
     if (!userId) return;
-    const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
-    if (!key) return;
-
-    let pusherClient: any = null;
-    let channel: any = null;
-    const channelName = `user-${userId}`;
-
-    const setupPusher = async () => {
-      try {
-        const PusherModule = await import("pusher-js");
-        const Pusher = PusherModule.default;
-        pusherClient = new Pusher(key, {
-          cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "eu",
-        });
-        channel = pusherClient.subscribe(channelName);
-        channel.bind("new-warning", (data: any) => {
-          if (!data || data.senderUserId === userId) return;
-          const newWarning: WarningData = {
-            id: data.id,
-            message: data.message,
-            subject: data.subject,
-            severity: data.severity,
-            senderRole: data.senderRole,
-            senderUserId: data.senderUserId,
-            createdAt: data.createdAt,
-          };
-          setWarnings((prev) => (prev.find((w) => w.id === newWarning.id) ? prev : [...prev, newWarning]));
-          setActiveWarning((current) => current || newWarning);
-        });
-      } catch (e) {
-        console.error("WarningPopup pusher setup failed:", e);
-      }
-    };
-
-    setupPusher();
-    return () => {
-      if (channel) channel.unbind_all();
-      if (pusherClient) pusherClient.unsubscribe(channelName);
-    };
-  }, [userId]);
+    return subscribe(`user-${userId}`, "new-warning", load, {
+      onLive: (live) => {
+        if (live) load();
+      },
+    });
+  }, [userId, load]);
 
   const handleAcknowledge = useCallback(async () => {
     if (!activeWarning) return;
     setAcknowledging(true);
     try {
       await acknowledgeWarning(activeWarning.id);
+      acked.current.add(activeWarning.id);
       setWarnings((prev) => prev.filter((w) => w.id !== activeWarning.id));
       const remaining = warnings.filter((w) => w.id !== activeWarning.id);
       setActiveWarning(remaining.length > 0 ? remaining[0] : null);

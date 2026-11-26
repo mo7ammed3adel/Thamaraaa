@@ -471,12 +471,7 @@ export async function distributeProject(input: {
       }
     }
 
-    await safeTrigger("projects-channel", "team-assigned", {
-      projectId: input.projectId,
-      userId: targetUser.id,
-      role: targetUser.role,
-      assignedBy: userName,
-    });
+    await safeTrigger("projects-channel", "team-assigned", { projectId: input.projectId, t: Date.now() });
 
     if (shouldNotifyAssignee(targetUser.id, input.userId)) {
       await createProjectAssignmentNotification({
@@ -518,12 +513,7 @@ export async function distributeProject(input: {
       });
     }
 
-    await safeTrigger("projects-channel", "project-distributed", {
-      projectId: input.projectId,
-      assignedTo: targetUser.name,
-      assignedToRole: targetUser.role,
-      assignedBy: userName,
-    });
+    await safeTrigger("projects-channel", "project-distributed", { projectId: input.projectId, t: Date.now() });
 
     return { status: "project_assigned" as const, project: { id: input.projectId, ...updateData } };
   }

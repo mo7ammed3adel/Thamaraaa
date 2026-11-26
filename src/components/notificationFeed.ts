@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { listUnreadNotifications, markNotificationRead, type NotificationItem } from "@/client/api/notifications";
 import { notify as toast } from "@/components/toast";
+import { realtimeConnected, realtimeEnabled, subscribe } from "@/lib/realtime/client";
 
 /**
  * One shared unread-notification feed for the whole dashboard.
@@ -17,8 +18,10 @@ import { notify as toast } from "@/components/toast";
  * Pusher, every 60s as a safety net with it. Hidden tabs skip polls and catch
  * up the moment they become visible again.
  */
-const PUSHER_KEY = process.env.NEXT_PUBLIC_PUSHER_KEY;
-const POLL_MS = PUSHER_KEY ? 60_000 : 15_000;
+const POLL_MS = 15_000;
+// While the socket is connected, the timer is only a safety net.
+const LIVE_POLL_MS = 60_000;
+let lastLoad = 0;
 const MAX_INDIVIDUAL_TOASTS = 3;
 
 type Listener = (items: NotificationItem[]) => void;
@@ -48,6 +51,7 @@ function announce(fresh: NotificationItem[]) {
 export function refreshNotifications(): Promise<void> {
   if (typeof document !== "undefined" && document.hidden) return Promise.resolve();
   if (inflight) return inflight;
+  lastLoad = Date.now();
 
   inflight = (async () => {
     try {
@@ -81,7 +85,10 @@ function onVisibility() {
 
 function start() {
   void refreshNotifications();
-  timer = setInterval(() => void refreshNotifications(), POLL_MS);
+  timer = setInterval(() => {
+    if (realtimeConnected() && Date.now() - lastLoad < LIVE_POLL_MS) return;
+    void refreshNotifications();
+  }, POLL_MS);
   document.addEventListener("visibilitychange", onVisibility);
   window.addEventListener("focus", onVisibility);
 }
@@ -97,35 +104,16 @@ function stop() {
 }
 
 function connectPusher(userId: string) {
-  if (!PUSHER_KEY || pusherUserId === userId) return;
+  if (!realtimeEnabled() || pusherUserId === userId) return;
   pusherTeardown?.();
   pusherUserId = userId;
-
-  let cancelled = false;
-  let client: any;
-  const channelName = `user-${userId}`;
-
-  (async () => {
-    const PusherModule = await import("pusher-js");
-    if (cancelled) return;
-    client = new PusherModule.default(PUSHER_KEY, {
-      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "eu",
-    });
-    // The payload is not trusted for rendering — just refetch the real list.
-    client.subscribe(channelName).bind("new-notification", () => void refreshNotifications());
-  })().catch(() => {
-    // Realtime is best-effort; polling still delivers.
+  // The payload is not trusted for rendering — just refetch the real list.
+  // After a reconnect, refetch too: anything sent while offline was missed.
+  pusherTeardown = subscribe(`user-${userId}`, "new-notification", () => void refreshNotifications(), {
+    onLive: (live) => {
+      if (live) void refreshNotifications();
+    },
   });
-
-  pusherTeardown = () => {
-    cancelled = true;
-    try {
-      client?.unsubscribe(channelName);
-      client?.disconnect();
-    } catch {
-      // ignore teardown races
-    }
-  };
 }
 
 export function subscribeNotifications(listener: Listener, userId?: string | null): () => void {
