@@ -121,6 +121,7 @@ export default function ChatClient({ me }: { me: Me }) {
   const activeRef = useRef<string | null>(null);
   activeRef.current = activeId;
   const pendingThread = useRef<string | null>(null);
+  const hadActive = useRef(false);
   const conversationsRef = useRef<ConversationSummary[] | null>(null);
   conversationsRef.current = conversations;
 
@@ -202,7 +203,20 @@ export default function ChatClient({ me }: { me: Me }) {
     const pending = pendingThread.current;
     if (activeId) pendingThread.current = null;
     setPanel((p) => (p?.kind === "search" || (p?.kind === "thread" && p.rootId === pending) ? p : null));
-    if (!activeId) return;
+    if (!activeId) {
+      // Only after actually leaving a conversation — on first load activeId is
+      // briefly empty while ?c= is still being applied.
+      const left = hadActive.current;
+      hadActive.current = false;
+      const url = new URL(window.location.href);
+      if (left && url.searchParams.has("c")) {
+        url.searchParams.delete("c");
+        url.searchParams.delete("t");
+        window.history.replaceState(null, "", url.toString());
+      }
+      return;
+    }
+    hadActive.current = true;
     stickToBottom.current = true;
     const url = new URL(window.location.href);
     url.searchParams.set("c", activeId);
@@ -235,6 +249,9 @@ export default function ChatClient({ me }: { me: Me }) {
 
   // Keep ?t= in the URL in step with the open thread, so links can be shared.
   useEffect(() => {
+    // Nothing is open yet on first load, while ?c=&t= are still being applied —
+    // touching the URL now would erase the deep-linked thread.
+    if (!activeRef.current) return;
     const url = new URL(window.location.href);
     if (panel?.kind === "thread") url.searchParams.set("t", panel.rootId);
     else url.searchParams.delete("t");

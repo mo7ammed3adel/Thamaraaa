@@ -91,13 +91,20 @@ export function ThreadPanel({
     setReplies([]);
     atBottom.current = true;
     load();
+  }, [load]);
+
+  useEffect(() => {
     const h = setInterval(() => !document.hidden && load(), live ? 30000 : 5000);
     return () => clearInterval(h);
   }, [load, live]);
 
   // Realtime pings / main-list polls bump this.
+  // At most one extra reload every 3s, however busy the channel is.
+  const lastBump = useRef(0);
   useEffect(() => {
-    if (refreshKey) load();
+    if (!refreshKey || Date.now() - lastBump.current < 3000) return;
+    lastBump.current = Date.now();
+    load();
   }, [refreshKey, load]);
 
   useEffect(() => {
@@ -284,6 +291,7 @@ export function SearchPanel({ initialQuery, onClose, onOpen }: { initialQuery: s
   const [hits, setHits] = useState<SearchHit[] | null>(null);
   const [loading, setLoading] = useState(false);
   const searchSeq = useRef(0);
+  const [rateLimited, setRateLimited] = useState(false);
 
   useEffect(() => setQ(initialQuery), [initialQuery]);
 
@@ -294,11 +302,16 @@ export function SearchPanel({ initialQuery, onClose, onOpen }: { initialQuery: s
       return;
     }
     setLoading(true);
+    setRateLimited(false);
     const seq = ++searchSeq.current;
     const h = setTimeout(() => {
       searchMessages(query)
         .then((res) => seq === searchSeq.current && setHits(res))
-        .catch(() => setHits([]))
+        .catch((e) => {
+          if (seq !== searchSeq.current) return;
+          if ((e as { status?: number })?.status === 429) setRateLimited(true);
+          setHits([]);
+        })
         .finally(() => setLoading(false));
     }, 300);
     return () => clearTimeout(h);
@@ -322,7 +335,8 @@ export function SearchPanel({ initialQuery, onClose, onOpen }: { initialQuery: s
       <div className="flex-1 overflow-y-auto">
         {q.trim().length < 2 && <p className="px-4 py-10 text-center text-sm text-slate-400">{t("searchHint")}</p>}
         {loading && hits === null && <p className="px-4 py-6 text-center text-sm text-slate-400">…</p>}
-        {hits?.length === 0 && !loading && <p className="px-4 py-10 text-center text-sm text-slate-500">{t("noSearchResults")}</p>}
+        {rateLimited && <p className="px-4 pt-6 text-center text-sm text-amber-700">{t("rateLimited")}</p>}
+        {hits?.length === 0 && !loading && !rateLimited && <p className="px-4 py-10 text-center text-sm text-slate-500">{t("noSearchResults")}</p>}
         {hits?.map((h) => (
           <button key={h.id} onClick={() => onOpen(h)} className="block w-full border-b border-slate-100 px-4 py-3 text-start hover:bg-slate-50">
             <div className="mb-1 flex items-center gap-1.5 text-xs text-slate-500">

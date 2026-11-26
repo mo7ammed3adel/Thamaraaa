@@ -632,7 +632,7 @@ export async function listThread(actor: ChatActor, rootId: string) {
   if (!root || root.replyToId) return { status: "not_found" as const };
   const membership = await findMembership(root.conversationId, actor.id);
   if (!membership) return { status: "not_found" as const };
-  if (!allowAction(`thread:${actor.id}`, 60, 60_000)) return { status: "rate_limited" as const };
+  if (!allowAction(`thread:${actor.id}`, 120, 60_000)) return { status: "rate_limited" as const };
   const replies = await prisma.chatMessage.findMany({
     where: { replyToId: rootId },
     include: messageInclude,
@@ -658,6 +658,7 @@ export async function togglePin(actor: ChatActor, messageId: string) {
 export async function listPinned(actor: ChatActor, conversationId: string) {
   const membership = await findMembership(conversationId, actor.id);
   if (!membership) return { status: "not_found" as const };
+  if (!allowAction(`pins:${actor.id}`, 60, 60_000)) return { status: "rate_limited" as const };
   const rows = await prisma.chatMessage.findMany({
     where: { conversationId, pinnedAt: { not: null }, deletedAt: null },
     include: messageInclude,
