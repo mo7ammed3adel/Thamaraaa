@@ -25,7 +25,7 @@ import {
 import { findSticker } from "@/lib/chat/constants";
 import { notify } from "@/components/toast";
 import { subscribe } from "@/lib/realtime/client";
-import { Avatar, ConversationIcon } from "./ChatBits";
+import { Avatar, ConversationAvatar } from "./ChatBits";
 import Composer, { type ComposerSubmit } from "./Composer";
 import MessageItem, { ImageLightbox, formatTime } from "./MessageItem";
 import { BrowseChannelsModal, InfoPanel, NewConversationModal } from "./ChatModals";
@@ -568,7 +568,7 @@ export default function ChatClient({ me }: { me: Me }) {
                           </span>
                         ) : (
                           <span className="flex w-5 shrink-0 justify-center opacity-80">
-                            <ConversationIcon type={c.type} isPrivate={c.isPrivate} className="h-4 w-4" />
+                            <ConversationAvatar id={c.id} type={c.type} isPrivate={c.isPrivate} avatarV={c.avatarV} size={20} />
                           </span>
                         )}
                         <span className={`flex-1 truncate ${unread ? "font-bold" : ""}`}>{c.name}</span>
@@ -619,7 +619,7 @@ export default function ChatClient({ me }: { me: Me }) {
                         <span className={`absolute -bottom-0.5 -end-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-white ${dmOther?.online ? "bg-emerald-500" : "bg-slate-300"}`} />
                       </span>
                     ) : (
-                      <ConversationIcon type={type} isPrivate={detail?.isPrivate ?? active?.isPrivate ?? true} className="h-4 w-4 text-slate-600" />
+                      <ConversationAvatar id={activeId} type={type} isPrivate={detail?.isPrivate ?? active?.isPrivate ?? true} avatarV={detail?.avatarV ?? active?.avatarV} size={24} iconClassName="h-4 w-4 text-slate-600" />
                     )}
                     <h2 className="truncate text-[17px] font-bold text-slate-900">{title}</h2>
                     <ChevronDown className="h-4 w-4 shrink-0 text-slate-500" />
@@ -722,7 +722,7 @@ export default function ChatClient({ me }: { me: Me }) {
                   {loaded && !hasMore && (
                     <div className="px-5 pb-2 pt-8">
                       <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-                        {type === "dm" ? <Avatar name={title} seed={dmOther?.userId} size={56} /> : <ConversationIcon type={type} isPrivate={detail?.isPrivate ?? true} className="h-7 w-7" />}
+                        {type === "dm" ? <Avatar name={title} seed={dmOther?.userId} size={56} /> : <ConversationAvatar id={activeId} type={type} isPrivate={detail?.isPrivate ?? true} avatarV={detail?.avatarV} size={56} iconClassName="h-7 w-7" />}
                       </div>
                       <h3 className="text-2xl font-black text-slate-900">
                         {type === "dm" ? title : `${type === "channel" ? "#" : ""}${title}`}

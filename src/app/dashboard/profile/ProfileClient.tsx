@@ -5,6 +5,7 @@ import { Clock, FileText, UploadCloud, Calendar, User } from "lucide-react";
 import { createDocument, submitLeaveRequest } from "@/client/api/hr";
 import { HttpError } from "@/client/transport/http";
 import { useTranslator } from "@/components/i18n/LocaleProvider";
+import MyPhoto from "@/components/chat/MyPhoto";
 
 /** These flows always showed success and reloaded even on a rejected request,
  * so an HTTP failure is swallowed to keep that behavior; network errors still throw. */
@@ -40,8 +41,8 @@ export default function ProfileClient({ profile }: { profile: any }) {
       {/* Header Profile Card */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-6">
-          <div className="h-24 w-24 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-3xl font-bold shrink-0">
-            {profile.name.charAt(0)}
+          <div className="shrink-0">
+            <MyPhoto userId={profile.id} name={profile.name} />
           </div>
           <div className="flex-1 text-center sm:text-start">
             <h2 className="text-2xl font-bold text-gray-900">{profile.name}</h2>

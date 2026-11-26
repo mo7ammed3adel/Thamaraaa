@@ -8,6 +8,8 @@ export type ConversationSummary = {
   type: ChatType;
   name: string | null;
   isPrivate: boolean;
+  /** Group/channel photo version (null: none, or a DM). */
+  avatarV: string | null;
   memberCount: number;
   otherUser: { id: string; name: string; role: string; active: boolean } | null;
   lastMessageAt: string;
@@ -31,6 +33,7 @@ export type ConversationDetail = {
   name: string | null;
   description: string | null;
   isPrivate: boolean;
+  avatarV: string | null;
   createdAt: string;
   myRole: MemberRole;
   canCreateChannel: boolean;
@@ -222,3 +225,23 @@ export const getCallInfo = (callId: string) => getJson<CallInfo>(`/api/chat/call
 export const declineCall = (callId: string) => postJson<{ ok: true }>(`/api/chat/calls/${callId}/decline`);
 export const leaveCall = (callId: string) => postJson<{ ok: true }>(`/api/chat/calls/${callId}/leave`);
 export const setCallRecording = (callId: string, on: boolean) => postJson<{ ok: true }>(`/api/chat/calls/${callId}/recording`, { on });
+
+// ── Photos ──────────────────────────────────────────────────────────────────
+
+export const userAvatarUrl = (userId: string, version: string) => `/api/avatars/users/${userId}?v=${version}`;
+export const conversationAvatarUrl = (id: string, version: string) => `/api/chat/conversations/${id}/avatar?v=${version}`;
+export const listUserAvatars = () => getJson<Record<string, string>>("/api/avatars/users");
+
+async function uploadPhoto(url: string, file: File): Promise<{ version: string }> {
+  const form = new FormData();
+  form.append("file", file, file.name);
+  const response = await fetch(url, { method: "POST", body: form });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) throw new ChatUploadError(payload?.error || `HTTP ${response.status}`, response.status, payload);
+  return payload;
+}
+
+export const setMyAvatar = (file: File) => uploadPhoto("/api/me/avatar", file);
+export const removeMyAvatar = () => deleteJson<{ ok: true }>("/api/me/avatar");
+export const setConversationAvatar = (id: string, file: File) => uploadPhoto(`/api/chat/conversations/${id}/avatar`, file);
+export const removeConversationAvatar = (id: string) => deleteJson<{ ok: true }>(`/api/chat/conversations/${id}/avatar`);

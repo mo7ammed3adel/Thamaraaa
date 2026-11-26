@@ -185,6 +185,11 @@ const en = {
   callMovedTab: "The call moved to your other tab",
   voiceSendFailed: "The voice message wasn't sent",
   retry: "Retry",
+  changePhoto: "Change photo",
+  removePhoto: "Remove photo",
+  photoTooLarge: "That image is larger than 8 MB",
+  photoUpdated: "Photo updated",
+  photoRejected: "That file isn't a usable image",
 };
 
 export type ChatMessageKey = keyof typeof en;
@@ -370,6 +375,11 @@ const ar: Record<ChatMessageKey, string> = {
   callMovedTab: "المكالمة اتنقلت للتابة التانية",
   voiceSendFailed: "الرسالة الصوتية متبعتتش",
   retry: "حاول تاني",
+  changePhoto: "غيّر الصورة",
+  removePhoto: "شيل الصورة",
+  photoTooLarge: "الصورة أكبر من 8 ميجا",
+  photoUpdated: "الصورة اتغيّرت",
+  photoRejected: "الملف ده مش صورة ينفع تتحط",
 };
 
 export const CHAT_MESSAGES: Record<Locale, Record<ChatMessageKey, string>> = { en, ar };

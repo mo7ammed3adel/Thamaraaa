@@ -16,6 +16,7 @@ import { getTranslator } from "@/server/i18n/locale";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
 import ChatNavLink from "@/components/chat/ChatNavLink";
 import CallProvider from "@/components/chat/calls/CallProvider";
+import { Avatar } from "@/components/chat/ChatBits";
 
 export default async function DashboardLayout({
   children,
@@ -66,6 +67,9 @@ export default async function DashboardLayout({
         footer={
           <div className="p-4 border-t border-slate-800">
             <div className="flex items-center mb-4">
+              <Link href="/dashboard/profile" className="shrink-0" title={session.user?.name ?? ""}>
+                <Avatar name={session.user?.name} seed={userId} size={36} />
+              </Link>
               <div className="ms-3">
                 <p className="text-sm font-medium text-white">{session.user?.name}</p>
                 <p className="text-xs font-medium text-slate-400 capitalize">{role.replace(/_/g, " ")}</p>

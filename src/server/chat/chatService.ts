@@ -16,6 +16,8 @@ import {
 import { inspectUploadedFile, type InspectedFile } from "./fileSecurity";
 import { deleteChatFile, newChatStorageKey, saveChatFile, sha256Hex } from "./chatStorage";
 import { allowAction } from "./rateLimit";
+import { compressForStorage, optimizeImage } from "@/server/storage/compression";
+import { avatarVersion } from "@/server/avatars/version";
 import { notifyUsers } from "@/lib/notify";
 import { cleanDurationMs, cleanWaveform, isMissedCall, isRecordedAudioMime, type MediaMessageKind } from "@/lib/chat/media";
 
@@ -306,6 +308,7 @@ export async function listConversations(actor: ChatActor) {
         type: c.type,
         name: c.type === "dm" ? other?.name ?? "—" : c.name,
         isPrivate: c.isPrivate,
+        avatarV: c.type === "dm" ? null : avatarVersion(c.avatarKey),
         memberCount: c._count.members,
         unread: unread.get(c.id) ?? 0,
         otherUser: other ? { id: other.id, name: other.name, role: other.role, active: other.status === "Active" } : null,
@@ -362,6 +365,7 @@ export async function getConversation(actor: ChatActor, conversationId: string) 
       name: c.type === "dm" ? other?.name ?? "—" : c.name,
       description: c.description,
       isPrivate: c.isPrivate,
+      avatarV: c.type === "dm" ? null : avatarVersion(c.avatarKey),
       createdAt: c.createdAt.toISOString(),
       myRole: membership.role as MemberRole,
       canCreateChannel: canCreateChannel(actor.role),
@@ -801,13 +805,18 @@ export async function sendMessage(
     if ((recent._sum.size ?? 0) + incoming > DAILY_UPLOAD_QUOTA_BYTES) return { status: "rate_limited" as const };
   }
 
-  const stored: { key: string; file: UploadedFile; result: Extract<InspectedFile, { ok: true }> }[] = [];
+  type Stored = { key: string; file: UploadedFile; result: Extract<InspectedFile, { ok: true }>; served: Uint8Array; disk: Uint8Array; encoding: "identity" | "gzip" };
+  const stored: Stored[] = [];
   let messageId: string;
   try {
     for (const item of inspected) {
+      // Smaller on disk: photos resized/re-encoded (and stripped of EXIF),
+      // uncompressed documents gzipped. "served" is what downloads return.
+      const served = item.result.category === "image" ? (await optimizeImage(item.file.bytes, item.result.mimeType)).bytes : item.file.bytes;
+      const { bytes: disk, encoding } = await compressForStorage(served, item.result.mimeType);
       const key = newChatStorageKey();
-      await saveChatFile(key, item.file.bytes);
-      stored.push({ key, ...item });
+      await saveChatFile(key, disk);
+      stored.push({ key, ...item, served, disk, encoding });
     }
 
     const now = new Date();
@@ -829,8 +838,10 @@ export async function sendMessage(
               originalName: s.result.safeName,
               mimeType: s.result.mimeType,
               category: s.result.category,
-              size: s.file.bytes.length,
-              sha256: sha256Hex(s.file.bytes),
+              size: s.served.length,
+              sha256: sha256Hex(s.served),
+              storedEncoding: s.encoding,
+              storedSize: s.disk.length,
               durationMs,
               waveform,
             })),

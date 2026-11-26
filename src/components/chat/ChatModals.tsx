@@ -7,8 +7,10 @@ import {
   browseChannels,
   createConversation,
   joinChannel,
+  removeConversationAvatar,
   removeMember,
   searchChatUsers,
+  setConversationAvatar,
   setMemberRole,
   updateConversation,
   type ChatType,
@@ -16,7 +18,8 @@ import {
   type ConversationDetail,
   type PublicChannel,
 } from "@/client/api/chat";
-import { Avatar, ConversationIcon } from "./ChatBits";
+import { Avatar, ConversationAvatar, ConversationIcon } from "./ChatBits";
+import { PhotoPicker } from "./PhotoPicker";
 import { useChatT } from "./useChatT";
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
@@ -308,9 +311,33 @@ export function InfoPanel({
       </div>
       <div className="flex-1 overflow-y-auto p-4">
         <div className="mb-5 flex flex-col items-center text-center">
-          <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950 text-emerald-300 shadow-lg">
-            <ConversationIcon type={detail.type} isPrivate={detail.isPrivate} className="h-7 w-7" />
-          </div>
+          {(() => {
+            const picture = detail.avatarV ? (
+              <ConversationAvatar id={detail.id} type={detail.type} isPrivate={detail.isPrivate} avatarV={detail.avatarV} size={64} />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950 text-emerald-300 shadow-lg">
+                <ConversationIcon type={detail.type} isPrivate={detail.isPrivate} className="h-7 w-7" />
+              </div>
+            );
+            // Owners and admins can set the group/channel photo.
+            return (
+              <div className="mb-3">
+                {manager && detail.type !== "dm" ? (
+                  <PhotoPicker
+                    hasPhoto={Boolean(detail.avatarV)}
+                    labels={{ change: t("changePhoto"), remove: t("removePhoto"), tooLarge: t("photoTooLarge") }}
+                    onPick={(file) => run(() => setConversationAvatar(detail.id, file))}
+                    onRemove={() => run(() => removeConversationAvatar(detail.id))}
+                    onError={onError}
+                  >
+                    {picture}
+                  </PhotoPicker>
+                ) : (
+                  picture
+                )}
+              </div>
+            );
+          })()}
           {renaming ? (
             <div className="w-full space-y-2">
               <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-300" />

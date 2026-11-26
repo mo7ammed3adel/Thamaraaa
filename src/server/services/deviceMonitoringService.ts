@@ -33,6 +33,7 @@ import {
 } from "@/server/repositories/deviceRepository";
 import { deleteScreenshotFile, saveScreenshotFile } from "@/server/services/screenshotStorage";
 import { prisma } from "@/lib/prisma";
+import { optimizeImage } from "@/server/storage/compression";
 
 /** Only the super admin manages devices and views screenshots. */
 function isSuperAdmin(role: string | null | undefined): boolean {
@@ -353,15 +354,22 @@ export async function ingestScreenshot(input: {
   const id = crypto.randomUUID();
   const storageKey = buildScreenshotStorageKey(device.userId, capturedAt, id);
 
-  await saveScreenshotFile(storageKey, input.image);
+  // Screenshots pile up fast: recompress them (still JPEG, which the viewer
+  // route serves). Text stays readable at this quality.
+  // The long edge is capped at 2560, so wide multi-monitor captures keep readable text.
+  const optimized = await optimizeImage(input.image, "image/jpeg", { maxEdge: 2560, quality: 72 });
+  const useOptimized = optimized.changed && optimized.bytes.length < input.image.length;
+  const image = useOptimized ? Buffer.from(optimized.bytes) : input.image;
+
+  await saveScreenshotFile(storageKey, image);
   const record = await createScreenshotRecord({
     id,
     deviceId: device.id,
     userId: device.userId,
     storageKey,
-    width: toIntOrNull(input.width),
-    height: toIntOrNull(input.height),
-    sizeBytes: input.image.length,
+    width: useOptimized && optimized.width ? optimized.width : toIntOrNull(input.width),
+    height: useOptimized && optimized.height ? optimized.height : toIntOrNull(input.height),
+    sizeBytes: image.length,
     capturedAt,
   });
 

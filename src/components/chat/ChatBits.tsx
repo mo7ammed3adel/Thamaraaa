@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { Crown, Hash, Lock, Users } from "lucide-react";
 import { findSticker } from "@/lib/chat/constants";
-import type { ChatType } from "@/client/api/chat";
+import { conversationAvatarUrl, userAvatarUrl, type ChatType } from "@/client/api/chat";
+import { useAvatarVersion } from "./avatarStore";
 
 const AVATAR_GRADIENTS = [
   "from-emerald-400 to-teal-600",
@@ -38,14 +40,23 @@ export function Avatar({
   online?: boolean;
 }) {
   const gradient = AVATAR_GRADIENTS[hash(seed || name || "?") % AVATAR_GRADIENTS.length];
+  // seed is the user id wherever a person is shown: their photo, if they set one.
+  const version = useAvatarVersion(seed);
+  const [failed, setFailed] = useState<string | null>(null);
+  const photo = seed && version && failed !== version ? userAvatarUrl(seed, version) : null;
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <div
-        className={`flex h-full w-full items-center justify-center rounded-xl bg-gradient-to-br ${gradient} font-semibold text-white shadow-sm ring-1 ring-white/20`}
-        style={{ fontSize: size * 0.38 }}
-      >
-        {initials(name)}
-      </div>
+      {photo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={photo} alt={name ?? ""} loading="lazy" onError={() => setFailed(version)} className="h-full w-full rounded-xl object-cover shadow-sm ring-1 ring-black/5" />
+      ) : (
+        <div
+          className={`flex h-full w-full items-center justify-center rounded-xl bg-gradient-to-br ${gradient} font-semibold text-white shadow-sm ring-1 ring-white/20`}
+          style={{ fontSize: size * 0.38 }}
+        >
+          {initials(name)}
+        </div>
+      )}
       {online !== undefined && (
         <span
           className={`absolute -bottom-0.5 -end-0.5 h-3 w-3 rounded-full ring-2 ring-white ${online ? "bg-emerald-400" : "bg-slate-500"}`}
@@ -53,6 +64,32 @@ export function Avatar({
       )}
     </div>
   );
+}
+
+/** A group/channel photo when one is set, otherwise its icon. */
+export function ConversationAvatar({
+  id,
+  type,
+  isPrivate,
+  avatarV,
+  size = 20,
+  iconClassName = "h-4 w-4",
+}: {
+  id: string;
+  type: ChatType;
+  isPrivate: boolean;
+  avatarV: string | null | undefined;
+  size?: number;
+  iconClassName?: string;
+}) {
+  const [failed, setFailed] = useState<string | null>(null);
+  if (avatarV && failed !== avatarV) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={conversationAvatarUrl(id, avatarV)} alt="" onError={() => setFailed(avatarV)} className="shrink-0 rounded-md object-cover" style={{ width: size, height: size }} />
+    );
+  }
+  return <ConversationIcon type={type} isPrivate={isPrivate} className={iconClassName} />;
 }
 
 export function ConversationIcon({ type, isPrivate, className = "h-4 w-4" }: { type: ChatType; isPrivate: boolean; className?: string }) {

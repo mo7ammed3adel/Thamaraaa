@@ -63,6 +63,8 @@ model User {
   chatReactions       ChatReaction[]      @relation("ChatReactionUser")
   chatConversations   ChatConversation[]  @relation("ChatConversationCreator")
   chatCallsStarted    ChatCall[]          @relation("ChatCallStarter")
+  // Profile photo: a storage key in the chat file store (256px WebP).
+  avatarKey           String?
 }
 
 model Niche {
@@ -1437,6 +1439,8 @@ model ChatConversation {
   isPrivate     Boolean  @default(true)
   // DMs only: the two member ids sorted and joined, so a pair has one DM.
   dmKey         String?  @unique
+  // Group/channel photo (256px WebP in the chat file store).
+  avatarKey     String?
   createdById   String?
   createdBy     User?    @relation("ChatConversationCreator", fields: [createdById], references: [id], onDelete: SetNull)
   createdAt     DateTime @default(now())
@@ -1521,6 +1525,10 @@ model ChatAttachment {
   // supplied by the recording browser and used for display only.
   durationMs     Int?
   waveform       String?
+  // How the bytes sit on disk: "gzip" files are decompressed when served.
+  // size is always what the user downloads; storedSize is what the disk holds.
+  storedEncoding String           @default("identity")
+  storedSize     Int?
   createdAt      DateTime         @default(now())
 
   @@index([messageId])

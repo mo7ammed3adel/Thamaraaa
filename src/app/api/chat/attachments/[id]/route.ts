@@ -1,5 +1,6 @@
 import { createReadStream } from "fs";
-import { Readable } from "stream";
+import { Readable, pipeline } from "stream";
+import { createGunzip } from "zlib";
 import { getAttachmentForView } from "@/server/chat/chatService";
 import { statChatFile } from "@/server/chat/chatStorage";
 import { isInlineMime } from "@/server/chat/fileSecurity";
@@ -75,6 +76,20 @@ export async function GET(request: Request, { params }: { params: { id: string }
     // working from the browser cache within a minute.
     "Cache-Control": "private, max-age=60",
   };
+
+  // Stored gzipped (documents): decompress on the way out. These are never
+  // media, so they are always sent whole rather than by range.
+  if (attachment.storedEncoding === "gzip") {
+    // pipeline() carries a read or corrupt-data error through to the response
+    // (it aborts) instead of leaving it hanging.
+    const unzipped = pipeline(createReadStream(file.path), createGunzip(), (error) => {
+      if (error) console.error("Attachment decompress failed:", attachment.id, error.message);
+    });
+    return new Response(Readable.toWeb(unzipped) as ReadableStream<Uint8Array>, {
+      status: 200,
+      headers: { ...headers, "Accept-Ranges": "none", "Content-Length": String(attachment.size) },
+    });
+  }
 
   const range = parseRange(request.headers.get("range"), file.size);
   if (range === "invalid") {
