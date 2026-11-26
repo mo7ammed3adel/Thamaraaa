@@ -48,7 +48,7 @@ export function Avatar({
       </div>
       {online !== undefined && (
         <span
-          className={`absolute -bottom-0.5 -end-0.5 h-3 w-3 rounded-full ring-2 ring-slate-900 ${online ? "bg-emerald-400" : "bg-slate-500"}`}
+          className={`absolute -bottom-0.5 -end-0.5 h-3 w-3 rounded-full ring-2 ring-white ${online ? "bg-emerald-400" : "bg-slate-500"}`}
         />
       )}
     </div>

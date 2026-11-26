@@ -1478,12 +1478,22 @@ model ChatMessage {
   replies        ChatMessage[]    @relation("ChatMessageReply")
   editedAt       DateTime?
   deletedAt      DateTime?
+  // Pinned to the conversation (any member can pin, like Slack).
+  pinnedAt       DateTime?
+  pinnedById     String?
   createdAt      DateTime         @default(now())
 
   attachments ChatAttachment[]
   reactions   ChatReaction[]
 
   @@index([conversationId, createdAt])
+  @@index([replyToId])
+}
+
+/// When each employee last had the chat open — drives the online dot.
+model ChatPresence {
+  userId     String   @id
+  lastSeenAt DateTime @default(now())
 }
 
 model ChatAttachment {

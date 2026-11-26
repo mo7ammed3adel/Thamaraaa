@@ -1,54 +1,25 @@
 "use client";
 
-import { Fragment, useState } from "react";
-import { CheckCheck, Check, Download, FileArchive, FileText, File as FileIcon, Pencil, Reply, SmilePlus, Trash2, X } from "lucide-react";
+import { useState } from "react";
+import { CheckCheck, Check, Download, FileArchive, FileText, File as FileIcon, MessageSquareText, Pencil, Pin, SmilePlus, Trash2, X } from "lucide-react";
 import { attachmentUrl, type ChatAttachment, type ChatMessage } from "@/client/api/chat";
 import { REACTION_EMOJIS, formatBytes } from "@/lib/chat/constants";
-import { normalizeWebUrl } from "@/lib/safe-url";
 import { Avatar, Sticker } from "./ChatBits";
+import { Mrkdwn } from "./mrkdwn";
 import { useChatT } from "./useChatT";
-
-const URL_PATTERN = /(https?:\/\/[^\s<>"]+)/g;
-
-/** Renders text with http(s) links made clickable. Anything else stays text. */
-function RichText({ text }: { text: string }) {
-  const parts = text.split(URL_PATTERN);
-  return (
-    <>
-      {parts.map((part, i) => {
-        if (i % 2 === 1) {
-          const trimmed = part.replace(/[.,!?؟،)\]]+$/, "");
-          const rest = part.slice(trimmed.length);
-          const safe = normalizeWebUrl(trimmed);
-          if (safe) {
-            return (
-              <Fragment key={i}>
-                <a href={safe} target="_blank" rel="noopener noreferrer nofollow" dir="ltr" className="font-medium text-emerald-700 [overflow-wrap:anywhere] [unicode-bidi:isolate] underline decoration-emerald-300 underline-offset-2 hover:text-emerald-900">
-                  {trimmed}
-                </a>
-                {rest}
-              </Fragment>
-            );
-          }
-        }
-        return <Fragment key={i}>{part}</Fragment>;
-      })}
-    </>
-  );
-}
 
 function AttachmentView({ a, onOpenImage }: { a: ChatAttachment; onOpenImage: (a: ChatAttachment) => void }) {
   const { t } = useChatT();
   if (a.category === "image") {
     return (
-      <button type="button" onClick={() => onOpenImage(a)} className="group/img block overflow-hidden rounded-xl ring-1 ring-slate-200">
+      <button type="button" onClick={() => onOpenImage(a)} className="group/img block overflow-hidden rounded-lg ring-1 ring-slate-200">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={attachmentUrl(a.id)} alt={a.originalName} loading="lazy" className="max-h-72 max-w-full object-cover transition group-hover/img:scale-[1.02]" />
       </button>
     );
   }
   if (a.category === "video") {
-    return <video src={attachmentUrl(a.id)} controls preload="metadata" className="max-h-80 max-w-full rounded-xl bg-black ring-1 ring-slate-200" />;
+    return <video src={attachmentUrl(a.id)} controls preload="metadata" className="max-h-80 max-w-full rounded-lg bg-black ring-1 ring-slate-200" />;
   }
   if (a.category === "audio") {
     return <audio src={attachmentUrl(a.id)} controls preload="metadata" className="w-72 max-w-full" />;
@@ -56,7 +27,7 @@ function AttachmentView({ a, onOpenImage }: { a: ChatAttachment; onOpenImage: (a
   const Icon = a.category === "pdf" || a.category === "document" ? FileText : a.category === "archive" ? FileArchive : FileIcon;
   const tone = a.category === "pdf" ? "from-rose-500 to-red-600" : a.category === "archive" ? "from-amber-500 to-orange-600" : "from-sky-500 to-indigo-600";
   return (
-    <div className="flex w-72 max-w-full items-center gap-3 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm">
+    <div className="flex w-72 max-w-full items-center gap-3 rounded-lg border border-slate-200 bg-white p-2.5 shadow-sm">
       <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${tone} text-white`}>
         <Icon className="h-5 w-5" />
       </div>
@@ -117,32 +88,58 @@ export function formatTime(iso: string, locale: string) {
   return new Date(iso).toLocaleTimeString(locale === "ar" ? "ar-EG" : "en-US", { hour: "numeric", minute: "2-digit" });
 }
 
+function relativeTime(iso: string, locale: string, t: ReturnType<typeof useChatT>["t"]) {
+  const d = new Date(iso);
+  const today = new Date();
+  if (d.toDateString() === today.toDateString()) return `${t("today")} ${formatTime(iso, locale)}`;
+  return d.toLocaleDateString(locale === "ar" ? "ar-EG" : "en-US", { day: "numeric", month: "short" });
+}
+
+function ActionButton({ title, onClick, children, danger }: { title: string; onClick: () => void; children: React.ReactNode; danger?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className={`rounded-md p-1.5 text-slate-500 hover:bg-slate-100 ${danger ? "hover:text-rose-600" : "hover:text-slate-800"}`}
+    >
+      {children}
+    </button>
+  );
+}
+
 export default function MessageItem({
   message,
   meId,
+  names,
   grouped,
   canModerate,
   seen,
   isLastMine,
-  onReply,
+  inThread,
+  onOpenThread,
   onEdit,
   onDelete,
   onReact,
+  onPin,
   onOpenImage,
-  onJumpTo,
 }: {
   message: ChatMessage;
   meId: string;
+  /** userId → name, for rendering @mentions. */
+  names: Map<string, string>;
   grouped: boolean;
   canModerate: boolean;
-  seen: boolean;
-  isLastMine: boolean;
-  onReply: (m: ChatMessage) => void;
+  seen?: boolean;
+  isLastMine?: boolean;
+  /** Rendered inside a thread panel: no "reply in thread" or thread summary. */
+  inThread?: boolean;
+  onOpenThread: (m: ChatMessage) => void;
   onEdit: (m: ChatMessage) => void;
   onDelete: (m: ChatMessage) => void;
   onReact: (m: ChatMessage, emoji: string) => void;
+  onPin: (m: ChatMessage) => void;
   onOpenImage: (a: ChatAttachment) => void;
-  onJumpTo: (id: string) => void;
 }) {
   const { t, locale } = useChatT();
   const [picker, setPicker] = useState(false);
@@ -160,32 +157,33 @@ export default function MessageItem({
 
   const canEdit = mine && message.kind === "text" && !message.deleted;
   const canDelete = !message.deleted && (mine || canModerate);
+  const mentionsMe = Boolean(message.body?.includes(`<@${meId}>`));
 
   return (
-    <div id={`msg-${message.id}`} className={`group relative flex gap-3 rounded-xl px-3 transition-colors hover:bg-slate-50 ${grouped ? "py-0.5" : "mt-3 pt-2 pb-0.5"}`}>
-      <div className="w-9 shrink-0">{!grouped && <Avatar name={message.sender?.name} seed={message.sender?.id} />}</div>
+    <div
+      id={`msg-${message.id}`}
+      className={`group relative flex gap-2.5 px-4 transition-colors hover:bg-slate-50 ${grouped ? "py-0.5" : "mt-1 pb-0.5 pt-2"} ${
+        message.pinned ? "bg-amber-50/60 hover:bg-amber-50" : mentionsMe ? "border-s-2 border-amber-400 bg-amber-50/40" : ""
+      }`}
+    >
+      <div className="w-9 shrink-0 pt-0.5">
+        {grouped ? (
+          <span className="invisible block pt-1 text-center text-[10px] text-slate-400 group-hover:visible">{formatTime(message.createdAt, locale)}</span>
+        ) : (
+          <Avatar name={message.sender?.name} seed={message.sender?.id} />
+        )}
+      </div>
       <div className="min-w-0 flex-1">
-        {!grouped && (
-          <div className="flex items-baseline gap-2">
-            <span className="text-sm font-semibold text-slate-900">{mine ? t("you") : message.sender?.name || "—"}</span>
-            <span className="text-[11px] text-slate-400">{formatTime(message.createdAt, locale)}</span>
+        {message.pinned && !message.deleted && (
+          <div className="mb-0.5 flex items-center gap-1 text-[11px] font-medium text-amber-700">
+            <Pin className="h-3 w-3" /> {t("pinned")}
           </div>
         )}
-
-        {message.replyTo && !message.deleted && (
-          <button
-            type="button"
-            onClick={() => onJumpTo(message.replyTo!.id)}
-            className="mb-1 mt-0.5 flex max-w-md items-start gap-2 rounded-lg border-s-4 border-emerald-400 bg-emerald-50/70 px-3 py-1.5 text-start text-xs text-slate-600 hover:bg-emerald-50"
-          >
-            <Reply className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
-            <span className="min-w-0">
-              <span className="font-semibold text-emerald-800">{message.replyTo.senderName}</span>{" "}
-              <span className="line-clamp-1">
-                {message.replyTo.deleted ? t("deleted") : message.replyTo.body || (message.replyTo.kind === "sticker" ? t("sticker") : t("attachment"))}
-              </span>
-            </span>
-          </button>
+        {!grouped && (
+          <div className="flex items-baseline gap-2">
+            <span className="text-[15px] font-bold text-slate-900">{message.sender?.name || "—"}</span>
+            <span className="text-[11px] text-slate-500">{formatTime(message.createdAt, locale)}</span>
+          </div>
         )}
 
         {message.deleted ? (
@@ -198,10 +196,10 @@ export default function MessageItem({
               </div>
             )}
             {message.body && (
-              <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed text-slate-800" dir="auto">
-                <RichText text={message.body} />
+              <div className="whitespace-pre-wrap break-words text-[15px] leading-relaxed text-slate-800" dir="auto">
+                <Mrkdwn text={message.body} names={names} meId={meId} />
                 {message.editedAt && <span className="ms-1.5 text-[11px] text-slate-400">({t("edited")})</span>}
-              </p>
+              </div>
             )}
             {message.attachments.length > 0 && (
               <div className="mt-1.5 flex flex-wrap items-start gap-2">
@@ -214,7 +212,7 @@ export default function MessageItem({
         )}
 
         {message.reactions.length > 0 && (
-          <div className="mt-1.5 flex flex-wrap gap-1">
+          <div className="mt-1 flex flex-wrap gap-1">
             {message.reactions.map((r) => (
               <button
                 key={r.emoji}
@@ -222,14 +220,45 @@ export default function MessageItem({
                 title={r.names.join("، ")}
                 onClick={() => onReact(message, r.emoji)}
                 className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition ${
-                  r.mine ? "border-emerald-300 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                  r.mine ? "border-emerald-400 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-400"
                 }`}
               >
                 <span>{r.emoji}</span>
                 <span className="font-semibold">{r.count}</span>
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => setPicker((v) => !v)}
+              className="flex items-center rounded-full border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-slate-500 opacity-0 transition hover:border-slate-400 group-hover:opacity-100"
+              title={t("react")}
+            >
+              <SmilePlus className="h-3.5 w-3.5" />
+            </button>
           </div>
+        )}
+
+        {!inThread && message.thread && (
+          <button
+            type="button"
+            onClick={() => onOpenThread(message)}
+            className="group/t mt-1 flex items-center gap-2 rounded-lg border border-transparent px-1.5 py-1 text-start hover:border-slate-200 hover:bg-white"
+          >
+            <span className="flex -space-x-1.5 rtl:space-x-reverse">
+              {message.thread.participants.map((p) => (
+                <span key={p.id} className="rounded-md ring-2 ring-white">
+                  <Avatar name={p.name} seed={p.id} size={22} />
+                </span>
+              ))}
+            </span>
+            <span className="text-[13px] font-bold text-emerald-700 group-hover/t:underline">
+              {message.thread.count} {message.thread.count === 1 ? t("reply1") : t("replies")}
+            </span>
+            <span className="text-[12px] text-slate-500 group-hover/t:hidden">
+              {t("lastReply")} {relativeTime(message.thread.lastReplyAt, locale, t)}
+            </span>
+            <span className="hidden text-[12px] text-slate-500 group-hover/t:inline">{t("viewThread")}</span>
+          </button>
         )}
 
         {isLastMine && (
@@ -241,11 +270,11 @@ export default function MessageItem({
       </div>
 
       {!message.deleted && (
-        <div className="absolute -top-3 end-3 hidden items-center gap-0.5 rounded-lg border border-slate-200 bg-white p-0.5 shadow-md group-hover:flex">
+        <div className="absolute -top-4 end-4 z-10 hidden items-center gap-0.5 rounded-lg border border-slate-200 bg-white p-0.5 shadow-md group-hover:flex">
           <div className="relative">
-            <button type="button" onClick={() => setPicker((v) => !v)} className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800" title={t("react")}>
+            <ActionButton title={t("react")} onClick={() => setPicker((v) => !v)}>
               <SmilePlus className="h-4 w-4" />
-            </button>
+            </ActionButton>
             {picker && (
               <div className="absolute end-0 top-9 z-20 flex gap-0.5 rounded-xl border border-slate-200 bg-white p-1 shadow-xl" onMouseLeave={() => setPicker(false)}>
                 {REACTION_EMOJIS.map((e) => (
@@ -264,18 +293,23 @@ export default function MessageItem({
               </div>
             )}
           </div>
-          <button type="button" onClick={() => onReply(message)} className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800" title={t("reply")}>
-            <Reply className="h-4 w-4" />
-          </button>
+          {!inThread && (
+            <ActionButton title={t("replyInThread")} onClick={() => onOpenThread(message)}>
+              <MessageSquareText className="h-4 w-4" />
+            </ActionButton>
+          )}
+          <ActionButton title={message.pinned ? t("unpin") : t("pin")} onClick={() => onPin(message)}>
+            <Pin className={`h-4 w-4 ${message.pinned ? "fill-amber-400 text-amber-600" : ""}`} />
+          </ActionButton>
           {canEdit && (
-            <button type="button" onClick={() => onEdit(message)} className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800" title={t("edit")}>
+            <ActionButton title={t("edit")} onClick={() => onEdit(message)}>
               <Pencil className="h-4 w-4" />
-            </button>
+            </ActionButton>
           )}
           {canDelete && (
-            <button type="button" onClick={() => onDelete(message)} className="rounded-md p-1.5 text-slate-500 hover:bg-rose-50 hover:text-rose-600" title={t("delete")}>
+            <ActionButton title={t("delete")} onClick={() => onDelete(message)} danger>
               <Trash2 className="h-4 w-4" />
-            </button>
+            </ActionButton>
           )}
         </div>
       )}

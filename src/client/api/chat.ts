@@ -11,6 +11,8 @@ export type ConversationSummary = {
   memberCount: number;
   otherUser: { id: string; name: string; role: string; active: boolean } | null;
   lastMessageAt: string;
+  lastReadAt: string;
+  online: boolean;
   unread: number;
   lastMessage: {
     senderName: string | null;
@@ -32,7 +34,8 @@ export type ConversationDetail = {
   createdAt: string;
   myRole: MemberRole;
   canCreateChannel: boolean;
-  members: { userId: string; name: string; email: string; role: string; active: boolean; memberRole: MemberRole }[];
+  pinnedCount: number;
+  members: { userId: string; name: string; email: string; role: string; active: boolean; online: boolean; memberRole: MemberRole }[];
 };
 
 export type ChatAttachment = { id: string; originalName: string; mimeType: string; category: string; size: number };
@@ -49,15 +52,27 @@ export type ChatMessage = {
   deleted: boolean;
   attachments: ChatAttachment[];
   reactions: { emoji: string; count: number; mine: boolean; names: string[] }[];
-  replyTo: {
-    id: string;
-    senderName: string | null;
-    body: string | null;
-    kind: string;
-    deleted: boolean;
-    hasAttachments: boolean;
-  } | null;
+  /** Set on thread replies: the root message they belong to. */
+  threadRootId: string | null;
+  thread: { count: number; lastReplyAt: string; participants: { id: string; name: string }[] } | null;
+  pinned: boolean;
 };
+
+export type SearchHit = {
+  id: string;
+  conversationId: string;
+  threadRootId: string | null;
+  conversationName: string | null;
+  conversationType: ChatType;
+  sender: { id: string; name: string } | null;
+  body: string;
+  createdAt: string;
+};
+
+export const getThread = (rootId: string) => getJson<{ root: ChatMessage; replies: ChatMessage[] }>(`/api/chat/messages/${rootId}/thread`);
+export const togglePin = (id: string) => postJson<ChatMessage>(`/api/chat/messages/${id}/pin`);
+export const listPins = (conversationId: string) => getJson<ChatMessage[]>(`/api/chat/conversations/${conversationId}/pins`);
+export const searchMessages = (q: string) => getJson<SearchHit[]>(`/api/chat/search${buildQueryString({ q })}`);
 
 export type ChatUser = { id: string; name: string; email: string; role: string };
 export type PublicChannel = { id: string; name: string | null; description: string | null; memberCount: number; joined: boolean };
@@ -84,7 +99,7 @@ export const joinChannel = (id: string) => postJson<{ ok: true }>(`/api/chat/con
 export const markRead = (id: string) => postJson<{ ok: true }>(`/api/chat/conversations/${id}/read`);
 
 export const listMessages = (id: string, params: { before?: string } = {}) =>
-  getJson<{ messages: ChatMessage[]; hasMore: boolean; othersReadAt: string[] }>(
+  getJson<{ messages: ChatMessage[]; hasMore: boolean; othersReadAt: string[]; myLastReadAt: string }>(
     `/api/chat/conversations/${id}/messages${buildQueryString(params)}`
   );
 export const sendTextMessage = (id: string, body: { body?: string; stickerId?: string; replyToId?: string }) =>

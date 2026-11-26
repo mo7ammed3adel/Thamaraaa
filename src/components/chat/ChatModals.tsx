@@ -371,7 +371,7 @@ export function InfoPanel({
             const canRemove = detail.type !== "dm" && m.userId !== meId && manager && m.memberRole !== "owner" && !(m.memberRole === "admin" && detail.myRole !== "owner");
             return (
               <div key={m.userId} className="group/m flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-slate-50">
-                <Avatar name={m.name} seed={m.userId} size={32} />
+                <Avatar name={m.name} seed={m.userId} size={32} online={m.online} />
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-1 truncate text-sm font-medium text-slate-800">
                     {m.name}

@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { pusherConfigured, pusherServer } from "@/lib/pusher";
 import {
@@ -15,6 +16,7 @@ import {
 import { inspectUploadedFile, type InspectedFile } from "./fileSecurity";
 import { deleteChatFile, newChatStorageKey, saveChatFile, sha256Hex } from "./chatStorage";
 import { allowAction } from "./rateLimit";
+import { notifyUsers } from "@/lib/notify";
 
 export type ChatActor = { id: string; name: string; role: string };
 
@@ -88,18 +90,64 @@ const messageInclude = {
   sender: { select: { id: true, name: true, role: true } },
   attachments: { select: { id: true, originalName: true, mimeType: true, category: true, size: true } },
   reactions: { select: { emoji: true, userId: true, user: { select: { name: true } } } },
-  replyTo: {
-    select: { id: true, body: true, kind: true, deletedAt: true, sender: { select: { name: true } }, attachments: { select: { id: true } } },
-  },
 } as const;
 
 type MessageRow = Awaited<ReturnType<typeof loadMessage>>;
+type ThreadSummary = { count: number; lastReplyAt: string; participants: { id: string; name: string }[] };
 
 function loadMessage(id: string) {
   return prisma.chatMessage.findUniqueOrThrow({ where: { id }, include: messageInclude });
 }
 
-function toMessageDto(row: NonNullable<MessageRow>, viewerId: string) {
+/**
+ * Thread summaries for a page of root messages, in two bounded queries
+ * (counts, then up to 3 recent repliers each) — replies are never loaded.
+ */
+async function threadSummaries(rows: { id: string; replyToId: string | null }[]): Promise<Map<string, ThreadSummary>> {
+  const map = new Map<string, ThreadSummary>();
+  const rootIds = rows.filter((r) => !r.replyToId).map((r) => r.id);
+  if (rootIds.length === 0) return map;
+
+  const groups = await prisma.chatMessage.groupBy({
+    by: ["replyToId"],
+    where: { replyToId: { in: rootIds }, deletedAt: null },
+    _count: { _all: true },
+    _max: { createdAt: true },
+  });
+  for (const g of groups) {
+    if (g.replyToId && g._max.createdAt) map.set(g.replyToId, { count: g._count._all, lastReplyAt: g._max.createdAt.toISOString(), participants: [] });
+  }
+  if (map.size === 0) return map;
+
+  // Each replier's latest reply per thread, newest first.
+  const repliers = await prisma.$queryRaw<{ replyToId: string; senderId: string; name: string }[]>`
+    SELECT x."replyToId", x."senderId", u.name
+    FROM (
+      SELECT DISTINCT ON (m."replyToId", m."senderId") m."replyToId", m."senderId", m."createdAt"
+      FROM "ChatMessage" m
+      WHERE m."replyToId" IN (${Prisma.join(Array.from(map.keys()))})
+        AND m."deletedAt" IS NULL AND m."senderId" IS NOT NULL
+      ORDER BY m."replyToId", m."senderId", m."createdAt" DESC
+    ) x
+    JOIN "User" u ON u.id = x."senderId"
+    ORDER BY x."createdAt" DESC`;
+  for (const r of repliers) {
+    const summary = map.get(r.replyToId);
+    if (summary && summary.participants.length < 3) summary.participants.push({ id: r.senderId, name: r.name });
+  }
+  return map;
+}
+
+async function toDtos(rows: NonNullable<MessageRow>[], viewerId: string) {
+  const threads = await threadSummaries(rows);
+  return rows.map((r) => toMessageDto(r, viewerId, threads.get(r.id) ?? null));
+}
+
+async function loadDto(id: string, viewerId: string) {
+  return (await toDtos([await loadMessage(id)], viewerId))[0];
+}
+
+function toMessageDto(row: NonNullable<MessageRow>, viewerId: string, thread: ThreadSummary | null = null) {
   const deleted = Boolean(row.deletedAt);
   const grouped = new Map<string, { emoji: string; count: number; mine: boolean; names: string[] }>();
   for (const r of row.reactions) {
@@ -121,17 +169,58 @@ function toMessageDto(row: NonNullable<MessageRow>, viewerId: string) {
     deleted,
     attachments: deleted ? [] : row.attachments,
     reactions: deleted ? [] : Array.from(grouped.values()),
-    replyTo: row.replyTo
-      ? {
-          id: row.replyTo.id,
-          senderName: row.replyTo.sender?.name ?? null,
-          body: row.replyTo.deletedAt ? null : row.replyTo.body,
-          kind: row.replyTo.kind,
-          deleted: Boolean(row.replyTo.deletedAt),
-          hasAttachments: row.replyTo.attachments.length > 0,
-        }
-      : null,
+    threadRootId: row.replyToId,
+    // Kept even on a deleted root, so its thread stays reachable (Slack).
+    thread,
+    pinned: !deleted && Boolean(row.pinnedAt),
   };
+}
+
+// ── Mentions ────────────────────────────────────────────────────────────────
+
+/** Mentions are stored in the body as <@userId>, like Slack. */
+const MENTION_TOKEN = /<@([0-9a-f-]{36})>/g;
+
+export function mentionedIds(body: string | null | undefined): string[] {
+  if (!body) return [];
+  return Array.from(new Set(Array.from(body.matchAll(MENTION_TOKEN), (m) => m[1])));
+}
+
+/** Replaces <@id> tokens with @Name, for previews and notification text. */
+async function plainText(body: string, names?: Map<string, string>): Promise<string> {
+  const ids = mentionedIds(body);
+  if (ids.length === 0) return body;
+  const map =
+    names ?? new Map((await prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } })).map((u) => [u.id, u.name]));
+  return body.replace(MENTION_TOKEN, (_m, id: string) => `@${map.get(id) ?? "—"}`);
+}
+
+function chatLink(conversationId: string, threadId?: string | null) {
+  return `/dashboard/chat?c=${conversationId}${threadId ? `&t=${threadId}` : ""}`;
+}
+
+// ── Presence ────────────────────────────────────────────────────────────────
+
+const ONLINE_WINDOW_MS = 2 * 60 * 1000;
+const presenceWrites = new Map<string, number>();
+
+/** Records that the user has the chat open; written at most once a minute. */
+async function touchPresence(userId: string) {
+  const now = Date.now();
+  if (now - (presenceWrites.get(userId) ?? 0) < 60_000) return;
+  presenceWrites.set(userId, now);
+  await prisma.chatPresence
+    .upsert({ where: { userId }, update: { lastSeenAt: new Date(now) }, create: { userId, lastSeenAt: new Date(now) } })
+    .catch(() => undefined);
+}
+
+async function onlineSet(userIds: string[]): Promise<Set<string>> {
+  if (userIds.length === 0) return new Set();
+  const rows = await prisma.chatPresence.findMany({
+    where: { userId: { in: userIds }, lastSeenAt: { gt: new Date(Date.now() - ONLINE_WINDOW_MS) } },
+    select: { userId: true },
+  });
+  return new Set(rows.map((r) => r.userId));
 }
 
 export type ChatMessageDto = ReturnType<typeof toMessageDto>;
@@ -152,6 +241,7 @@ async function unreadCounts(userId: string): Promise<Map<string, number>> {
      AND msg."createdAt" > m."lastReadAt"
      AND msg."deletedAt" IS NULL
      AND msg.kind <> 'system'
+     AND msg."replyToId" IS NULL
      AND (msg."senderId" IS NULL OR msg."senderId" <> m."userId")
     WHERE m."userId" = ${userId}
     GROUP BY m."conversationId"`;
@@ -169,6 +259,7 @@ export async function listConversations(actor: ChatActor) {
             // Only the other person matters (for DMs); never load every member.
             members: { where: { NOT: { userId: actor.id } }, take: 1, include: { user: { select: userSummary } } },
             messages: {
+              where: { replyToId: null },
               orderBy: { createdAt: "desc" },
               take: 1,
               include: { sender: { select: { name: true } }, attachments: { select: { id: true } } },
@@ -178,13 +269,27 @@ export async function listConversations(actor: ChatActor) {
       },
     }),
     unreadCounts(actor.id),
+    touchPresence(actor.id),
   ]);
 
-  const items = memberships.map((m) => {
+  const dmOthers = memberships.flatMap((m) => (m.conversation.type === "dm" && m.conversation.members[0] ? [m.conversation.members[0].userId] : []));
+  const online = await onlineSet(dmOthers);
+
+  // Resolve @mentions in the previews with one name lookup for the whole list.
+  const previewIds = Array.from(new Set(memberships.flatMap((m) => mentionedIds(m.conversation.messages[0]?.body))));
+  const names = new Map(
+    previewIds.length
+      ? (await prisma.user.findMany({ where: { id: { in: previewIds } }, select: { id: true, name: true } })).map((u) => [u.id, u.name])
+      : []
+  );
+
+  const items = await Promise.all(memberships.map(async (m) => {
       const c = m.conversation;
       const other = c.type === "dm" ? c.members[0]?.user ?? null : null;
       const last = c.messages[0];
       return {
+        lastReadAt: m.lastReadAt.toISOString(),
+        online: other ? online.has(other.id) : false,
         id: c.id,
         type: c.type,
         name: c.type === "dm" ? other?.name ?? "—" : c.name,
@@ -198,14 +303,14 @@ export async function listConversations(actor: ChatActor) {
               senderName: last.sender?.name ?? null,
               mine: last.senderId === actor.id,
               kind: last.kind,
-              body: last.deletedAt ? null : last.body,
+              body: last.deletedAt || !last.body ? null : await plainText(last.body, names),
               stickerId: last.deletedAt ? null : last.stickerId,
               deleted: Boolean(last.deletedAt),
               hasAttachments: last.attachments.length > 0,
             }
           : null,
       };
-    });
+    }));
 
   items.sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt));
   return items;
@@ -234,9 +339,12 @@ export async function getConversation(actor: ChatActor, conversationId: string) 
     orderBy: { joinedAt: "asc" },
   });
   const other = c.type === "dm" ? members.find((m) => m.userId !== actor.id)?.user : null;
+  const online = await onlineSet(members.map((m) => m.userId));
+  const pinnedCount = await prisma.chatMessage.count({ where: { conversationId, pinnedAt: { not: null }, deletedAt: null } });
   return {
     status: "ok" as const,
     conversation: {
+      pinnedCount,
       id: c.id,
       type: c.type,
       name: c.type === "dm" ? other?.name ?? "—" : c.name,
@@ -251,6 +359,7 @@ export async function getConversation(actor: ChatActor, conversationId: string) 
         email: m.user.email,
         role: m.user.role,
         active: m.user.status === "Active",
+        online: online.has(m.userId),
         memberRole: m.role as MemberRole,
       })),
     },
@@ -492,7 +601,8 @@ export async function listMessages(actor: ChatActor, conversationId: string, par
   }
 
   const rows = await prisma.chatMessage.findMany({
-    where: { conversationId, ...cursorWhere },
+    // Thread replies live in their thread, not in the channel (Slack).
+    where: { conversationId, replyToId: null, ...cursorWhere },
     include: messageInclude,
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: MESSAGES_PAGE_SIZE + 1,
@@ -508,10 +618,96 @@ export async function listMessages(actor: ChatActor, conversationId: string, par
 
   return {
     status: "ok" as const,
-    messages: page.map((r) => toMessageDto(r, actor.id)),
+    messages: await toDtos(page, actor.id),
     hasMore,
     othersReadAt,
+    // Where the "new messages" line goes, as of before this visit marks it read.
+    myLastReadAt: membership.lastReadAt.toISOString(),
   };
+}
+
+/** A thread: its root message followed by every reply, oldest first. */
+export async function listThread(actor: ChatActor, rootId: string) {
+  const root = await prisma.chatMessage.findUnique({ where: { id: rootId }, include: messageInclude });
+  if (!root || root.replyToId) return { status: "not_found" as const };
+  const membership = await findMembership(root.conversationId, actor.id);
+  if (!membership) return { status: "not_found" as const };
+  if (!allowAction(`thread:${actor.id}`, 60, 60_000)) return { status: "rate_limited" as const };
+  const replies = await prisma.chatMessage.findMany({
+    where: { replyToId: rootId },
+    include: messageInclude,
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    take: 500,
+  });
+  return { status: "ok" as const, root: toMessageDto(root, actor.id), replies: replies.map((r) => toMessageDto(r, actor.id)) };
+}
+
+export async function togglePin(actor: ChatActor, messageId: string) {
+  const found = await messageWithMembership(actor, messageId);
+  if (!found || found.message.deletedAt || found.message.kind === "system") return { status: "not_found" as const };
+  if (!allowAction(`pin:${actor.id}`, 20, 60_000)) return { status: "rate_limited" as const };
+  const pinned = Boolean(found.message.pinnedAt);
+  await prisma.chatMessage.update({
+    where: { id: messageId },
+    data: pinned ? { pinnedAt: null, pinnedById: null } : { pinnedAt: new Date(), pinnedById: actor.id },
+  });
+  await notifyMembers(found.message.conversationId, await memberIdsOf(found.message.conversationId), "pin");
+  return { status: "ok" as const, message: await loadDto(messageId, actor.id) };
+}
+
+export async function listPinned(actor: ChatActor, conversationId: string) {
+  const membership = await findMembership(conversationId, actor.id);
+  if (!membership) return { status: "not_found" as const };
+  const rows = await prisma.chatMessage.findMany({
+    where: { conversationId, pinnedAt: { not: null }, deletedAt: null },
+    include: messageInclude,
+    orderBy: { pinnedAt: "desc" },
+    take: 100,
+  });
+  return { status: "ok" as const, messages: await toDtos(rows, actor.id) };
+}
+
+/** Searches message text in every conversation the caller belongs to. */
+export async function searchMessages(actor: ChatActor, query: unknown) {
+  const q = typeof query === "string" ? query.trim().slice(0, 100) : "";
+  if (q.length < 2) return { status: "ok" as const, hits: [] };
+  if (!allowAction(`search:${actor.id}`, 30, 60_000)) return { status: "rate_limited" as const };
+  // LIKE wildcards are matched literally: searching "__" must not match everything.
+  const literal = q.replace(/[\\%_]/g, (c) => `\\${c}`);
+  const rows = await prisma.chatMessage.findMany({
+    where: {
+      deletedAt: null,
+      kind: "text",
+      body: { contains: literal, mode: "insensitive" },
+      conversation: { members: { some: { userId: actor.id } } },
+    },
+    include: {
+      sender: { select: { id: true, name: true } },
+      conversation: {
+        select: { id: true, type: true, name: true, members: { where: { NOT: { userId: actor.id } }, take: 1, select: { user: { select: { name: true } } } } },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 40,
+  });
+  // One name lookup for every @mention across all hits.
+  const ids = Array.from(new Set(rows.flatMap((r) => mentionedIds(r.body))));
+  const names = new Map(
+    ids.length ? (await prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } })).map((u) => [u.id, u.name]) : []
+  );
+  const hits = await Promise.all(
+    rows.map(async (r) => ({
+      id: r.id,
+      conversationId: r.conversationId,
+      threadRootId: r.replyToId,
+      conversationName: r.conversation.type === "dm" ? r.conversation.members[0]?.user.name ?? "—" : r.conversation.name,
+      conversationType: r.conversation.type,
+      sender: r.sender,
+      body: await plainText(r.body ?? "", names),
+      createdAt: r.createdAt.toISOString(),
+    }))
+  );
+  return { status: "ok" as const, hits };
 }
 
 export type UploadedFile = { name: string; bytes: Uint8Array };
@@ -546,11 +742,17 @@ export async function sendMessage(
   if (input.stickerId != null && !sticker) return { status: "invalid" as const, error: "Unknown sticker" };
   if (!body && !sticker && files.length === 0) return { status: "invalid" as const, error: "Message is empty" };
 
+  // A reply always attaches to the thread's root, so threads stay one level deep.
   let replyToId: string | null = null;
   if (typeof input.replyToId === "string" && input.replyToId) {
-    const parent = await prisma.chatMessage.findUnique({ where: { id: input.replyToId }, select: { conversationId: true } });
+    const parent = await prisma.chatMessage.findUnique({ where: { id: input.replyToId }, select: { conversationId: true, replyToId: true, kind: true, deletedAt: true } });
     if (!parent || parent.conversationId !== conversationId) return { status: "invalid" as const, error: "Reply target not found" };
-    replyToId = input.replyToId;
+    if (parent.kind === "system") return { status: "invalid" as const, error: "Can't reply to that" };
+    replyToId = parent.replyToId ?? input.replyToId;
+    // A deleted message can keep its existing thread going, but not start one.
+    if (!parent.replyToId && parent.deletedAt && !(await prisma.chatMessage.count({ where: { replyToId } }))) {
+      return { status: "invalid" as const, error: "Reply target not found" };
+    }
   }
 
   // Inspect every file before writing any, so one bad file rejects the whole
@@ -605,8 +807,11 @@ export async function sendMessage(
           },
         },
       });
-      await tx.chatConversation.update({ where: { id: conversationId }, data: { lastMessageAt: now } });
-      await tx.chatMember.update({ where: { id: membership.id }, data: { lastReadAt: now } });
+      // A thread reply doesn't move the conversation up the list (Slack).
+      if (!replyToId) {
+        await tx.chatConversation.update({ where: { id: conversationId }, data: { lastMessageAt: now } });
+        await tx.chatMember.update({ where: { id: membership.id }, data: { lastReadAt: now } });
+      }
       return created;
     });
     messageId = message.id;
@@ -616,8 +821,62 @@ export async function sendMessage(
     throw error;
   }
 
-  await notifyMembers(conversationId, await memberIdsOf(conversationId), "message");
-  return { status: "ok" as const, message: toMessageDto(await loadMessage(messageId), actor.id) };
+  const members = await memberIdsOf(conversationId);
+  await notifyMembers(conversationId, members, "message");
+  // Bell notifications for @mentions and thread replies must never fail the send.
+  await notifyMentionsAndThread({ actor, conversationId, members, body: sticker ? "" : body, replyToId, messageId }).catch((e) =>
+    console.error("Chat notification failed:", e)
+  );
+  return { status: "ok" as const, message: await loadDto(messageId, actor.id) };
+}
+
+/**
+ * Sends bell notifications like Slack does: to members @mentioned in the
+ * message, and — for a thread reply — to the thread's author and everyone who
+ * has replied in it. Nobody is notified about their own message.
+ */
+async function notifyMentionsAndThread(input: {
+  actor: ChatActor;
+  conversationId: string;
+  members: string[];
+  body: string;
+  replyToId: string | null;
+  messageId: string;
+}) {
+  const { actor, conversationId, members, body, replyToId } = input;
+  const memberSet = new Set(members);
+  const mentioned = mentionedIds(body).filter((id) => memberSet.has(id) && id !== actor.id);
+  const text = body ? await plainText(body) : "";
+  const preview = text.length > 140 ? `${text.slice(0, 140)}…` : text || "📎";
+  const conv = await prisma.chatConversation.findUnique({ where: { id: conversationId }, select: { type: true, name: true } });
+  const where = conv?.type === "dm" ? "رسالة خاصة" : `#${conv?.name ?? ""}`;
+
+  if (mentioned.length) {
+    await notifyUsers(mentioned, {
+      title: `${actor.name} عمل لك منشن في ${where}`,
+      message: preview,
+      link: chatLink(conversationId, replyToId),
+      type: "chat_mention",
+      relatedId: input.messageId,
+    });
+  }
+
+  if (replyToId) {
+    const root = await prisma.chatMessage.findUnique({ where: { id: replyToId }, select: { senderId: true } });
+    const repliers = await prisma.chatMessage.findMany({ where: { replyToId }, select: { senderId: true }, distinct: ["senderId"] });
+    const followers = [root?.senderId, ...repliers.map((r) => r.senderId)].filter(
+      (id): id is string => Boolean(id) && id !== actor.id && memberSet.has(id!) && !mentioned.includes(id!)
+    );
+    if (followers.length) {
+      await notifyUsers(followers, {
+        title: `${actor.name} رد في thread في ${where}`,
+        message: preview,
+        link: chatLink(conversationId, replyToId),
+        type: "chat_thread",
+        relatedId: input.messageId,
+      });
+    }
+  }
 }
 
 async function messageWithMembership(actor: ChatActor, messageId: string) {
@@ -640,7 +899,7 @@ export async function editMessage(actor: ChatActor, messageId: string, body: unk
 
   await prisma.chatMessage.update({ where: { id: messageId }, data: { body: text, editedAt: new Date() } });
   await notifyMembers(message.conversationId, await memberIdsOf(message.conversationId), "edited");
-  return { status: "ok" as const, message: toMessageDto(await loadMessage(messageId), actor.id) };
+  return { status: "ok" as const, message: await loadDto(messageId, actor.id) };
 }
 
 export async function deleteMessage(actor: ChatActor, messageId: string) {
@@ -659,7 +918,9 @@ export async function deleteMessage(actor: ChatActor, messageId: string) {
   await prisma.$transaction([
     prisma.chatAttachment.deleteMany({ where: { messageId } }),
     prisma.chatReaction.deleteMany({ where: { messageId } }),
-    prisma.chatMessage.update({ where: { id: messageId }, data: { deletedAt: new Date(), body: null, stickerId: null } }),
+    prisma.chatMessage.update({ where: { id: messageId }, data: { deletedAt: new Date(), body: null, stickerId: null, pinnedAt: null, pinnedById: null } }),
+    // Mention/thread notifications carry a preview of the text — remove them too.
+    prisma.notification.deleteMany({ where: { relatedId: messageId, type: { in: ["chat_mention", "chat_thread"] } } }),
   ]);
   await Promise.all(attachments.map((a) => deleteChatFile(a.storageKey).catch((e) => console.error("Chat file delete failed:", e))));
 
@@ -684,7 +945,7 @@ export async function toggleReaction(actor: ChatActor, messageId: string, emoji:
   }
 
   await notifyMembers(found.message.conversationId, await memberIdsOf(found.message.conversationId), "reaction");
-  return { status: "ok" as const, message: toMessageDto(await loadMessage(messageId), actor.id) };
+  return { status: "ok" as const, message: await loadDto(messageId, actor.id) };
 }
 
 export async function markRead(actor: ChatActor, conversationId: string) {
