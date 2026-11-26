@@ -82,7 +82,7 @@ async function activeUsers(ids: string[]) {
   return prisma.user.findMany({ where: { id: { in: unique }, status: "Active" }, select: { id: true, name: true } });
 }
 
-async function postSystemMessage(conversationId: string, actorId: string, body: string) {
+export async function postSystemMessage(conversationId: string, actorId: string, body: string) {
   await prisma.chatMessage.create({ data: { conversationId, senderId: actorId, kind: "system", body } });
   await prisma.chatConversation.update({ where: { id: conversationId }, data: { lastMessageAt: new Date() } });
 }
@@ -366,6 +366,7 @@ export async function getConversation(actor: ChatActor, conversationId: string) 
       description: c.description,
       isPrivate: c.isPrivate,
       avatarV: c.type === "dm" ? null : avatarVersion(c.avatarKey),
+      isClientGroup: Boolean(c.projectId),
       createdAt: c.createdAt.toISOString(),
       myRole: membership.role as MemberRole,
       canCreateChannel: canCreateChannel(actor.role),
@@ -377,6 +378,8 @@ export async function getConversation(actor: ChatActor, conversationId: string) 
         active: m.user.status === "Active",
         online: online.has(m.userId),
         memberRole: m.role as MemberRole,
+        // Client groups: membership that follows the project assignment.
+        managed: Boolean(c.projectId) && m.autoAdded,
       })),
     },
   };
@@ -469,8 +472,9 @@ export async function addMembers(actor: ChatActor, conversationId: string, userI
   if (!membership) return { status: "not_found" as const };
   const c = membership.conversation;
   if (c.type === "dm") return { status: "forbidden" as const };
-  // In a group anyone inside may bring a colleague in; a channel is curated.
-  if (c.type === "channel" && !isManager(membership.role)) return { status: "forbidden" as const };
+  // In a group anyone inside may bring a colleague in; a channel is curated,
+  // and so is a client group (it holds that client's history).
+  if ((c.type === "channel" || c.projectId) && !isManager(membership.role)) return { status: "forbidden" as const };
   if (!allowAction(`add:${actor.id}`, 30, 60 * 60_000)) return { status: "rate_limited" as const };
 
   const ids =Array.isArray(userIds) ? (userIds as unknown[]).filter((x): x is string => typeof x === "string") : [];
@@ -499,6 +503,9 @@ export async function removeMember(actor: ChatActor, conversationId: string, use
     include: { user: { select: { name: true } } },
   });
   if (!target) return { status: "not_found" as const };
+  // In a client group, people assigned to the project are there because of
+  // the assignment: they leave when they are unassigned, not by hand.
+  if (c.projectId && target.autoAdded) return { status: "invalid" as const, error: "managed_by_project" };
 
   const leaving = userId === actor.id;
   if (!leaving) {
@@ -1004,4 +1011,98 @@ export async function getAttachmentForView(actor: ChatActor, attachmentId: strin
   // Not-found rather than forbidden, so ids can't be probed for existence.
   if (!membership) return { status: "not_found" as const };
   return { status: "ok" as const, attachment };
+}
+
+// ── Shared media (WhatsApp-style "media, docs") ─────────────────────────────
+
+export const MEDIA_TABS = ["image", "video", "file", "voice"] as const;
+export type MediaTab = (typeof MEDIA_TABS)[number];
+const MEDIA_PAGE = 60;
+
+function mediaWhere(conversationId: string, tab: MediaTab): Prisma.ChatAttachmentWhereInput {
+  const live = { conversationId, messageId: { not: null }, message: { deletedAt: null } };
+  const recorded = ["voice", "recording"];
+  switch (tab) {
+    case "image":
+      return { ...live, category: "image" };
+    case "video":
+      return { ...live, category: "video", message: { deletedAt: null, kind: { notIn: recorded } } };
+    case "voice":
+      return { ...live, message: { deletedAt: null, kind: { in: recorded } } };
+    default:
+      return { ...live, category: { notIn: ["image", "video"] }, message: { deletedAt: null, kind: { notIn: recorded } } };
+  }
+}
+
+/**
+ * A conversation's shared photos, videos, files or voice notes, newest first,
+ * with a count per tab. Paged by a (createdAt, id) cursor.
+ */
+export async function listMedia(actor: ChatActor, conversationId: string, params: { tab?: unknown; before?: unknown }) {
+  const membership = await findMembership(conversationId, actor.id);
+  if (!membership) return { status: "not_found" as const };
+  if (!allowAction(`media:${actor.id}`, 60, 60_000)) return { status: "rate_limited" as const };
+  const tab: MediaTab = (MEDIA_TABS as readonly string[]).includes(params.tab as string) ? (params.tab as MediaTab) : "image";
+
+  let cursor: { createdAt: Date; id: string } | null = null;
+  if (typeof params.before === "string" && params.before) {
+    const at = await prisma.chatAttachment.findFirst({ where: { id: params.before, conversationId }, select: { createdAt: true, id: true } });
+    // An unknown cursor must not silently restart from the top (duplicates).
+    if (!at) return { status: "invalid" as const, error: "Unknown cursor" };
+    cursor = at;
+  }
+  const where = mediaWhere(conversationId, tab);
+  const rows = await prisma.chatAttachment.findMany({
+    where: cursor
+      ? { AND: [where, { OR: [{ createdAt: { lt: cursor.createdAt } }, { createdAt: cursor.createdAt, id: { lt: cursor.id } }] }] }
+      : where,
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: MEDIA_PAGE + 1,
+    select: {
+      id: true,
+      originalName: true,
+      mimeType: true,
+      category: true,
+      size: true,
+      durationMs: true,
+      waveform: true,
+      createdAt: true,
+      message: { select: { id: true, kind: true, replyToId: true, sender: { select: { id: true, name: true } } } },
+    },
+  });
+  // Counts once per tab open (not per page), in a single query.
+  let counts: Record<MediaTab, number> | null = null;
+  if (!cursor) {
+    const [c] = await prisma.$queryRaw<{ image: number; video: number; file: number; voice: number }[]>`
+      SELECT
+        COUNT(*) FILTER (WHERE a.category = 'image')::int AS image,
+        COUNT(*) FILTER (WHERE a.category = 'video' AND m.kind NOT IN ('voice', 'recording'))::int AS video,
+        COUNT(*) FILTER (WHERE a.category NOT IN ('image', 'video') AND m.kind NOT IN ('voice', 'recording'))::int AS file,
+        COUNT(*) FILTER (WHERE m.kind IN ('voice', 'recording'))::int AS voice
+      FROM "ChatAttachment" a
+      JOIN "ChatMessage" m ON m.id = a."messageId"
+      WHERE a."conversationId" = ${conversationId} AND m."deletedAt" IS NULL`;
+    counts = { image: Number(c?.image ?? 0), video: Number(c?.video ?? 0), file: Number(c?.file ?? 0), voice: Number(c?.voice ?? 0) };
+  }
+
+  return {
+    status: "ok" as const,
+    tab,
+    counts,
+    hasMore: rows.length > MEDIA_PAGE,
+    items: rows.slice(0, MEDIA_PAGE).map((r) => ({
+      id: r.id,
+      originalName: r.originalName,
+      mimeType: r.mimeType,
+      category: r.category,
+      size: r.size,
+      durationMs: r.durationMs,
+      waveform: r.waveform,
+      createdAt: r.createdAt.toISOString(),
+      messageId: r.message!.id,
+      messageKind: r.message!.kind,
+      threadRootId: r.message!.replyToId,
+      sender: r.message!.sender,
+    })),
+  };
 }

@@ -274,6 +274,7 @@ export function InfoPanel({
   onChanged,
   onLeft,
   onError,
+  onOpenUser,
 }: {
   detail: ConversationDetail;
   meId: string;
@@ -281,6 +282,7 @@ export function InfoPanel({
   onChanged: () => void;
   onLeft: () => void;
   onError: (m: string) => void;
+  onOpenUser?: (user: { id: string; name: string; role?: string | null; online?: boolean }, anchor: DOMRect) => void;
 }) {
   const { t } = useChatT();
   const [adding, setAdding] = useState(false);
@@ -290,7 +292,8 @@ export function InfoPanel({
   const [description, setDescription] = useState(detail.description || "");
 
   const manager = detail.myRole === "owner" || detail.myRole === "admin";
-  const canAdd = detail.type === "group" || (detail.type === "channel" && manager);
+  // Client groups are curated like channels: only owners/admins add people.
+  const canAdd = (detail.type === "group" && !detail.isClientGroup) || ((detail.type === "channel" || detail.isClientGroup) && manager);
 
   async function run(action: () => Promise<unknown>) {
     try {
@@ -395,9 +398,16 @@ export function InfoPanel({
 
         <div className="space-y-1">
           {detail.members.map((m) => {
-            const canRemove = detail.type !== "dm" && m.userId !== meId && manager && m.memberRole !== "owner" && !(m.memberRole === "admin" && detail.myRole !== "owner");
+            const canRemove = detail.type !== "dm" && !m.managed && m.userId !== meId && manager && m.memberRole !== "owner" && !(m.memberRole === "admin" && detail.myRole !== "owner");
             return (
               <div key={m.userId} className="group/m flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-slate-50">
+                <button
+                  type="button"
+                  disabled={m.userId === meId || !onOpenUser || !m.active}
+                  onClick={(e) => onOpenUser?.({ id: m.userId, name: m.name, role: m.role, online: m.online }, e.currentTarget.getBoundingClientRect())}
+                  className="flex min-w-0 flex-1 items-center gap-2.5 text-start enabled:cursor-pointer"
+                  data-testid="member-row"
+                >
                 <Avatar name={m.name} seed={m.userId} size={32} online={m.online} />
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-1 truncate text-sm font-medium text-slate-800">
@@ -410,6 +420,7 @@ export function InfoPanel({
                     {m.active ? m.role.replace(/_/g, " ") : t("inactive")}
                   </p>
                 </div>
+                </button>
                 <div className="hidden gap-1 group-hover/m:flex">
                   {detail.myRole === "owner" && m.userId !== meId && m.memberRole !== "owner" && detail.type !== "dm" && (
                     <button
@@ -431,7 +442,10 @@ export function InfoPanel({
           })}
         </div>
       </div>
-      {detail.type !== "dm" && (
+      {detail.isClientGroup && (
+        <p className="border-t border-slate-200 px-4 py-3 text-center text-xs text-slate-500">{t("managedByProject")}</p>
+      )}
+      {detail.type !== "dm" && !detail.members.find((m) => m.userId === meId)?.managed && (
         <div className="border-t border-slate-200 p-3">
           <button
             onClick={async () => {

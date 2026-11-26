@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Camera, Loader2, Trash2 } from "lucide-react";
+import { PhotoCropper } from "./PhotoCropper";
 
 /** Upload limit before the server re-draws the photo at 256px. */
 const MAX_BYTES = 8 * 1024 * 1024;
@@ -29,6 +30,8 @@ export function PhotoPicker({
 }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  /** Picked, waiting in the crop/zoom dialog. */
+  const [picked, setPicked] = useState<File | null>(null);
 
   async function run(task: () => Promise<void>) {
     setBusy(true);
@@ -71,9 +74,19 @@ export function PhotoPicker({
           e.target.value = "";
           if (!file) return;
           if (file.size > MAX_BYTES) return onError(labels.tooLarge);
-          run(() => onPick(file));
+          setPicked(file);
         }}
       />
+      {picked && (
+        <PhotoCropper
+          file={picked}
+          onCancel={() => setPicked(null)}
+          onDone={(cropped) => {
+            setPicked(null);
+            run(() => onPick(cropped));
+          }}
+        />
+      )}
       {hasPhoto && (
         <button
           type="button"

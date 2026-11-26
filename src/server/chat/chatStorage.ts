@@ -39,6 +39,7 @@ export async function statChatFile(storageKey: string): Promise<{ path: string; 
 }
 
 export async function deleteChatFile(storageKey: string): Promise<void> {
+  await deleteChatThumbnail(storageKey).catch(() => undefined);
   try {
     await fs.unlink(resolveSafe(storageKey));
   } catch (error) {
@@ -48,4 +49,50 @@ export async function deleteChatFile(storageKey: string): Promise<void> {
 
 export function sha256Hex(data: Uint8Array): string {
   return crypto.createHash("sha256").update(data).digest("hex");
+}
+
+// ── Thumbnails (media grid) ─────────────────────────────────────────────────
+
+const THUMB_EDGE = 320;
+
+function thumbPath(storageKey: string): string {
+  if (!KEY_PATTERN.test(storageKey)) throw new Error("Unsafe storage key");
+  return path.join(path.resolve(STORAGE_ROOT), "thumbs", `${storageKey}.webp`);
+}
+
+/**
+ * A small square WebP of a stored image, made on first request and kept on
+ * disk, so the media grid never downloads full photos.
+ */
+export async function chatThumbnail(storageKey: string): Promise<{ path: string; size: number }> {
+  const target = thumbPath(storageKey);
+  try {
+    const stat = await fs.stat(target);
+    return { path: target, size: stat.size };
+  } catch {
+    /* not made yet */
+  }
+  const { default: sharp } = await import("sharp");
+  const { runExclusive, MAX_INPUT_PIXELS } = await import("@/server/storage/compression");
+  const source = resolveSafe(storageKey);
+  await fs.mkdir(path.dirname(target), { recursive: true });
+  const tmp = `${target}.${crypto.randomUUID()}.part`;
+  await runExclusive(() =>
+    sharp(source, { limitInputPixels: MAX_INPUT_PIXELS, animated: false })
+      .rotate()
+      .resize(THUMB_EDGE, THUMB_EDGE, { fit: "cover" })
+      .webp({ quality: 70 })
+      .toFile(tmp)
+  );
+  await fs.rename(tmp, target);
+  const stat = await fs.stat(target);
+  return { path: target, size: stat.size };
+}
+
+export async function deleteChatThumbnail(storageKey: string): Promise<void> {
+  try {
+    await fs.unlink(thumbPath(storageKey));
+  } catch {
+    /* none */
+  }
 }

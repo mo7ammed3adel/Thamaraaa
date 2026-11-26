@@ -127,6 +127,7 @@ export default function MessageItem({
   activeCallId = null,
   activeCallCount = 0,
   onJoinCall,
+  onOpenUser,
 }: {
   message: ChatMessage;
   meId: string;
@@ -148,6 +149,8 @@ export default function MessageItem({
   activeCallId?: string | null;
   activeCallCount?: number;
   onJoinCall?: (video: boolean) => void;
+  /** Tap a name/photo: open that person's card (message, call). */
+  onOpenUser?: (user: { id: string; name: string; role?: string | null }, anchor: DOMRect) => void;
 }) {
   const { t, locale } = useChatT();
   const [picker, setPicker] = useState(false);
@@ -166,6 +169,11 @@ export default function MessageItem({
   const canEdit = mine && message.kind === "text" && !message.deleted;
   const canDelete = !message.deleted && message.kind !== "call" && (mine || canModerate);
   const isMedia = message.kind === "voice" || message.kind === "recording";
+  const sender = message.sender;
+  const canOpenUser = Boolean(onOpenUser && sender && sender.id !== meId);
+  const openUser = (e: React.MouseEvent<HTMLElement>) => {
+    if (sender && onOpenUser) onOpenUser({ id: sender.id, name: sender.name, role: sender.role }, e.currentTarget.getBoundingClientRect());
+  };
   const mentionsMe = Boolean(message.body?.includes(`<@${meId}>`));
 
   return (
@@ -179,7 +187,13 @@ export default function MessageItem({
         {grouped ? (
           <span className="invisible block pt-1 text-center text-[10px] text-slate-400 group-hover:visible">{formatTime(message.createdAt, locale)}</span>
         ) : (
-          <Avatar name={message.sender?.name} seed={message.sender?.id} />
+          canOpenUser ? (
+            <button type="button" onClick={openUser} className="block rounded-xl transition hover:opacity-80" aria-label={message.sender?.name ?? ""}>
+              <Avatar name={message.sender?.name} seed={message.sender?.id} />
+            </button>
+          ) : (
+            <Avatar name={message.sender?.name} seed={message.sender?.id} />
+          )
         )}
       </div>
       <div className="min-w-0 flex-1">
@@ -190,7 +204,13 @@ export default function MessageItem({
         )}
         {!grouped && (
           <div className="flex items-baseline gap-2">
-            <span className="text-[15px] font-bold text-slate-900">{message.sender?.name || "—"}</span>
+            {canOpenUser ? (
+              <button type="button" onClick={openUser} className="text-[15px] font-bold text-slate-900 hover:underline" data-testid="sender-name">
+                {message.sender?.name}
+              </button>
+            ) : (
+              <span className="text-[15px] font-bold text-slate-900">{message.sender?.name || "—"}</span>
+            )}
             <span className="text-[11px] text-slate-500">{formatTime(message.createdAt, locale)}</span>
           </div>
         )}

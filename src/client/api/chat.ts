@@ -38,7 +38,9 @@ export type ConversationDetail = {
   myRole: MemberRole;
   canCreateChannel: boolean;
   pinnedCount: number;
-  members: { userId: string; name: string; email: string; role: string; active: boolean; online: boolean; memberRole: MemberRole }[];
+  members: { userId: string; name: string; email: string; role: string; active: boolean; online: boolean; memberRole: MemberRole; managed: boolean }[];
+  /** Made automatically for a client project; its members follow the assignment. */
+  isClientGroup: boolean;
   /** False when the server has no LiveKit configured: hide the call buttons. */
   callsEnabled: boolean;
   activeCall: ActiveCall | null;
@@ -148,6 +150,7 @@ export const getUnread = () => getJson<{ unread: number }>("/api/chat/unread");
 
 export const attachmentUrl = (id: string, download = false) =>
   `/api/chat/attachments/${id}${download ? "?download=1" : ""}`;
+export const attachmentThumbUrl = (id: string) => `/api/chat/attachments/${id}?thumb=1`;
 
 export class ChatUploadError extends Error {
   constructor(message: string, public status: number, public payload: unknown) {
@@ -245,3 +248,18 @@ export const setMyAvatar = (file: File) => uploadPhoto("/api/me/avatar", file);
 export const removeMyAvatar = () => deleteJson<{ ok: true }>("/api/me/avatar");
 export const setConversationAvatar = (id: string, file: File) => uploadPhoto(`/api/chat/conversations/${id}/avatar`, file);
 export const removeConversationAvatar = (id: string) => deleteJson<{ ok: true }>(`/api/chat/conversations/${id}/avatar`);
+
+// ── Shared media ────────────────────────────────────────────────────────────
+
+export type MediaTab = "image" | "video" | "file" | "voice";
+export type MediaItem = ChatAttachment & {
+  createdAt: string;
+  messageId: string;
+  messageKind: ChatMessage["kind"];
+  threadRootId: string | null;
+  sender: { id: string; name: string } | null;
+};
+export const listConversationMedia = (id: string, tab: MediaTab, before?: string) =>
+  getJson<{ tab: MediaTab; counts: Record<MediaTab, number> | null; hasMore: boolean; items: MediaItem[] }>(
+    `/api/chat/conversations/${id}/media${buildQueryString({ tab, before })}`
+  );

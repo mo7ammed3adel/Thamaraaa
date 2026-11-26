@@ -1441,6 +1441,9 @@ model ChatConversation {
   dmKey         String?  @unique
   // Group/channel photo (256px WebP in the chat file store).
   avatarKey     String?
+  // Set on the client group made automatically for a project once it reaches
+  // the technical stage; one group per project.
+  projectId     String?  @unique
   createdById   String?
   createdBy     User?    @relation("ChatConversationCreator", fields: [createdById], references: [id], onDelete: SetNull)
   createdAt     DateTime @default(now())
@@ -1463,6 +1466,9 @@ model ChatMember {
   userId         String
   user           User             @relation("ChatMemberUser", fields: [userId], references: [id], onDelete: Cascade)
   role           String           @default("member") // owner, admin, member
+  // Client groups: true when membership comes from the project assignment
+  // (added and removed automatically as people are assigned/unassigned).
+  autoAdded      Boolean          @default(false)
   joinedAt       DateTime         @default(now())
   lastReadAt     DateTime         @default(now())
 

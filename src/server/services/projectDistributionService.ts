@@ -1,4 +1,5 @@
 import { backfillReceiptsForNewMember, canDistributeTo, userCanAccessProject } from "@/lib/distribution";
+import { syncProjectChat } from "@/server/chat/projectChat";
 import { safeTrigger } from "@/lib/pusher";
 import { notifyUser } from "@/lib/notify";
 import { shouldNotifyAssignee, taskLinkForRole } from "@/lib/taskNotifications";
@@ -191,6 +192,9 @@ export async function assignProjectRole(input: {
 
   await backfillReceiptsForNewMember(input.projectId, assigneeId);
 
+  // Joins the client's chat group (made when the project reaches technical).
+  await syncProjectChat(input.projectId);
+
   await createProjectLog({
     projectId: updatedProject.id,
     action: "assigned",
@@ -291,6 +295,9 @@ export async function assignProjectTeamSlot(input: {
 
   await backfillReceiptsForNewMember(input.projectId, newUserId);
 
+  // Joins the client's chat group (made when the project reaches technical).
+  await syncProjectChat(input.projectId);
+
   return {
     status: "ok" as const,
     targetUserName: targetUser.name,
@@ -373,6 +380,9 @@ export async function assignProjectAgent(input: {
 
   await backfillReceiptsForNewMember(input.projectId, agentUserId);
 
+  // Joins the client's chat group (made when the project reaches technical).
+  await syncProjectChat(input.projectId);
+
   await safeTrigger(`private-user-${agentUserId}`, "team-distributed", {
     projectId: input.projectId,
   });
@@ -449,6 +459,9 @@ export async function distributeProject(input: {
 
     await backfillReceiptsForNewMember(input.projectId, targetUser.id);
 
+    // Joins the client's chat group (made when the project reaches technical).
+    await syncProjectChat(input.projectId);
+
     if (targetUser.role.includes("leader") || targetUser.role.includes("head")) {
       try {
         await fetch(input.taskGenerationUrl, {
@@ -502,6 +515,9 @@ export async function distributeProject(input: {
     });
 
     await backfillReceiptsForNewMember(input.projectId, targetUser.id);
+
+    // Joins the client's chat group (made when the project reaches technical).
+    await syncProjectChat(input.projectId);
 
     if (shouldNotifyAssignee(targetUser.id, input.userId)) {
       await createProjectAssignmentNotification({
@@ -557,6 +573,9 @@ export async function reassignAccountManager(input: {
 
   await backfillReceiptsForNewMember(input.projectId, newAccountManagerId);
 
+  // Joins the client's chat group (made when the project reaches technical).
+  await syncProjectChat(input.projectId);
+
   return { status: "ok" as const, project: updatedProject };
 }
 
@@ -602,6 +621,8 @@ export async function removeTeamAssignment(input: {
     }),
     userId: input.actor.id,
   });
+  // Off the project means out of the client's chat group too.
+  await syncProjectChat(assignment.projectId);
 
   return { status: "ok" as const };
 }

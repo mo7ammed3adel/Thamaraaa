@@ -1,6 +1,7 @@
 import { canChangeLifecycle, validateLifecycleTransition } from "@/lib/lifecycle";
 import { safeTrigger } from "@/lib/pusher";
 import { backfillReceiptsForNewMember, checkProjectBlockers, userCanAccessProject } from "@/lib/distribution";
+import { syncProjectChat } from "@/server/chat/projectChat";
 import { normalizeWebUrl } from "@/lib/safe-url";
 import { notifyHeadAccountManagersOfNewProject } from "@/lib/projectSetup";
 import {
@@ -249,6 +250,8 @@ export async function updateProjectStatus(input: {
     if (accountManagerId) {
       await backfillReceiptsForNewMember(input.projectId, accountManagerId);
     }
+    // Joins (or, when unassigned, leaves) the client's chat group.
+    await syncProjectChat(input.projectId);
   }
 
   return { status: "ok" as const, project: updatedProject };
@@ -416,5 +419,6 @@ export async function assignHeadAccountManager(input: {
     });
   }
 
+  await syncProjectChat(projectId);
   return { status: "ok" as const, project };
 }

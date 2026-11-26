@@ -15,6 +15,7 @@ import {
   hasRole,
 } from "@/lib/constants";
 import { findTeamLeaderRoleForTaskType } from "@/lib/distribution";
+import { syncProjectChat } from "@/server/chat/projectChat";
 import { normalizeWebUrl } from "@/lib/safe-url";
 import { safeTrigger } from "@/lib/pusher";
 import { announceNotifications } from "@/lib/notify";
@@ -332,6 +333,9 @@ export async function reassignTask(input: {
 
   await backfillReceiptsForNewMember(task.projectId, newAgentId);
 
+  // Joins the client's chat group (made when the project reaches technical).
+  await syncProjectChat(task.projectId);
+
   return { status: "ok" as const, task: updatedTask };
 }
 
@@ -554,6 +558,8 @@ export async function createProjectTask(input: {
     });
   }
 
+  // A new task leader joins the client's chat group.
+  await syncProjectChat(projectId);
   return { status: "ok" as const, task };
 }
 
@@ -824,6 +830,9 @@ export async function updateTask(input: {
     });
   }
 
+  // Only once the update is saved: a rejected request must not add anyone to
+  // the client group. Covers agent and leader changes, and finished tasks.
+  await syncProjectChat(existingTask.projectId);
   return { status: "ok" as const, task: updatedTask };
 }
 
@@ -973,6 +982,7 @@ export async function generateProjectTasks(input: {
   await announceNotifications(notificationsToCreate);
 
   await updateProjectStatus(projectId, "assigned");
+  await syncProjectChat(projectId);
 
   await createTaskProjectLog({
     projectId,

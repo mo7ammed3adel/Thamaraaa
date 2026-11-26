@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, ChevronDown, Compass, Hash, Info, MessageSquarePlus, MessagesSquare, Phone, Pin, Plus, Search, Sparkles, Users, Video } from "lucide-react";
+import { ArrowRight, ChevronDown, Compass, Hash, Images, Info, MessageSquarePlus, MessagesSquare, Phone, Pin, Plus, Search, Sparkles, Users, Video } from "lucide-react";
 import {
   ChatUploadError,
+  createConversation,
   deleteMessage,
   editMessage,
   getConversation,
@@ -30,11 +31,13 @@ import Composer, { type ComposerSubmit } from "./Composer";
 import MessageItem, { ImageLightbox, formatTime } from "./MessageItem";
 import { BrowseChannelsModal, InfoPanel, NewConversationModal } from "./ChatModals";
 import { PinsPanel, SearchPanel, ThreadPanel } from "./SidePanels";
+import { MediaPanel } from "./MediaPanel";
+import { UserCard, type UserCardTarget } from "./UserCard";
 import { useChatT } from "./useChatT";
 import { CALL_CHANGED_EVENT, useCalls } from "./calls/CallProvider";
 
 type Me = { id: string; name: string; canCreateChannel: boolean };
-type Panel = { kind: "info" } | { kind: "pins" } | { kind: "thread"; rootId: string } | { kind: "search"; q: string } | null;
+type Panel = { kind: "info" } | { kind: "pins" } | { kind: "media" } | { kind: "thread"; rootId: string } | { kind: "search"; q: string } | null;
 
 function dayLabel(iso: string, locale: string, t: ReturnType<typeof useChatT>["t"]) {
   const d = new Date(iso);
@@ -111,6 +114,7 @@ export default function ChatClient({ me }: { me: Me }) {
   const [topSearch, setTopSearch] = useState("");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [lightbox, setLightbox] = useState<ChatAttachment | null>(null);
+  const [userCard, setUserCard] = useState<UserCardTarget | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
   const activeRef = useRef<string | null>(null);
@@ -118,6 +122,11 @@ export default function ChatClient({ me }: { me: Me }) {
   const pendingThread = useRef<string | null>(null);
   const hadActive = useRef(false);
   const conversationsRef = useRef<ConversationSummary[] | null>(null);
+  const messagesRef = useRef<ChatMessage[]>([]);
+  messagesRef.current = messages;
+  const hasMoreRef = useRef(false);
+  hasMoreRef.current = hasMore;
+  const jumping = useRef(false);
   conversationsRef.current = conversations;
 
   const showError = useCallback((message: string) => notify(message, "error"), []);
@@ -414,10 +423,38 @@ export default function ChatClient({ me }: { me: Me }) {
 
   function jumpTo(id: string) {
     const el = document.getElementById(`msg-${id}`);
-    if (!el) return;
+    if (!el) return false;
     el.scrollIntoView({ behavior: "smooth", block: "center" });
     el.classList.add("ring-2", "ring-emerald-300");
     setTimeout(() => el.classList.remove("ring-2", "ring-emerald-300"), 1600);
+    return true;
+  }
+
+  /** Jumps to a message, loading older pages until it is on screen. */
+  async function jumpToMessage(id: string) {
+    const conversationId = activeRef.current;
+    if (!conversationId || jumping.current) return;
+    jumping.current = true;
+    try {
+      for (let i = 0; i < 20; i++) {
+        if (jumpTo(id)) return;
+        const oldest = messagesRef.current[0];
+        if (!oldest || !hasMoreRef.current || activeRef.current !== conversationId) break;
+        const page = await listMessages(conversationId, { before: oldest.id });
+        // Switched conversation meanwhile: never merge into the wrong one.
+        if (activeRef.current !== conversationId) return;
+        stickToBottom.current = false;
+      setMessages((cur) => mergeMessages(cur, page.messages));
+      setHasMore(page.hasMore);
+        hasMoreRef.current = page.hasMore;
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      showError(t("messageNotFound"));
+    } catch {
+      showError(t("failed"));
+    } finally {
+      jumping.current = false;
+    }
   }
 
   function openSearchHit(hit: SearchHit) {
@@ -471,7 +508,31 @@ export default function ChatClient({ me }: { me: Me }) {
     calls.start(activeId, video, { name: type === "channel" ? `#${title}` : title, type, callId });
   };
 
+  // Tap a name → private chat with them (opens the DM, creating it once).
+  const membersRef = useRef(detail?.members ?? []);
+  membersRef.current = detail?.members ?? [];
+  const openUser = useCallback((user: { id: string; name: string; role?: string | null; online?: boolean }, anchor: DOMRect) => {
+    const member = membersRef.current.find((m) => m.userId === user.id);
+    // Nobody to talk to: a deactivated employee can't get new messages.
+    if (member && !member.active) return;
+    setUserCard({ ...user, online: user.online ?? member?.online, anchor });
+  }, []);
+  const closeUserCard = useCallback(() => setUserCard(null), []);
+  async function openDmWith(user: UserCardTarget, call?: { video: boolean }) {
+    setUserCard(null);
+    try {
+      const { id } = await createConversation({ type: "dm", memberIds: [user.id] });
+      await refreshList();
+      setPanel(null);
+      setActiveId(id);
+      if (call) calls.start(id, call.video, { name: user.name, type: "dm" });
+    } catch (e) {
+      explainError(e);
+    }
+  }
+
   const panelShared = {
+    onOpenUser: type === "dm" ? undefined : openUser,
     meId: me.id,
     names,
     members: mentionMembers,
@@ -664,6 +725,14 @@ export default function ChatClient({ me }: { me: Me }) {
                       </button>
                     )}
                     <button
+                      onClick={() => setPanel(panel?.kind === "media" ? null : { kind: "media" })}
+                      className={`rounded-md p-1.5 transition ${panel?.kind === "media" ? "bg-emerald-50 text-emerald-700" : "text-slate-500 hover:bg-slate-100"}`}
+                      title={t("sharedMedia")}
+                      data-testid="open-media"
+                    >
+                      <Images className="h-4 w-4" />
+                    </button>
+                    <button
                       onClick={() => setPanel(panel?.kind === "pins" ? null : { kind: "pins" })}
                       className={`flex items-center gap-1 rounded-md p-1.5 text-sm transition ${panel?.kind === "pins" ? "bg-amber-50 text-amber-700" : "text-slate-500 hover:bg-slate-100"}`}
                       title={t("pinnedMessages")}
@@ -777,6 +846,7 @@ export default function ChatClient({ me }: { me: Me }) {
                           activeCallId={canCall && !inThisCall ? activeCall?.id ?? null : null}
                           activeCallCount={activeCall?.participants.length ?? 0}
                           onJoinCall={(video) => startCall(video, activeCall?.id)}
+                          onOpenUser={type === "dm" ? undefined : openUser}
                         />
                       </div>
                     );
@@ -819,6 +889,7 @@ export default function ChatClient({ me }: { me: Me }) {
                 refreshList();
               }}
               onError={showError}
+              onOpenUser={detail.type === "dm" ? undefined : openUser}
             />
           )}
           {panel?.kind === "thread" && activeId && (
@@ -839,6 +910,15 @@ export default function ChatClient({ me }: { me: Me }) {
               refreshKey={panelRefresh}
               onClose={() => setPanel(null)}
               onJump={(m) => (m.threadRootId ? setPanel({ kind: "thread", rootId: m.threadRootId }) : jumpTo(m.id))}
+            />
+          )}
+          {panel?.kind === "media" && activeId && (
+            <MediaPanel
+              conversationId={activeId}
+              refreshKey={panelRefresh}
+              onClose={() => setPanel(null)}
+              onOpenImage={setLightbox}
+              onJump={(messageId, rootId) => (rootId ? setPanel({ kind: "thread", rootId }) : jumpToMessage(messageId))}
             />
           )}
           {panel?.kind === "search" && <SearchPanel initialQuery={panel.q} onClose={() => setPanel(null)} onOpen={openSearchHit} />}
@@ -866,6 +946,15 @@ export default function ChatClient({ me }: { me: Me }) {
             refreshList();
             setActiveId(id);
           }}
+        />
+      )}
+      {userCard && (
+        <UserCard
+          target={userCard}
+          canCall={Boolean(detail?.callsEnabled)}
+          onClose={closeUserCard}
+          onMessage={() => openDmWith(userCard)}
+          onCall={(video) => openDmWith(userCard, { video })}
         />
       )}
       {lightbox && <ImageLightbox attachment={lightbox} onClose={() => setLightbox(null)} />}

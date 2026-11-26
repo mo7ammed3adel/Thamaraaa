@@ -23,7 +23,7 @@ import MessageItem, { formatTime } from "./MessageItem";
 import { Mrkdwn } from "./mrkdwn";
 import { useChatT } from "./useChatT";
 
-function PanelShell({ title, subtitle, icon, onClose, children }: { title: string; subtitle?: string | null; icon: React.ReactNode; onClose: () => void; children: React.ReactNode }) {
+export function PanelShell({ title, subtitle, icon, onClose, children }: { title: string; subtitle?: string | null; icon: React.ReactNode; onClose: () => void; children: React.ReactNode }) {
   return (
     <aside className="flex w-full shrink-0 flex-col border-s border-slate-200 bg-white md:w-[400px]">
       <div className="flex h-14 shrink-0 items-center gap-2 border-b border-slate-200 px-4">
@@ -51,6 +51,7 @@ type Shared = {
   onOpenImage: (a: ChatAttachment) => void;
   /** Lets the main list refresh (thread counts, pins). */
   onChanged: () => void;
+  onOpenUser?: (user: { id: string; name: string; role?: string | null }, anchor: DOMRect) => void;
 };
 
 export function ThreadPanel({
@@ -170,6 +171,7 @@ export function ThreadPanel({
       onReact={(x, e) => act(() => toggleReaction(x.id, e))}
       onPin={(x) => act(() => togglePin(x.id))}
       onOpenImage={shared.onOpenImage}
+      onOpenUser={shared.onOpenUser}
     />
   );
 

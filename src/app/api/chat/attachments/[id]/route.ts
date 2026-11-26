@@ -2,7 +2,7 @@ import { createReadStream } from "fs";
 import { Readable, pipeline } from "stream";
 import { createGunzip } from "zlib";
 import { getAttachmentForView } from "@/server/chat/chatService";
-import { statChatFile } from "@/server/chat/chatStorage";
+import { chatThumbnail, statChatFile } from "@/server/chat/chatStorage";
 import { isInlineMime } from "@/server/chat/fileSecurity";
 import { requireChatActor } from "@/server/chat/routeHelpers";
 import { errorJson } from "@/server/http/responses";
@@ -45,6 +45,25 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const result = await getAttachmentForView(auth.actor, params.id);
   if (result.status !== "ok") return errorJson("Not found", 404);
   const { attachment } = result;
+
+  // ?thumb=1 on a photo: the small square used by the media grid.
+  if (new URL(request.url).searchParams.get("thumb") === "1" && attachment.category === "image") {
+    try {
+      const thumb = await chatThumbnail(attachment.storageKey);
+      return new Response(Readable.toWeb(createReadStream(thumb.path)) as ReadableStream<Uint8Array>, {
+        headers: {
+          "Content-Type": "image/webp",
+          "Content-Length": String(thumb.size),
+          "X-Content-Type-Options": "nosniff",
+          "Content-Security-Policy": "default-src 'none'; sandbox",
+          "Cross-Origin-Resource-Policy": "same-origin",
+          "Cache-Control": "private, max-age=86400",
+        },
+      });
+    } catch {
+      /* fall through to the full image */
+    }
+  }
 
   let file: { path: string; size: number };
   try {
