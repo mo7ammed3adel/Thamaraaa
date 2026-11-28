@@ -1,13 +1,15 @@
 import { gzip } from "zlib";
 import { promisify } from "util";
-import sharp from "sharp";
+import sharp, { type Sharp } from "sharp";
 
 /**
  * Shrinks uploads before they hit the disk.
  *
  * - Photos (JPEG/WebP) are resized to fit MAX_IMAGE_EDGE and re-encoded at a
- *   quality that is visually lossless; PNGs are recompressed losslessly. EXIF
- *   is always dropped from JPEGs — it carries the phone's GPS position.
+ *   quality that is visually lossless. PNGs are resized too; a big one that
+ *   WebP stores in under half the size (screenshots, photos saved as PNG) is
+ *   converted to WebP, the rest stay lossless PNG. EXIF is always dropped from
+ *   JPEGs — it carries the phone's GPS position.
  * - Formats that aren't compressed already (text, CSV, old Office files…)
  *   are stored gzipped and decompressed on the way out, byte-for-byte.
  * - Video and audio are left alone: re-encoding them would tie up this
@@ -71,7 +73,13 @@ export function stripJpegMetadata(bytes: Uint8Array): Uint8Array {
 
 // ── Images ─────────────────────────────────────────────────────────────────
 
-export type OptimizedImage = { bytes: Uint8Array; changed: boolean; width?: number; height?: number };
+/** `mimeType` is the stored format, which differs from the upload when a PNG became WebP. */
+export type OptimizedImage = { bytes: Uint8Array; mimeType: string; changed: boolean; width?: number; height?: number };
+
+/** A PNG at least this big is worth trying as WebP. */
+export const PNG_TO_WEBP_MIN_BYTES = 100 * 1024;
+/** Quality for PNGs turned into WebP — a notch above photos, so screenshot text stays crisp. */
+const PNG_AS_WEBP_QUALITY = 85;
 
 /** An APNG has an "acTL" chunk before its first image data chunk. */
 function isAnimatedPng(bytes: Uint8Array): boolean {
@@ -89,8 +97,9 @@ function isAnimatedPng(bytes: Uint8Array): boolean {
 const view = (b: Buffer) => new Uint8Array(b.buffer, b.byteOffset, b.length);
 
 export function optimizeImage(input: Uint8Array, mime: string, opts: { maxEdge?: number; quality?: number } = {}): Promise<OptimizedImage> {
-  if (!["image/jpeg", "image/png", "image/webp"].includes(mime)) return Promise.resolve({ bytes: input, changed: false });
-  if (mime === "image/png" && isAnimatedPng(input)) return Promise.resolve({ bytes: input, changed: false });
+  const unchanged = { bytes: input, mimeType: mime, changed: false };
+  if (!["image/jpeg", "image/png", "image/webp"].includes(mime)) return Promise.resolve(unchanged);
+  if (mime === "image/png" && isAnimatedPng(input)) return Promise.resolve(unchanged);
   const maxEdge = opts.maxEdge ?? MAX_IMAGE_EDGE;
   const quality = opts.quality ?? 82;
 
@@ -98,31 +107,47 @@ export function optimizeImage(input: Uint8Array, mime: string, opts: { maxEdge?:
     try {
       // Re-encoding keeps only the first frame: leave animations as they are.
       if (mime === "image/webp" && ((await sharp(input, { limitInputPixels: MAX_INPUT_PIXELS }).metadata()).pages ?? 1) > 1) {
-        return { bytes: input, changed: false };
+        return unchanged;
       }
       const pipeline = sharp(input, { failOn: "error", limitInputPixels: MAX_INPUT_PIXELS })
         // Bake the EXIF orientation into the pixels before EXIF is dropped.
         .rotate()
         .resize({ width: maxEdge, height: maxEdge, fit: "inside", withoutEnlargement: true });
+      if (mime === "image/png") return await optimizePng(input, pipeline);
       const { data, info } =
         mime === "image/jpeg"
           ? await pipeline.jpeg({ quality, mozjpeg: true }).toBuffer({ resolveWithObject: true })
-          : mime === "image/webp"
-            ? await pipeline.webp({ quality }).toBuffer({ resolveWithObject: true })
-            : await pipeline.png({ compressionLevel: 6 }).toBuffer({ resolveWithObject: true });
-      // A JPEG is always taken (it drops the GPS); others only when smaller.
-      if (mime !== "image/jpeg" && data.length >= input.length) return { bytes: input, changed: false };
-      return { bytes: view(data), changed: true, width: info.width, height: info.height };
+          : await pipeline.webp({ quality }).toBuffer({ resolveWithObject: true });
+      // A JPEG is always taken (it drops the GPS); WebP only when smaller.
+      if (mime !== "image/jpeg" && data.length >= input.length) return unchanged;
+      return { bytes: view(data), mimeType: mime, changed: true, width: info.width, height: info.height };
     } catch (error) {
       console.error("Image optimization skipped:", error instanceof Error ? error.message : error);
       // Couldn't re-encode (too big, truncated…): still never keep a photo's GPS.
       if (mime === "image/jpeg") {
         const stripped = stripJpegMetadata(input);
-        return { bytes: stripped, changed: stripped !== input };
+        return { bytes: stripped, mimeType: mime, changed: stripped !== input };
       }
-      return { bytes: input, changed: false };
+      return unchanged;
     }
   });
+}
+
+/**
+ * Resized lossless PNG, or WebP when the image is big and WebP is under half
+ * the size: PNG keeps screenshots and photos at megabytes even after resizing.
+ * Small or flat PNGs (icons, logos, diagrams) compress well and stay PNG.
+ */
+async function optimizePng(input: Uint8Array, pipeline: Sharp): Promise<OptimizedImage> {
+  const png = await pipeline.clone().png({ compressionLevel: 6 }).toBuffer({ resolveWithObject: true });
+  const bestPng = png.data.length < input.length ? { bytes: view(png.data), changed: true } : { bytes: input, changed: false };
+  if (bestPng.bytes.length >= PNG_TO_WEBP_MIN_BYTES) {
+    const webp = await pipeline.clone().webp({ quality: PNG_AS_WEBP_QUALITY }).toBuffer({ resolveWithObject: true });
+    if (webp.data.length * 2 <= bestPng.bytes.length) {
+      return { bytes: view(webp.data), mimeType: "image/webp", changed: true, width: webp.info.width, height: webp.info.height };
+    }
+  }
+  return { ...bestPng, mimeType: "image/png", width: png.info.width, height: png.info.height };
 }
 
 // ── Other files ────────────────────────────────────────────────────────────

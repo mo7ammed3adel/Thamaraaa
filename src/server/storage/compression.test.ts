@@ -1,7 +1,7 @@
 import { gunzipSync } from "zlib";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
-import { MAX_IMAGE_EDGE, compressForStorage, optimizeImage, runExclusive, stripJpegMetadata } from "./compression";
+import { MAX_IMAGE_EDGE, PNG_TO_WEBP_MIN_BYTES, compressForStorage, optimizeImage, runExclusive, stripJpegMetadata } from "./compression";
 
 /** A noisy photo-like image, so encoders can't cheat with flat colour. */
 async function photo(width: number, height: number, withGps = false) {
@@ -35,13 +35,36 @@ describe("optimizeImage", () => {
     expect([meta.width, meta.height]).toEqual([300, 200]);
   });
 
-  it("keeps a PNG lossless and never makes it bigger", async () => {
+  it("keeps a small or flat PNG lossless and never makes it bigger", async () => {
     const input = new Uint8Array(await sharp({ create: { width: 500, height: 500, channels: 4, background: { r: 10, g: 200, b: 30, alpha: 0.5 } } }).png({ compressionLevel: 0 }).toBuffer());
     const out = await optimizeImage(input, "image/png");
     expect(out.bytes.length).toBeLessThanOrEqual(input.length);
     const a = await sharp(input).raw().toBuffer();
     const b = await sharp(out.bytes).raw().toBuffer();
     expect(Buffer.compare(a, b)).toBe(0);
+  });
+
+  it("stores a big photo-like PNG (a screenshot) as WebP when that's under half the size", async () => {
+    // Seeded noise, blurred: smooth gradients with grain, like a real photo or screenshot.
+    let seed = 7;
+    const raw = Buffer.alloc(1600 * 900 * 3);
+    for (let i = 0; i < raw.length; i++) raw[i] = (seed = (Math.imul(seed, 1103515245) + 12345) >>> 0) >>> 24;
+    const input = new Uint8Array(await sharp(raw, { raw: { width: 1600, height: 900, channels: 3 } }).blur(1.5).png().toBuffer());
+    expect(input.length).toBeGreaterThan(PNG_TO_WEBP_MIN_BYTES);
+    const out = await optimizeImage(input, "image/png");
+    expect(out.mimeType).toBe("image/webp");
+    expect((await sharp(out.bytes).metadata()).format).toBe("webp");
+    expect(out.bytes.length * 2).toBeLessThanOrEqual(input.length);
+  });
+
+  it("keeps transparency when a PNG becomes WebP", async () => {
+    const w = 1200, h = 800;
+    const raw = Buffer.alloc(w * h * 4);
+    for (let i = 0; i < raw.length; i++) raw[i] = i % 4 === 3 ? (i >> 9) % 256 : (i * 13 + (i >> 7)) % 256;
+    const input = new Uint8Array(await sharp(raw, { raw: { width: w, height: h, channels: 4 } }).png().toBuffer());
+    const out = await optimizeImage(input, "image/png");
+    expect(out.mimeType).toBe("image/webp");
+    expect((await sharp(out.bytes).metadata()).hasAlpha).toBe(true);
   });
 
   it("leaves animated PNGs alone", async () => {

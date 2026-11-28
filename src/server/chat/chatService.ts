@@ -853,18 +853,31 @@ export async function sendMessage(
     if ((recent._sum.size ?? 0) + incoming > DAILY_UPLOAD_QUOTA_BYTES) return { status: "rate_limited" as const };
   }
 
-  type Stored = { key: string; file: UploadedFile; result: Extract<InspectedFile, { ok: true }>; served: Uint8Array; disk: Uint8Array; encoding: "identity" | "gzip" };
+  type Stored = {
+    key: string;
+    file: UploadedFile;
+    result: Extract<InspectedFile, { ok: true }>;
+    served: Uint8Array;
+    mimeType: string;
+    name: string;
+    disk: Uint8Array;
+    encoding: "identity" | "gzip";
+  };
   const stored: Stored[] = [];
   let messageId: string;
   try {
     for (const item of inspected) {
       // Smaller on disk: photos resized/re-encoded (and stripped of EXIF),
       // uncompressed documents gzipped. "served" is what downloads return.
-      const served = item.result.category === "image" ? (await optimizeImage(item.file.bytes, item.result.mimeType)).bytes : item.file.bytes;
-      const { bytes: disk, encoding } = await compressForStorage(served, item.result.mimeType);
+      const optimized = item.result.category === "image" ? await optimizeImage(item.file.bytes, item.result.mimeType) : null;
+      const served = optimized?.bytes ?? item.file.bytes;
+      const mimeType = optimized?.mimeType ?? item.result.mimeType;
+      // A PNG stored as WebP downloads as .webp, so the name matches the bytes.
+      const name = mimeType === item.result.mimeType ? item.result.safeName : item.result.safeName.replace(/\.[^.]*$/, "") + ".webp";
+      const { bytes: disk, encoding } = await compressForStorage(served, mimeType);
       const key = newChatStorageKey();
       await saveChatFile(key, disk);
-      stored.push({ key, ...item, served, disk, encoding });
+      stored.push({ key, ...item, served, mimeType, name, disk, encoding });
     }
 
     const now = new Date();
@@ -884,8 +897,8 @@ export async function sendMessage(
               conversationId,
               uploaderId: actor.id,
               storageKey: s.key,
-              originalName: s.result.safeName,
-              mimeType: s.result.mimeType,
+              originalName: s.name,
+              mimeType: s.mimeType,
               category: s.result.category,
               size: s.served.length,
               sha256: sha256Hex(s.served),
