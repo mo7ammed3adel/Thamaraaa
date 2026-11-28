@@ -312,6 +312,17 @@ export const deleteChatLabel = (id: string) => deleteJson<{ ok: true }>(`/api/ch
 export const setConversationLabels = (id: string, labelIds: string[]) =>
   requestPut<{ labelIds: string[] }>(`/api/chat/conversations/${id}/labels`, { labelIds });
 
+// ── Folders (inside each sidebar section) ─────────────────────────────────
+
+export type ChatFolder = { id: string; section: ChatType; name: string; color: string; conversationIds: string[] };
+export const listChatFolders = () => getJson<ChatFolder[]>("/api/chat/folders");
+export const createChatFolder = (section: ChatType, name: string, color: string) => postJson<ChatFolder>("/api/chat/folders", { section, name, color });
+export const updateChatFolder = (id: string, body: { name?: string; color?: string }) => patchJson<{ ok: true }>(`/api/chat/folders/${id}`, body);
+export const deleteChatFolder = (id: string) => deleteJson<{ ok: true }>(`/api/chat/folders/${id}`);
+export const reorderChatFolders = (section: ChatType, ids: string[]) => requestPut<{ ok: true }>("/api/chat/folders/order", { section, ids });
+export const moveConversationToFolder = (id: string, folderId: string | null, beforeId?: string) =>
+  requestPut<{ ok: true }>(`/api/chat/conversations/${id}/folder`, { folderId, beforeId });
+
 async function requestPut<T>(url: string, body: unknown): Promise<T> {
   const response = await fetch(url, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   const payload = await response.json().catch(() => null);

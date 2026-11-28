@@ -2,13 +2,20 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, ChevronDown, Compass, Hash, Images, Route, Tag, Info, MessageSquarePlus, MessagesSquare, Phone, Pin, Plus, Search, Sparkles, Users, Video } from "lucide-react";
+import { ArrowRight, ChevronDown, Compass, FolderPlus, Hash, Images, Route, Tag, Info, MessageSquarePlus, MessagesSquare, Phone, Pin, Plus, Search, Sparkles, Users, Video } from "lucide-react";
 import {
   ChatUploadError,
   createConversation,
   listChatLabels,
   setConversationLabels,
   type ChatLabel,
+  createChatFolder,
+  deleteChatFolder,
+  listChatFolders,
+  moveConversationToFolder,
+  reorderChatFolders,
+  updateChatFolder,
+  type ChatFolder,
   deleteMessage,
   editMessage,
   getConversation,
@@ -39,6 +46,8 @@ import { JourneyPanel } from "./JourneyPanel";
 import { UserCard, type UserCardTarget } from "./UserCard";
 import { LabelFilterBar, LabelManager, LabelPicker } from "./Labels";
 import { labelStyle } from "@/lib/chat/labels";
+import { FolderForm, SectionBody, type DragState } from "./Folders";
+import { applyMove, placeBefore, type DropTarget } from "@/lib/chat/folders";
 import { useChatT } from "./useChatT";
 import { CALL_CHANGED_EVENT, useCalls } from "./calls/CallProvider";
 
@@ -139,6 +148,16 @@ export default function ChatClient({ me }: { me: Me }) {
   useEffect(() => {
     refreshLabels();
   }, [refreshLabels]);
+  // Personal folders inside each section, sorted by drag and drop.
+  const [folders, setFolders] = useState<ChatFolder[]>([]);
+  const [newFolderIn, setNewFolderIn] = useState<ChatType | null>(null);
+  const [drag, setDrag] = useState<DragState>(null);
+  const refreshFolders = useCallback(() => {
+    listChatFolders().then(setFolders).catch(() => undefined);
+  }, []);
+  useEffect(() => {
+    refreshFolders();
+  }, [refreshFolders]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
   const activeRef = useRef<string | null>(null);
@@ -524,6 +543,33 @@ export default function ChatClient({ me }: { me: Me }) {
     refreshLabels();
   }
 
+  /** Runs a folder change optimistically, then re-syncs with the server. */
+  async function folderTask(optimistic: (fs: ChatFolder[]) => ChatFolder[], task: () => Promise<unknown>) {
+    setFolders(optimistic);
+    try {
+      await task();
+    } catch (e) {
+      explainError(e);
+    }
+    refreshFolders();
+  }
+  function moveConversation(conversationId: string, target: DropTarget) {
+    const from = folders.find((f) => f.conversationIds.includes(conversationId));
+    if (!from && target.folderId === null) return;
+    if (from && from.id === target.folderId && target.beforeId === conversationId) return;
+    folderTask(
+      (fs) => applyMove(fs, conversationId, target),
+      () => moveConversationToFolder(conversationId, target.folderId, target.beforeId)
+    );
+  }
+  function reorderFolders(section: ChatType, ids: string[], movedId: string, beforeId: string) {
+    const next = placeBefore(ids, movedId, beforeId);
+    folderTask(
+      (fs) => [...fs.filter((f) => f.section !== section), ...next.map((id) => fs.find((f) => f.id === id)).filter((f): f is ChatFolder => !!f)],
+      () => reorderChatFolders(section, next)
+    );
+  }
+
   const sections: { key: ChatType; label: string; items: ConversationSummary[] }[] = [
     { key: "channel", label: t("channels"), items: filtered.filter((c) => c.type === "channel") },
     { key: "group", label: t("groups"), items: filtered.filter((c) => c.type === "group") },
@@ -653,14 +699,52 @@ export default function ChatClient({ me }: { me: Me }) {
                     <ChevronDown className={`h-3.5 w-3.5 transition ${collapsed[s.key] ? "-rotate-90 rtl:rotate-90" : ""}`} />
                     {s.label}
                   </button>
+                  <button
+                    onClick={() => {
+                      setCollapsed((c) => ({ ...c, [s.key]: false }));
+                      setNewFolderIn(s.key);
+                    }}
+                    className="rounded p-0.5 text-slate-500 opacity-0 hover:bg-white/10 hover:text-white group-hover:opacity-100"
+                    title={t("newFolder")}
+                    data-testid="new-folder"
+                  >
+                    <FolderPlus className="h-3.5 w-3.5" />
+                  </button>
                   {(s.key !== "channel" || me.canCreateChannel) && (
                     <button onClick={() => setModal(s.key)} className="rounded p-0.5 text-slate-500 opacity-0 hover:bg-white/10 hover:text-white group-hover:opacity-100" title={s.key === "dm" ? t("newMessage") : s.key === "group" ? t("newGroup") : t("newChannel")}>
                       <Plus className="h-3.5 w-3.5" />
                     </button>
                   )}
                 </div>
-                {!collapsed[s.key] &&
-                  s.items.map((c) => {
+                {!collapsed[s.key] && newFolderIn === s.key && (
+                  <FolderForm
+                    onCancel={() => setNewFolderIn(null)}
+                    onSave={(name, color) => {
+                      setNewFolderIn(null);
+                      createChatFolder(s.key, name, color)
+                        .catch(explainError)
+                        .finally(refreshFolders);
+                    }}
+                  />
+                )}
+                {!collapsed[s.key] && (
+                  <SectionBody
+                    section={s.key}
+                    items={s.items}
+                    folders={folders.filter((f) => f.section === s.key)}
+                    drag={drag}
+                    setDrag={setDrag}
+                    onMove={moveConversation}
+                    onReorderFolders={reorderFolders}
+                    onRenameFolder={(id, name, color) => folderTask((fs) => fs.map((f) => (f.id === id ? { ...f, name, color } : f)), () => updateChatFolder(id, { name, color }))}
+                    onDeleteFolder={(id) => folderTask((fs) => fs.filter((f) => f.id !== id), () => deleteChatFolder(id))}
+                    onCreateAndMove={(section, name, color, conversationId) =>
+                      createChatFolder(section, name, color)
+                        .then((folder) => moveConversationToFolder(conversationId, folder.id))
+                        .catch(explainError)
+                        .finally(refreshFolders)
+                    }
+                    renderRow={(c) => {
                     const isActive = c.id === activeId;
                     const unread = c.unread > 0;
                     return (
@@ -693,7 +777,9 @@ export default function ChatClient({ me }: { me: Me }) {
                         )}
                       </button>
                     );
-                  })}
+                    }}
+                  />
+                )}
                 {!collapsed[s.key] && s.key === "channel" && (
                   <button onClick={() => setModal("browse")} className="flex w-full items-center gap-2 rounded-md px-2.5 py-1 text-start text-[14px] text-slate-500 hover:bg-white/5 hover:text-slate-300">
                     <span className="flex w-5 justify-center"><Compass className="h-4 w-4" /></span>

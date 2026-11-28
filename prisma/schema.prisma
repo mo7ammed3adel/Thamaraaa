@@ -64,6 +64,7 @@ model User {
   chatConversations   ChatConversation[]  @relation("ChatConversationCreator")
   chatCallsStarted    ChatCall[]          @relation("ChatCallStarter")
   chatLabels          ChatLabel[]
+  chatFolders         ChatFolder[]
   // Profile photo: a storage key in the chat file store (256px WebP).
   avatarKey           String?
   // general_manager only: sees and creates everything a super admin can, but
@@ -1463,6 +1464,7 @@ model ChatConversation {
   attachments ChatAttachment[]
   calls       ChatCall[]
   labelLinks  ChatConversationLabel[]
+  folderItems ChatFolderItem[]
 
   @@index([type, isPrivate])
   @@index([lastMessageAt])
@@ -1607,4 +1609,34 @@ model ChatConversationLabel {
 
   @@id([labelId, conversationId])
   @@index([conversationId])
+}
+
+/// A personal folder inside one sidebar section (channels, groups or direct
+/// messages). You drag conversations into it; nobody else sees it.
+model ChatFolder {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// "channel" | "group" | "dm" — the section it lives under.
+  section   String
+  name      String
+  color     String
+  position  Int              @default(0)
+  createdAt DateTime         @default(now())
+  items     ChatFolderItem[]
+
+  @@index([userId, section])
+}
+
+/// A conversation sits in at most one of your folders.
+model ChatFolderItem {
+  userId         String
+  conversationId String
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  folderId       String
+  folder         ChatFolder       @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  position       Int              @default(0)
+
+  @@id([userId, conversationId])
+  @@index([folderId])
 }

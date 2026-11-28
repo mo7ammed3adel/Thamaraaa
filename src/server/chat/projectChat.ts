@@ -131,6 +131,7 @@ async function sync(projectId: string) {
     for (const m of members) {
       if (m.autoAdded && !assigned.has(m.userId)) {
         await tx.chatMember.delete({ where: { id: m.id } });
+        await tx.chatFolderItem.deleteMany({ where: { userId: m.userId, conversationId: group.id } });
         removed.push(m.user.name);
       }
     }

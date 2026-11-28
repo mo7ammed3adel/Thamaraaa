@@ -551,6 +551,7 @@ export async function removeMember(actor: ChatActor, conversationId: string, use
     await prisma.$transaction(
       async (tx) => {
         await tx.chatMember.delete({ where: { id: target.id } });
+        await tx.chatFolderItem.deleteMany({ where: { userId: target.userId, conversationId } });
         if (leaving && target.role === "owner") {
           const heir =
             (await tx.chatMember.findFirst({ where: { conversationId, role: "admin" }, orderBy: { joinedAt: "asc" } })) ??
