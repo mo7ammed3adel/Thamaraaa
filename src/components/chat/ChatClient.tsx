@@ -953,7 +953,7 @@ export default function ChatClient({ me }: { me: Me }) {
                     const el = e.currentTarget;
                     stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
                   }}
-                  className="flex-1 overflow-y-auto bg-[#f0f2f5] pb-4"
+                  className="flex-1 overflow-y-auto overflow-x-hidden bg-[#f0f2f5] pb-4"
                 >
                   {hasMore && (
                     <div className="my-3 flex justify-center">

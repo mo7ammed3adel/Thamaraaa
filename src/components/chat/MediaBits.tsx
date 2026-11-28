@@ -86,11 +86,11 @@ export function VoicePlayer({ attachment, kind }: { attachment: ChatAttachment; 
         {playing ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 translate-x-[1px] fill-current rtl:-translate-x-[1px] rtl:rotate-180" />}
       </button>
       <div className="min-w-0 flex-1">
-        <div className="flex h-8 cursor-pointer items-center gap-[2px]" onClick={seek} role="slider" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}>
+        <div className="flex h-8 cursor-pointer items-center gap-[2px] overflow-hidden" onClick={seek} role="slider" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}>
           {bars.map((level, i) => (
             <span
               key={i}
-              className={`w-[3px] shrink-0 rounded-full transition-colors ${
+              className={`w-[3px] min-w-px rounded-full transition-colors ${
                 i / bars.length < progress ? (isRecording ? "bg-rose-500" : "bg-emerald-600") : "bg-slate-300"
               }`}
               style={{ height: `${Math.max(12, level * 100)}%` }}
